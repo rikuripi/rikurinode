@@ -6,7 +6,9 @@ Raspberry Pi 5, both on Fedora IoT, updated and rolled back as whole images.
 The design goal: a failed update must never cost the node or its funds.
 
 **Status: bootstrap.** This repository holds the engineering process and its
-gates. There is no node code yet, and nothing here is ready to run.
+gates. There is no node code yet, and nothing here is ready to run. The
+[platform and architecture plan](docs/architecture/platform-plan.md) says how
+the node will be built, and which decisions are still the owner's.
 
 ## How the work is done
 
