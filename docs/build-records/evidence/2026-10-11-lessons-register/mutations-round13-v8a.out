@@ -1,0 +1,131 @@
+CAUGHT A1   expect CATCH     straight single quotes '…' inside underscore emphasis: _'prose'_  (exit 1, 1 problem(s))
+            - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+           render: <ul> <li><strong>Owner:</strong> <ul> <li><em>'startup memory footprint scales with live mempool size and accumulated disk cache'</em> — 2026-08-16-mempool-oom-recurrence.md</li> <li>First approval “1. Ok wi
+CAUGHT A2   expect CATCH     the same in strong emphasis: __'prose'__  (exit 1, 1 problem(s))
+            - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+           render: <ul> <li><strong>Owner:</strong> <ul> <li><strong>'startup memory footprint scales with live mempool size and accumulated disk cache'</strong> — 2026-08-16-mempool-oom-recurrence.md</li> <li>First approval “1. O
+CAUGHT A3   expect CATCH?    curly ’…’ (reversed opener) inside underscore emphasis: _’prose’_  (exit 1, 1 problem(s))
+            - Owner line: PLAT-04: quotation marks it cannot pair (’’) in “- _’startup memory footprint scales with live mempool size and accumulated disk cache’_ — ”
+           render: <ul> <li><strong>Owner:</strong> <ul> <li><em>’startup memory footprint scales with live mempool size and accumulated disk cache’</em> — 2026-08-16-mempool-oom-recurrence.md</li> <li>First approval “1. Ok wi
+MISSED A4   expect CATCH?    a '…' opener glued to the previous word, closer after an s: said'…ceilings'  (exit 0, 0 problem(s))
+           render: <ul> <li><strong>Owner:</strong> <ul> <li>the owner said'if this OOMs again, we STOP raising ceilings' — 2026-08-16-mempool-oom-recurrence.md</li> <li>First approval “1. Ok with your proposal” (alert only at &gt;=95% for 3 checks in a row; restart mempool-api itself, never the heaviest container; no
+CAUGHT A0   expect CATCH     control: plain '…' around the same prose  (exit 1, 1 problem(s))
+            - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+           render: <ul> <li><strong>Owner:</strong> <ul> <li>'startup memory footprint scales with live mempool size and accumulated disk cache' — 2026-08-16-mempool-oom-recurrence.md</li> <li>First approval “1. Ok with yo
+CAUGHT A0b  expect CATCH     control: _"prose"_ (double quotes in emphasis)  (exit 1, 1 problem(s))
+            - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+           render: <ul> <li><strong>Owner:</strong> <ul> <li><em>&quot;startup memory footprint scales with live mempool size and accumulated disk cache&quot;</em> — 2026-08-16-mempool-oom-recurrence.md</li> <li>First approval “1.
+CAUGHT B1   expect CATCH     a blockquote opened after an ordered '1)' marker: '  1) > prose'  (exit 1, 1 problem(s))
+            - Owner line: PLAT-04: a blockquote in an Owner field: 1) > startup memory footprint scales with live mempool size
+           render: <ul> <li><strong>Owner:</strong> <ol> <li> <blockquote> <p>startup memory footprint scales with live mempool size and accumulated disk cache — 2026-08-16-mempool-oom-recurrence.md</p> </blockquote> </li> </ol> <ul> <li>
+CAUGHT B2   expect CATCH     a blockquote after two list markers: '  - * > prose'  (exit 1, 1 problem(s))
+            - Owner line: PLAT-04: a blockquote in an Owner field: - * > startup memory footprint scales with live mempool size
+           render: <ul> <li><strong>Owner:</strong> <ul> <li> <ul> <li> <blockquote> <p>startup memory footprint scales with live mempool size and accumulated disk cache — 2026-08-16-mempool-oom-recurrence.md</p> </blockquote> </li> </ul> </li> <li
+CAUGHT B3   expect CATCH     a blockquote after '- 1. ': '  - 1. > prose'  (exit 1, 1 problem(s))
+            - Owner line: PLAT-04: a blockquote in an Owner field: - 1. > startup memory footprint scales with live mempool siz
+           render: <ul> <li><strong>Owner:</strong> <ul> <li> <ol> <li> <blockquote> <p>startup memory footprint scales with live mempool size and accumulated disk cache — 2026-08-16-mempool-oom-recurrence.md</p> </blockquote> </li> </ol> </li> <li
+CAUGHT B0   expect CATCH     control: '  - > prose'  (exit 1, 1 problem(s))
+            - Owner line: PLAT-04: a blockquote in an Owner field: - > startup memory footprint scales with live mempool size a
+           render: <ul> <li><strong>Owner:</strong> <ul> <li> <blockquote> <p>startup memory footprint scales with live mempool size and accumulated disk cache — 2026-08-16-mempool-oom-recurrence.md</p> </blockquote> </li> <li>First appro
+CAUGHT C1   expect CATCH     a lazy continuation line starting '#2' (not a heading) inside the last Owner item  (exit 1, 1 problem(s))
+            - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-10-03-upgrade-gates-round-2.md, 2026-08-16-mempool-oom-recurrence.md)
+           render:  and upgrade for other nodes, then we'll need to keep RAM usage based on the local hardware. Keeping the node running as much as we can, while upgrading. Shotdown or reduce RAM usage if necessary.” — 2026-10-03-upgrade-gates-round-2.md #2 the owner also said “startup memory footprint scales with live mempool size and accumulated disk cache” — 2026-08-16-mempool-oom-recurrence.md</li> </ul> </li> <li><strong>Port:</st
+CAUGHT C2   expect CATCH     a lazy continuation line starting '#owner:' (not a heading)  (exit 1, 1 problem(s))
+            - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-10-03-upgrade-gates-round-2.md, 2026-08-16-mempool-oom-recurrence.md)
+           render: e doing this as and upgrade for other nodes, then we'll need to keep RAM usage based on the local hardware. Keeping the node running as much as we can, while upgrading. Shotdown or reduce RAM usage if necessary.” — 2026-10-03-upgrade-gates-round-2.md #owner: “startup memory footprint scales with live mempool size and accumulated disk cache” — 2026-08-16-mempool-oom-recurrence.md</li> </ul> </li> <li><strong>Port:</st
+CAUGHT C0   expect CATCH     control: the same line indented (no '#' at column 0)  (exit 1, 1 problem(s))
+            - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-10-03-upgrade-gates-round-2.md, 2026-08-16-mempool-oom-recurrence.md)
+           render:  and upgrade for other nodes, then we'll need to keep RAM usage based on the local hardware. Keeping the node running as much as we can, while upgrading. Shotdown or reduce RAM usage if necessary.” — 2026-10-03-upgrade-gates-round-2.md #2 the owner also said “startup memory footprint scales with live mempool size and accumulated disk cache” — 2026-08-16-mempool-oom-recurrence.md</li> </ul> </li> <li><strong>Port:</st
+CAUGHT C3   expect UNCLAIMED a column-0 '- **“prose”**' bullet right after the Owner items (a sibling bullet)  (exit 1, 1 problem(s))
+            - Owner line: PLAT-04: a line at column 0 that is not one of the requirement's fields: - **“startup memory footprint scales with live mempool size
+           render: pgrade for other nodes, then we'll need to keep RAM usage based on the local hardware. Keeping the node running as much as we can, while upgrading. Shotdown or reduce RAM usage if necessary.” — 2026-10-03-upgrade-gates-round-2.md</li> </ul> </li> <li><strong>“startup memory footprint scales with live mempool size and accumulated disk cache”</strong> — 2026-08-16-mempool-oom-recurrence.md</li> <li><strong>Port:</stron
+CAUGHT D1   expect CATCH     a second Owner field, its O a Cyrillic О (U+041E): renders as Owner:  (exit 1, 2 problem(s))
+            - line 980: characters outside the register's alphabet (U+041E)
+            - Owner line: PLAT-04: a line at column 0 that is not one of the requirement's fields: - **Оwner:** “startup memory footprint scales with live memp
+           render:  nodes, then we'll need to keep RAM usage based on the local hardware. Keeping the node running as much as we can, while upgrading. Shotdown or reduce RAM usage if necessary.” — 2026-10-03-upgrade-gates-round-2.md</li> </ul> </li> <li><strong>Оwner:</strong> “startup memory footprint scales with live mempool size and accumulated disk cache” — 2026-08-16-mempool-oom-recurrence.md</li> <li><strong>Port:</strong></li> <
+CAUGHT D2   expect CATCH     a second Owner field written **&#79;wner:** (an entity for O)  (exit 1, 2 problem(s))
+            - line 980: an HTML entity
+            - Owner line: PLAT-04: a line at column 0 that is not one of the requirement's fields: - **&#79;wner:** “startup memory footprint scales with live
+           render:  nodes, then we'll need to keep RAM usage based on the local hardware. Keeping the node running as much as we can, while upgrading. Shotdown or reduce RAM usage if necessary.” — 2026-10-03-upgrade-gates-round-2.md</li> </ul> </li> <li><strong>Owner:</strong> “startup memory footprint scales with live mempool size and accumulated disk cache” — 2026-08-16-mempool-oom-recurrence.md</li> <li><strong>Port:</strong></li> <
+CAUGHT D3   expect CATCH     a second Owner field written <strong>Owner:</strong>  (exit 1, 5 problem(s))
+            - line 980: an HTML tag the register does not use: <strong>
+            - line 980: an HTML tag the register does not use: </strong>
+            - Owner line: PLAT-04: a line at column 0 that is not one of the requirement's fields: - <strong>Owner:</strong> “startup memory footprint scales w
+            - Owner line: PLAT-04: an HTML entity or tag in “- <strong>Owner:</strong> “startup memory footprint scales with live mempool size and accu”
+            - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+           render:  nodes, then we'll need to keep RAM usage based on the local hardware. Keeping the node running as much as we can, while upgrading. Shotdown or reduce RAM usage if necessary.” — 2026-10-03-upgrade-gates-round-2.md</li> </ul> </li> <li><strong>Owner:</strong> “startup memory footprint scales with live mempool size and accumulated disk cache” — 2026-08-16-mempool-oom-recurrence.md</li> <li><strong>Port:</strong></li> <
+CAUGHT D4   expect CATCH     a second Owner field with a soft hyphen inside: **Ow\u00adner:**  (exit 1, 2 problem(s))
+            - line 980: characters outside the register's alphabet (U+00AD)
+            - Owner line: PLAT-04: a line at column 0 that is not one of the requirement's fields: - **Ow­ner:** “startup memory footprint scales with live mem
+           render: nodes, then we'll need to keep RAM usage based on the local hardware. Keeping the node running as much as we can, while upgrading. Shotdown or reduce RAM usage if necessary.” — 2026-10-03-upgrade-gates-round-2.md</li> </ul> </li> <li><strong>Ow­ner:</strong> “startup memory footprint scales with live mempool size and accumulated disk cache” — 2026-08-16-mempool-oom-recurrence.md</li> <li><strong>Port:</strong></li> <
+CAUGHT D5   expect CATCH     a second Owner field with a zero-width space inside: **O\u200bwner:**  (exit 1, 2 problem(s))
+            - line 980: characters outside the register's alphabet (U+200B)
+            - Owner line: PLAT-04: a line at column 0 that is not one of the requirement's fields: - **O​wner:** “startup memory footprint scales with live mem
+           render: nodes, then we'll need to keep RAM usage based on the local hardware. Keeping the node running as much as we can, while upgrading. Shotdown or reduce RAM usage if necessary.” — 2026-10-03-upgrade-gates-round-2.md</li> </ul> </li> <li><strong>O​wner:</strong> “startup memory footprint scales with live mempool size and accumulated disk cache” — 2026-08-16-mempool-oom-recurrence.md</li> <li><strong>Port:</strong></li> <
+CAUGHT D6   expect CATCH?    a second Owner field written **OWNER:**  (exit 1, 2 problem(s))
+            - line 980: an Owner label not written `- **Owner:**`
+            - Owner line: PLAT-04: a line at column 0 that is not one of the requirement's fields: - **OWNER:** “startup memory footprint scales with live memp
+           render:  nodes, then we'll need to keep RAM usage based on the local hardware. Keeping the node running as much as we can, while upgrading. Shotdown or reduce RAM usage if necessary.” — 2026-10-03-upgrade-gates-round-2.md</li> </ul> </li> <li><strong>OWNER:</strong> “startup memory footprint scales with live mempool size and accumulated disk cache” — 2026-08-16-mempool-oom-recurrence.md</li> <li><strong>Port:</strong></li> <
+CAUGHT D7   expect CATCH?    a second Owner field written **Owners:**  (exit 1, 2 problem(s))
+            - line 980: an Owner label not written `- **Owner:**`
+            - Owner line: PLAT-04: a line at column 0 that is not one of the requirement's fields: - **Owners:** “startup memory footprint scales with live mem
+           render: nodes, then we'll need to keep RAM usage based on the local hardware. Keeping the node running as much as we can, while upgrading. Shotdown or reduce RAM usage if necessary.” — 2026-10-03-upgrade-gates-round-2.md</li> </ul> </li> <li><strong>Owners:</strong> “startup memory footprint scales with live mempool size and accumulated disk cache” — 2026-08-16-mempool-oom-recurrence.md</li> <li><strong>Port:</strong></li> <
+CAUGHT D0   expect CATCH     control: a second Owner field written __Owner:__  (exit 1, 4 problem(s))
+            - line 980: an Owner label not written `- **Owner:**`
+            - Owner line: PLAT-04: a line at column 0 that is not one of the requirement's fields: - __Owner:__ “startup memory footprint scales with live memp
+            - Owner line: PLAT-04: an Owner field not written `- **Owner:**`: - __Owner:__ “startup memory footprint scales with live memp
+            - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+           render:  nodes, then we'll need to keep RAM usage based on the local hardware. Keeping the node running as much as we can, while upgrading. Shotdown or reduce RAM usage if necessary.” — 2026-10-03-upgrade-gates-round-2.md</li> </ul> </li> <li><strong>Owner:</strong> “startup memory footprint scales with live mempool size and accumulated disk cache” — 2026-08-16-mempool-oom-recurrence.md</li> <li><strong>Port:</strong></li> <
+CAUGHT D8   expect CATCH     an Owner field written exactly `- **Owner:**` under an added '#### Notes' heading after PLAT-04  (exit 1, 1 problem(s))
+            - a #### heading that is not a requirement: Notes
+           render: <h4>Notes</h4> <ul> <li><strong>Owner:</strong> “startup memory footprint scales with live mempool size and accumulated disk cache” — 2026-08-16-mempool-oom-recurrence.md</li> </ul> <h4>PLAT-05 — Units are ord
+CAUGHT D9   expect CATCH?    an Owner field written exactly `- **Owner:**` in the EVID theme intro (before the first ####)  (exit 1, 1 problem(s))
+            - an Owner field before the first requirement
+           render: <h3>EVID — Evidence and truth of status</h3> <p><em>What the node reports — on its pages, in its health score, in alerts and to the assistant — must be measured, current and honest about what it does not know.</em></p> <ul> <li><strong>Owner:</strong> “startup memory footprint scales with live mempool size and accumulated disk cache” — 2026-08-16-mempool-oom-recurrence.md</li> </ul>
+CAUGHT S1   expect CATCH     a pipe-less line between rows 2 and 3 (GFM renders it as a row)  (exit 1, 1 problem(s))
+            - section 3's table has 123 lines, 122 of them five-cell rows; 122 rows read
+           render: rendered: 124 <tr> in section 3 (orig 123); rows with the prose: [' <td>&quot;startup memory footprint scales with live mempool size and accumulated disk cache&quot; — the owner, 2026-08-16-mempool-oom-recurrence.md</td> <td></td> <td></td> <td></td> <td></td> ']; paragraphs with it: []; header: ['#', 'Owner decision (verbatim)']
+CAUGHT S2   expect CATCH     a pipe-less line directly under row 122  (exit 1, 1 problem(s))
+            - section 3's table has 123 lines, 122 of them five-cell rows; 122 rows read
+           render: rendered: 124 <tr> in section 3 (orig 123); rows with the prose: [' <td>123 &quot;startup memory footprint scales with live mempool size and accumulated disk cache&quot; 2026-08-16-mempool-oom-recurrence.md</td> <td></td> <td></td> <td></td> <td></td> ']; paragraphs with it: []; header: ['#', 'Owner decision (verbatim)']
+CAUGHT S3   expect CATCH     a one-pipe line under row 122: '123 | "prose" — OOM'  (exit 1, 1 problem(s))
+            - section 3's table has 123 lines, 122 of them five-cell rows; 122 rows read
+           render: rendered: 124 <tr> in section 3 (orig 123); rows with the prose: [' <td>123</td> <td>&quot;startup memory footprint scales with live mempool size and accumulated disk cache&quot; — 2026-08-16-mempool-oom-recurrence.md</td> <td></td> <td></td> <td></td> ']; paragraphs with it: []; header: ['#', 'Owner decision (verbatim)']
+CAUGHT S4   expect CATCH     a one-pipe line under row 122: '| 123 "prose" OOM'  (exit 1, 1 problem(s))
+            - section 3's table has 123 lines, 122 of them five-cell rows; 122 rows read
+           render: rendered: 124 <tr> in section 3 (orig 123); rows with the prose: [' <td>123 &quot;startup memory footprint scales with live mempool size and accumulated disk cache&quot; 2026-08-16-mempool-oom-recurrence.md</td> <td></td> <td></td> <td></td> <td></td> ']; paragraphs with it: []; header: ['#', 'Owner decision (verbatim)']
+CAUGHT S5   expect CATCH     a five-cell row whose first cell starts with '#': '| #123 | "prose" | … |'  (exit 1, 1 problem(s))
+            - section 3's table has 123 lines, 122 of them five-cell rows; 122 rows read
+           render: rendered: 124 <tr> in section 3 (orig 123); rows with the prose: [' <td>#123</td> <td>&quot;startup memory footprint scales with live mempool size and accumulated disk cache&quot;</td> <td>2026-08-16-mempool-oom-recurrence.md</td> <td>PLAT-04</td> <td>Current</td> ']; paragraphs with it: []; header: ['#', 'Owner decision (verbatim)']
+CAUGHT S6   expect CATCH     a row whose first cell starts with '---': '| --- "prose" | … |'  (exit 1, 1 problem(s))
+            - section 3's table has 123 lines, 122 of them five-cell rows; 122 rows read
+           render: rendered: 124 <tr> in section 3 (orig 123); rows with the prose: [' <td>--- &quot;startup memory footprint scales with live mempool size and accumulated disk cache&quot;</td> <td>2026-08-16-mempool-oom-recurrence.md</td> <td>PLAT-04</td> <td>Current</td> <td></td> ']; paragraphs with it: []; header: ['#', 'Owner decision (verbatim)']
+CAUGHT S7   expect CATCH     row 3's Record(s) cell gains the record's prose in quotation marks as the owner's  (exit 1, 1 problem(s))
+            - owner decision row 3: its Records cell holds more than record names
+           render: rendered: 123 <tr> in section 3 (orig 123); rows with the prose: [" <td>3</td> <td>Standing decision recorded in the record (not quoted as the owner's words): &quot;if this OOMs again, we STOP raising ceilings and bound the growth instead&quot;. <em>(the record does not say who set this rule; the harvest listed it as the owner's)</em></td> <td>2026-08-16-mempool-oo"]; paragraphs with it: []; header: ['#', 'Owner decision (verbatim)']
+CAUGHT S8   expect CATCH?    an HTML table row in section 3 (renders as a row)  (exit 1, 10 problem(s))
+            - line 1178: an HTML tag the register does not use: <table>
+            - line 1178: an HTML tag the register does not use: <tr>
+            - line 1178: an HTML tag the register does not use: <td>
+            - line 1178: an HTML tag the register does not use: </td>
+            - line 1178: an HTML tag the register does not use: <td>
+            - line 1178: an HTML tag the register does not use: </td>
+            - line 1178: an HTML tag the register does not use: <td>
+            - line 1178: an HTML tag the register does not use: </td>
+            - line 1178: an HTML tag the register does not use: </tr>
+            - line 1178: an HTML tag the register does not use: </table>
+           render: rendered: 124 <tr> in section 3 (orig 123); rows with the prose: ['<td>123</td><td>"startup memory footprint scales with live mempool size and accumulated disk cache"</td><td>2026-08-16-mempool-oom-recurrence.md</td>']; paragraphs with it: []; header: ['#', 'Owner decision (verbatim)']
+MISSED S9   expect UNCLAIMED section 3's intro gains the record's prose as the owner's words  (exit 0, 0 problem(s))
+           render: rendered: 123 <tr> in section 3 (orig 123); rows with the prose: []; paragraphs with it: ["Every distinct owner decision in the harvest (122), quoted verbatim from the <code>owner_decision</code> field, in record order. Some fields are the harvester's summary of a choice rather than the own"]; header: ['#', 'Owner decision (verbatim)']
+CAUGHT S10  expect UNCLAIMED section 3's header cell changed  (exit 1, 1 problem(s))
+            - section 3's table header is missing or repeated
+           render: rendered: 123 <tr> in section 3 (orig 123); rows with the prose: [' <th>#</th> <th>Owner decision (verbatim): &quot;startup memory footprint scales with live mempool size and accumulated disk cache&quot;</th> <th>Record(s)</th> <th>Feeds</th> <th>Status</th> ']; paragraphs with it: []; header: ['#', 'Owner decision (verbatim): &quot;startup memory footprint scales with live mempool size and accumulated disk cache&quot;']
+CAUGHT S0   expect CATCH     control: a five-cell row 123 under row 122  (exit 1, 1 problem(s))
+            - section 3 has 123 rows for 122 distinct decisions
+           render: rendered: 124 <tr> in section 3 (orig 123); rows with the prose: [' <td>123</td> <td>&quot;startup memory footprint scales with live mempool size and accumulated disk cache&quot;</td> <td>2026-08-16-mempool-oom-recurrence.md</td> <td>PLAT-04</td> <td>Current</td> ']; paragraphs with it: []; header: ['#', 'Owner decision (verbatim)']
+CAUGHT S0b  expect CATCH     control: a two-pipe row under row 122  (exit 1, 1 problem(s))
+            - section 3's table has 123 lines, 122 of them five-cell rows; 122 rows read
+           render: rendered: 124 <tr> in section 3 (orig 123); rows with the prose: [' <td>123 &quot;startup memory footprint scales with live mempool size and accumulated disk cache&quot;</td> <td></td> <td></td> <td></td> <td></td> ']; paragraphs with it: []; header: ['#', 'Owner decision (verbatim)']
+
+by expectation (caught, missed): {'CATCH': [27, 0], 'CATCH?': [5, 1], 'UNCLAIMED': [2, 1]}
+register unchanged, sha256 f5997a896ec0c4f61cec4c40275a486cb0c16ea89de1d7cf3f4a4d4363fc7c5c

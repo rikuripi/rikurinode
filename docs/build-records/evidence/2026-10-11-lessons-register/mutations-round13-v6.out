@@ -1,0 +1,129 @@
+CAUGHT PB1  expect CATCH      arkb record's bold heading label quoted as the owner's  (exit 1, 1 problem(s))
+          - Owner line: EVID-06: “Owner's choices (AskUserQuestion, 2026-09-29, costs stated):” is the record's own prose, not words it quotes (2026-09-29-market-intel-freshness-arkb.md)
+CAUGHT PB2  expect CATCH      arkb record's bold 'Fallbacks:' (a group label, not an option) quoted  (exit 1, 1 problem(s))
+          - Owner line: EVID-06: “Fallbacks:” is the record's own prose, not words it quotes (2026-09-29-market-intel-freshness-arkb.md)
+CAUGHT PB3  expect CATCH      arkb bold option text with its question header 'ETF column: ARKB (Recommended).'  (exit 1, 1 problem(s))
+          - Owner line: EVID-06: “ETF column: ARKB (Recommended).” is the record's own prose, not words it quotes (2026-09-29-market-intel-freshness-arkb.md)
+CAUGHT PB4  expect CATCH      option label joined with the record's description (row 43's form) in the Owner line  (exit 1, 1 problem(s))
+          - Owner line: EVID-06: “MAs + returns backup: Kraken daily candles, plus the node's own daily-close archive” is the record's own prose, not words it quotes (2026-09-29-market-intel-freshness-arkb.md)
+CAUGHT PB5  expect CATCH      a record heading ('Owner's decision', electrs) quoted as the owner's  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: “Owner's decision (2026-10-03 ~22:15)” is the record's own prose, not words it quotes (2026-10-03-electrs-0.12-support.md)
+CAUGHT PB6  expect CATCH      a table cell's bold ('Farside's all-ETF Total') quoted  (exit 1, 1 problem(s))
+          - Owner line: EVID-06: “Farside's all-ETF Total” is the record's own prose, not words it quotes (2026-09-29-market-intel-freshness-arkb.md)
+CAUGHT PU1  expect CATCH      record prose from a part with no quotation marks, in “…” (control)  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+MISSED PU2  expect LIMIT      record prose given as the owner's with no quotation marks at all  (exit 0, 0 problem(s))
+CAUGHT PS1  expect UNCLAIMED* straight single quotes '…' (register: 'in any quotation marks')  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+CAUGHT PS2  expect UNCLAIMED* guillemets «…»  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+00AB, U+00BB)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+00AB, U+00BB) in “- «startup memory footprint scales with live mempool size and accumulated disk cache» — 20”
+CAUGHT PS3  expect UNCLAIMED* German low-high „…“  (exit 1, 3 problem(s))
+          - line 975: characters outside the register's alphabet (U+201E)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+201E) in “- „startup memory footprint scales with live mempool size and accumulated disk cache“ — 20”
+          - Owner line: PLAT-04: quotation marks it cannot pair (“) in “- „startup memory footprint scales with live mempool size and accumulated disk cache“ — 20”
+CAUGHT PS4  expect UNCLAIMED* single low-high ‚…‘  (exit 1, 3 problem(s))
+          - line 975: characters outside the register's alphabet (U+201A)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+201A) in “- ‚startup memory footprint scales with live mempool size and accumulated disk cache‘ — 20”
+          - Owner line: PLAT-04: quotation marks it cannot pair (‘) in “- ‚startup memory footprint scales with live mempool size and accumulated disk cache‘ — 20”
+CAUGHT PS5  expect UNCLAIMED* HTML entities &ldquo;…&rdquo; (render as “…”)  (exit 1, 2 problem(s))
+          - line 975: an HTML entity
+          - Owner line: PLAT-04: an HTML entity or tag in “- &ldquo;startup memory footprint scales with live mempool size and accumulated disk cache”
+CAUGHT PS6  expect UNCLAIMED* HTML entities &quot;…&quot; (render as "…")  (exit 1, 2 problem(s))
+          - line 975: an HTML entity
+          - Owner line: PLAT-04: an HTML entity or tag in “- &quot;startup memory footprint scales with live mempool size and accumulated disk cache&”
+CAUGHT PS7  expect UNCLAIMED* <q>…</q> (renders with quotation marks)  (exit 1, 3 problem(s))
+          - line 975: an HTML tag the register does not use: <q>
+          - line 975: an HTML tag the register does not use: </q>
+          - Owner line: PLAT-04: an HTML entity or tag in “- <q>startup memory footprint scales with live mempool size and accumulated disk cache</q>”
+CAUGHT PS8  expect UNCLAIMED* double primes ″…″  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+2033)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+2033) in “- ″startup memory footprint scales with live mempool size and accumulated disk cache″ — 20”
+CAUGHT PS9  expect CATCH      “…” around a code span holding the record's prose  (exit 1, 2 problem(s))
+          - requirement Port path not tracked at old HEAD: startup memory footprint scales with live mempool size and accumulated disk cache
+          - Owner line: PLAT-04: an empty quotation, or one of code only in “- “`startup memory footprint scales with live mempool size and accumulated disk cache`” — ”
+CAUGHT QB1  expect CATCH      ‘…’ with the closing mark missing  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: quotation marks it cannot pair (‘) in “- ‘startup memory footprint scales with live mempool size and accumulated disk cache — 202”
+CAUGHT QB2  expect CATCH      ‘…’ reversed: ’…‘  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: quotation marks it cannot pair (’‘) in “- ’startup memory footprint scales with live mempool size and accumulated disk cache‘ — 20”
+CAUGHT QB3  expect CATCH      a reversed ”…“ pair after a well-formed “…” pair  (exit 1, 2 problem(s))
+          - Owner line: PLAT-04: quotation marks it cannot pair (”“) in “- “if this OOMs again” then ”startup memory footprint scales with live mempool size and ac”
+          - Owner line: PLAT-04: “if this OOMs again” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+CAUGHT QB4  expect CATCH      a stray closing ” after a well-formed pair  (exit 1, 2 problem(s))
+          - Owner line: PLAT-04: quotation marks it cannot pair (”) in “- “startup memory footprint scales with live mempool size and accumulated disk cache” — 20”
+          - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+CAUGHT QB5  expect CATCH      one straight " opening the prose, none closing  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: quotation marks it cannot pair (") in “- "startup memory footprint scales with live mempool size and accumulated disk cache — 202”
+CAUGHT QP1  expect CATCH      an empty "" before a straight-quoted span shifts the pairing  (exit 1, 2 problem(s))
+          - Owner line: PLAT-04: an empty quotation, or one of code only in “- the setting left at "" and "startup memory footprint scales with live mempool size and a”
+          - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+CAUGHT QP2  expect CATCH      inch marks around a straight-quoted span (even count)  (exit 1, 2 problem(s))
+          - Owner line: PLAT-04: “ drive and ” is not in its record (2026-08-16-mempool-oom-recurrence.md)
+          - Owner line: PLAT-04: “ and a 3.5” is not in its record (2026-08-16-mempool-oom-recurrence.md)
+CAUGHT QP3  expect CATCH      the prose nested in straight quotes inside a real owner quotation  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: “Fine with 95% limit for now. "startup memory footprint scales with live mempool size and a” is not in its record (2026-09-26-mempool-api-memory.md, 2026-08-16-mempool-oom-recurrence.md)
+CAUGHT QP4  expect CATCH      ‘…’ opened right after a letter (contrived)  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: quotation marks it cannot pair (‘’) in “- x‘startup memory footprint scales with live mempool size and accumulated disk cache’ — 2”
+CAUGHT QP5  expect CATCH      a code span holding ” that would close an earlier “  (exit 1, 3 problem(s))
+          - requirement Port path not tracked at old HEAD: ”
+          - Owner line: PLAT-04: curly quotation marks inside a code span in “- “if this OOMs again `”` startup memory footprint scales with live mempool size and accum”
+          - Owner line: PLAT-04: “if this OOMs again ` startup memory footprint scales with live mempool size and accumulate” carries Markdown of its own
+CAUGHT QP6  expect CATCH      a quoted space " " then the straight-quoted prose  (exit 1, 2 problem(s))
+          - Owner line: PLAT-04: an empty quotation, or one of code only in “- " " then "startup memory footprint scales with live mempool size and accumulated disk ca”
+          - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+CAUGHT W1   expect CATCH      wrap whose next line starts '1. ', word changed after it (EVID-03)  (exit 1, 1 problem(s))
+          - Owner line: EVID-03: “Yes, in fact, check all measurement on the Dashboard. Make sure every one of them 1. is ac” is not in its record (2026-09-30-dashboard-page-truth.md)
+CAUGHT W2   expect CATCH      a blank line inside a quotation, word changed after it (EVID-03)  (exit 1, 1 problem(s))
+          - Owner line: EVID-03: “Yes, in fact, check all measurement on the Dashboard. Make sure every one of them is actua” is not in its record (2026-09-30-dashboard-page-truth.md)
+CAUGHT W3   expect LIMIT?     a loose-list Owner sub-item after a blank line, record prose quoted  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+CAUGHT W4   expect CATCH      wrap whose next line starts '- **' at column 0 (ends the Owner section)  (exit 1, 2 problem(s))
+          - Owner line: EVID-03: a line at column 0 that is not one of the requirement's fields: - **is** actually measuring the right thing and is correctly
+          - Owner line: EVID-03: quotation marks it cannot pair (“) in ““Yes, in fact, check all measurement on the Dashboard. Make sure every one of them”
+CAUGHT W5   expect CATCH      wrap indented with a tab, word changed after it  (exit 1, 2 problem(s))
+          - line 62: characters outside the register's alphabet (U+0009)
+          - Owner line: EVID-03: “Yes, in fact, check all measurement on the Dashboard. Make sure every one of them is actua” is not in its record (2026-09-30-dashboard-page-truth.md)
+CAUGHT S1   expect CATCH      a note added to row 2  (exit 1, 1 problem(s))
+          - owner decision row 2: its note differs from the one read by hand ("the owner's words")
+CAUGHT S2   expect CATCH      row 4's note removed  (exit 1, 1 problem(s))
+          - owner decision row 4: its note differs from the one read by hand ('none')
+CAUGHT S3   expect CATCH      row 4's text changed, note kept  (exit 1, 1 problem(s))
+          - owner decision row 4 not verbatim from the harvest: 'Owner spec (paraphrased in the record): a live progress view until a confirmed end state.'
+CAUGHT S4   expect CATCH      row 4's note re-marked _(…)_  (exit 1, 2 problem(s))
+          - owner decision row 4 not verbatim from the harvest: 'Owner spec (paraphrased in the record): a live progress view until a VERIFIED end state. _(the recor'
+          - owner decision row 4: its note differs from the one read by hand ('none')
+CAUGHT S5   expect CATCH      row 119's note tail changed, harvest still quoted  (exit 1, 1 problem(s))
+          - owner decision row 119: its note differs from the one read by hand ('corrected: the harvest read "OK (55 s accepted, 2026-10-10)", all of it the owne')
+CAUGHT S6   expect CATCH      row 119's text put back to the harvest's  (exit 1, 1 problem(s))
+          - owner decision row 119: its corrected text differs from the one read by hand
+CAUGHT S7   expect CATCH      row 9's note: '…' changed to '...'  (exit 1, 1 problem(s))
+          - owner decision row 9: its note differs from the one read by hand ('the record\'s wording: "budget spent → skip that hypothesis ... and a 24-hour rol')
+CAUGHT S8   expect UNCLAIMED  row 43's record cell changed to another record  (exit 1, 1 problem(s))
+          - owner decision row 43 cites 2026-09-29-market-cap-volume-etf-warm.md; the harvest has it from ['2026-09-29-market-intel-freshness-arkb.md']
+CAUGHT S9   expect UNCLAIMED  an extra section-3 row of four cells quoting record prose as an owner decision  (exit 1, 1 problem(s))
+          - section 3's table has 123 lines, 122 of them five-cell rows; 122 rows read
+MISSED L1   expect LIMIT      V3 class: the session's option text, which the record quotes, given as the owner's (slim-path)  (exit 0, 0 problem(s))
+MISSED L2   expect LIMIT      M3b class: an unrelated record added to an Owner line's citations  (exit 0, 0 problem(s))
+MISSED L3   expect LIMIT      record prose quoted as the owner's in a Why line  (exit 0, 0 problem(s))
+CAUGHT O1   expect CATCH      an option label cited from a record that does not hold it  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: “ARKB (Recommended)” is not in its record (2026-09-29-market-cap-volume-etf-warm.md)
+CAUGHT QB3b expect CATCH      a reversed ”…“ pair after a well-formed pair that is the owner's own words  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: quotation marks it cannot pair (”“) in “- “Fine with 95% limit for now.” then ”startup memory footprint scales with live mempool s”
+CAUGHT QP1b expect CATCH      an empty "" right before a straight-quoted span (the shifted span is a single space)  (exit 1, 2 problem(s))
+          - Owner line: PLAT-04: an empty quotation, or one of code only in “- left as "" "startup memory footprint scales with live mempool size and accumulated disk ”
+          - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+CAUGHT QP1c expect CATCH      an empty "" then ' and ', the shifted span found in the owner's quoted words  (exit 1, 2 problem(s))
+          - Owner line: PLAT-04: an empty quotation, or one of code only in “- left as "" and "startup memory footprint scales with live mempool size and accumulated d”
+          - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-09-26-mempool-api-memory.md, 2026-08-16-mempool-o
+CAUGHT QP2b expect LIMIT?     inch marks chosen so both shifted spans pass (8" … or 16")  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: an empty quotation, or one of code only in “- an 8" "startup memory footprint scales with live mempool size and accumulated disk cache”
+CAUGHT PS9b expect CATCH      a top-level Owner line: “…” around a code span holding the record's prose  (exit 1, 1 problem(s))
+          - Owner line: HEAL-03: an empty quotation, or one of code only in ““`budget spent → skip that hypothesis and continue down the ladder`” — 2026-09-16-drb-atte”
+CAUGHT PS1b expect UNCLAIMED* a top-level Owner line in straight single quotes  (exit 1, 1 problem(s))
+          - Owner line: HEAL-03: “budget spent → skip that hypothesis and continue down the ladder” is the record's own prose, not words it quotes (2026-09-16-drb-attempt-budget-and-escalation.md)
+CAUGHT QP1d expect CATCH      an empty "" right before a straight-quoted span, citing a record with multi-word quotations  (exit 1, 2 problem(s))
+          - Owner line: PLAT-04: an empty quotation, or one of code only in “- left as "" "startup memory footprint scales with live mempool size and accumulated disk ”
+          - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-09-26-mempool-api-memory.md, 2026-08-16-mempool-o
+CAUGHT QB3c expect CATCH      reversed ”…“ alone after a good pair, single record cited  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: quotation marks it cannot pair (”“) in “  - “Fine with 95% limit for now.” ”the container hit its limit“ — 2026-09-26-mempool-api-”
+register unchanged, sha256 f5997a896ec0c4f61cec4c40275a486cb0c16ea89de1d7cf3f4a4d4363fc7c5c

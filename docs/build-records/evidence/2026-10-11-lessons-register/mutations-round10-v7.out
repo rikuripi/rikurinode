@@ -1,0 +1,249 @@
+CAUGHT QU-00AB        expect CATCH      «…« (U+00AB LEFT-POINTING DOUBLE ANGLE QUOTATION MARK) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+00AB)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+00AB) in “- «startup memory footprint scales with live mempool size and accumulated disk cache« — 20”
+CAUGHT QU-00BB        expect CATCH      »…» (U+00BB RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+00BB)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+00BB) in “- »startup memory footprint scales with live mempool size and accumulated disk cache» — 20”
+CAUGHT QU-02B9        expect CATCH      ʹ…ʹ (U+02B9 MODIFIER LETTER PRIME) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+02B9)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+02B9) in “- ʹstartup memory footprint scales with live mempool size and accumulated disk cacheʹ — 20”
+CAUGHT QU-02BA        expect CATCH      ʺ…ʺ (U+02BA MODIFIER LETTER DOUBLE PRIME) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+02BA)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+02BA) in “- ʺstartup memory footprint scales with live mempool size and accumulated disk cacheʺ — 20”
+CAUGHT QU-201A        expect CATCH      ‚…‚ (U+201A SINGLE LOW-9 QUOTATION MARK) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+201A)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+201A) in “- ‚startup memory footprint scales with live mempool size and accumulated disk cache‚ — 20”
+CAUGHT QU-201B        expect CATCH      ‛…‛ (U+201B SINGLE HIGH-REVERSED-9 QUOTATION MARK) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+201B)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+201B) in “- ‛startup memory footprint scales with live mempool size and accumulated disk cache‛ — 20”
+CAUGHT QU-201E        expect CATCH      „…„ (U+201E DOUBLE LOW-9 QUOTATION MARK) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+201E)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+201E) in “- „startup memory footprint scales with live mempool size and accumulated disk cache„ — 20”
+CAUGHT QU-201F        expect CATCH      ‟…‟ (U+201F DOUBLE HIGH-REVERSED-9 QUOTATION MARK) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+201F)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+201F) in “- ‟startup memory footprint scales with live mempool size and accumulated disk cache‟ — 20”
+CAUGHT QU-2032        expect CATCH      ′…′ (U+2032 PRIME) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+2032)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+2032) in “- ′startup memory footprint scales with live mempool size and accumulated disk cache′ — 20”
+CAUGHT QU-2033        expect CATCH      ″…″ (U+2033 DOUBLE PRIME) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+2033)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+2033) in “- ″startup memory footprint scales with live mempool size and accumulated disk cache″ — 20”
+CAUGHT QU-2034        expect CATCH      ‴…‴ (U+2034 TRIPLE PRIME) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+2034)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+2034) in “- ‴startup memory footprint scales with live mempool size and accumulated disk cache‴ — 20”
+CAUGHT QU-2035        expect CATCH      ‵…‵ (U+2035 REVERSED PRIME) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+2035)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+2035) in “- ‵startup memory footprint scales with live mempool size and accumulated disk cache‵ — 20”
+CAUGHT QU-2036        expect CATCH      ‶…‶ (U+2036 REVERSED DOUBLE PRIME) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+2036)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+2036) in “- ‶startup memory footprint scales with live mempool size and accumulated disk cache‶ — 20”
+CAUGHT QU-2037        expect CATCH      ‷…‷ (U+2037 REVERSED TRIPLE PRIME) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+2037)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+2037) in “- ‷startup memory footprint scales with live mempool size and accumulated disk cache‷ — 20”
+CAUGHT QU-2039        expect CATCH      ‹…‹ (U+2039 SINGLE LEFT-POINTING ANGLE QUOTATION MARK) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+2039)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+2039) in “- ‹startup memory footprint scales with live mempool size and accumulated disk cache‹ — 20”
+CAUGHT QU-203A        expect CATCH      ›…› (U+203A SINGLE RIGHT-POINTING ANGLE QUOTATION MARK) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+203A)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+203A) in “- ›startup memory footprint scales with live mempool size and accumulated disk cache› — 20”
+CAUGHT QU-2057        expect CATCH      ⁗…⁗ (U+2057 QUADRUPLE PRIME) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+2057)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+2057) in “- ⁗startup memory footprint scales with live mempool size and accumulated disk cache⁗ — 20”
+CAUGHT QU-275B        expect CATCH      ❛…❛ (U+275B HEAVY SINGLE TURNED COMMA QUOTATION MARK ORNAMENT) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+275B)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+275B) in “- ❛startup memory footprint scales with live mempool size and accumulated disk cache❛ — 20”
+CAUGHT QU-275C        expect CATCH      ❜…❜ (U+275C HEAVY SINGLE COMMA QUOTATION MARK ORNAMENT) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+275C)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+275C) in “- ❜startup memory footprint scales with live mempool size and accumulated disk cache❜ — 20”
+CAUGHT QU-275D        expect CATCH      ❝…❝ (U+275D HEAVY DOUBLE TURNED COMMA QUOTATION MARK ORNAMENT) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+275D)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+275D) in “- ❝startup memory footprint scales with live mempool size and accumulated disk cache❝ — 20”
+CAUGHT QU-275E        expect CATCH      ❞…❞ (U+275E HEAVY DOUBLE COMMA QUOTATION MARK ORNAMENT) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+275E)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+275E) in “- ❞startup memory footprint scales with live mempool size and accumulated disk cache❞ — 20”
+CAUGHT QU-275F        expect CATCH      ❟…❟ (U+275F HEAVY LOW SINGLE COMMA QUOTATION MARK ORNAMENT) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+275F)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+275F) in “- ❟startup memory footprint scales with live mempool size and accumulated disk cache❟ — 20”
+CAUGHT QU-2760        expect CATCH      ❠…❠ (U+2760 HEAVY LOW DOUBLE COMMA QUOTATION MARK ORNAMENT) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+2760)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+2760) in “- ❠startup memory footprint scales with live mempool size and accumulated disk cache❠ — 20”
+CAUGHT QU-276E        expect CATCH      ❮…❮ (U+276E HEAVY LEFT-POINTING ANGLE QUOTATION MARK ORNAMENT) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+276E)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+276E) in “- ❮startup memory footprint scales with live mempool size and accumulated disk cache❮ — 20”
+CAUGHT QU-276F        expect CATCH      ❯…❯ (U+276F HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+276F)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+276F) in “- ❯startup memory footprint scales with live mempool size and accumulated disk cache❯ — 20”
+CAUGHT QU-2E42        expect CATCH      ⹂…⹂ (U+2E42 DOUBLE LOW-REVERSED-9 QUOTATION MARK) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+2E42)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+2E42) in “- ⹂startup memory footprint scales with live mempool size and accumulated disk cache⹂ — 20”
+CAUGHT QU-301D        expect CATCH      〝…〝 (U+301D REVERSED DOUBLE PRIME QUOTATION MARK) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+301D)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+301D) in “- 〝startup memory footprint scales with live mempool size and accumulated disk cache〝 — 20”
+CAUGHT QU-301E        expect CATCH      〞…〞 (U+301E DOUBLE PRIME QUOTATION MARK) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+301E)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+301E) in “- 〞startup memory footprint scales with live mempool size and accumulated disk cache〞 — 20”
+CAUGHT QU-301F        expect CATCH      〟…〟 (U+301F LOW DOUBLE PRIME QUOTATION MARK) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+301F)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+301F) in “- 〟startup memory footprint scales with live mempool size and accumulated disk cache〟 — 20”
+CAUGHT QU-FF02        expect CATCH      ＂…＂ (U+FF02 FULLWIDTH QUOTATION MARK) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+FF02)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+FF02) in “- ＂startup memory footprint scales with live mempool size and accumulated disk cache＂ — 20”
+CAUGHT QU-1F676       expect CATCH      🙶…🙶 (U+1F676 SANS-SERIF HEAVY DOUBLE TURNED COMMA QUOTATION MARK ORNAMENT) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+1F676)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+1F676) in “- 🙶startup memory footprint scales with live mempool size and accumulated disk cache🙶 — 20”
+CAUGHT QU-1F677       expect CATCH      🙷…🙷 (U+1F677 SANS-SERIF HEAVY DOUBLE COMMA QUOTATION MARK ORNAMENT) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+1F677)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+1F677) in “- 🙷startup memory footprint scales with live mempool size and accumulated disk cache🙷 — 20”
+CAUGHT QU-1F678       expect CATCH      🙸…🙸 (U+1F678 SANS-SERIF HEAVY LOW DOUBLE COMMA QUOTATION MARK ORNAMENT) around the record's prose  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+1F678)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+1F678) in “- 🙸startup memory footprint scales with live mempool size and accumulated disk cache🙸 — 20”
+CAUGHT QP1            expect CATCH      CJK double prime quotation marks 〝…〞  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+301D, U+301E)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+301D, U+301E) in “- 〝startup memory footprint scales with live mempool size and accumulated disk cache〞 — 20”
+CAUGHT QP2            expect CATCH      CJK corner brackets 「…」 (Japanese quotation marks)  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+300C, U+300D)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+300C, U+300D) in “- 「startup memory footprint scales with live mempool size and accumulated disk cache」 — 20”
+CAUGHT QP3            expect CATCH      CJK white corner brackets 『…』  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+300E, U+300F)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+300E, U+300F) in “- 『startup memory footprint scales with live mempool size and accumulated disk cache』 — 20”
+CAUGHT QP4            expect CATCH      ‟…” (high-reversed-9 opener)  (exit 1, 3 problem(s))
+          - line 975: characters outside the register's alphabet (U+201F)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+201F) in “- ‟startup memory footprint scales with live mempool size and accumulated disk cache” — 20”
+          - Owner line: PLAT-04: quotation marks it cannot pair (”) in “- ‟startup memory footprint scales with live mempool size and accumulated disk cache” — 20”
+CAUGHT QP5            expect CATCH      heavy ornament quotation marks ❝…❞  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+275D, U+275E)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+275D, U+275E) in “- ❝startup memory footprint scales with live mempool size and accumulated disk cache❞ — 20”
+CAUGHT QP6            expect CATCH      heavy single ornament quotation marks ❛…❜  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+275B, U+275C)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+275B, U+275C) in “- ❛startup memory footprint scales with live mempool size and accumulated disk cache❜ — 20”
+CAUGHT QP7            expect CATCH      reversed prime ‵…′  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+2032, U+2035)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+2032, U+2035) in “- ‵startup memory footprint scales with live mempool size and accumulated disk cache′ — 20”
+CAUGHT QP8            expect CATCH      ‶…″ reversed double prime then double prime  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+2033, U+2036)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+2033, U+2036) in “- ‶startup memory footprint scales with live mempool size and accumulated disk cache″ — 20”
+CAUGHT QP9            expect CATCH      ASCII guillemets <<…>>  (exit 1, 2 problem(s))
+          - line 975: an HTML tag the register does not use: <startup memory footprint scales with li
+          - Owner line: PLAT-04: an HTML entity or tag in “- <<startup memory footprint scales with live mempool size and accumulated disk cache>> — ”
+CAUGHT QP10           expect CATCH      much-less/greater-than as guillemets ≪…≫  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+226A, U+226B)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+226A, U+226B) in “- ≪startup memory footprint scales with live mempool size and accumulated disk cache≫ — 20”
+CAUGHT QH1            expect CATCH      `…' (TeX/GNU style), the closing ' after an s  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: a lone backtick in “- `if this OOMs again, we STOP raising ceilings' — 2026-08-16-mempool-oom-recurrence.md”
+CAUGHT QH2            expect CATCH      ‛…’ (U+201B opener), the closing ’ after an s  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+201B)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+201B) in “- ‛if this OOMs again, we STOP raising ceilings’ — 2026-08-16-mempool-oom-recurrence.md”
+CAUGHT QH3            expect CATCH      ′…’ (prime opener), the closing ’ after an s  (exit 1, 2 problem(s))
+          - line 975: characters outside the register's alphabet (U+2032)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+2032) in “- ′if this OOMs again, we STOP raising ceilings’ — 2026-08-16-mempool-oom-recurrence.md”
+CAUGHT QH4            expect CATCH      control: ‘…’ around the same s-ending prose  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: “if this OOMs again, we STOP raising ceilings” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+CAUGHT HE-lsaquo      expect CATCH      HTML entities &lsaquo;…&rsaquo;  (exit 1, 2 problem(s))
+          - line 975: an HTML entity
+          - Owner line: PLAT-04: an HTML entity or tag in “- &lsaquo;startup memory footprint scales with live mempool size and accumulated disk cach”
+CAUGHT HE-OpenCurlyDoubl expect CATCH      HTML entities &OpenCurlyDoubleQuote;…&CloseCurlyDoubleQuote;  (exit 1, 2 problem(s))
+          - line 975: an HTML entity
+          - Owner line: PLAT-04: an HTML entity or tag in “- &OpenCurlyDoubleQuote;startup memory footprint scales with live mempool size and accumul”
+CAUGHT HE-OpenCurlyQuote expect CATCH      HTML entities &OpenCurlyQuote;…&CloseCurlyQuote;  (exit 1, 2 problem(s))
+          - line 975: an HTML entity
+          - Owner line: PLAT-04: an HTML entity or tag in “- &OpenCurlyQuote;startup memory footprint scales with live mempool size and accumulated d”
+CAUGHT HE-ldquor      expect CATCH      HTML entities &ldquor;…&rdquor;  (exit 1, 2 problem(s))
+          - line 975: an HTML entity
+          - Owner line: PLAT-04: an HTML entity or tag in “- &ldquor;startup memory footprint scales with live mempool size and accumulated disk cach”
+CAUGHT HE-lsquor      expect CATCH      HTML entities &lsquor;…&rsquor;  (exit 1, 2 problem(s))
+          - line 975: an HTML entity
+          - Owner line: PLAT-04: an HTML entity or tag in “- &lsquor;startup memory footprint scales with live mempool size and accumulated disk cach”
+CAUGHT HE-apos        expect CATCH      HTML entities &apos;…&apos;  (exit 1, 2 problem(s))
+          - line 975: an HTML entity
+          - Owner line: PLAT-04: an HTML entity or tag in “- &apos;startup memory footprint scales with live mempool size and accumulated disk cache&”
+CAUGHT HE-Prime       expect CATCH      HTML entities &Prime;…&Prime;  (exit 1, 2 problem(s))
+          - line 975: an HTML entity
+          - Owner line: PLAT-04: an HTML entity or tag in “- &Prime;startup memory footprint scales with live mempool size and accumulated disk cache”
+CAUGHT HE-prime       expect CATCH      HTML entities &prime;…&prime;  (exit 1, 2 problem(s))
+          - line 975: an HTML entity
+          - Owner line: PLAT-04: an HTML entity or tag in “- &prime;startup memory footprint scales with live mempool size and accumulated disk cache”
+CAUGHT HE-ldquo       expect CATCH      HTML entities &ldquo;…&rdquo;  (exit 1, 2 problem(s))
+          - line 975: an HTML entity
+          - Owner line: PLAT-04: an HTML entity or tag in “- &ldquo;startup memory footprint scales with live mempool size and accumulated disk cache”
+CAUGHT HT1            expect CATCH      <blockquote>…</blockquote> in an Owner item  (exit 1, 3 problem(s))
+          - line 975: an HTML tag the register does not use: <blockquote>
+          - line 975: an HTML tag the register does not use: </blockquote>
+          - Owner line: PLAT-04: an HTML entity or tag in “- <blockquote>startup memory footprint scales with live mempool size and accumulated disk ”
+CAUGHT HT2            expect CATCH?     a Markdown blockquote '> ' as the Owner sub-item's content  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: a blockquote in an Owner field: - > startup memory footprint scales with live mempool size a
+CAUGHT HT3            expect CATCH      control: <q>…</q>  (exit 1, 3 problem(s))
+          - line 975: an HTML tag the register does not use: <q>
+          - line 975: an HTML tag the register does not use: </q>
+          - Owner line: PLAT-04: an HTML entity or tag in “- <q>startup memory footprint scales with live mempool size and accumulated disk cache</q>”
+CAUGHT EQ-no-bre      expect CATCH      an empty quotation “\xa0” (no-break space) beside a real one  (exit 1, 3 problem(s))
+          - line 975: characters outside the register's alphabet (U+00A0)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+00A0) in “- “ ” A standing rule in the record, which does not say who set it: if this OOMs again, st”
+          - Owner line: PLAT-04: “ ” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+CAUGHT EQ-tab         expect CATCH      an empty quotation “\t” (tab) beside a real one  (exit 1, 3 problem(s))
+          - line 975: characters outside the register's alphabet (U+0009)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+0009) in “- “	” A standing rule in the record, which does not say who set it: if this OOMs again, st”
+          - Owner line: PLAT-04: “	” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+CAUGHT EQ-em          expect CATCH      an empty quotation “\u2003” (em space) beside a real one  (exit 1, 3 problem(s))
+          - line 975: characters outside the register's alphabet (U+2003)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+2003) in “- “ ” A standing rule in the record, which does not say who set it: if this OOMs again, st”
+          - Owner line: PLAT-04: “ ” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+CAUGHT EQ-ideogr      expect CATCH      an empty quotation “\u3000” (ideographic space) beside a real one  (exit 1, 3 problem(s))
+          - line 975: characters outside the register's alphabet (U+3000)
+          - Owner line: PLAT-04: characters outside the Owner fields' alphabet (U+3000) in “- “　” A standing rule in the record, which does not say who set it: if this OOMs again, st”
+          - Owner line: PLAT-04: “　” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+CAUGHT EQ-space       expect CATCH      an empty quotation “ ” (space (control)) beside a real one  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: an empty quotation, or one of code only in “- “ ” A standing rule in the record, which does not say who set it: if this OOMs again, st”
+CAUGHT EQ-ellip       expect UNCLAIMED  a quotation of an ellipsis only “…”  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: “…” is not in its record (2026-08-16-mempool-oom-recurrence.md, 2026-09-16-drb-attempt-budget-and-escalation.md)
+CAUGHT EQ-dash        expect UNCLAIMED  a quotation of a dash only “—”  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: “—” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md, 2026-09-16-drb-attempt-budget-and-escalation.md)
+CAUGHT CS1            expect CATCH      a backslash-escaped backtick pair (not a code span in Markdown) hiding a “…” quotation  (exit 1, 2 problem(s))
+          - Owner line: HEAL-03: a backslash in “\`“budget spent → skip that hypothesis and continue down the ladder”\` — 2026-09-16-drb-at”
+          - Owner line: HEAL-03: curly quotation marks inside a code span in “\`“budget spent → skip that hypothesis and continue down the ladder”\` — 2026-09-16-drb-at”
+CAUGHT CS2            expect UNCLAIMED* a real code span holding “…” the record's prose (register: 'every quotation in an Owner line')  (exit 1, 1 problem(s))
+          - Owner line: HEAL-03: curly quotation marks inside a code span in “`“budget spent → skip that hypothesis and continue down the ladder”` — 2026-09-16-drb-atte”
+CAUGHT CS3            expect CATCH      control: the same in plain “…”  (exit 1, 1 problem(s))
+          - Owner line: HEAL-03: “budget spent → skip that hypothesis and continue down the ladder” is the record's own prose, not words it quotes (2026-09-16-drb-attempt-budget-and-escalation.md)
+CAUGHT OB1            expect CATCH      blank line, then an indented '* ' Owner sub-item quoting the prose  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-10-03-upgrade-gates-round-2.md, 2026-08-16-mempool-oom-recu
+CAUGHT OB2            expect CATCH      blank line, then an indented '+ ' Owner sub-item  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-10-03-upgrade-gates-round-2.md, 2026-08-16-mempool-oom-recu
+CAUGHT OB3            expect CATCH      blank line, then an indented '1. ' Owner sub-item  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-10-03-upgrade-gates-round-2.md, 2026-08-16-mempool-oom-recu
+CAUGHT OB4            expect CATCH      blank line, then an indented continuation paragraph of the Owner item  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-10-03-upgrade-gates-round-2.md, 2026-08-16-mempool-oom-recu
+CAUGHT OB5            expect CATCH      control: blank line, then an indented '- ' sub-item  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+CAUGHT OB6            expect CATCH      a '* ' sub-item with no blank line (joined to the previous item)  (exit 1, 1 problem(s))
+          - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-10-03-upgrade-gates-round-2.md, 2026-08-16-mempool-oom-recu
+CAUGHT OB7            expect CATCH?     a second Owner field written __Owner:__ (renders exactly as **Owner:**)  (exit 1, 4 problem(s))
+          - line 980: an Owner label not written `- **Owner:**`
+          - Owner line: PLAT-04: a line at column 0 that is not one of the requirement's fields: - __Owner:__ “startup memory footprint scales with live memp
+          - Owner line: PLAT-04: an Owner field not written `- **Owner:**`: - __Owner:__ “startup memory footprint scales with live memp
+          - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+CAUGHT OB8            expect CATCH?     a second Owner field written **Owner**: (colon outside the bold)  (exit 1, 3 problem(s))
+          - line 980: an Owner label not written `- **Owner:**`
+          - Owner line: PLAT-04: a line at column 0 that is not one of the requirement's fields: - **Owner**: “startup memory footprint scales with live memp
+          - Owner line: PLAT-04: an Owner field not written `- **Owner:**`: - **Owner**: “startup memory footprint scales with live memp
+CAUGHT OB9            expect CATCH?     PLAT-04's own Owner label rewritten __Owner:__, its first item now record prose in “…”  (exit 1, 3 problem(s))
+          - line 974: an Owner label not written `- **Owner:**`
+          - Owner line: PLAT-04: a line at column 0 that is not one of the requirement's fields: - __Owner:__
+          - Owner line: PLAT-04: an Owner field not written `- **Owner:**`: - __Owner:__
+CAUGHT S3a            expect CATCH      an extra section-3 row without leading/trailing pipes (GFM renders it as a row)  (exit 1, 1 problem(s))
+          - section 3's table has 123 lines, 122 of them five-cell rows; 122 rows read
+CAUGHT S3b            expect CATCH      an extra section-3 row indented by one space  (exit 1, 1 problem(s))
+          - section 3's table has 123 lines, 122 of them five-cell rows; 122 rows read
+CAUGHT S3c            expect CATCH      control: an extra five-cell row  (exit 1, 1 problem(s))
+          - section 3 has 123 rows for 122 distinct decisions
+CAUGHT S3d            expect UNCLAIMED  row 43's Feeds cell changed EVID-06 -> SEC-01  (exit 1, 1 problem(s))
+          - owner decision row 43 feeds SEC-01; the mapping says ['EVID-06']
+MISSED S3e            expect UNCLAIMED  row 43's Status changed Current -> Superseded  (exit 0, 0 problem(s))
+CAUGHT S3f            expect UNCLAIMED  row 44 renumbered 43 (two rows numbered 43)  (exit 1, 1 problem(s))
+          - section 3's rows are not numbered 1 to 122 in order
+CAUGHT S3g            expect CATCH      row 43's record cell gains a second record  (exit 1, 1 problem(s))
+          - owner decision row 43 cites 2026-09-29-market-intel-freshness-arkb.md, 2026-08-16-mempool-oom-recurrence.md; the harvest has it from ['2026-09-29-market-intel-freshness-arkb.md']
+CAUGHT W-case         expect UNCLAIMED  a quoted passage's case changed (EVID-03 'Make sure' -> 'MAKE SURE', first of its two copies)  (exit 1, 1 problem(s))
+          - Owner line: EVID-03: “Yes, in fact, check all measurement on the Dashboard. MAKE SURE every one of them is actua” is not in its record (2026-09-30-dashboard-page-truth.md)
+
+by expectation (caught, missed): {'CATCH': [75, 0], 'CATCH?': [4, 0], 'LIMIT': [0, 0], 'UNCLAIMED': [5, 1], 'UNCLAIMED*': [1, 0]}
+register unchanged, sha256 9d177e57d18d41bb476640bbd04c056e76b5dba2db43a2f1696958f95a99eadb

@@ -1,0 +1,13 @@
+requirements 107 lesson refs 475 distinct 475 index base 0
+records cited 114 in old repo 114 harvested 114
+coverage rows 114
+owner decision rows 122
+owner decision rows annotated: 12
+owner decisions without a quoted phrase (summaries): 84
+port rows 90
+port verdicts {'re-check': 45, 're-check Fedora/Pi': 27, 'with tests': 42, 'do not port': 3}
+
+3 problem(s)
+ - quoted words not found in their record(s) ['2026-09-29-market-intel-freshness-arkb.md']: "MAs + returns backup: Kraken daily candles, plus the node's own daily-close archive"
+ - quoted words not found in their record(s) ['2026-09-29-market-intel-freshness-arkb.md']: 'funding: a second venue (Deribit, labelled)'
+ - port test not tracked at old HEAD: .claude/hooks/guard-config.json (inline_tests rule) (for `.claude/hooks/guard.py`)

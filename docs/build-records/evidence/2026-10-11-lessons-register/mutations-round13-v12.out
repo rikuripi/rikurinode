@@ -1,0 +1,10 @@
+CAUGHT T69a   expect PROBE     row 69's tests cell: 'cardBlend.test.ts' renamed to one that does not exist  (exit 1, 1 problem(s))
+    - port test not tracked at old HEAD: dashboard/backend/src/tests/cardBlendGone.test.ts (for `dashboard/backend/src/ai/slimKnowledge.ts`)
+CAUGHT T69b   expect PROBE     row 69's tests cell: 'cardRanking.test.ts' renamed to one that does not exist  (exit 1, 1 problem(s))
+    - port test not tracked at old HEAD: dashboard/backend/src/tests/cardRankingGone.test.ts (for `dashboard/backend/src/ai/slimKnowledge.ts`)
+CAUGHT T69c   expect CATCH     control: row 69's tests cell, the full path slimKnowledge.test.ts renamed  (exit 1, 1 problem(s))
+    - port test not tracked at old HEAD: dashboard/backend/src/tests/slimKnowledgeGone.test.ts (for `dashboard/backend/src/ai/slimKnowledge.ts`)
+CAUGHT P69    expect CATCH     control: row 69's Old path cell renamed  (exit 1, 1 problem(s))
+    - port path not tracked at old HEAD: dashboard/backend/src/ai/slimKnowledgeGone.ts
+MISSED T69d   expect PROBE     row 69's tests cell: a full test path moved into a bracketed note and renamed  (exit 0, 0 problem(s))
+register unchanged, sha256 f5997a896ec0c4f61cec4c40275a486cb0c16ea89de1d7cf3f4a4d4363fc7c5c
