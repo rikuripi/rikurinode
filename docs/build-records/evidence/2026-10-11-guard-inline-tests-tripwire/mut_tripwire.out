@@ -1,0 +1,24 @@
+# mutants, round 3 (unstacked, on main a443085), at 14:38:18: guard.py c1d54b73…, test_guard.py 08e00cb4…; safe-run; exit 0; lnd 2026-10-09T20:20:27.903167252Z -> 2026-10-09T20:20:27.903167252Z
+U1 a marker needs no rule                        RED   test_a_git_hook_environment_does_not_redirect_the_listing, test_a_long_gap_list_is_cut_but_counted, test_a_name_git_would_quote_is_checked, test_a_nam
+U2 any rule counts, its glob ignored             RED   test_fix_lock_on_names_inline_tests_it_does_not_cover, test_the_rule_must_name_the_file
+U3 a glob match is enough, starts_at ignored     RED   test_the_rule_must_find_the_tests
+U4 a region anywhere is enough                   RED   test_the_rule_must_find_the_tests
+U5 untracked files count                         RED   test_untracked_files_do_not_count
+U6 git's environment passes through              RED   test_a_git_hook_environment_does_not_redirect_the_listing
+U7 a git failure is nothing found                RED   test_git_failure_is_an_error_not_nothing_found
+U8 an unreadable file is skipped                 RED   test_a_file_that_cannot_be_read_counts
+U9 the marker must start in column 0             RED   test_only_real_markers_count
+U10 a marker anywhere on a line                  RED   test_only_real_markers_count
+U11 a tab before the marker is not a marker      RED   test_only_real_markers_count
+U12 no -z: git quotes unusual names              RED   test_a_name_git_would_quote_is_checked, test_a_name_that_is_not_utf8_is_checked
+U13 the region need only reach the marker's end  RED   test_the_rule_must_find_the_tests
+U14 names decoded strictly (round 1)             RED   test_a_name_that_is_not_utf8_is_checked
+U15 names that are not ASCII skipped             RED   test_a_name_git_would_quote_is_checked, test_a_name_that_is_not_utf8_is_checked
+W1 the old message (inline tests always)         RED   test_fix_lock_on_names_inline_tests_it_does_not_cover, test_fix_lock_on_says_what_it_covers
+W2 no warning for uncovered files                RED   test_a_long_gap_list_is_cut_but_counted, test_a_name_that_is_not_utf8_is_checked, test_fix_lock_on_names_inline_tests_it_does_not_cover
+W3 a failed check is silent                      RED   test_fix_lock_on_says_when_it_cannot_check
+W4 uncovered files refuse the lock               RED   test_a_long_gap_list_is_cut_but_counted, test_a_name_that_is_not_utf8_is_checked, test_fix_lock_on_names_inline_tests_it_does_not_cover
+W5 the whole list, uncounted                     RED   test_a_long_gap_list_is_cut_but_counted
+W6 a check error crashes fix-lock on             RED   test_a_lock_binds_only_its_own_session, test_every_release_is_logged, test_every_release_is_logged_with_its_session, test_fix_lock_cli_roundtrip, test
+W7 an empty rule list claims inline tests        RED   test_fix_lock_on_says_what_it_covers
+restored, sha256 checked: .claude/hooks/guard.py c1d54b73f32e

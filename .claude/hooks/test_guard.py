@@ -8,12 +8,16 @@ Run: python3 -m unittest discover -s .claude/hooks -p 'test_*.py'
 """
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import guard  # noqa: E402
@@ -94,6 +98,16 @@ class GenericPolicy(unittest.TestCase):
         self.assertEqual(verdict("Bash", {"command": "rm -f .claude/state/fix-lock"}), "ask")
         self.assertEqual(verdict("Write", {"file_path": ".claude/state/fix-lock"}), "allow")
         self.assertEqual(verdict("Edit", {"file_path": ".claude/state/fix-lock"}), "ask")
+
+    def test_tracked_inline_tests_have_a_rule(self):
+        # Class tripwire (2026-10-11): Rikuri-PI gained Rust on 2026-10-05 with
+        # no `inline_tests` rule, so a fix-lock left its #[cfg(test)] tests
+        # editable while `fix-lock on` called them read-only. Each repository
+        # opts in through its own config; this checks it again on every run,
+        # from the files git tracks here (InlineTestCoverage has the cases).
+        gaps = guard.uncovered_inline_tests(guard.ROOT, CFG)
+        self.assertEqual(gaps, [], "tracked .rs files keep #[cfg(test)] tests that no inline_tests rule in "
+                         "guard-config.json covers (rikurinode's and AISecurity's are the model): " + ", ".join(gaps))
 
     def test_strictest_wins(self):
         self.assertEqual(verdict("Bash", {"command": "git push origin main; cat .env"}), "deny")
@@ -551,6 +565,191 @@ class InlineTests(unittest.TestCase):
             with open(path, "w") as f:
                 json.dump(self.RUST, f)
             self.assertEqual(guard.load_config(path)["inline_tests"], self.RUST["inline_tests"])
+
+
+class InlineTestCoverage(unittest.TestCase):
+    """The class tripwire behind GenericPolicy.test_tracked_inline_tests_have_a_rule
+    (2026-10-11), in scratch git repositories. A tracked .rs file holding
+    `#[cfg(test)]` is covered only when an `inline_tests` rule's glob names it
+    AND its starts_at finds the tests from the file's first marker on; and
+    `fix-lock on` says only what it really makes read-only."""
+
+    SRC = InlineTests.SRC
+    RULES = InlineTests.RUST["inline_tests"]
+    PLAIN = InlineTests.PLAIN
+
+    def repo(self, files: dict, untracked: dict | None = None) -> str:
+        root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, root)
+        for name, text in {**files, **(untracked or {})}.items():
+            path = os.path.join(root, name)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "wb") as f:
+                f.write(text if isinstance(text, bytes) else text.encode())
+        env = guard.git_env()
+        subprocess.run(["git", "init", "-q", root], check=True, env=env)
+        if files:
+            subprocess.run(["git", "-C", root, "add", "--", *files], check=True, env=env)
+        return root
+
+    def cfg(self, rules: list | None) -> dict:
+        cfg = json.loads(json.dumps(CFG))
+        cfg.pop("fix_lock_preflight", None)
+        cfg.pop("inline_tests", None)
+        if rules is not None:
+            cfg["inline_tests"] = rules
+        return cfg
+
+    def gaps(self, root: str, rules: list | None) -> list:
+        return guard.uncovered_inline_tests(root, self.cfg(rules))
+
+    def test_a_tracked_file_with_inline_tests_needs_a_rule(self):
+        root = self.repo({"src/lib.rs": self.SRC, "src/plain.rs": self.PLAIN})
+        self.assertEqual(self.gaps(root, None), ["src/lib.rs"])
+        self.assertEqual(self.gaps(root, []), ["src/lib.rs"])
+        self.assertEqual(self.gaps(root, self.RULES), [])
+
+    def test_every_tracked_folder_counts(self):
+        root = self.repo({"a/b/c/deep.rs": self.SRC, "top.rs": self.SRC})
+        self.assertEqual(sorted(self.gaps(root, None)), ["a/b/c/deep.rs", "top.rs"])
+
+    def test_the_rule_must_name_the_file(self):
+        root = self.repo({"src/lib.rs": self.SRC, "crates/x/lib.rs": self.SRC})
+        self.assertEqual(self.gaps(root, [dict(self.RULES[0], glob="crates/*.rs")]), ["src/lib.rs"])
+
+    def test_the_rule_must_find_the_tests(self):
+        root = self.repo({"src/lib.rs": self.SRC})
+        self.assertEqual(self.gaps(root, [dict(self.RULES[0], starts_at=r"^#\[test_only\]")]), ["src/lib.rs"])
+        # A region starting inside the marker leaves its `#[` outside.
+        self.assertEqual(self.gaps(root, [dict(self.RULES[0], starts_at=r"cfg\(test\)")]), ["src/lib.rs"])
+        # A rule that finds only a LATER block leaves the first one editable.
+        two = ("pub fn f() {}\n\n#[cfg(test)]\nfn helper() -> u8 {\n    1\n}\n\n"
+               "pub fn g() {}\n\n#[cfg(test)]\nmod tests {}\n")
+        root = self.repo({"src/two.rs": two})
+        late = {"glob": "*.rs", "starts_at": r"^#\[cfg\(test\)\]\nmod tests"}
+        self.assertEqual(self.gaps(root, [late]), ["src/two.rs"])
+        self.assertEqual(self.gaps(root, self.RULES), [])
+        self.assertEqual(self.gaps(root, [late, self.RULES[0]]), [], "one covering rule is enough")
+
+    def test_only_real_markers_count(self):
+        root = self.repo({"src/not.rs": "#[cfg(not(test))]\npub fn f() {}\n",
+                          "src/comment.rs": "// #[cfg(test)] lives in lib.rs\npub fn f() {}\n",
+                          "src/text.rs": 'const S: &str = "#[cfg(test)]";\n',
+                          "src/spaced.rs": "pub fn f() {}\n\n  #[ cfg ( test ) ]\nmod tests {}\n",
+                          "src/tabbed.rs": "pub fn f() {}\n\n\t#[cfg(test)]\nmod tests {}\n"})
+        self.assertEqual(self.gaps(root, None), ["src/spaced.rs", "src/tabbed.rs"])
+        self.assertEqual(self.gaps(root, self.RULES), [])
+
+    def test_a_name_git_would_quote_is_checked(self):
+        # Without -z, git quotes such names and the file would not be found.
+        root = self.repo({"src/café.rs": self.SRC})
+        self.assertEqual(self.gaps(root, None), ["src/café.rs"])
+        self.assertEqual(self.gaps(root, self.RULES), [])
+
+    def test_a_name_that_is_not_utf8_is_checked(self):
+        # Verifier, 2026-10-11: such a name crashed `fix-lock on` (exit 1,
+        # traceback) after the lock was written.
+        root = self.repo({})
+        raw = b"src/caf\xe9.rs"
+        try:
+            os.makedirs(os.path.join(os.fsencode(root), b"src"))
+            with open(os.path.join(os.fsencode(root), raw), "wb") as f:
+                f.write(self.SRC.encode())
+        except OSError as e:  # macOS (APFS) refuses names that are not UTF-8
+            self.skipTest("this filesystem refuses a name that is not UTF-8: %s" % e)
+        subprocess.run([b"git", b"-C", os.fsencode(root), b"add", b"--", raw], check=True, env=guard.git_env())
+        self.assertEqual(self.gaps(root, None), [os.fsdecode(raw)])
+        self.assertEqual(self.gaps(root, self.RULES), [])
+        rc, out, err = self.on(root, None)
+        self.assertEqual(rc, 0)
+        self.assertTrue(os.path.exists(os.path.join(root, guard.LOCK_REL)))
+        self.assertIn("NOT read-only", err)
+
+    def test_untracked_files_do_not_count(self):
+        root = self.repo({"src/plain.rs": self.PLAIN}, untracked={"scratch/probe.rs": self.SRC})
+        self.assertEqual(self.gaps(root, None), [])
+
+    def test_a_file_that_cannot_be_read_counts(self):
+        root = self.repo({"src/latin1.rs": b"// caf\xe9\npub fn f() {}\n"})
+        self.assertEqual(self.gaps(root, self.RULES), ["src/latin1.rs"])
+
+    def test_git_failure_is_an_error_not_nothing_found(self):
+        root = os.path.realpath(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, root)
+        with open(os.path.join(root, "lib.rs"), "w") as f:
+            f.write(self.SRC)
+        # Not a repository, even when TMPDIR sits inside one.
+        with mock.patch.dict(os.environ, {"GIT_CEILING_DIRECTORIES": os.path.dirname(root)}):
+            with self.assertRaises(OSError):
+                guard.uncovered_inline_tests(root, self.cfg(None))
+
+    def test_a_git_hook_environment_does_not_redirect_the_listing(self):
+        # A git hook exports GIT_DIR and GIT_INDEX_FILE; `git -C root` would
+        # then list another repository's files.
+        root = self.repo({"src/lib.rs": self.SRC})
+        other = self.repo({"README.md": "x\n"})
+        with mock.patch.dict(os.environ, {"GIT_DIR": os.path.join(other, ".git"), "GIT_WORK_TREE": other,
+                                          "GIT_INDEX_FILE": os.path.join(other, ".git", "index")}):
+            self.assertEqual(self.gaps(root, None), ["src/lib.rs"])
+
+    def on(self, root: str, rules: list | None) -> tuple:
+        """`fix-lock on` with this config: (exit code, stdout, stderr)."""
+        folder = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, folder)
+        path = os.path.join(folder, "guard-config.json")
+        with open(path, "w") as f:
+            json.dump(self.cfg(rules), f)
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            rc = guard.fix_lock_cli(["on", "docs/build-records/x.md"], root, path)
+        return rc, out.getvalue(), err.getvalue()
+
+    def test_fix_lock_on_says_what_it_covers(self):
+        root = self.repo({"src/plain.rs": self.PLAIN})
+        rc, out, err = self.on(root, None)
+        self.assertEqual(rc, 0)
+        self.assertIn("test files and baselines are now read-only", out)
+        self.assertNotIn("inline tests", out + err)
+        rc, out, err = self.on(root, [])
+        self.assertEqual(rc, 0)
+        self.assertIn("test files and baselines are now read-only", out)
+        rc, out, err = self.on(root, self.RULES)
+        self.assertEqual(rc, 0)
+        self.assertIn("test files, inline tests and baselines are now read-only", out)
+        self.assertEqual(err, "")
+
+    def test_fix_lock_on_names_inline_tests_it_does_not_cover(self):
+        # Owner, 2026-10-11: engage, say so and name them (not refuse).
+        root = self.repo({"src/lib.rs": self.SRC, "src/plain.rs": self.PLAIN})
+        rc, out, err = self.on(root, None)
+        self.assertEqual(rc, 0)
+        self.assertTrue(os.path.exists(os.path.join(root, guard.LOCK_REL)))
+        self.assertIn("test files and baselines are now read-only", out)
+        self.assertIn("NOT read-only", err)
+        self.assertIn("src/lib.rs", err)
+        self.assertNotIn("src/plain.rs", err)
+        rc, out, err = self.on(root, [dict(self.RULES[0], glob="crates/*.rs")])
+        self.assertEqual(rc, 0)
+        self.assertIn("NOT read-only", err)
+        self.assertIn("src/lib.rs", err)
+
+    def test_a_long_gap_list_is_cut_but_counted(self):
+        root = self.repo({"src/m%02d.rs" % i: self.SRC for i in range(14)})
+        rc, out, err = self.on(root, None)
+        self.assertEqual(rc, 0)
+        self.assertIn("14 tracked files", err)
+        self.assertIn("src/m09.rs", err)
+        self.assertNotIn("src/m10.rs", err)
+        self.assertIn("and 4 more", err)
+
+    def test_fix_lock_on_says_when_it_cannot_check(self):
+        root = self.repo({})
+        with mock.patch.object(guard, "uncovered_inline_tests", side_effect=OSError("git is missing")):
+            rc, out, err = self.on(root, self.RULES)
+        self.assertEqual(rc, 0)
+        self.assertTrue(os.path.exists(os.path.join(root, guard.LOCK_REL)))
+        self.assertIn("could not check", err)
+        self.assertIn("git is missing", err)
 
 
 class FailureModes(unittest.TestCase):

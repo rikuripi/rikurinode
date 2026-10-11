@@ -1,0 +1,12 @@
+# fix-lock on in a clean clone of Rikuri-PI main be979e3, global lock (no session), stdout and stderr together, safe-run; released after each
+## old guard.py (c47b67d1…), own config (no inline_tests rule)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+exit 0
+## new guard.py (c1d54b73…), own config (no inline_tests rule)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files and baselines are now read-only
+WARNING: the #[cfg(test)] tests inside 11 tracked files are NOT read-only: no inline_tests rule in guard-config.json covers them: crates/rikuri-api/src/command.rs, crates/rikuri-api/src/lib.rs, crates/rikuri-domain/src/authority.rs, crates/rikuri-domain/src/deletion.rs, crates/rikuri-domain/src/id.rs, crates/rikuri-domain/src/privacy.rs, crates/rikuri-domain/src/risk.rs, crates/rikuri-domain/src/schema.rs, crates/rikuri-domain/src/time.rs, crates/rikuri-domain/src/trust.rs and 1 more
+exit 0
+## new guard.py, with PR #31's inline_tests rule
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+exit 0
+# lnd StartedAt 2026-10-09T20:20:27.903167252Z -> 2026-10-09T20:20:27.903167252Z

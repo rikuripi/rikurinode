@@ -26,7 +26,10 @@ code that acts differently under `cfg(test)`) may not change anywhere in the
 file while locked. An Edit/Write is checked by comparing that region before
 and after, and an Edit must match the file exactly (the Edit tool also matches
 loosely, which the guard can't follow). A shell write to a file of that type
-is refused by name, as a test file's is, since it can't be checked.
+is refused by name, as a test file's is, since it can't be checked. Each repo
+opts in through its own config, so test_guard.py fails while a tracked .rs
+file holds `#[cfg(test)]` tests no rule covers, and `fix-lock on` names such
+files instead of calling them read-only (2026-10-11).
 
 A fix-lock belongs to the session that took it (owner, 2026-10-03: "Let's not
 share fix-lock"). `fix-lock on` inside a Claude Code session writes
@@ -334,6 +337,54 @@ def inline_edit_hit(tool: str, tin: dict, rel: str, root: str, cfg: dict) -> tup
                             "macro shadow). While a fix is locked, production code must not behave differently "
                             "in the test build" % rel, True)
     return None
+
+
+# Lesson gate (2026-10-11): a repository opts in to inline-test protection
+# through its own config, and nothing checked it again when Rikuri-PI adopted
+# Rust. A tracked .rs file with this marker needs a rule that finds its tests.
+RUST_INLINE_TEST = re.compile(r"^[ \t]*#\s*\[\s*cfg\s*\(\s*test\s*\)\s*\]", re.M)
+# `git rev-parse --local-env-vars`: a git hook exports some of them (GIT_DIR,
+# GIT_INDEX_FILE), and they would point `git -C <root>` at another repository.
+GIT_LOCAL_ENV = {"GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_CONFIG", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT",
+                 "GIT_OBJECT_DIRECTORY", "GIT_DIR", "GIT_WORK_TREE", "GIT_IMPLICIT_WORK_TREE", "GIT_GRAFT_FILE",
+                 "GIT_INDEX_FILE", "GIT_NO_REPLACE_OBJECTS", "GIT_REPLACE_REF_BASE", "GIT_PREFIX",
+                 "GIT_SHALLOW_FILE", "GIT_COMMON_DIR"}
+
+
+def git_env() -> dict:
+    """The environment without git's repository-locating variables."""
+    return {k: v for k, v in os.environ.items() if k not in GIT_LOCAL_ENV}
+
+
+def uncovered_inline_tests(root: str, cfg: dict) -> list:
+    """Tracked .rs files under `root` whose `#[cfg(test)]` tests no
+    `inline_tests` rule covers: no rule's glob names the file, or no such
+    rule's starts_at finds a region reaching the file's first marker. Only
+    files git tracks count; one that cannot be read as UTF-8 counts as
+    uncovered (it cannot be checked). Raises OSError when git cannot list the
+    files: an unlisted repository is never "nothing found"."""
+    try:
+        proc = subprocess.run(["git", "-C", root, "ls-files", "-z", "--", "*.rs"],
+                              capture_output=True, timeout=30, env=git_env())
+    except subprocess.SubprocessError as e:
+        raise OSError("git ls-files in %s: %s" % (root, e)) from e
+    if proc.returncode != 0:
+        raise OSError("git ls-files in %s failed: %s" % (root, proc.stderr.decode(errors="replace").strip()))
+    out = []
+    for raw in filter(None, proc.stdout.split(b"\0")):
+        rel = os.fsdecode(raw)  # raw bytes: a name that is not UTF-8 still opens
+        try:
+            text = read_text(os.path.join(root, rel))
+        except (OSError, UnicodeDecodeError):
+            out.append(rel)
+            continue
+        m = RUST_INLINE_TEST.search(text)
+        if m is None:
+            continue
+        regions = [inline_region(text, r["starts_at"], r.get("attached_above", "")) for r in inline_rules(rel, cfg)]
+        if not any(reg is not None and len(reg) >= len(text) - m.start() for reg in regions):
+            out.append(rel)
+    return out
 
 
 def expand_braces(word: str) -> list:
@@ -1805,12 +1856,26 @@ def fix_lock_cli(args: list, root: str = ROOT, config_path: str = CONFIG_PATH, s
             print("fix-lock NOT engaged — %s\nNothing was changed. Fix it first, then engage." % refused,
                   file=sys.stderr)
             return 1
+        cfg = load_config(config_path)  # preflight has just loaded it without error
         os.makedirs(os.path.dirname(own), exist_ok=True)
         with open(own, "w") as f:
             json.dump({"record": args[1], "since": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "session": session}, f)
         scope = "this session" if session else "EVERY session (global lock)"
-        print("fix-lock ENGAGED for %s (%s) — test files, inline tests and baselines are now read-only"
-              % (args[1], scope))
+        # Say only what is read-only (2026-10-11: Rikuri-PI's lock claimed
+        # inline tests with no inline_tests rule), and name what is not.
+        what = "test files, inline tests and baselines" if cfg.get("inline_tests") else "test files and baselines"
+        print("fix-lock ENGAGED for %s (%s) — %s are now read-only" % (args[1], scope, what), flush=True)
+        try:
+            gaps = uncovered_inline_tests(root, cfg)
+        except OSError as e:
+            print("WARNING: could not check for inline tests that no inline_tests rule covers: %s" % e,
+                  file=sys.stderr)
+            return 0
+        if gaps:
+            more = " and %d more" % (len(gaps) - 10) if len(gaps) > 10 else ""
+            print("WARNING: the #[cfg(test)] tests inside %d tracked file%s are NOT read-only: no inline_tests "
+                  "rule in guard-config.json covers them: %s%s"
+                  % (len(gaps), "" if len(gaps) == 1 else "s", ", ".join(gaps[:10]), more), file=sys.stderr)
         return 0
     if args[:1] == ["off"]:
         if args == ["off"]:

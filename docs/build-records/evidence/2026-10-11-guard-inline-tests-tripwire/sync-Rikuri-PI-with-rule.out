@@ -1,0 +1,124 @@
+# Rikuri-PI-with-rule (main + PR #31's inline_tests rule), clean clone at be979e3, its own guard-config.json; guard.py c1d54b73…, test_guard.py 08e00cb4… (the change on the committed guard, unstacked), guard_base.py unchanged; safe-run; Python 3.14 exit 0, then 3.9.25 exit 0; lnd 2026-10-09T20:20:27.903167252Z -> 2026-10-09T20:20:27.903167252Z
+...fix-lock ENGAGED for docs/build-records/a.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpb59nxc6a failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/b.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpb59nxc6a failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+.fix-lock released (docs/build-records/b.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpxbk9jk1o failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+usage: guard.py fix-lock on <build-record> | off [--session <id> | --global] | status
+.fix-lock NOT engaged — cannot read /tmp/tmpj9c3q0f0/guard-config.json: guard-config.json: 'fix_lock_preflight' must be a list of argv lists, e.g. [["node", "scripts/quality-ratchet.mjs"]]
+Nothing was changed. Fix it first, then engage.
+.fix-lock NOT engaged — preflight /usr/bin/python3 -c import sys; sys.exit(3) failed (exit 3):
+
+Nothing was changed. Fix it first, then engage.
+.fix-lock released (docs/build-records/x.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpm5gf_lk7 failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+.fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpgy5owtf2 failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+..............................................................................fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpu0ttjbv7 failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+..fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpdjyrm36d failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+...fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpv_jxgcki failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpv_jxgcki failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpv_jxgcki failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+...fix-lock released (docs/build-records/b.md)
+fix-lock released (docs/build-records/a.md)
+fix-lock released (docs/build-records/owner.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpirzre1ny failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpirzre1ny failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+.fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpgxkt6mxo failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+.......usage: guard.py profile [stable | development]
+.....
+----------------------------------------------------------------------
+Ran 107 tests in 8.892s
+
+OK
+profile: stable
+profile: stable -> development
+profile: development -> stable
+## Python 3.9.25
+...fix-lock ENGAGED for docs/build-records/a.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpzxc9_k55 failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/b.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpzxc9_k55 failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+.fix-lock released (docs/build-records/b.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpxyluo79e failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+usage: guard.py fix-lock on <build-record> | off [--session <id> | --global] | status
+.fix-lock NOT engaged — cannot read /tmp/tmpk2y3ei_p/guard-config.json: guard-config.json: 'fix_lock_preflight' must be a list of argv lists, e.g. [["node", "scripts/quality-ratchet.mjs"]]
+Nothing was changed. Fix it first, then engage.
+.fix-lock NOT engaged — preflight /home/junc/.local/share/uv/python/cpython-3.9.25-linux-x86_64-gnu/bin/python3.9 -c import sys; sys.exit(3) failed (exit 3):
+
+Nothing was changed. Fix it first, then engage.
+.fix-lock released (docs/build-records/x.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpko5de1iz failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+.fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpme2jkkid failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+..............................................................................fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmp_r3n71lk failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+..fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpmef2fz7s failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+...fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmp_zdyitso failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmp_zdyitso failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmp_zdyitso failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+...fix-lock released (docs/build-records/b.md)
+fix-lock released (docs/build-records/a.md)
+fix-lock released (docs/build-records/owner.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpgcutdrww failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpgcutdrww failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+.fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpfvbg5zvh failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+.......usage: guard.py profile [stable | development]
+.....
+----------------------------------------------------------------------
+Ran 107 tests in 9.447s
+
+OK
+profile: stable
+profile: stable -> development
+profile: development -> stable

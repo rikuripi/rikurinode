@@ -1,0 +1,8 @@
+# survey 2026-10-11: clean clones; a 'covered' file has a rule whose glob names it AND whose starts_at region reaches its first #[cfg(test)]
+# clones: old-rikurinode cleanup/main 3bbbe392, AISecurity main 12ff2e8, Iceman main 21eac0b, Rikuri-PI main be979e3 (twice: own config, then with the pending rule from worktree brave-kowalevski-a0588b), this repository 1aaa8bd
+clone-old-rikurinode: 222 .rs, 133 marked, glob-covered 133, region-covered 133, weak []
+clone-AISecurity: 50 .rs, 29 marked, glob-covered 29, region-covered 29, weak []
+clone-Iceman: 0 .rs, 0 marked, glob-covered 0, region-covered 0, weak []
+clone-Rikuri-PI: 53 .rs, 11 marked, glob-covered 0, region-covered 0, weak []
+clone-Rikuri-PI: 53 .rs, 11 marked, glob-covered 11, region-covered 11, weak []
+rn-origin: 0 .rs, 0 marked, glob-covered 0, region-covered 0, weak []

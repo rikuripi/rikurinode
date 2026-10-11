@@ -1,0 +1,62 @@
+# green after the message fix at 11:31:53: guard.py 7281fc0e…, test_guard.py 4d7b7f1d…; safe-run; exit 0; lnd 2026-10-09T20:20:27.903167252Z -> 2026-10-09T20:20:27.903167252Z
+...WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpo6kfqpi_ failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpo6kfqpi_ failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+.WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmp71c_u7v_ failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+usage: guard.py fix-lock on <build-record> | off [--session <id> | --global] | status
+.fix-lock NOT engaged — cannot read /tmp/tmpe8c3eu1r/guard-config.json: guard-config.json: 'fix_lock_preflight' must be a list of argv lists, e.g. [["node", "scripts/quality-ratchet.mjs"]]
+Nothing was changed. Fix it first, then engage.
+.fix-lock NOT engaged — preflight /usr/bin/python3 -c import sys; sys.exit(3) failed (exit 3):
+
+Nothing was changed. Fix it first, then engage.
+.WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpfg8t79yf failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+.WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmps062_6qg failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+....................................................................................WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpcf3_ayx8 failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+..WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpy4np9uqu failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+...WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpw_v62ic0 failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpw_v62ic0 failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpw_v62ic0 failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+...WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmp8s6k0qiz failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmp8s6k0qiz failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+.WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmptpa7zl8j failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+.......usage: guard.py profile [stable | development]
+........
+----------------------------------------------------------------------
+Ran 116 tests in 12.666s
+
+OK
+fix-lock ENGAGED for docs/build-records/a.md (EVERY session (global lock)) — test files and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/b.md (EVERY session (global lock)) — test files and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files and baselines are now read-only
+fix-lock released (docs/build-records/x.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock released (docs/build-records/a.md)
+fix-lock released (docs/build-records/owner.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files and baselines are now read-only
+profile: stable
+profile: stable -> development
+profile: development -> stable

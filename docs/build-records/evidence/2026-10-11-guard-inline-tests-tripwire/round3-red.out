@@ -1,0 +1,213 @@
+# round 3 (unstacked, owner 2026-10-11 ~14:35) red at 14:36:57: the change's tests on main a443085's committed guard; guard.py c47b67d1… (unchanged), test_guard.py 08e00cb4…; safe-run; exit 1; lnd StartedAt 2026-10-09T20:20:27.903167252Z -> 2026-10-09T20:20:27.903167252Z
+....usage: guard.py fix-lock on <build-record> | off [--session <id> | --global] | status
+.fix-lock NOT engaged — cannot read /tmp/tmp4wmjjx73/guard-config.json: guard-config.json: 'fix_lock_preflight' must be a list of argv lists, e.g. [["node", "scripts/quality-ratchet.mjs"]]
+Nothing was changed. Fix it first, then engage.
+.fix-lock NOT engaged — preflight /usr/bin/python3 -c import sys; sys.exit(3) failed (exit 3):
+
+Nothing was changed. Fix it first, then engage.
+...........E..........................EEEEEEEEEEEEEEE...........................................usage: guard.py profile [stable | development]
+.....
+======================================================================
+ERROR: test_tracked_inline_tests_have_a_rule (test_guard.GenericPolicy.test_tracked_inline_tests_have_a_rule)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "rn-main/.claude/hooks/test_guard.py", line 108, in test_tracked_inline_tests_have_a_rule
+    gaps = guard.uncovered_inline_tests(guard.ROOT, CFG)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'uncovered_inline_tests'
+
+======================================================================
+ERROR: test_a_file_that_cannot_be_read_counts (test_guard.InlineTestCoverage.test_a_file_that_cannot_be_read_counts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "rn-main/.claude/hooks/test_guard.py", line 673, in test_a_file_that_cannot_be_read_counts
+    root = self.repo({"src/latin1.rs": b"// caf\xe9\npub fn f() {}\n"})
+  File "rn-main/.claude/hooks/test_guard.py", line 589, in repo
+    env = guard.git_env()
+          ^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'git_env'
+
+======================================================================
+ERROR: test_a_git_hook_environment_does_not_redirect_the_listing (test_guard.InlineTestCoverage.test_a_git_hook_environment_does_not_redirect_the_listing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "rn-main/.claude/hooks/test_guard.py", line 689, in test_a_git_hook_environment_does_not_redirect_the_listing
+    root = self.repo({"src/lib.rs": self.SRC})
+  File "rn-main/.claude/hooks/test_guard.py", line 589, in repo
+    env = guard.git_env()
+          ^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'git_env'
+
+======================================================================
+ERROR: test_a_long_gap_list_is_cut_but_counted (test_guard.InlineTestCoverage.test_a_long_gap_list_is_cut_but_counted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "rn-main/.claude/hooks/test_guard.py", line 737, in test_a_long_gap_list_is_cut_but_counted
+    root = self.repo({"src/m%02d.rs" % i: self.SRC for i in range(14)})
+  File "rn-main/.claude/hooks/test_guard.py", line 589, in repo
+    env = guard.git_env()
+          ^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'git_env'
+
+======================================================================
+ERROR: test_a_name_git_would_quote_is_checked (test_guard.InlineTestCoverage.test_a_name_git_would_quote_is_checked)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "rn-main/.claude/hooks/test_guard.py", line 645, in test_a_name_git_would_quote_is_checked
+    root = self.repo({"src/café.rs": self.SRC})
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "rn-main/.claude/hooks/test_guard.py", line 589, in repo
+    env = guard.git_env()
+          ^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'git_env'
+
+======================================================================
+ERROR: test_a_name_that_is_not_utf8_is_checked (test_guard.InlineTestCoverage.test_a_name_that_is_not_utf8_is_checked)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "rn-main/.claude/hooks/test_guard.py", line 652, in test_a_name_that_is_not_utf8_is_checked
+    root = self.repo({})
+  File "rn-main/.claude/hooks/test_guard.py", line 589, in repo
+    env = guard.git_env()
+          ^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'git_env'
+
+======================================================================
+ERROR: test_a_tracked_file_with_inline_tests_needs_a_rule (test_guard.InlineTestCoverage.test_a_tracked_file_with_inline_tests_needs_a_rule)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "rn-main/.claude/hooks/test_guard.py", line 607, in test_a_tracked_file_with_inline_tests_needs_a_rule
+    root = self.repo({"src/lib.rs": self.SRC, "src/plain.rs": self.PLAIN})
+  File "rn-main/.claude/hooks/test_guard.py", line 589, in repo
+    env = guard.git_env()
+          ^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'git_env'
+
+======================================================================
+ERROR: test_every_tracked_folder_counts (test_guard.InlineTestCoverage.test_every_tracked_folder_counts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "rn-main/.claude/hooks/test_guard.py", line 613, in test_every_tracked_folder_counts
+    root = self.repo({"a/b/c/deep.rs": self.SRC, "top.rs": self.SRC})
+  File "rn-main/.claude/hooks/test_guard.py", line 589, in repo
+    env = guard.git_env()
+          ^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'git_env'
+
+======================================================================
+ERROR: test_fix_lock_on_names_inline_tests_it_does_not_cover (test_guard.InlineTestCoverage.test_fix_lock_on_names_inline_tests_it_does_not_cover)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "rn-main/.claude/hooks/test_guard.py", line 723, in test_fix_lock_on_names_inline_tests_it_does_not_cover
+    root = self.repo({"src/lib.rs": self.SRC, "src/plain.rs": self.PLAIN})
+  File "rn-main/.claude/hooks/test_guard.py", line 589, in repo
+    env = guard.git_env()
+          ^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'git_env'
+
+======================================================================
+ERROR: test_fix_lock_on_says_what_it_covers (test_guard.InlineTestCoverage.test_fix_lock_on_says_what_it_covers)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "rn-main/.claude/hooks/test_guard.py", line 708, in test_fix_lock_on_says_what_it_covers
+    root = self.repo({"src/plain.rs": self.PLAIN})
+  File "rn-main/.claude/hooks/test_guard.py", line 589, in repo
+    env = guard.git_env()
+          ^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'git_env'
+
+======================================================================
+ERROR: test_fix_lock_on_says_when_it_cannot_check (test_guard.InlineTestCoverage.test_fix_lock_on_says_when_it_cannot_check)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "rn-main/.claude/hooks/test_guard.py", line 746, in test_fix_lock_on_says_when_it_cannot_check
+    root = self.repo({})
+  File "rn-main/.claude/hooks/test_guard.py", line 589, in repo
+    env = guard.git_env()
+          ^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'git_env'
+
+======================================================================
+ERROR: test_git_failure_is_an_error_not_nothing_found (test_guard.InlineTestCoverage.test_git_failure_is_an_error_not_nothing_found)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "rn-main/.claude/hooks/test_guard.py", line 684, in test_git_failure_is_an_error_not_nothing_found
+    guard.uncovered_inline_tests(root, self.cfg(None))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'uncovered_inline_tests'
+
+======================================================================
+ERROR: test_only_real_markers_count (test_guard.InlineTestCoverage.test_only_real_markers_count)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "rn-main/.claude/hooks/test_guard.py", line 635, in test_only_real_markers_count
+    root = self.repo({"src/not.rs": "#[cfg(not(test))]\npub fn f() {}\n",
+                      "src/comment.rs": "// #[cfg(test)] lives in lib.rs\npub fn f() {}\n",
+                      "src/text.rs": 'const S: &str = "#[cfg(test)]";\n',
+                      "src/spaced.rs": "pub fn f() {}\n\n  #[ cfg ( test ) ]\nmod tests {}\n",
+                      "src/tabbed.rs": "pub fn f() {}\n\n\t#[cfg(test)]\nmod tests {}\n"})
+  File "rn-main/.claude/hooks/test_guard.py", line 589, in repo
+    env = guard.git_env()
+          ^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'git_env'
+
+======================================================================
+ERROR: test_the_rule_must_find_the_tests (test_guard.InlineTestCoverage.test_the_rule_must_find_the_tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "rn-main/.claude/hooks/test_guard.py", line 621, in test_the_rule_must_find_the_tests
+    root = self.repo({"src/lib.rs": self.SRC})
+  File "rn-main/.claude/hooks/test_guard.py", line 589, in repo
+    env = guard.git_env()
+          ^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'git_env'
+
+======================================================================
+ERROR: test_the_rule_must_name_the_file (test_guard.InlineTestCoverage.test_the_rule_must_name_the_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "rn-main/.claude/hooks/test_guard.py", line 617, in test_the_rule_must_name_the_file
+    root = self.repo({"src/lib.rs": self.SRC, "crates/x/lib.rs": self.SRC})
+  File "rn-main/.claude/hooks/test_guard.py", line 589, in repo
+    env = guard.git_env()
+          ^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'git_env'
+
+======================================================================
+ERROR: test_untracked_files_do_not_count (test_guard.InlineTestCoverage.test_untracked_files_do_not_count)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "rn-main/.claude/hooks/test_guard.py", line 669, in test_untracked_files_do_not_count
+    root = self.repo({"src/plain.rs": self.PLAIN}, untracked={"scratch/probe.rs": self.SRC})
+  File "rn-main/.claude/hooks/test_guard.py", line 589, in repo
+    env = guard.git_env()
+          ^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'git_env'
+
+----------------------------------------------------------------------
+Ran 107 tests in 19.769s
+
+FAILED (errors=16)
+fix-lock ENGAGED for docs/build-records/a.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/b.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/x.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock released (docs/build-records/a.md)
+fix-lock released (docs/build-records/owner.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+profile: stable
+profile: stable -> development
+profile: development -> stable
