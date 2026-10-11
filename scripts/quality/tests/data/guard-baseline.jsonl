@@ -1,0 +1,1089 @@
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f &>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f &>>/tmp/log", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f 2>|/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a x /home/junc/rikuri/rikurinode/ --exclude .git", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f -S .bak", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f # port back", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x \"/home/junc/rikuri/rikurinode/my file\" 2>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "install -m 644 x /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "/bin/rm -rf /home/junc/rikuri/rikurinode/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "curl -o /home/junc/rikuri/rikurinode/f https://example.com/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "curl -sSL https://example.com/x --output /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "wget -O /home/junc/rikuri/rikurinode/f https://example.com/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "gawk -i inplace '{print}' /home/junc/rikuri/rikurinode/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rename s/a/b/ /home/junc/rikuri/rikurinode/a", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "split -b 1k x /home/junc/rikuri/rikurinode/part", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sort -o /home/junc/rikuri/rikurinode/f x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "gtar -xf a.tar -C /home/junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "bsdtar -xf a.tar -C /home/junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv /home/junc/rikuri{,.bak}", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf /home/junc/rikuri>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "install -m 755 /home/junc/rikuri/rikurinode/scripts/x.sh scripts/", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "curl -o /tmp/f https://example.com/x", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "sort -o /tmp/f /home/junc/rikuri/rikurinode/README.md", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp /home/junc/rikuri/rikurinode/README.md \"docs/old README.md\"", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "7z x h.7z -oscripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "7z x h.7z -o.git/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -xf h.tar -Cscripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp /bin/true scripts/quality/hooks/pre-commit &>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo 'exit 0' >| scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp /tmp/cfg /home/junc/rikuripi/rikurinode/.git/config 2>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sed -i '/hooksPath/d' /home/junc/rikuripi/rikurinode/.git/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo '[core]' > /home/junc/rikuripi/rikurinode/.git/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm scripts//quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm ./scripts/./quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "curl -o scripts/quality/hooks/pre-commit https://example.com/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "wget -O scripts/quality/hooks/pre-commit https://example.com/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rename s/pre-commit/x/ scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "gawk -i inplace '{print}' scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "/bin/rm -f .git/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x ~/rikuripi/rikurinode/scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x \"$PWD\"/.git/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf /home/junc/rikuripi/rikurinode/scripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf ~/rikuripi/rikurinode/scripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv /home/junc/rikuripi/rikurinode/scripts/quality /tmp/q", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf $PWD/scripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf /home/junc/rikuripi/rikurinode/.git", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scripts/quality/{hooks,x}", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scripts>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scripts/**", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scripts/quality/{*,.*}", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv scripts/quality{,.off}", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv scripts{,.off}", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv .git{,.off}", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -xf a.tar -Cscripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "unzip -o a.zip -dscripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "7z x a.7z -oscripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "7z x a.7z -o.git", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cpio -idm -Dscripts < a.cpio", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a --delete /tmp/empty/ scripts/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a --delete /tmp/empty/ scripts/quality/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a --remove-source-files scripts/ /tmp/s/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find scripts -exec rm {} +", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "chmod -R 000 scripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf /tmp/x/.git", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.sparseCheckout true", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git read-tree -mu HEAD", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git switch --orphan scratch", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git update-index --skip-worktree scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git update-index --assume-unchanged .git/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git sparse-checkout init", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git sparse-checkout add docs", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git sparse-checkout disable", "stable": "ask", "development": "ask"}
+{"tool": "Write", "text": ".git/info/sparse-checkout", "stable": "ask", "development": "allow"}
+{"tool": "Bash", "text": "cp x .git/hooks.bak", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -f .git/hooks.bak", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf scripts/quality/hooks.old.d", "stable": "ask", "development": "allow"}
+{"tool": "Bash", "text": "rm -f .git/config.bak", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf build/scripts", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf docs/.git", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "mkdir scripts", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "touch docs/scripts", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "tar -tf a.tar", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git update-index --skip-worktree docs/x.md", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git switch main", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp x.sh scripts/", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "unzip -o a.zip -d /tmp/x", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp x .git/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp /tmp/x/config .git/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -r /tmp/evil/hooks .git/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp /tmp/x/config .git", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -r /tmp/hooks scripts/quality/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -r /tmp/evil/quality scripts/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a /tmp/evil/hooks/ scripts/quality/hooks/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x.py scripts/quality/ 2>/dev/null", "stable": "ask", "development": "allow"}
+{"tool": "Bash", "text": "cp x.py scripts/quality/ &>/dev/null", "stable": "ask", "development": "allow"}
+{"tool": "Bash", "text": "cp -t scripts/quality x.py", "stable": "ask", "development": "allow"}
+{"tool": "Bash", "text": "cp x.py scripts/quality/", "stable": "ask", "development": "allow"}
+{"tool": "Bash", "text": "cp x.py scripts/", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp .gitignore /tmp/x", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp -r /tmp/hooks docs/", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cd /home/junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cat /home/junc/rikuri/rikurinode/README.md", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode log --oneline -3", "stable": "allow", "development": "allow"}
+{"tool": "Read", "text": "/home/junc/rikuri/rikurinode/README.md", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "lncli sendcoins --addr x --amt 1", "stable": "ask", "development": "ask"}
+{"tool": "Read", "text": "/home/junc/.lnd/data/chain/bitcoin/mainnet/admin.macaroon", "stable": "deny", "development": "deny"}
+{"tool": "Bash", "text": "rm -rf scripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv scripts/quality /tmp/q", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -r scripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git rm -r scripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd scripts/quality/hooks && rm pre-commit", "stable": "ask", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf scripts/quality/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "chmod -x scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo 'exit 0' > scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp /bin/true scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "ln -sf /bin/true scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "awk -i inplace '{print}' scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --global alias.ci 'commit -n'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo '[alias] ci = commit -n' >> ~/.gitconfig", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config --global core.hooksPath /dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.hooksPath ''", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.hooksPath .git/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git commit -anm x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git commit --amend -n --no-edit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -c core.hooksPath=/dev/null merge origin/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --unset-all core.hooksPath", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --replace-all core.hooksPath /dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "printf '[core]\\n\\thooksPath = /dev/null\\n' >> .git/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config -f .git/config --unset core.hooksPath", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "truncate -s0 scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sed -i.bak 's/exit 1/exit 0/' scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sed --in-place=.bak 's/exit 1/exit 0/' scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "patch scripts/quality/hooks/pre-commit fix.diff", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -c core.hooksPath=/dev/null -C . commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.hooksPath /dev/null --local", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "export GIT_CONFIG_COUNT=1", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --global include.path /tmp/x.cfg", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config set core.hooksPath \"\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.hooksPath scripts/quality/hooks; git commit -n -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -f .git/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv scripts/quality/hooks scripts/quality/hooks.off", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git mv scripts/quality/hooks/pre-commit scripts/quality/hooks/pre-commit.off", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find scripts -name pre-commit -delete", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git sparse-checkout set docs", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git apply --include=scripts/quality/hooks/pre-commit x.patch", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git reset --hard HEAD~1 -- scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config includeIf.gitdir:~/.path /tmp/x.cfg", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git commit --no-verify --amend --no-edit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.hooksPath scripts/quality/hooks/../../../tmp/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.hooksPath 'scripts/quality/hooks'x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.hooksPath scripts/quality/hooks\"/../../../tmp\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.hooksPath \"scripts/quality/hooks/../../../tmp\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo rm scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git commit --no-verify", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git commit -n", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git --no-pager commit --no-verify -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "python3 -c \"import os; os.remove('scripts/quality/hooks/pre-commit')\"", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git commit --amend --no-edit", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git commit -m \"fix: x\"", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git commit -F /tmp/msg.txt", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git status", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git diff -- scripts/quality/hooks", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config --get core.hooksPath", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config user.name \"Henry Chen\"", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config --list --show-origin", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git checkout -b feature/x", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git restore --staged README.md", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git reset HEAD~1", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git apply x.patch", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "shellcheck scripts/quality/hooks/pre-commit", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cat .git/config", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "scripts/quality/hooks/pre-commit", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git log -n 5", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git commit -m \"x\" --signoff", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git commit -S -m x", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git commit --allow-empty -m x", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git commit -m x -- README.md", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git commit --dry-run", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -c user.name=x commit -m x", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -c color.ui=never log", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config --unset user.email", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git checkout main", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git checkout -- README.md", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config core.hooksPath scripts/quality/hooks/", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config --get-regexp alias", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git log --oneline -- scripts/quality/hooks", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git reset --soft HEAD~1", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git merge origin/main", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git rebase origin/main", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config core.hooksPath \"$PWD/scripts/quality/hooks\"", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config core.hooksPath ./scripts/quality/hooks", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git checkout -- scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git commit -m \"docs: the -n flag skips hooks\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config alias.st status", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git restore scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git checkout HEAD~1 -- scripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git restore --source=HEAD~1 scripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync /bin/true scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -xf /tmp/h.tar -C scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -r /tmp/h scripts/quality", "stable": "ask", "development": "allow"}
+{"tool": "Bash", "text": "rmdir scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "unzip -o /tmp/h.zip -d scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git stash push -- scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "ex -sc '2i|exit 0' -cx scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf ./scripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git rm -rq scripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv scripts /tmp/s", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -c core.hookspath= commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -c core.HOOKSPATH=/dev/null commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.hookspath /dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git commit --no-verif -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git commit --no-veri -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -c 'core.hooksPath=' commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git --config-env=core.hooksPath=HOME commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "env GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -c core.hooksPath=/dev/null commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git commit --no-verify -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git commit -nm x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -c core.hooksPath commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git --config-env core.hooksPath=HOME commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -c include.path=/tmp/x.cfg commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config include.path /tmp/x.cfg", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --remove-section core", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --rename-section core corex", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config alias.ci \"commit --no-verify\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -c alias.ci=\"commit -n\" ci -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --type path core.hooksPath /dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --comment x core.hooksPath /dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --file .git/config core.hooksPath /dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config -f .git/config core.hooksPath /dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "GIT_CONFIG_PARAMETERS=\"'core.hooksPath'='/dev/null'\" git commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config rename-section core corex", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config remove-section core", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -c includeIf.onbranch:main.path=/tmp/x.cfg commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --local include.path /tmp/x.cfg", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --add core.hooksPath /dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config set --all core.hooksPath /dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --type=path core.hooksPath /dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --worktree core.hooksPath /dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -c CORE.HOOKSPATH= commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -ccore.hooksPath=/dev/null commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config set --comment x core.hooksPath /dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --local --unset-all core.hooksPath", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "GIT_EDITOR=\"sed -i s/hooks$/none/\" git config --edit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -c core.hooksPath=/dev/null -c user.name=x commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git --no-pager -c core.hooksPath=/dev/null commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C . commit --no-veri -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config alias.ci \"commit -n\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -c core.hoo\"\"ksPath=/dev/null commit -m x", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -c core.hooks\\Path=/dev/null commit -m x", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git commit --no-ver\"\"ify -m x", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -c $'core.hooksPath=' commit -m x", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git checkout HEAD~1 -- scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "perl -pi -e 's/^set/exit 0\\nset/' scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "install -m 755 /bin/true scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "dd if=/dev/null of=scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git restore --source=HEAD~1 scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.hooksPath scripts/quality/hooks", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config core.hooksPath", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config get core.hooksPath", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config --list", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config --show-origin --get core.hooksPath", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config core.hooksPath \"scripts/quality/hooks\"", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config --local core.hooksPath scripts/quality/hooks", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cat scripts/quality/hooks/pre-commit", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "shellcheck --severity=style scripts/quality/*.sh scripts/quality/hooks/*", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git commit -m \"docs: say what the hook does\"", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config get --show-origin core.hooksPath", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config core.hooksPath 'scripts/quality/hooks'", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git log --oneline -5", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config --get-regexp core", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config core.hooksPath scripts/quality/hooks-off", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.hooksPath scripts/quality/hooks/../../../tmp", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.hooksPath scripts/quality/hooks2", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.hooksPath scripts/quality/hooks && scripts/quality/full-gate.sh", "stable": "allow", "development": "allow"}
+{"tool": "Edit", "text": "scripts/quality/hooks/pre-commit", "stable": "ask", "development": "allow"}
+{"tool": "Write", "text": "scripts/quality/hooks/pre-commit", "stable": "ask", "development": "allow"}
+{"tool": "Edit", "text": ".git/config", "stable": "ask", "development": "allow"}
+{"tool": "Write", "text": ".git/hooks/pre-commit", "stable": "ask", "development": "allow"}
+{"tool": "Read", "text": "scripts/quality/hooks/pre-commit", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config -e", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config edit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --local -e", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --remove-section CORE", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config rename-section Core corex", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd $HOME/rikuri/rikurinode && git pull", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd \"${HOME}/rikuri/rikurinode\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd /home/junc/rikuri && cd rikurinode && git pull", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd /home/junc/rikuripi/rikurinode/../../rikuri/rikurinode", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cd /home/junc//rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "/home/junc/rikuri/rikurinode/scripts/rikuri-stack-compose.sh up", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "~/rikuri/rikurinode/scripts/lnd-start.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo /home/junc/rikuri/rikurinode/scripts/lnd-start.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "source /home/junc/rikuri/rikurinode/scripts/env.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": ". /home/junc/rikuri/rikurinode/scripts/env.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "env -C /home/junc/rikuri/rikurinode make up", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "make -C /home/junc/rikuri/rikurinode up", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode -c user.name=x commit -m y", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode fetch origin", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode gc --prune=now", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git --git-dir=/home/junc/rikuri/rikurinode/.git --work-tree=/home/junc/rikuri/rikurinode checkout -- .", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode remote set-url origin x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sed -E -i 's/a/b/' /home/junc/rikuri/rikurinode/docker-compose.yml", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sed -n -i 's/a/b/' /home/junc/rikuri/rikurinode/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "perl -pi -e 's/a/b/' /home/junc/rikuri/rikurinode/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -t /home/junc/rikuri/rikurinode/scripts x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x.sh /home/junc/rikuri/rikurinode/scripts/ && echo ok", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -xf x.tar -C /home/junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf /home/junc/rikuri", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf ~/rikuri/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv /home/junc/rikuri /home/junc/rikuri.old", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo x > \"$HOME/rikuri/rikurinode/n\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo x | tee /home/junc/rikuri/rikurinode/n", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "python3 -c \"open('/home/junc/rikuri/rikurinode/x','w')\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd ~/rikuri/rikurinode/scripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "pushd /home/junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C ~/rikuri/rikurinode stash pop", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd /tmp; cd /home/junc/rikuri/rikurinode; docker compose ps", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "unzip -o x.zip -d /home/junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git clone https://x/y.git /home/junc/rikuri/rikurinode/sub", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd /home/junc/rikuri/rikurinode/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd -- /home/junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd -P /home/junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "(cd /home/junc/rikuri/rikurinode && ls)", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd /home/junc/rikuri/rikurinode\\ngit status", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find /home/junc/rikuri/rikurinode -name '*.orig' -delete", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find /home/junc/rikuri/rikurinode -name x -exec rm {} \\;", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "truncate -s0 /home/junc/rikuri/rikurinode/logs/x.log", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "npm --prefix /home/junc/rikuri/rikurinode install", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "docker compose --project-directory /home/junc/rikuri/rikurinode up -d", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "nohup /home/junc/rikuri/rikurinode/scripts/watchdog.sh &", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "node /home/junc/rikuri/rikurinode/scripts/x.js", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode checkout main", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode/ pull", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "GIT_DIR=/home/junc/rikuri/rikurinode/.git git commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Edit", "text": "/home/junc/rikuri/rikurinode/docker-compose.yml", "stable": "allow", "development": "allow"}
+{"tool": "Write", "text": "/home/junc/rikuri/rikurinode/notes.txt", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cd ~/rikuri/rikurinode && ./scripts/rikuri-stack-compose.sh up", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "ln -sfn /tmp/x /home/junc/rikuri/rikurinode/current", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C \"$HOME/rikuri/rikurinode\" reset --hard", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "ls -la /home/junc/rikuri/rikurinode/scripts", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "diff -ru /home/junc/rikuri/rikurinode/scripts scripts", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode show HEAD:scripts/lnd-start.sh > scripts/lnd-start.sh", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode diff HEAD~3 -- scripts | head -50", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "head -40 /home/junc/rikuri/rikurinode/README.md", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "wc -l /home/junc/rikuri/rikurinode/scripts/*.sh", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cmp /home/junc/rikuri/rikurinode/.claude/hooks/guard.py .claude/hooks/guard.py", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "sha256sum /home/junc/rikuri/rikurinode/scripts/lnd-start.sh", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp -r /home/junc/rikuri/rikurinode/scripts/lib scripts/", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rsync -a /home/junc/rikuri/rikurinode/scripts/ /tmp/old-scripts/", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "python3 scripts/quality/repo_hygiene.py --root /home/junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sed -i 's#/home/junc/rikuri/rikurinode#/home/junc/rikuripi/rikurinode#' docs/x.md", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git grep -n \"cd /home/junc/rikuri/rikurinode\"", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git commit -m \"port lnd-start.sh from /home/junc/rikuri/rikurinode\"", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cd /home/junc/rikuripi/rikurinode && make", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cd ~/rikuripi/rikurinode", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf /home/junc/rikuripi/rikurinode/tmp", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp scripts/x.sh /home/junc/rikuripi/rikurinode/scripts/", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "echo hi > /home/junc/rikuripi/rikurinode/notes.txt", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuripi/rikurinode commit -m x", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cat /home/junc/rikuri/rikurinode/scripts/a.sh /home/junc/rikuri/rikurinode/scripts/b.sh > /tmp/both.sh", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode log -p -- scripts/lnd-start.sh | less", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode status --short", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cd /home/junc/rikuri/rikurinode-archive", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "grep -n flock /home/junc/rikuri/rikurinode/scripts/lnd-start.sh", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git commit -m \"rm stale files; see /home/junc/rikuri/rikurinode\"", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp /home/junc/rikuri/rikurinode/scripts/a.sh /home/junc/rikuripi/rikurinode/scripts/", "stable": "allow", "development": "allow"}
+{"tool": "Edit", "text": "/home/junc/rikuripi/rikurinode/docs/notes.md", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "echo \"previous: /home/junc/rikuri/rikurinode\" >> docs/notes.md", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "python3 -c \"print(open('/home/junc/rikuri/rikurinode/README.md').read())\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scripts/quality/hooks/*", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm scripts/quality/hooks/*", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scripts/*", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scripts/quality/*", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -f scripts/quality/hooks/pre-*", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf .git/hooks/*", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv scripts/quality/hooks/* /tmp/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "chmod -x scripts/quality/hooks/*", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp /bin/true scripts/quality/hooks/pre-commit 2>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp /bin/true scripts/quality/hooks/pre-commit -f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -f /bin/true scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a /tmp/x scripts/quality/hooks/pre-commit 2>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf \"scripts/quality\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo rm -r scripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "shred -u scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "unlink scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tee scripts/quality/hooks/pre-commit < /dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "ln -sf /bin/true .git/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sed -i 's/exit 1/exit 0/' scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "perl -i -pe 's/exit 1/exit 0/' scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -C scripts/quality/hooks -xf h.tar", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar xf h.tar --directory=scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "scp host:x scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find scripts/quality/hooks -type f -exec rm {} +", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find ./scripts -delete", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git rm -r --cached scripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git mv scripts tools", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git stash push -- scripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git checkout HEAD~3 -- .git/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv .git /tmp/g", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf .git", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo 'exit 0' >scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cat /tmp/x >> \"scripts/quality/hooks/pre-commit\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "vim scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "truncate -s 0 ./scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -t scripts/quality/hooks /tmp/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv scripts/quality/hooks scripts/quality/hooks.off && git commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "ls && rm -rf scripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cpio -pdm scripts/quality/hooks < list", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scripts/quality/hooks/pre-commit scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -xf hooks.tar -C scripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "unzip -o hooks.zip -d scripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a /tmp/q/ scripts/quality/", "stable": "ask", "development": "allow"}
+{"tool": "Bash", "text": "find . -name pre-commit -delete", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "mv scripts/quality/hooks{,.off}", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp /bin/true scripts/quality/hooks/pre-commit>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp /home/junc/rikuri/rikurinode/scripts/x.sh scripts/", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp /home/junc/rikuri/rikurinode/scripts/x.sh scripts/x.sh", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp ~/rikuri/rikurinode/scripts/backup.sh scripts/node/", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "mkdir -p scripts/node", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "shellcheck scripts/quality/*.sh scripts/quality/hooks/*", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "python3 scripts/quality/guard_policy.py --check", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git add scripts/quality/guard_policy.py", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git diff -- scripts/quality/hooks/pre-commit", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf scripts/node/tmp", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rsync -a /home/junc/rikuri/rikurinode/scripts/ scripts/old/", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git log -p -- scripts", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp scripts/quality/hooks/pre-commit /tmp/pc", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp /tmp/new.py scripts/quality/new_check.py", "stable": "ask", "development": "allow"}
+{"tool": "Bash", "text": "chmod +x scripts/node/x.sh", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git show HEAD:scripts/quality/hooks/pre-commit", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf /home/junc/rikuri/rikurinode/data", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sed -i s/a/b/ ~/rikuri/rikurinode/docker-compose.yml", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo x > /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv /home/junc/rikuri /tmp/r", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a x/ /home/junc/rikuri/rikurinode/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find /home/junc/rikuri/rikurinode -name '*.log' -delete", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find /home/junc/rikuri/rikurinode -name '*.log'", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "awk -i inplace '{print}' /home/junc/rikuri/rikurinode/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "patch /home/junc/rikuri/rikurinode/x fix.diff", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "perl -pi -e 's/a/b/' $HOME/rikuri/rikurinode/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf /home/junc/rikuri/rikurinode/*", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "touch /home/junc/rikuri/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync --delete -a /tmp/e/ /home/junc/rikuri/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "unzip x.zip -d ~/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "ex -s -c wq /home/junc/rikuri/rikurinode/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find /home/junc/rikuri -delete", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sed -n 1,20p /home/junc/rikuri/rikurinode/README.md", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f 2>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f -f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f >/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a x /home/junc/rikuri/rikurinode/ 2>&1", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "scp host:x /home/junc/rikuri/rikurinode/f 2>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f &", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "(cp x /home/junc/rikuri/rikurinode/f)", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo x >| /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f && echo ok", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x \"/home/junc/rikuri/rikurinode/f\" 2>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f; echo ok", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f | cat", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp /tmp/cfg .git/config 2>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp /bin/true scripts/quality/hooks/pre-commit &", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "(cp /bin/true scripts/quality/hooks/pre-commit)", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp /bin/true scripts/quality/hooks/pre-commit && git commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync /bin/true scripts/quality/hooks/pre-commit -q", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scripts/quality/hooks/pre-commit*", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scripts/qualit?", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf scripts/quality/hooks/[p]re-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv .git/config .git/config.off", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -f .git/hooks/*", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "chmod 644 scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git rm -q scripts/quality/hooks/*", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git checkout HEAD~1 -- scripts/quality/hooks/*", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -r scripts/quality/hooks/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.hooksPath \"${PWD}/scripts/quality/hooks\"", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config core.hooksPath \"$PWD/scripts/quality/hooks/../../../tmp\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.hooksPath ./scripts/quality/hooks-off", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.hooksPath $PWD/scripts/quality/hooksx", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.hooksPath './scripts/quality/hooks/'", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config core.hooksPath ./scripts/quality/hooks/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config core.hooksPath \"$HOME/scripts/quality/hooks\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf node_modules/.bin/scripts", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git rm docs/old-scripts", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git checkout main -- docs/ && ls scripts", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git config --unset core.hooksPath", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git merge --no-verify feat/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git commit -m \"feat: x\"", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git push origin feat/x", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cargo test --workspace", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "npm ci && npm test", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "scripts/quality/safe-run.sh cargo test", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git reset --hard HEAD~1", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git commit -m \"$(cat <<'X'\\nfeat: add the node status page\\nX\\n)\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd \"$HOME\"/rikuri/rikurinode && git pull", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd /home/junc/rikuri/./rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd /home/*/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd /home/junc/rikuri/rikurinod*", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd ~junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode --no-pager pull", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode -P reset --hard", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git --no-pager -C /home/junc/rikuri/rikurinode checkout -- .", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode --literal-pathspecs stash", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode pull", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode clean -fdx", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode reset --hard origin/main", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git worktree add /home/junc/rikuri/rikurinode/wt", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a src/ /home/junc/rikuri/rikurinode/ --delete", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a --remove-source-files /home/junc/rikuri/rikurinode/ /tmp/x/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "scp x.sh /home/junc/rikuri/rikurinode/scripts/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "awk 'BEGIN{system(\"cd /home/junc/rikuri/rikurinode && make up\")}'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "uv run --directory /home/junc/rikuri/rikurinode pytest", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "pip install -e /home/junc/rikuri/rikurinode/control-plane", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode \\\\n pull", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd \\\\n /home/junc/rikuri/rikurinode && git pull", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "bash -c \"cd /home/junc/rikuri/rikurinode && make up\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sh -c 'cd ~/rikuri/rikurinode; git pull'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "ex -s +'%s/a/b/' +wq /home/junc/rikuri/rikurinode/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "npm --prefix /home/junc/rikuri/rikurinode/dashboard/backend install", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cargo build --manifest-path /home/junc/rikuri/rikurinode/control-plane/Cargo.toml", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "python3 /home/junc/rikuri/rikurinode/scripts/reset-owner-password.py", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "/home/junc/rikuri/rikurinode/scripts/sync-bitcoin-cookie.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode config core.hooksPath /dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode -c core.fsmonitor=x status", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "GIT_WORK_TREE=/home/junc/rikuri/rikurinode git checkout -- .", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git --git-dir /home/junc/rikuri/rikurinode/.git gc", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find /home/junc/rikuri/rikurinode -name '*.pyc' -delete", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "xargs rm < /tmp/list /home/junc/rikuri/rikurinode/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "touch /home/junc/rikuri/rikurinode/.maintenance", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "ln -sf /tmp/x /home/junc/rikuri/rikurinode/scripts/lnd-start.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cat /home/junc/rikuri/rikurinode/docker-compose.yml", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "sed -n '1,40p' /home/junc/rikuri/rikurinode/scripts/sync-bitcoin-cookie.sh", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "grep -n lncli /home/junc/rikuri/rikurinode/scripts/sync-bitcoin-cookie.sh", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode grep -n sendcoins", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode log --oneline -5", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode show HEAD:docker-compose.yml", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode diff HEAD~1 --stat", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode --no-pager log -3", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode ls-files scripts", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "ls -la /home/junc/rikuri/rikurinode", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "find /home/junc/rikuri/rikurinode/scripts -name '*.sh'", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "wc -l /home/junc/rikuri/rikurinode/scripts/sync-bitcoin-cookie.sh", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "diff -u /home/junc/rikuri/rikurinode/README.md README.md", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "head -50 /home/junc/rikuri/rikurinode/README.md", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp /home/junc/rikuri/rikurinode/scripts/sync-bitcoin-cookie.sh scripts/", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp -r /home/junc/rikuri/rikurinode/control-plane/src ./ref", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git commit -m \"port sync-bitcoin-cookie.sh from /home/junc/rikuri/rikurinode\"", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git commit -m \"$(cat <<'X'\\nguard: ask before cd /home/junc/rikuri/rikurinode\\nX\\n)\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "gh pr create --title t --body \"never cd /home/junc/rikuri/rikurinode\"", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rg -n 'cd /home/junc/rikuri/rikurinode' docs", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git grep -n 'rm -rf ~/rikuri'", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cd /home/junc/rikuripi/rikurinode && git status", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuripi/rikurinode pull", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "ls /home/junc/rikuri/", "stable": "allow", "development": "allow"}
+{"tool": "Read", "text": "/home/junc/rikuri/rikurinode/configs/bitcoin.conf", "stable": "deny", "development": "deny"}
+{"tool": "Bash", "text": "cat /home/junc/rikuri/rikurinode/configs/bitcoin.conf", "stable": "deny", "development": "deny"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode show HEAD:configs/bitcoin.conf", "stable": "ask", "development": "ask"}
+{"tool": "Read", "text": "/home/junc/rikuri/rikurinode/control-plane/src/cookie.rs", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "diff <(git -C /home/junc/rikuri/rikurinode show HEAD:scripts/sync-bitcoin-cookie.sh) scripts/x.sh", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "jq . /home/junc/rikuri/rikurinode/ragdocs/runbooks/RB-SEED-RECOVERY-DRILL-01.json", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "tar -tzf /tmp/x.tgz -C /home/junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f 2> /dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f &> /dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f >/dev/null 2>&1", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f >/dev/null 2>&1 &", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f >&2", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f -v --preserve=all", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f --", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f 2>/dev/null || true", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f&", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x '/home/junc/rikuri/rikurinode/f' -f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "bash -c \"cp x /home/junc/rikuri/rikurinode/f 2>/dev/null\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "bash -c \"cp x /home/junc/rikuri/rikurinode/f\" &", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "python3 -c 'import os; os.system(\"cp x /home/junc/rikuri/rikurinode/f -f\")'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sh -c 'cp x /home/junc/rikuri/rikurinode/f' 2>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a x /home/junc/rikuri/rikurinode/ --exclude=.git", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a x /home/junc/rikuri/rikurinode/ -v 2>&1 | tail -1", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "scp host:x /home/junc/rikuri/rikurinode/f -q &", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x ~/rikuri/rikurinode/f 2>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x $HOME/rikuri/rikurinode/f -f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc//rikuri/rikurinode/f &", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "(cp x /home/junc/rikuri/rikurinode/f 2>/dev/null)", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f 2>/dev/null; echo done", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f\t2>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f < /dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -f x /home/junc/rikuri/rikurinode/f 1>/dev/null 2>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f 2>/dev/null &&", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "timeout 5 cp x /home/junc/rikuri/rikurinode/f 2>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp /home/junc/rikuri/rikurinode/x /tmp/x 2>/dev/null", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp /home/junc/rikuri/rikurinode/x . -v", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp -r /home/junc/rikuri/rikurinode/scripts ./ported/ 2>/dev/null &", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a /home/junc/rikuri/rikurinode/configs/ /tmp/configs/ --exclude=.git", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "scp /home/junc/rikuri/rikurinode/x host:/tmp/ 2>/dev/null", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp /home/junc/rikuri/rikurinode/README.md docs/old-readme.md &>/dev/null", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cat /home/junc/rikuri/rikurinode/README.md 2>/dev/null", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm ./scripts/quality/hooks/pre-commit 2>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv scripts/quality/hooks /tmp/h &", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "touch scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "chmod 644 .git/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "chown nobody scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "shred -u .git/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "patch scripts/quality/hooks/pre-commit < x.diff", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "ed -s .git/config < x.ed", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sed -i 1d scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sed -i '/hooksPath/d' .git/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "perl -pi -e 's/x/y/' scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "awk -i inplace '{print}' .git/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -xf h.tar -C scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "unzip -o h.zip -d .git/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync /bin/true scripts/quality/hooks/pre-commit 2>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a --delete /tmp/e/ scripts/quality/hooks/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "scp host:x .git/config &", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -t scripts/quality/hooks /bin/true", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp --target-directory=.git/hooks x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find scripts/quality/hooks -type f -delete", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find .git/hooks -name 'pre-*' -exec rm {} +", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo '[core]' >> .git/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cat x >\"scripts/quality/hooks/pre-commit\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git rm --cached -q scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git mv scripts/quality/hooks scripts/quality/hooks.off", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git checkout HEAD~3 -- scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git restore --source=HEAD~3 scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git apply x.diff --include=scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git reset -q HEAD~3 -- scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git stash push -- scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scripts/quality/hooks/../hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv \"scripts/quality/hooks\" /tmp/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp /bin/true /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scripts/quality/hook*", "stable": "ask", "development": "allow"}
+{"tool": "Bash", "text": "rm -f .git/conf*", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp /tmp/cfg .git/config >/dev/null 2>&1", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cpio -idm -D scripts/quality/hooks < h.cpio", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo rm -rf scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C . rm -q scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv .git/config{,.off}", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git show HEAD~1:scripts/quality/hooks/pre-commit > scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo hi | tee -a .git/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git log -1 > .git/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git checkout stash@{0} -- scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "printf 'exit 0' 1>scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp /bin/true scripts/quality/hooks/pre-commit &> /dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync /bin/true scripts/quality/hooks/pre-commit &>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scripts/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf .git/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf .git/*", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -r -- scripts 2>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scripts/quality&>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scripts/quality &>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scripts/quality/**", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv scripts /tmp/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv .git .git.off", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv -t /tmp scripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rmdir scripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find scripts -delete", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find ./scripts/quality -name '*' -delete", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find .git -name config -delete", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find scripts/ -exec rm -rf {} +", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -xf a.tar -C scripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -C scripts/quality -xf a.tar", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar --directory scripts -xf a.tar", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -xf a.tar --directory=scripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -xf a.tar -C\"scripts/quality\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "unzip -o a.zip -d scripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "7z x a.7z -oscripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "7z x a.7z -o\"scripts/quality\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cpio -idm -D scripts < a.cpio", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cpio -idm --directory=scripts/quality < a.cpio", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "unzip -o a.zip -d .git", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo rm -rf scripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scrip*", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf .gi?", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf *", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git rm -r -q .", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git stash push -- scripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find . -path ./scripts -delete", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "(rm -rf scripts)", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "bash -c 'rm -rf scripts/quality'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -xf a.tar -C scripts/ 2>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -xf a.tar -C ./scripts/quality/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git sparse-checkout init --cone", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git sparse-checkout reapply", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C . sparse-checkout set docs", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git sparse-checkout list; git sparse-checkout set docs", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git sparse-checkout set --no-cone '/docs/'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -c core.sparseCheckout=true sparse-checkout set docs", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "bash -c 'git sparse-checkout set docs'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git sparse-checkout set docs 2>/dev/null &", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git sparse-checkout listx", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo '/docs/' > .git/info/sparse-checkout", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git sparse-checkout list && git sparse-checkout disable", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git sparse-checkout list", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git sparse-checkout  list", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -C . sparse-checkout list", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp x.py scripts/quality/x.py", "stable": "ask", "development": "allow"}
+{"tool": "Bash", "text": "rsync -a /tmp/evil/ scripts/", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "install -m 644 x.py scripts/quality/", "stable": "ask", "development": "allow"}
+{"tool": "Bash", "text": "mv /tmp/x.py scripts/quality/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo x > scripts/quality/x.py", "stable": "ask", "development": "allow"}
+{"tool": "Bash", "text": "tee scripts/quality/x.py < /dev/null", "stable": "ask", "development": "allow"}
+{"tool": "Write", "text": ".git/config", "stable": "ask", "development": "allow"}
+{"tool": "Write", "text": "scripts/quality/new_check.py", "stable": "ask", "development": "allow"}
+{"tool": "Write", "text": "./scripts/quality/hooks/pre-commit", "stable": "ask", "development": "allow"}
+{"tool": "Write", "text": "scripts//quality/hooks/pre-commit", "stable": "ask", "development": "allow"}
+{"tool": "Write", "text": "scripts/quality/../quality/hooks/pre-commit", "stable": "ask", "development": "allow"}
+{"tool": "NotebookEdit", "text": "scripts/quality/hooks/pre-commit", "stable": "ask", "development": "allow"}
+{"tool": "Bash", "text": "install -m 755 x.sh scripts/", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git mv scripts/old.sh scripts/new.sh", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm scripts/old.sh", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git rm scripts/old.sh", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf myscripts/quality/hooks", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf docs/scripts", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf scripts-old", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf scripts.bak", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf old_scripts", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf x.git", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf build/scripts/quality", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf build/scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv docs/scripts docs/tools", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp -r /home/junc/rikuri/rikurinode/scripts/lib scripts/lib", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git add scripts/x.sh", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "ls scripts/quality/hooks", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "tar -tf a.tar -C scripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf node_modules/x/scripts", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -C /tmp/r archive HEAD | tar -x -C /home/junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "busybox rm /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf /home/junc/rikuri/rikurinod?", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf /home/junc/rikuri/riku*", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv /home/junc/rikuri/rikurinode{,.bak}", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf /home/junc/rikuri/rikurinode>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a --delete /tmp/empty/ /home/junc/rikuri/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf /home/junc/rikur?", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf /home/junc/rikuri &>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "ls scripts", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "echo start & rm -rf /home/junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git log -1 & git -C /home/junc/rikuri/rikurinode reset --hard", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "grep -q x README.md & cp x /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "head -1 README.md & mv /home/junc/rikuri/rikurinode /tmp/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo & /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "printf x & sed -i s/a/b/ /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo & tar -xf a.tar -C /home/junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo & lncli sendcoins --addr x --amt 1", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo & docker stop lnd", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo & systemctl restart docker", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo & bitcoin-cli stop", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo & rm -rf scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tail -f x & rm -rf ~/rikuri", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo & cd /home/junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sleep 1 & rm -rf /home/junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo & curl -X POST -d '{}' https://localhost:8080/v1/channels", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo & pkill lnd", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo & sudo apt-get install -y foo", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo x & cat /home/junc/rikuri/rikurinode/.lnd/data/chain/bitcoin/mainnet/admin.macaroon", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "printf '/docs/\\n' > .git/info/sparse-checkout", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config extensions.worktreeConfig true", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "printf '[core]\\n\\thooksPath = /dev/null\\n' > .git/config.worktree", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo scripts/quality/hooks/pre-commit | xargs rm -f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git rm -r -q :/scripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git rm -r ':(top)scripts'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git restore --source=evil -- :/scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git checkout evil -- ':(top).git'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git rm -r ':(glob)scripts/quality/**'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git rm -r ':(literal)scripts/quality/hooks'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git rm -r :/scripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git mv :/scripts/quality/hooks :/scripts/quality/off", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git stash push -- :/scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git reset -q evil -- :/scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -c core.sparseCheckout=true reset --hard HEAD", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -c core.sparseCheckout=true checkout -f HEAD", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git --config-env=core.sparseCheckout=V checkout -f HEAD", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.sparseCheckout GIT_CONFIG_VALUE_0=true git checkout -f HEAD", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -c core.hookspath=/dev/null commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -c \"core.hooksPath=/dev/null\" commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -ccore.hooksPath=/x commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo /usr/bin/git -c core.hooksPath= commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git --config-env core.hooksPath=HP commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "GIT_CONFIG_PARAMETERS=\"'core.hooksPath'='/x'\" git commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "GIT_CONFIG_GLOBAL=/tmp/g git commit -m x", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "GIT_CONFIG_SYSTEM=/tmp/g git commit -m x", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git commit -m x -n", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git commit --amend --no-veri -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C . commit -an -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git --git-dir=.git --work-tree=. commit --no-verify -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config set include.path /tmp/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --add includeIf.gitdir:/home/.path /tmp/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config set alias.ci \"commit -n\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config unset core.hooksPath", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --local --unset-all \"core.hooksPath\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config unset --all core.hooksPath", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config rename-section core x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --rename-section core old", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config set core.hooksPath /tmp/h", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --replace-all core.hooksPath ''", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git sparse-checkout", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config --bool core.sparsecheckout 1", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git config set core.sparseCheckoutCone true", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C . read-tree -mu HEAD", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git switch --orphan=new", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git switch -f --orphan new", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git update-index --skip-worktree -- scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git update-index --assume-unchanged ./.git/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git ls-files scripts/quality/hooks | xargs git update-index --skip-worktree", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git --config-env=core.sparseCheckout=SP read-tree -mu HEAD", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -f \"scripts/quality/hooks/pre-commit\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -f 'scripts/quality/hooks/pre-commit'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -f scripts//quality/./hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "chmod a-x scripts/quality/hooks/*", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo chmod 644 .git/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "/bin/chmod -x ./scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp /dev/null scripts/quality/hooks/pre-commit 2>/dev/null || true", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": ": > scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "printf '#!/bin/sh\\nexit 0\\n' > scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo x >| ./scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sed -i '1a exit 0' scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "gawk -i 'inplace' '!/hooksPath/' .git/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "gawk --include=inplace '!/hooksPath/' .git/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -xvC scripts/quality -f a.tar", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar xfC a.tar scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "unzip -qod scripts/quality a.zip", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "unzip -qod .git a.zip", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -t .git /tmp/x/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -t .git/ /tmp/x/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "install -t .git /tmp/x/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp --target-directory=.git /tmp/x/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -r -t scripts/quality /tmp/x/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -rt scripts /tmp/x/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -r --target-directory=scripts/quality /tmp/x/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -t /home/junc/rikuripi/rikurinode/.git /tmp/x/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "curl -o .git/config https://e.x/y", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "curl --output-dir .git -O https://e.x/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "wget -P .git https://e.x/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "wget -P scripts/quality/hooks https://e.x/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sort -o .git/config /tmp/c", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find .git/hooks -exec rm {} +", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git rm -r --cached scripts/quality/hooks && rm -rf scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git rm -r :/scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git rm -r ':(top)scripts/quality/hooks'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git checkout HEAD -- ':/scripts/quality/hooks/pre-commit'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git restore --source=HEAD~1 -- scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git mv scripts/quality/hooks scripts/quality/h", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git stash push -- .git/config", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "ln -sf /tmp/x/config .git/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "ln -sf /tmp/x/pre-commit scripts/quality/hooks/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf \"$PWD/scripts\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf \"$(pwd)\"/scripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo rm -r ~/rikuripi/rikurinode/scripts/quality/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rmdir --ignore-fail-on-non-empty scripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a --delete /tmp/empty/ ./scripts/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -xf a.tar -C\"$PWD/scripts\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "7z x a.7z -o./scripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "shred -u scripts/**", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf ${PWD}/.git", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "chmod -R 000 .git", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "bash -c \"rm -rf scripts/quality\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "python3 -c 'import os; os.system(\"rm -rf scripts/quality/hooks\")'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp /tmp/x/config .git/config.worktree", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo cp /tmp/c .git/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "scp h:/tmp/c ./.git/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a /tmp/x/hooks ./scripts/quality/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -a \"/tmp/my dir/hooks\" scripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -r ~/old/quality \"$PWD/scripts\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -r /tmp/x/hooks/ scripts/quality/ 2>/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo -u bitcoin /usr/local/bin/bitcoin-cli sendtoaddress x 1", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "FOO=1 lncli sendcoins --addr x --amt 1", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "docker exec lnd lncli payinvoice x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "/usr/bin/docker stop lnd", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo -E docker compose down", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "timeout 5 lncli sendcoins --addr x --amt 1", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "nice lncli payinvoice x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo systemctl -q stop docker", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo -u root pkill -f bitcoind", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo rpm-ostree upgrade", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "lncli --network=mainnet closechannel x 1", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "ssh node 'lncli sendcoins --addr x --amt 1'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo hi; lncli sendcoins --addr x --amt 1", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git log -1 & docker compose down", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "grep x f & sudo reboot", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv .//scripts/quality/hooks /tmp/off", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv ././scripts/quality/hooks /tmp/off", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv ~+/scripts/quality/hooks /tmp/off", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv \"$(git rev-parse --show-toplevel)/scripts/quality/hooks\" /tmp/off", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv scripts/../scripts/quality/hooks /tmp/off", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cpio -idmuD scripts/quality < /tmp/h.cpio", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "builtin cd ~/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd \"$HOME\"/rikuri/rikurinode && ls", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "pushd ~junc/rikuri/rikurinode >/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd \"${HOME}/rikuri/rikurinode/scripts\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd -P /home/junc//rikuri/./rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo -u junc bash -c 'cd /home/junc/rikuri/rikurinode && git status'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "/home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo -u junc /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo -E /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "FOO=1 /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "timeout 5 /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "nice -n 10 /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "time /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "nohup ~/rikuri/rikurinode/scripts/x.sh &", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "bash ~/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "python3 -u $HOME/rikuri/rikurinode/x.py", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "watch -n 5 /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "setsid /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "stdbuf -oL /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "command /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "exec /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "env -i PATH=/bin /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "\"$HOME/rikuri/rikurinode/scripts/x.sh\" --flag", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "ls && /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "timeout -s KILL 5 /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "doas /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo -u root -- /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "ionice -c3 /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "make -C /home/junc/rikuri/rikurinode test", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "npm --prefix ~/rikuri/rikurinode run start", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "strace -f /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "xargs -a list /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sh -c '/home/junc/rikuri/rikurinode/scripts/x.sh'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "flock /tmp/l /home/junc/rikuri/rikurinode/scripts/x.sh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode reflog expire --expire=now --all", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode reflog delete HEAD@{1}", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode diff --output=x.diff", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode log -p --output=/home/junc/rikuri/rikurinode/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C ~/rikuri/rikurinode checkout -- .", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git --git-dir=/home/junc/rikuri/rikurinode/.git --work-tree=/home/junc/rikuri/rikurinode stash", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "GIT_DIR=/home/junc/rikuri/rikurinode/.git git gc", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode --no-pager fetch", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo git -C /home/junc/rikuri/rikurinode pull", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "/usr/bin/git -C /home/junc/rikuri/rikurinode commit -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C ~junc/rikuri/rikurinode stash", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/*/rikuri/rikurinode reset --hard", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C ${HOME}/rikuri/rikurinode/ checkout main", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode show --output=x HEAD", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode status && git -C /home/junc/rikuri/rikurinode reflog expire --all", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode notes add -m x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode update-ref -d refs/heads/main", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode tag -d v1", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode show HEAD:README.md", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode grep -n foo", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode branch -D old", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf -- \"/home/junc/rikuri/rikurinode\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo -u root rm -rf /home/junc/rikuri", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "\\rm -rf ~junc/rikuri/rikurinode/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv /tmp/x \"${HOME}/rikuri/rikurinode/\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rmdir /home/*/rikuri/rikurinode/empty", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "chmod -R a-w $HOME/rikuri", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "chown -R nobody: ~junc/rikuri/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mv ${HOME}/rikuri/** /tmp/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf /home/*/rikuri{,.old}", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "busybox rm -rf /home/junc/rikuri/rikurinode/data", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "shred -u \"$HOME\"/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo x | sudo tee -a /home/junc/rikuri/rikurinode/f >/dev/null", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "ln -sfn /tmp/x ~/rikuri/rikurinode/link", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "dd if=/dev/zero of=$HOME/rikuri/rikurinode/f bs=1 count=1", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "patch -p1 -d /home/junc/rikuri/rikurinode < x.diff", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "vim -es -c '%s/a/b/' -c wq /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "pico /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "micro /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "gvim /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "vimdiff /tmp/a /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "emacsclient -n /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "joe /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "code /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "mcedit /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "hx /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sed -i.bak 's/a/b/' /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sed --in-place=.orig -e s/a/b/ ~/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sed -Ei 's/a/b/' \"$HOME/rikuri/rikurinode/f\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "perl -0777 -pi.bak -e 's/a/b/' /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "gawk -i 'inplace' '{print}' /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "gawk -i \"inplace\" '{print}' /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "gawk --include=inplace '{print}' /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "gawk --include inplace '{print}' /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo awk -i inplace '{print}' /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "/usr/bin/sed -i s/a/b/ /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -xvC /home/junc/rikuri/rikurinode -f a.tar", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar xfC a.tar /home/junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -C /home/junc/rikuri/rikurinode -xf a.tar", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar --extract --file=a.tar --directory=\"$HOME/rikuri/rikurinode\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -xzf a.tgz -C ~junc/rikuri", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "unzip -qod /home/junc/rikuri/rikurinode a.zip", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "unzip -o a.zip -d \"${HOME}/rikuri/rikurinode\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "7z x a.7z -o\"$HOME/rikuri/rikurinode\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "7z x -y -o/home/junc/rikuri a.7z", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cpio -idmD /home/junc/rikuri/rikurinode < a.cpio", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cpio -id --directory=/home/junc/rikuri/rikurinode < a.cpio", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo bsdtar -xf a.tar -C /home/*/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -x -f a.tar --directory /home/junc/rikuri/rikurinode/sub", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -xf a.tar -C /home/junc/rikuri/rikurinode/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f; echo done", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f && ls", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f 2>&1 | head", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -v x \"/home/junc/rikuri/rikurinode/my file\" --preserve=all", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x ~/rikuri/rikurinode/f 1>&- 2>&-", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -t ~/rikuri/rikurinode x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp -rt \"$HOME/rikuri/rikurinode\" x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp --target-directory \"$HOME/rikuri/rikurinode\" x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "install -Dm644 x /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "install -d /home/junc/rikuri/rikurinode/newdir", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -av --exclude=.git x/ /home/junc/rikuri/rikurinode/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -e ssh x ~junc/rikuri/rikurinode/ -n", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "scp -r h:x \"${HOME}\"/rikuri/rikurinode/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rsync -a --delete-after x/ /home/junc/rikuri", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo $(cp x /home/junc/rikuri/rikurinode/f)", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp x /home/*/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo cp -a x/. /home/junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cp --target-directory=/home/*/rikuri/rikurinode x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "curl -fsSL https://e.x/y -o \"$HOME/rikuri/rikurinode/f\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "curl --output-dir /home/junc/rikuri/rikurinode -O https://e.x/y", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "wget -P /home/junc/rikuri/rikurinode https://e.x/y", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "wget --directory-prefix=/home/junc/rikuri/rikurinode https://e.x/y", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "wget -qO ~/rikuri/rikurinode/f https://e.x/y", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sort -uo /home/junc/rikuri/rikurinode/f x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sort x -o \"$HOME/rikuri/rikurinode/f\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "curl -o/home/junc/rikuri/rikurinode/f https://e.x/y", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo curl -o /home/junc/rikuri/rikurinode/f https://e.x/y", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "curl -D /home/junc/rikuri/rikurinode/h https://e.x/y", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "curl -c /home/junc/rikuri/rikurinode/jar https://e.x/y", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find -L /home/junc/rikuri/rikurinode -name '*.tmp' -delete", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find ~/rikuri -type f -exec chmod 600 {} +", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "sudo find \"$HOME/rikuri/rikurinode\" -execdir rm {} \\;", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "find /home/*/rikuri/rikurinode -okdir rm {} \\;", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo x>/home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo x 2>>~/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo x &>\"$HOME/rikuri/rikurinode/f\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "exec 3>/home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": ": > ${HOME}/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "printf x >|\"$HOME/rikuri/rikurinode/f\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cat <<EOF > /home/junc/rikuri/rikurinode/f\\nx\\nEOF", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "python3 -c 'import os; os.system(\"echo x >| /home/junc/rikuri/rikurinode/f\")'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "bash -c \"echo x >| ~/rikuri/rikurinode/f\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo x > /home/*/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo x >~junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf scripts/../scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -f .gi?/config", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git rm -r .", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rsync -a /tmp/x/ scripts/", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "python3 -c \"open('scripts/quality/hooks/pre-commit','w')\"", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "L=lncli; $L sendcoins --addr x --amt 1", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "git -c $'core.hooksPath=/dev/null' commit -m x", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cat ~/.docker/config.json", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "echo \"[alias] ci = commit -n\" >> ~/.gitconfig", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "mv x scripts/quality/", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:lncli \\\\n sendcoins --addr x --amt 1", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:docker \\\\n stop lnd", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:nerdctl \\\\n stop lnd", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:sudo apt-get \\\\n install -y foo", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:rpm-ostree \\\\n upgrade", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:grpcurl -d '{}' \\\\n localhost:10009 lnrpc.Lightning/SendCoins", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:loginctl \\\\n reboot", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:sudo \\\\n systemctl restart lnd", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:dnf \\\\n upgrade -y", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:ctr \\\\n task kill lnd", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:wget --post-data='{}' \\\\n https://localhost:8080/v1/channels", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:http \\\\n POST https://localhost:8080/v1/channels", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:podman-compose \\\\n down", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:snap \\\\n refresh", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:sudo shutdown \\\\n -r now", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:cp x \\\\n /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:cp \\\\n x /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:mv \\\\n /home/junc/rikuri/rikurinode /tmp/x", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:tar -xf a.tar \\\\n -C scripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "NL:chmod \\\\n -x scripts/quality/hooks/pre-commit", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo x >| /tmp/y", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "echo x 2>| /tmp/y", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "python3 -c \"import os; os.system('echo x >| /tmp/y')\"", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "bash -c 'echo x >| /tmp/y'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "python3 -c \"import os; os.system('echo x >| scripts/quality/hooks/pre-commit')\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "perl -e 'system(\"echo x >| .git/config\")'", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cat <<EOF > /tmp/msg\\nrm -rf scripts/quality/hooks\\nEOF", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "rm -rf /home//junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf /home/./junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf .//scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf ././scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf ~+/scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf \"$REPO\"/scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cpio -idmD scripts/quality < a.cpio", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar -xf a.tar -vC scripts", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tail x & cp x /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "bsdtar -xvC .git -f a.tar", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "tar --remove-files -cf /tmp/x.tar /home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "zip -rm /tmp/x.zip scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "rm -rf $(git rev-parse --show-toplevel)/scripts/quality/hooks", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cd /home/junc/rikuri && cd rikurinode", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "7za x a.7z -oscripts/quality", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "unzip -o -qd scripts/quality a.zip", "stable": "ask", "development": "ask"}

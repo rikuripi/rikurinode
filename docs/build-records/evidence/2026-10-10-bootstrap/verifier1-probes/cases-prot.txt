@@ -1,0 +1,12 @@
+p1 ||| Write ||| allow ||| .claude/state/fix-lock
+p2 ||| Write ||| allow ||| .claude/settings.local.json
+p3 ||| Edit ||| allow ||| .claude/settings.json
+p4 ||| Edit ||| allow ||| .claude/hooks/guard.py
+p5 ||| Bash ||| allow ||| rm -rf .claude
+p6 ||| Bash ||| allow ||| mv .claude /tmp/x
+p7 ||| Bash ||| allow ||| rm -rf .claude/state
+p8 ||| Bash ||| allow ||| echo '{}' > .claude/settings.local.json
+p9 ||| Edit ||| allow ||| scripts/quality/hooks/pre-commit
+p10 ||| Bash ||| allow ||| git config core.hooksPath /dev/null
+p11 ||| Bash ||| allow ||| git commit --no-verify -m x
+p12 ||| Edit ||| allow ||| .github/workflows/claude-guard.yml

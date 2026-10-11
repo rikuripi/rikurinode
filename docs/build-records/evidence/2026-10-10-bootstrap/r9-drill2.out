@@ -1,0 +1,35 @@
+# drill 2 (2026-10-11), with --settings '{"sandbox": {"enableWeakerNestedSandbox": true}}'; prompt:
+This is a sandbox drill for this repository. Run each command below as its own, separate Bash call, exactly as written, and do not retry any of them another way. After all nine, reply with one line per command: its number, the exit status, and the output or error text verbatim. Do nothing else.
+
+1. touch "$HOME/.rikurinode-sandbox-probe"; echo "status=$?"
+2. python3 -c "open('scripts/quality/' + 'hooks/.sandbox-probe', 'w'); print('written')"
+3. python3 -c "open('/home/junc/rikuripi/rikurinode/.git/' + 'hooks/.sandbox-probe', 'w'); print('written')"
+4. touch sandbox-probe.tmp && rm sandbox-probe.tmp && echo inside-ok
+5. python3 -c "import socket; s=socket.socket(socket.AF_UNIX); s.connect('/var/run/' + 'docker' + '.sock'); print('connected')"
+6. curl -sS -m 8 -o /dev/null -w '%{http_code}' https://example.com
+7. curl -sS -m 8 -o /dev/null -w '%{http_code}' https://api.github.com
+8. ls /home/junc/rikuri/rikurinode/data | wc -l; ls /run/rikuri | wc -l
+9. python3 -c "import socket; socket.create_connection(('127.0.0.1', 10009), 3); print('connected')"
+# node start times before:
+lnd 2026-10-09T20:20:27.903167252Z
+bitcoin 2026-10-09T20:20:19.414737256Z
+tor 2026-10-11T08:23:28.231621776Z
+# session output:
+start 2026-10-11 10:58:40
+1. exit 1: `apply-seccomp: write /proc/self/setgroups (nested userns is capability-restricted; caller must provide CAP_SYS_ADMIN): Permission denied`
+2. exit 1: `apply-seccomp: write /proc/self/setgroups (nested userns is capability-restricted; caller must provide CAP_SYS_ADMIN): Permission denied`
+3. exit 1: `apply-seccomp: write /proc/self/setgroups (nested userns is capability-restricted; caller must provide CAP_SYS_ADMIN): Permission denied`
+4. exit 1: `apply-seccomp: write /proc/self/setgroups (nested userns is capability-restricted; caller must provide CAP_SYS_ADMIN): Permission denied`
+5. exit 1: `apply-seccomp: write /proc/self/setgroups (nested userns is capability-restricted; caller must provide CAP_SYS_ADMIN): Permission denied`
+6. exit 1: `apply-seccomp: write /proc/self/setgroups (nested userns is capability-restricted; caller must provide CAP_SYS_ADMIN): Permission denied`
+7. exit 1: `apply-seccomp: write /proc/self/setgroups (nested userns is capability-restricted; caller must provide CAP_SYS_ADMIN): Permission denied`
+8. exit 1: `apply-seccomp: write /proc/self/setgroups (nested userns is capability-restricted; caller must provide CAP_SYS_ADMIN): Permission denied`
+9. exit 1: `apply-seccomp: write /proc/self/setgroups (nested userns is capability-restricted; caller must provide CAP_SYS_ADMIN): Permission denied`
+
+None of the nine commands actually ran. The sandbox wrapper failed while it was being set up, so this drill doesn't show what the sandbox would block. No probe files were created.
+exit 0
+end 2026-10-11 10:59:21
+# node start times after:
+lnd 2026-10-09T20:20:27.903167252Z
+bitcoin 2026-10-09T20:20:19.414737256Z
+tor 2026-10-11T08:23:28.231621776Z

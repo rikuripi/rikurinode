@@ -1,0 +1,108 @@
+# previous checkout: destinations with &>, >|, an option's value, a comment, a quoted name with a space (want ask)
+n1 ||| Bash ||| ask ||| cp x /home/junc/rikuri/rikurinode/f &>/dev/null
+n2 ||| Bash ||| ask ||| cp x /home/junc/rikuri/rikurinode/f &>>/tmp/log
+n3 ||| Bash ||| ask ||| cp x /home/junc/rikuri/rikurinode/f 2>|/dev/null
+n4 ||| Bash ||| ask ||| rsync -a x /home/junc/rikuri/rikurinode/ --exclude .git
+n5 ||| Bash ||| ask ||| cp x /home/junc/rikuri/rikurinode/f -S .bak
+n6 ||| Bash ||| ask ||| cp x /home/junc/rikuri/rikurinode/f # port back
+n7 ||| Bash ||| ask ||| cp x "/home/junc/rikuri/rikurinode/my file" 2>/dev/null
+n8 ||| Bash ||| ask ||| install -m 644 x /home/junc/rikuri/rikurinode/f
+n9 ||| Bash ||| ask ||| /bin/rm -rf /home/junc/rikuri/rikurinode/x
+# previous checkout: output options and other writers (want ask)
+n10 ||| Bash ||| ask ||| curl -o /home/junc/rikuri/rikurinode/f https://example.com/x
+n11 ||| Bash ||| ask ||| curl -sSL https://example.com/x --output /home/junc/rikuri/rikurinode/f
+n12 ||| Bash ||| ask ||| wget -O /home/junc/rikuri/rikurinode/f https://example.com/x
+n13 ||| Bash ||| ask ||| gawk -i inplace '{print}' /home/junc/rikuri/rikurinode/x
+n14 ||| Bash ||| ask ||| rename s/a/b/ /home/junc/rikuri/rikurinode/a
+n15 ||| Bash ||| ask ||| split -b 1k x /home/junc/rikuri/rikurinode/part
+n16 ||| Bash ||| ask ||| sort -o /home/junc/rikuri/rikurinode/f x
+n17 ||| Bash ||| ask ||| gtar -xf a.tar -C /home/junc/rikuri/rikurinode
+n18 ||| Bash ||| ask ||| bsdtar -xf a.tar -C /home/junc/rikuri/rikurinode
+n19 ||| Bash ||| ask ||| mv /home/junc/rikuri{,.bak}
+n20 ||| Bash ||| ask ||| rm -rf /home/junc/rikuri>/dev/null
+# previous checkout: reading and copying from it stay free (want allow)
+n21 ||| Bash ||| allow ||| install -m 755 /home/junc/rikuri/rikurinode/scripts/x.sh scripts/
+n22 ||| Bash ||| allow ||| curl -o /tmp/f https://example.com/x
+n23 ||| Bash ||| allow ||| sort -o /tmp/f /home/junc/rikuri/rikurinode/README.md
+n24 ||| Bash ||| allow ||| cp /home/junc/rikuri/rikurinode/README.md "docs/old README.md"
+# the hook's files: absolute paths, attached options, &>, >|, extraction, output options (want ask)
+h1 ||| Bash ||| ask ||| 7z x h.7z -oscripts/quality/hooks
+h2 ||| Bash ||| ask ||| 7z x h.7z -o.git/hooks
+h3 ||| Bash ||| ask ||| tar -xf h.tar -Cscripts/quality/hooks
+h4 ||| Bash ||| ask ||| cp /bin/true scripts/quality/hooks/pre-commit &>/dev/null
+h5 ||| Bash ||| ask ||| echo 'exit 0' >| scripts/quality/hooks/pre-commit
+h6 ||| Bash ||| ask ||| cp /tmp/cfg /home/junc/rikuripi/rikurinode/.git/config 2>/dev/null
+h7 ||| Bash ||| ask ||| sed -i '/hooksPath/d' /home/junc/rikuripi/rikurinode/.git/config
+h8 ||| Bash ||| ask ||| echo '[core]' > /home/junc/rikuripi/rikurinode/.git/config
+h9 ||| Bash ||| ask ||| rm scripts//quality/hooks/pre-commit
+h10 ||| Bash ||| ask ||| rm ./scripts/./quality/hooks/pre-commit
+h11 ||| Bash ||| ask ||| curl -o scripts/quality/hooks/pre-commit https://example.com/x
+h12 ||| Bash ||| ask ||| wget -O scripts/quality/hooks/pre-commit https://example.com/x
+h13 ||| Bash ||| ask ||| rename s/pre-commit/x/ scripts/quality/hooks/pre-commit
+h14 ||| Bash ||| ask ||| gawk -i inplace '{print}' scripts/quality/hooks/pre-commit
+h15 ||| Bash ||| ask ||| /bin/rm -f .git/hooks/pre-commit
+h16 ||| Bash ||| ask ||| cp x ~/rikuripi/rikurinode/scripts/quality/hooks/pre-commit
+h17 ||| Bash ||| ask ||| cp x "$PWD"/.git/hooks/pre-commit
+# the folders: absolute, ~ and $PWD paths, braces, /**, attached options, rsync (want ask)
+p1 ||| Bash ||| ask ||| rm -rf /home/junc/rikuripi/rikurinode/scripts/quality
+p2 ||| Bash ||| ask ||| rm -rf ~/rikuripi/rikurinode/scripts
+p3 ||| Bash ||| ask ||| mv /home/junc/rikuripi/rikurinode/scripts/quality /tmp/q
+p4 ||| Bash ||| ask ||| rm -rf $PWD/scripts
+p5 ||| Bash ||| ask ||| rm -rf /home/junc/rikuripi/rikurinode/.git
+p6 ||| Bash ||| ask ||| rm -rf scripts/quality/{hooks,x}
+p7 ||| Bash ||| ask ||| rm -rf scripts>/dev/null
+p8 ||| Bash ||| ask ||| rm -rf scripts/**
+p9 ||| Bash ||| ask ||| rm -rf scripts/quality/{*,.*}
+p10 ||| Bash ||| ask ||| mv scripts/quality{,.off}
+p11 ||| Bash ||| ask ||| mv scripts{,.off}
+p12 ||| Bash ||| ask ||| mv .git{,.off}
+p13 ||| Bash ||| ask ||| tar -xf a.tar -Cscripts
+p14 ||| Bash ||| ask ||| unzip -o a.zip -dscripts/quality
+p15 ||| Bash ||| ask ||| 7z x a.7z -oscripts
+p16 ||| Bash ||| ask ||| 7z x a.7z -o.git
+p17 ||| Bash ||| ask ||| cpio -idm -Dscripts < a.cpio
+p18 ||| Bash ||| ask ||| rsync -a --delete /tmp/empty/ scripts/
+p19 ||| Bash ||| ask ||| rsync -a --delete /tmp/empty/ scripts/quality/
+p20 ||| Bash ||| ask ||| rsync -a --remove-source-files scripts/ /tmp/s/
+p21 ||| Bash ||| ask ||| find scripts -exec rm {} +
+p22 ||| Bash ||| ask ||| chmod -R 000 scripts
+p23 ||| Bash ||| ask ||| rm -rf /tmp/x/.git
+# git: sparse checkout by config or read-tree, hidden hook files, an orphan switch (want ask)
+g1 ||| Bash ||| ask ||| git config core.sparseCheckout true
+g2 ||| Bash ||| ask ||| git read-tree -mu HEAD
+g3 ||| Bash ||| ask ||| git switch --orphan scratch
+g4 ||| Bash ||| ask ||| git update-index --skip-worktree scripts/quality/hooks/pre-commit
+g5 ||| Bash ||| ask ||| git update-index --assume-unchanged .git/hooks/pre-commit
+g6 ||| Bash ||| ask ||| git sparse-checkout init
+g7 ||| Bash ||| ask ||| git sparse-checkout add docs
+g8 ||| Bash ||| ask ||| git sparse-checkout disable
+g9 ||| Write ||| ask/allow ||| .git/info/sparse-checkout
+# lookalikes and porting stay free (want allow)
+l1 ||| Bash ||| ask ||| cp x .git/hooks.bak
+l1b ||| Bash ||| allow ||| rm -f .git/hooks.bak
+l1c ||| Bash ||| ask/allow ||| rm -rf scripts/quality/hooks.old.d
+l2 ||| Bash ||| allow ||| rm -f .git/config.bak
+l3 ||| Bash ||| allow ||| rm -rf build/scripts
+l4 ||| Bash ||| allow ||| rm -rf docs/.git
+l5 ||| Bash ||| allow ||| mkdir scripts
+l6 ||| Bash ||| allow ||| touch docs/scripts
+l7 ||| Bash ||| allow ||| tar -tf a.tar
+l8 ||| Bash ||| allow ||| git update-index --skip-worktree docs/x.md
+l9 ||| Bash ||| allow ||| git switch main
+l10 ||| Bash ||| allow ||| cp x.sh scripts/
+l11 ||| Bash ||| allow ||| unzip -o a.zip -d /tmp/x
+# copies that replace the hook from outside (want ask); copying into scripts/quality with a tail or -t (want ask in stable)
+k1 ||| Bash ||| ask ||| cp x .git/
+k2 ||| Bash ||| ask ||| cp /tmp/x/config .git/
+k3 ||| Bash ||| ask ||| cp -r /tmp/evil/hooks .git/
+k4 ||| Bash ||| ask ||| cp /tmp/x/config .git
+k5 ||| Bash ||| ask ||| cp -r /tmp/hooks scripts/quality/
+k6 ||| Bash ||| ask ||| cp -r /tmp/evil/quality scripts/
+k7 ||| Bash ||| ask ||| rsync -a /tmp/evil/hooks/ scripts/quality/hooks/
+k8 ||| Bash ||| ask/allow ||| cp x.py scripts/quality/ 2>/dev/null
+k9 ||| Bash ||| ask/allow ||| cp x.py scripts/quality/ &>/dev/null
+k10 ||| Bash ||| ask/allow ||| cp -t scripts/quality x.py
+k11 ||| Bash ||| ask/allow ||| cp x.py scripts/quality/
+k12 ||| Bash ||| allow ||| cp x.py scripts/
+k13 ||| Bash ||| allow ||| cp .gitignore /tmp/x
+k14 ||| Bash ||| allow ||| cp -r /tmp/hooks docs/

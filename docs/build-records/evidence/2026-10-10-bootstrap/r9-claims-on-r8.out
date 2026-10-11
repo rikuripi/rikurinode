@@ -1,0 +1,9 @@
+start 2026-10-11 13:18:37
+# round 9's claims test against round 8's policy (c53bfa5)
+    self.assertEqual(wrong, [], "%d of %d claims do not hold:\n" % (len(wrong), len(cases())) + "\n".join(wrong))
+Diff is 32847 characters long. Set self.maxDiff to None to see it. : 346 of 1561 claims do not hold:
+    self.fail("a rule backtracks: the searches did not finish in 60 s")
+AssertionError: a rule backtracks: the searches did not finish in 60 s
+Ran 2 tests in 61.723s
+FAILED (failures=2)
+end 2026-10-11 13:19:39

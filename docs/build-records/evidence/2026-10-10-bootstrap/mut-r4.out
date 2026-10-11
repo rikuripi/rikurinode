@@ -1,0 +1,11 @@
+S2 no start-time comparison        RED   test_a_restart_during_the_run_fails_it
+S4 no private PID namespace        RED   test_processes_outside_cannot_be_signalled
+S5 /run not hidden                 RED   test_no_runtime_sockets_even_with_a_clean_environment
+S6 no pkill stand-in               RED   test_each_program_resolves_to_this_layers_stand_in_that_refuses, test_the_list_is_the_scripts
+W3 local settings never read       RED   test_the_default_run_also_reads_the_local_settings
+W5 a guard that fails open counts  RED   test_a_guard_that_lets_calls_through_when_it_fails_fails
+G1 hooksPath case-sensitive        RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+G2 no --no-verify prefixes         RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+G3 GIT_CONFIG_* ignored            RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+G4 --config-env ignored            RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+restored, sha256 checked: .claude/hooks/guard-config.json a96af3898c44, scripts/quality/check_guard_wiring.py c994e90c2925, scripts/quality/guard_policy.py ae3faa33ab82, scripts/quality/safe-run.sh e0c44da940d2

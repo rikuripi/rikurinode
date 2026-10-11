@@ -1,0 +1,15 @@
+.F....claude/settings.local.json: disableAllHooks is set — no hook runs, the guard included
+.....
+======================================================================
+FAIL: test_a_guard_that_lets_calls_through_when_it_fails_fails (test_guard_wiring.Wiring.test_a_guard_that_lets_calls_through_when_it_fails_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/scripts/quality/tests/test_guard_wiring.py", line 70, in test_a_guard_that_lets_calls_through_when_it_fails_fails
+    self.assertTrue(problems(s), value)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.003s
+
+FAILED (failures=1)

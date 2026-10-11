@@ -1,0 +1,45 @@
+start 2026-10-11 12:45:54
+Q1 a lone & no longer voids a read             RED   test_every_listed_form, test_no_verdict_changed
+Q2 $( no longer voids a read                   RED   test_every_listed_form, test_no_verdict_changed
+Q4 no closed-world rule                        RED   test_each_rule_matches_a_worked_example, test_every_example, test_every_listed_form, test_no_verdict_changed, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+Q5 closed world without the parent tree        RED   test_every_example, test_every_listed_form, test_no_verdict_changed, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+Q6 a link copy counts as a read                RED   test_every_listed_form
+Q7 rsync --link-dest counts as a read          RED   test_every_listed_form
+Q8 find -fprint counts as a read               RED   test_every_listed_form
+Q9 tree -o counts as a read                    RED   test_every_listed_form
+Q10 rg --pre counts as a read                  GREEN
+Q11 git -O counts as a read                    RED   test_every_listed_form
+Q12 sed -n is not a read                       RED   test_every_example, test_no_verdict_changed
+Q13 commit and grep text not exempt            RED   test_every_example, test_no_verdict_changed
+Q14 hook files without a folder prefix         RED   test_every_example, test_every_listed_form, test_no_verdict_changed, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+Q15 no pathspec magic                          RED   test_every_listed_form, test_no_verdict_changed
+Q16 a single ./                                RED   test_every_listed_form
+Q17 no ~+                                      RED   test_every_listed_form
+Q18 no $(…)/                                   RED   test_every_listed_form
+Q19 no option clusters in extraction           RED   test_no_verdict_changed
+Q20 gawk only as -i inplace                    RED   test_no_verdict_changed
+Q21 no curl/wget output folders                RED   test_no_verdict_changed
+Q22 no more editors                            RED   test_every_listed_form
+Q23 no -t into .git                            RED   test_no_verdict_changed
+Q24 ln not a copy                              RED   test_no_verdict_changed
+Q25 no sparse checkout through -c              RED   test_no_verdict_changed
+Q26 no worktreeConfig                          RED   test_no_verdict_changed
+Q27 no config.worktree                         RED   test_no_verdict_changed
+Q28 no xargs rule                              RED   test_no_verdict_changed
+Q29 no zip -m                                  RED   test_no_verdict_changed
+Q30 no old-style tar                           RED   test_no_verdict_changed
+Q31 /home only                                 RED   test_no_verdict_changed
+Q33 the old continued-line list                RED   test_no_verdict_changed
+Q34 ReDoS: docker options back                 RED   test_every_rule_is_fast
+Q35 ReDoS: xargs values back                   RED   test_every_rule_is_fast
+Q36 ReDoS: commit options back                 RED   test_every_rule_is_fast
+Q37 ReDoS: git -c values back                  RED   test_every_rule_is_fast
+W1 old checkout's secrets not required unreadable RED   test_the_old_checkouts_secrets_must_be_unreadable
+W2 the unsandboxed retry allowed               RED   test_a_sandbox_that_is_off_or_fails_open_fails
+W3 nothing counts as widening                  RED   test_local_settings_may_not_loosen_the_sandbox, test_nothing_may_widen_the_sandbox
+W4 any excluded command                        RED   test_local_settings_may_not_loosen_the_sandbox, test_nothing_may_widen_the_sandbox
+W5 additional directories allowed              RED   test_local_settings_may_not_loosen_the_sandbox, test_nothing_may_widen_the_sandbox
+W6 local settings' sandbox unread              RED   test_local_settings_may_not_loosen_the_sandbox
+restored, sha256 checked: .claude/hooks/guard-config.json 0021783a8ff9, scripts/quality/check_guard_wiring.py 72ffd8d2c73c, scripts/quality/guard_policy.py 6da30257327b
+exit 0
+end 2026-10-11 13:14:26

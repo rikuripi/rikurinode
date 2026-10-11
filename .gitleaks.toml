@@ -1,0 +1,14 @@
+# gitleaks configuration. Used by scripts/quality/hooks/pre-commit (the staged
+# change) and scripts/quality/secret-scan.sh (the history of the checked-out
+# commit, locally and in CI). Findings print with the value redacted.
+#
+# Default ruleset, no allowlist of our own. Allowlists are reviewed changes:
+# never allowlist docs, fixtures or test directories wholesale. A test that
+# needs secret-shaped data generates it at run time instead of committing it.
+#
+# Known gap of the default ruleset (same as Rikuri-PI, accepted there by the
+# owner, 2026-10-05): gitleaks' built-in allowlist skips some paths, such as
+# lockfiles, *.svg and node_modules/. The hygiene check refuses node_modules/.
+
+[extend]
+useDefault = true

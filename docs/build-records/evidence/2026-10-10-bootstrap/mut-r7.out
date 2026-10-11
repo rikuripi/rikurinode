@@ -1,0 +1,35 @@
+S2 no start-time comparison        RED   test_a_restart_during_the_run_fails_it
+S4 no private PID namespace        RED   test_processes_outside_cannot_be_signalled
+S5 /run not hidden                 RED   test_no_runtime_sockets_even_with_a_clean_environment
+S6 no pkill stand-in               RED   test_each_program_resolves_to_this_layers_stand_in_that_refuses, test_the_list_is_the_scripts
+W3 local settings never read       RED   test_the_default_run_also_reads_the_local_settings
+W5 a guard that fails open counts  RED   test_a_guard_that_lets_calls_through_when_it_fails_fails
+G1 hooksPath case-sensitive        RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+G2 no --no-verify prefixes         RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+G3 GIT_CONFIG_* ignored            RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+G4 --config-env ignored            RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+G10 any value starting with the install path RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+G10b install only as written       RED   test_every_example
+G12 -c include/alias ignored       RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+G13 config include/alias ignored   RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+G14 core section removal ignored   RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+G15 config --edit ignored          RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+V8 config -e ignored (--edit kept) RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+V10 the core section case-sensitive RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+V7 git apply/reset of the hook ignored RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+E1 a destination's tail ignored    RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+E2 a trailing & ends the destination RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+E3 a closing quote ends no destination RED   test_round3_money_and_secrets_in_heredocs_still_ask
+H1 hook files without a word start RED   test_every_example
+H2 hook folders by prefix          RED   test_every_example
+H3 rmdir of a hook folder ignored  RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+H4 extracting into a hook folder ignored RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+H5 find -delete under a hook folder ignored RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+H6 git stash of the hook ignored   RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+H7 sparse checkout ignored         RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+O1 cpio ignored                    RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+O2 7z ignored                      RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+O3 tar --directory ignored         RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+O4 editors ignored                 RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+O5 shred and unlink ignored        RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+restored, sha256 checked: .claude/hooks/guard-config.json c02e4cc6ab2d, scripts/quality/check_guard_wiring.py c994e90c2925, scripts/quality/guard_policy.py 7953572cabb1, scripts/quality/safe-run.sh e0c44da940d2

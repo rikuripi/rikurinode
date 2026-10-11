@@ -1,0 +1,13 @@
+ok   p1    Write exp=allow dev=allow stable=allow rc=0 | .claude/state/fix-lock
+ok   p2    Write exp=allow dev=allow stable=ask   rc=0 | .claude/settings.local.json
+ok   p3    Edit  exp=allow dev=allow stable=ask   rc=0 | .claude/settings.json
+ok   p4    Edit  exp=allow dev=allow stable=ask   rc=0 | .claude/hooks/guard.py
+ok   p5    Bash  exp=allow dev=allow stable=ask   rc=0 | rm -rf .claude
+ok   p6    Bash  exp=allow dev=allow stable=ask   rc=0 | mv .claude /tmp/x
+ok   p7    Bash  exp=allow dev=allow stable=ask   rc=0 | rm -rf .claude/state
+ok   p8    Bash  exp=allow dev=allow stable=ask   rc=0 | echo '{}' > .claude/settings.local.json
+ok   p9    Edit  exp=allow dev=allow stable=ask   rc=0 | scripts/quality/hooks/pre-commit
+MISS p10   Bash  exp=allow dev=ask   stable=ask   rc=0 | git config core.hooksPath /dev/null  [turns off or rewrites the pre-commit gate (the secret scan and the hygiene check) — a gate is never switched o]
+MISS p11   Bash  exp=allow dev=ask   stable=ask   rc=0 | git commit --no-verify -m x  [turns off or rewrites the pre-commit gate (the secret scan and the hygiene check) — a gate is never switched o]
+ok   p12   Edit  exp=allow dev=allow stable=ask   rc=0 | .github/workflows/claude-guard.yml
+MISS count: 2 of 12

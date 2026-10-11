@@ -1,0 +1,77 @@
+ok   nc1   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker exec lnd lncli getinfo
+ok   nc2   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker restart lnd
+ok   nc3   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker --context default restart lnd
+ok   nc4   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker -H unix:///var/run/docker.sock restart lnd
+ok   nc5   Bash  exp=ask   dev=ask   stable=ask   rc=0 | /usr/bin/docker stop lnd
+ok   nc6   Bash  exp=ask   dev=ask   stable=ask   rc=0 | "docker" stop lnd
+ok   nc7   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker compose watch
+ok   nc8   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker compose scale lnd=0
+ok   nc9   Bash  exp=ask   dev=ask   stable=ask   rc=0 | podman play kube pod.yaml
+ok   nc10  Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo service docker restart
+ok   nc11  Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo /etc/init.d/docker restart
+ok   nc12  Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo ctr -n moby task kill 4f2a
+ok   nc13  Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo runc --root /run/docker/runtime-runc/moby kill 4f2a KILL
+ok   nc14  Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo nsenter -t 1234 -m -u -n -p sh
+ok   nc15  Bash  exp=ask   dev=ask   stable=ask   rc=0 | curl --unix-socket /var/run/docker.sock -X POST http://localhost/containers/lnd/restart
+ok   nc16  Bash  exp=ask   dev=ask   stable=ask   rc=0 | curl --unix-socket /var/run/docker.sock -X POST http://localhost/v1.43/containers/lnd/stop
+ok   nc17  Bash  exp=ask   dev=ask   stable=ask   rc=0 | pgrep lnd | xargs kill
+ok   nc18  Bash  exp=ask   dev=ask   stable=ask   rc=0 | kill -9 `pidof lnd`
+ok   nc19  Bash  exp=ask   dev=ask   stable=ask   rc=0 | kill -9 $(pidof lnd)
+ok   nc20  Bash  exp=ask   dev=ask   stable=ask   rc=0 | systemctl reboot
+ok   nc21  Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo -n reboot
+ok   nc22  Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo systemctl poweroff
+ok   nc23  Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo systemctl isolate rescue.target
+ok   nc24  Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo init 6
+ok   nc25  Bash  exp=ask   dev=ask   stable=ask   rc=0 | loginctl reboot
+ok   nc26  Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo systemctl restart rikuri-control-plane
+ok   nc27  Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo systemctl restart rikuri-tapd
+ok   nc28  Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo systemctl start rikuri-upgrade-runner.service
+ok   nc29  Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo systemctl start rikuri-backup-channeldb.service
+ok   nc30  Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo systemctl stop rikuri-watchdog rikuri-stack-watchdog
+ok   nc31  Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo systemctl stop tor
+ok   nc32  Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo apt-get -y upgrade
+ok   nc33  Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo systemctl stop rikuri-stack
+ok   nc34  Bash  exp=ask   dev=ask   stable=ask   rc=0 | systemctl --user restart docker
+ok   nc35  Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker compose -p rikuri up -d
+ok   nc36  Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker export lnd -o lnd.tar
+ok   nc37  Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker ps -q | xargs docker stop
+ok   nc38  Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker compose \\n down
+ok   nc39  Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker \\n restart lnd
+ok   nc40  Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo kill -HUP 1
+ok   nc41  Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker checkpoint create lnd cp1
+ok   nc42  Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker plugin disable local-persist
+ok   nc43  Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker stack rm rikuri
+ok   nc44  Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker compose -f /home/junc/rikuri/rikurinode/docker-compose.yml config
+ok   pc1   Bash  exp=allow dev=allow stable=allow rc=0 | docker ps
+ok   pc2   Bash  exp=allow dev=allow stable=allow rc=0 | docker ps -a --format '{{.Names}} {{.Status}}'
+ok   pc3   Bash  exp=allow dev=allow stable=allow rc=0 | docker inspect -f '{{.State.StartedAt}}' lnd
+ok   pc4   Bash  exp=allow dev=allow stable=allow rc=0 | docker logs --tail 50 lnd
+ok   pc5   Bash  exp=allow dev=allow stable=allow rc=0 | docker logs --since 1h lnd 2>&1 | grep -i 'shutting down'
+ok   pc6   Bash  exp=allow dev=allow stable=allow rc=0 | docker stats --no-stream
+ok   pc7   Bash  exp=allow dev=allow stable=allow rc=0 | docker images
+ok   pc8   Bash  exp=allow dev=allow stable=allow rc=0 | docker compose ps
+ok   pc9   Bash  exp=allow dev=allow stable=allow rc=0 | docker compose logs --tail 20 lnd
+ok   pc10  Bash  exp=allow dev=allow stable=allow rc=0 | docker inspect -f '{{.Created}}' bitcoin
+ok   pc11  Bash  exp=allow dev=allow stable=allow rc=0 | docker events --since 1h --until 1m
+ok   pc12  Bash  exp=allow dev=allow stable=allow rc=0 | docker top lnd
+ok   pc13  Bash  exp=allow dev=allow stable=allow rc=0 | docker image inspect lightninglabs/lnd:v0.18.3-beta
+ok   pc14  Bash  exp=allow dev=allow stable=allow rc=0 | docker container ls --filter name=lnd
+ok   pc15  Bash  exp=allow dev=allow stable=allow rc=0 | docker volume ls
+ok   pc16  Bash  exp=allow dev=allow stable=allow rc=0 | docker system df
+ok   pc17  Bash  exp=allow dev=allow stable=allow rc=0 | docker version
+ok   pc18  Bash  exp=allow dev=allow stable=allow rc=0 | docker logs rikuri-backup
+ok   pc19  Bash  exp=allow dev=allow stable=allow rc=0 | docker diff lnd
+ok   pc20  Bash  exp=allow dev=allow stable=allow rc=0 | docker compose config --services
+ok   pc21  Bash  exp=allow dev=allow stable=allow rc=0 | docker inspect lnd --format '{{json .Mounts}}' | jq .
+ok   pc22  Bash  exp=allow dev=allow stable=allow rc=0 | systemctl status rikuri-stack --no-pager
+ok   pc23  Bash  exp=allow dev=allow stable=allow rc=0 | systemctl list-units 'rikuri-*' --no-pager
+ok   pc24  Bash  exp=allow dev=allow stable=allow rc=0 | journalctl -u rikuri-stack -n 50 --no-pager
+MISS pc25  Bash  exp=allow dev=ask   stable=ask   rc=0 | git commit -m "$(cat <<'X'\nguard: docker compose down asks\nX\n)"  [starts, stops, removes, copies or enters a container — this machine runs the LIVE mainnet node. The owner deci]
+ok   pc26  Bash  exp=allow dev=allow stable=allow rc=0 | gh pr create --title "guard asks before docker restart lnd" --body x
+ok   pc27  Bash  exp=allow dev=allow stable=allow rc=0 | git log --grep='docker compose down' --oneline
+ok   pc28  Bash  exp=allow dev=allow stable=allow rc=0 | curl -s http://localhost:8080/v1/chat/completions -d '{"model":"x"}'
+ok   pc29  Bash  exp=allow dev=allow stable=allow rc=0 | curl -sS -X POST https://api.example.com/v1/search -d q=x
+MISS pc30  Bash  exp=allow dev=ask   stable=ask   rc=0 | rm -f a.txt \\n b.txt  [a command continued onto the next line (backslash-newline): the shared guard.py judges each line on its own, s]
+MISS pc31  Bash  exp=allow dev=ask   stable=ask   rc=0 | curl -fsSL \\n https://example.com/x.json  [a command continued onto the next line (backslash-newline): the shared guard.py judges each line on its own, s]
+ok   pc32  Bash  exp=allow dev=allow stable=allow rc=0 | docker build -t rikuri-node:dev .
+MISS count: 3 of 76

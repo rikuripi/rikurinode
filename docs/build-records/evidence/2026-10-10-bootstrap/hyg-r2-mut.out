@@ -1,0 +1,17 @@
+SURVIVED K9 compose.yaml/compose.yml not parsed | OK
+RED  K11 a registry port read as a tag | FAILED (failures=1)
+RED  K12 the root run folder not refused | FAILED (failures=1)
+RED  K14 the index data not passed to the pin check | FAILED (failures=6)
+RED  R1 secrets not from the guard list (built-in .env only) | FAILED (failures=1)
+RED  R2 case-sensitive names | FAILED (failures=2)
+RED  R3 runtime folders matched anywhere again | FAILED (failures=2)
+RED  R4 floating tags accepted | FAILED (failures=1)
+RED  R5 YAML with services: not parsed | FAILED (failures=1)
+RED  R6 ARG defaults not used | FAILED (failures=1)
+SURVIVED R7 a variable without a default accepted | OK
+RED  R8 fixtures exempt secrets too | FAILED (failures=1)
+RED  R9 the size limit off by one | FAILED (failures=1)
+RED  R10 local agent state not checked | FAILED (failures=1)
+RED  R11 a template exempts a log or state file | FAILED (failures=1)
+SURVIVED R12 a missing object read as empty | OK
+red: 13 of 16; restored (sha256 30b95511582e)

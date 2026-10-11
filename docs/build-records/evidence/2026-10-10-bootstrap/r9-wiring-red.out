@@ -1,0 +1,61 @@
+# red run; the same command printed "2026-10-11 10:55:41" right after it (exit 1)
+..F..FFF..claude/settings.local.json: disableAllHooks is set — no hook runs, the guard included
+.FF....
+======================================================================
+FAIL: test_a_sandbox_that_is_off_or_fails_open_fails (test_guard_wiring.Wiring.test_a_sandbox_that_is_off_or_fails_open_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<scratch>/wt-main/scripts/quality/tests/test_guard_wiring.py", line 128, in test_a_sandbox_that_is_off_or_fails_open_fails
+    self.assertTrue(problems(s), key)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true : enabled
+
+======================================================================
+FAIL: test_local_settings_may_not_loosen_the_sandbox (test_guard_wiring.Wiring.test_local_settings_may_not_loosen_the_sandbox)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<scratch>/wt-main/scripts/quality/tests/test_guard_wiring.py", line 170, in test_local_settings_may_not_loosen_the_sandbox
+    self.assertEqual(w.main(["check_guard_wiring.py"]), 1, local)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : {'sandbox': {'enabled': False}}
+
+======================================================================
+FAIL: test_no_sandbox_fails (test_guard_wiring.Wiring.test_no_sandbox_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<scratch>/wt-main/scripts/quality/tests/test_guard_wiring.py", line 120, in test_no_sandbox_fails
+    self.assertTrue(any("sandbox" in p for p in problems(s)), problems(s))
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : []
+
+======================================================================
+FAIL: test_nothing_may_widen_the_sandbox (test_guard_wiring.Wiring.test_nothing_may_widen_the_sandbox)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<scratch>/wt-main/scripts/quality/tests/test_guard_wiring.py", line 153, in test_nothing_may_widen_the_sandbox
+    self.assertTrue(problems(s), key)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true : allowWrite
+
+======================================================================
+FAIL: test_the_hook_folder_must_be_write_protected (test_guard_wiring.Wiring.test_the_hook_folder_must_be_write_protected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<scratch>/wt-main/scripts/quality/tests/test_guard_wiring.py", line 135, in test_the_hook_folder_must_be_write_protected
+    self.assertTrue(any("scripts/quality/hooks" in p for p in problems(s)), problems(s))
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : []
+
+======================================================================
+FAIL: test_the_old_checkouts_secrets_must_be_unreadable (test_guard_wiring.Wiring.test_the_old_checkouts_secrets_must_be_unreadable)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<scratch>/wt-main/scripts/quality/tests/test_guard_wiring.py", line 141, in test_the_old_checkouts_secrets_must_be_unreadable
+    self.assertTrue(any(path in p for p in problems(s)), path)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : /home/junc/rikuri/rikurinode/.env
+
+----------------------------------------------------------------------
+Ran 16 tests in 0.006s
+
+FAILED (failures=6)

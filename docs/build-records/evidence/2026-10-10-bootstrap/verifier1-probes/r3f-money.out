@@ -1,0 +1,70 @@
+ok   c20   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker compose \\n  up -d
+ok   c21   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker \\n  stop lnd
+ok   m1    Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli --network=mainnet sendpayment --pay_req x
+ok   m2    Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker exec lnd lncli payinvoice lnbc1
+ok   m3    Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli wallet psbt fund --template_psbt x
+ok   m4    Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli wallet psbt finalize x
+ok   m5    Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli wallet psbt publish x
+ok   m6    Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli updatechanstatus --chan_point x:0 --action disable
+ok   m7    Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli deletepayments --all
+ok   m8    Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli \\n  sendcoins --addr bc1q --amt 1000
+ok   m8b   Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli --rpcserver=localhost:10009 \\n  sendcoins --addr bc1q --amt 1000
+MISS m9    Bash  exp=ask   dev=allow stable=allow rc=0 | L=lncli; $L sendcoins --addr x --amt 1
+ok   m10   Bash  exp=ask   dev=ask   stable=ask   rc=0 | /usr/local/bin/lncli sendcoins --sweepall --addr x
+ok   m11   Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli createwatchonly x.json
+ok   m12   Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli wallet bumpfee --sat_per_vbyte 5 x:0
+ok   m13   Bash  exp=ask   dev=ask   stable=ask   rc=0 | bitcoin-cli -rpcwallet=w -named send outputs='{}'
+ok   m14   Bash  exp=ask   dev=ask   stable=ask   rc=0 | bitcoin-cli sendrawtransaction 0200
+ok   m15   Bash  exp=ask   dev=ask   stable=ask   rc=0 | bitcoin-cli listdescriptors true
+ok   m16   Bash  exp=ask   dev=ask   stable=ask   rc=0 | bitcoin-cli -named listdescriptors private=true
+ok   m17   Bash  exp=ask   dev=ask   stable=ask   rc=0 | bitcoin-cli setnetworkactive false
+ok   m18   Bash  exp=ask   dev=ask   stable=ask   rc=0 | bitcoin-cli -named gethdkeys private=true
+ok   m19   Bash  exp=ask   dev=ask   stable=ask   rc=0 | tapcli assets send --addr x
+ok   m20   Bash  exp=ask   dev=ask   stable=ask   rc=0 | tapcli assets burn --asset_id x --amount 1
+ok   m21   Bash  exp=ask   dev=ask   stable=ask   rc=0 | loop out --amt 250000
+ok   m22   Bash  exp=ask   dev=ask   stable=ask   rc=0 | curl -X POST --cacert tls.cert https://localhost:8080/v1/transactions -d '{}'
+ok   m23   Bash  exp=ask   dev=ask   stable=ask   rc=0 | curl -X POST https://localhost:8080/v1/channels/transactions -d '{}'
+ok   m24   Bash  exp=ask   dev=ask   stable=ask   rc=0 | curl -X POST https://localhost:8080/v1/channels -d '{}'
+ok   m25   Bash  exp=ask   dev=ask   stable=ask   rc=0 | curl -X DELETE https://localhost:8080/v1/channels/abc/0
+ok   m26   Bash  exp=ask   dev=ask   stable=ask   rc=0 | curl -X POST https://localhost:8080/v2/router/send -d '{}'
+ok   m27   Bash  exp=ask   dev=ask   stable=ask   rc=0 | wget --post-data '{}' https://localhost:8080/v1/channels/open
+ok   m28   Bash  exp=ask   dev=ask   stable=ask   rc=0 | python3 -c "import requests; requests.post('https://localhost:8080/v1/transactions')"
+ok   m29   Bash  exp=ask   dev=ask   stable=ask   rc=0 | echo 'lncli sendcoins --addr x --amt 1' | docker exec -i lnd sh
+ok   m30   Bash  exp=ask   dev=ask   stable=ask   rc=0 | ssh node 'lncli sendcoins --addr x --amt 1'
+ok   m31   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker exec lnd lncli closechannel --force x 0
+ok   m32   Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli sendpayment --keysend --dest 02 --amt 1
+ok   m34   Bash  exp=ask   dev=ask   stable=ask   rc=0 | bitcoin-cli -conf=/x/bitcoin.conf stop
+ok   m35   Bash  exp=ask   dev=ask   stable=ask   rc=0 | bitcoin-cli rescanblockchain 0
+ok   m36   Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli --macaroonpath=/x/readonly.macaroon getinfo
+ok   m38   Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli restorechanbackup --multi_file x
+MISS m39   Bash  exp=ask   dev=allow stable=allow rc=0 | LNCLI=lncli; "$LNCLI" payinvoice x
+ok   m40   Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli --lnddir=/data/lnd payinvoice --force lnbc1
+ok   m41   Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli sendpayment --pay_req=x --fee_limit=100 --allow_self_payment
+ok   m42   Bash  exp=ask   dev=ask   stable=ask   rc=0 | tapcli assets mint --type normal --name x --supply 1
+ok   m43   Bash  exp=ask   dev=ask   stable=ask   rc=0 | bitcoin-cli -rpcwallet=w walletpassphrase "p" 60
+ok   m44   Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli wallet releaseoutput x
+ok   m45   Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli sendmany '{"bc1q":1000}'
+ok   m46   Bash  exp=ask   dev=ask   stable=ask   rc=0 | cat cmds.txt | xargs -L1 lncli
+ok   m47   Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli exportchanbackup --all --output_file /tmp/x.bak
+ok   ma1   Bash  exp=allow dev=allow stable=allow rc=0 | lncli getinfo | jq .synced_to_chain
+ok   ma2   Bash  exp=allow dev=allow stable=allow rc=0 | bitcoin-cli -named getblock blockhash=00 verbosity=1
+ok   ma3   Bash  exp=allow dev=allow stable=allow rc=0 | lncli help sendpayment
+ok   ma4   Bash  exp=allow dev=allow stable=allow rc=0 | lncli sendpayment --help
+ok   ma5   Bash  exp=allow dev=allow stable=allow rc=0 | git grep -n "lncli sendcoins" -- docs
+ok   ma6   Bash  exp=allow dev=allow stable=allow rc=0 | tapcli assets mint batches
+ok   ma7   Bash  exp=allow dev=allow stable=allow rc=0 | tapcli assets list
+ok   ma8   Bash  exp=allow dev=allow stable=allow rc=0 | lncli listunspent
+ok   ma9   Bash  exp=allow dev=allow stable=allow rc=0 | bitcoin-cli getwalletinfo
+ok   ma10  Bash  exp=allow dev=allow stable=allow rc=0 | lncli pendingchannels
+ok   ma11  Bash  exp=allow dev=allow stable=allow rc=0 | lncli estimatefee '{"bc1q":1000}'
+ok   ma12  Bash  exp=allow dev=allow stable=allow rc=0 | lncli listchannels | jq '.channels[] | .active'
+ok   ma13  Bash  exp=allow dev=allow stable=allow rc=0 | bitcoin-cli getrawtransaction 00 true
+ok   ma14  Bash  exp=allow dev=allow stable=allow rc=0 | lncli feereport
+ok   ma15  Bash  exp=allow dev=allow stable=allow rc=0 | lncli listpayments --max_payments 5
+ok   ma16  Bash  exp=allow dev=allow stable=allow rc=0 | bitcoin-cli -getinfo
+ok   ma17  Bash  exp=allow dev=allow stable=allow rc=0 | lncli walletbalance
+ok   ma18  Bash  exp=allow dev=allow stable=allow rc=0 | lncli decodepayreq lnbc1
+ok   ma19  Bash  exp=allow dev=allow stable=allow rc=0 | curl -s https://localhost:8080/v1/getinfo
+ok   ma20  Bash  exp=allow dev=allow stable=allow rc=0 | bitcoin-cli getblockchaininfo | jq .blocks
+ok   ma21  Bash  exp=allow dev=allow stable=allow rc=0 | curl -s https://mempool.space/api/v1/fees/recommended
+MISS count: 2 of 69

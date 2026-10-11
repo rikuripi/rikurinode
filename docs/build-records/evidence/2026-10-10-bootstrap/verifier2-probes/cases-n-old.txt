@@ -1,0 +1,70 @@
+# NEW previous-checkout probes: must ask (false negatives)
+no1 ||| Bash ||| ask ||| cd "$HOME"/rikuri/rikurinode && git pull
+no2 ||| Bash ||| ask ||| cd /home/junc/rikuri/./rikurinode
+no3 ||| Bash ||| ask ||| cd /home/*/rikuri/rikurinode
+no4 ||| Bash ||| ask ||| cd /home/junc/rikuri/rikurinod*
+no5 ||| Bash ||| ask ||| cd ~junc/rikuri/rikurinode
+no6 ||| Bash ||| ask ||| git -C /home/junc/rikuri/rikurinode --no-pager pull
+no7 ||| Bash ||| ask ||| git -C /home/junc/rikuri/rikurinode -P reset --hard
+no8 ||| Bash ||| ask ||| git --no-pager -C /home/junc/rikuri/rikurinode checkout -- .
+no9 ||| Bash ||| ask ||| git -C /home/junc/rikuri/rikurinode --literal-pathspecs stash
+no10 ||| Bash ||| ask ||| git -C /home/junc/rikuri/rikurinode pull
+no11 ||| Bash ||| ask ||| git -C /home/junc/rikuri/rikurinode clean -fdx
+no12 ||| Bash ||| ask ||| git -C /home/junc/rikuri/rikurinode reset --hard origin/main
+no13 ||| Bash ||| ask ||| git worktree add /home/junc/rikuri/rikurinode/wt
+no14 ||| Bash ||| ask ||| rsync -a src/ /home/junc/rikuri/rikurinode/ --delete
+no15 ||| Bash ||| ask ||| rsync -a --remove-source-files /home/junc/rikuri/rikurinode/ /tmp/x/
+no16 ||| Bash ||| ask ||| scp x.sh /home/junc/rikuri/rikurinode/scripts/
+no17 ||| Bash ||| ask ||| awk -i inplace '{print}' /home/junc/rikuri/rikurinode/x
+no18 ||| Bash ||| ask ||| awk 'BEGIN{system("cd /home/junc/rikuri/rikurinode && make up")}'
+no19 ||| Bash ||| ask ||| uv run --directory /home/junc/rikuri/rikurinode pytest
+no20 ||| Bash ||| ask ||| pip install -e /home/junc/rikuri/rikurinode/control-plane
+no21 ||| Bash ||| ask ||| git -C /home/junc/rikuri/rikurinode \\n pull
+no22 ||| Bash ||| ask ||| cd \\n /home/junc/rikuri/rikurinode && git pull
+no23 ||| Bash ||| ask ||| bash -c "cd /home/junc/rikuri/rikurinode && make up"
+no24 ||| Bash ||| ask ||| sh -c 'cd ~/rikuri/rikurinode; git pull'
+no25 ||| Bash ||| ask ||| ex -s +'%s/a/b/' +wq /home/junc/rikuri/rikurinode/x
+no26 ||| Bash ||| ask ||| npm --prefix /home/junc/rikuri/rikurinode/dashboard/backend install
+no27 ||| Bash ||| ask ||| cargo build --manifest-path /home/junc/rikuri/rikurinode/control-plane/Cargo.toml
+no28 ||| Bash ||| ask ||| python3 /home/junc/rikuri/rikurinode/scripts/reset-owner-password.py
+no29 ||| Bash ||| ask ||| /home/junc/rikuri/rikurinode/scripts/sync-bitcoin-cookie.sh
+no30 ||| Bash ||| ask ||| git -C /home/junc/rikuri/rikurinode config core.hooksPath /dev/null
+no31 ||| Bash ||| ask ||| git -C /home/junc/rikuri/rikurinode -c core.fsmonitor=x status
+no32 ||| Bash ||| ask ||| GIT_WORK_TREE=/home/junc/rikuri/rikurinode git checkout -- .
+no33 ||| Bash ||| ask ||| git --git-dir /home/junc/rikuri/rikurinode/.git gc
+no34 ||| Bash ||| ask ||| find /home/junc/rikuri/rikurinode -name '*.pyc' -delete
+no35 ||| Bash ||| ask ||| xargs rm < /tmp/list /home/junc/rikuri/rikurinode/x
+no36 ||| Bash ||| ask ||| touch /home/junc/rikuri/rikurinode/.maintenance
+no37 ||| Bash ||| ask ||| ln -sf /tmp/x /home/junc/rikuri/rikurinode/scripts/lnd-start.sh
+# previous checkout: must stay free (false positives)
+po1 ||| Bash ||| allow ||| cat /home/junc/rikuri/rikurinode/docker-compose.yml
+po2 ||| Bash ||| allow ||| sed -n '1,40p' /home/junc/rikuri/rikurinode/scripts/sync-bitcoin-cookie.sh
+po3 ||| Bash ||| allow ||| grep -n lncli /home/junc/rikuri/rikurinode/scripts/sync-bitcoin-cookie.sh
+po4 ||| Bash ||| allow ||| git -C /home/junc/rikuri/rikurinode grep -n sendcoins
+po5 ||| Bash ||| allow ||| git -C /home/junc/rikuri/rikurinode log --oneline -5
+po6 ||| Bash ||| allow ||| git -C /home/junc/rikuri/rikurinode show HEAD:docker-compose.yml
+po7 ||| Bash ||| allow ||| git -C /home/junc/rikuri/rikurinode diff HEAD~1 --stat
+po8 ||| Bash ||| allow ||| git -C /home/junc/rikuri/rikurinode --no-pager log -3
+po9 ||| Bash ||| allow ||| git -C /home/junc/rikuri/rikurinode ls-files scripts
+po10 ||| Bash ||| allow ||| ls -la /home/junc/rikuri/rikurinode
+po11 ||| Bash ||| allow ||| find /home/junc/rikuri/rikurinode/scripts -name '*.sh'
+po12 ||| Bash ||| allow ||| wc -l /home/junc/rikuri/rikurinode/scripts/sync-bitcoin-cookie.sh
+po13 ||| Bash ||| allow ||| diff -u /home/junc/rikuri/rikurinode/README.md README.md
+po14 ||| Bash ||| allow ||| head -50 /home/junc/rikuri/rikurinode/README.md
+po15 ||| Bash ||| allow ||| cp /home/junc/rikuri/rikurinode/scripts/sync-bitcoin-cookie.sh scripts/
+po16 ||| Bash ||| allow ||| cp -r /home/junc/rikuri/rikurinode/control-plane/src ./ref
+po17 ||| Bash ||| allow ||| git commit -m "port sync-bitcoin-cookie.sh from /home/junc/rikuri/rikurinode"
+po18 ||| Bash ||| allow ||| git commit -m "$(cat <<'X'\nguard: ask before cd /home/junc/rikuri/rikurinode\nX\n)"
+po19 ||| Bash ||| allow ||| gh pr create --title t --body "never cd /home/junc/rikuri/rikurinode"
+po20 ||| Bash ||| allow ||| rg -n 'cd /home/junc/rikuri/rikurinode' docs
+po21 ||| Bash ||| allow ||| git grep -n 'rm -rf ~/rikuri'
+po22 ||| Bash ||| allow ||| cd /home/junc/rikuripi/rikurinode && git status
+po23 ||| Bash ||| allow ||| git -C /home/junc/rikuripi/rikurinode pull
+po24 ||| Bash ||| allow ||| ls /home/junc/rikuri/
+po25 ||| Read ||| allow ||| /home/junc/rikuri/rikurinode/configs/bitcoin.conf
+po26 ||| Bash ||| allow ||| cat /home/junc/rikuri/rikurinode/configs/bitcoin.conf
+po27 ||| Bash ||| allow ||| git -C /home/junc/rikuri/rikurinode show HEAD:configs/bitcoin.conf
+po28 ||| Read ||| allow ||| /home/junc/rikuri/rikurinode/control-plane/src/cookie.rs
+po29 ||| Bash ||| allow ||| diff <(git -C /home/junc/rikuri/rikurinode show HEAD:scripts/sync-bitcoin-cookie.sh) scripts/x.sh
+po30 ||| Bash ||| allow ||| jq . /home/junc/rikuri/rikurinode/ragdocs/runbooks/RB-SEED-RECOVERY-DRILL-01.json
+po31 ||| Bash ||| allow ||| tar -tzf /tmp/x.tgz -C /home/junc/rikuri/rikurinode

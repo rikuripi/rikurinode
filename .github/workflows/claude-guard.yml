@@ -1,0 +1,43 @@
+name: AI-session guard and quality tools
+
+# The PreToolUse hook that enforces the secrets, git, protected-path, money and
+# fix-lock policy on AI sessions is code, so it is gated like code; so are the
+# hygiene check and the test-safety layer. The full gate (ci.yml) runs the same
+# tests on Ubuntu's Python; this adds 3.9, the oldest Python the tools claim.
+
+on:
+  push:
+    branches: [main]
+    paths: ['.claude/**', 'scripts/quality/**', '.github/workflows/claude-guard.yml']
+  pull_request:
+    branches: [main]
+    paths: ['.claude/**', 'scripts/quality/**', '.github/workflows/claude-guard.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: Guard and quality-tool tests (py${{ matrix.python-version }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Guard wired before every file and shell tool, hooks enabled
+        run: python scripts/quality/check_guard_wiring.py
+      - name: Guard policy as generated
+        run: python scripts/quality/guard_policy.py --check
+      - name: Every policy example, generic cases and failure modes
+        run: python -m unittest discover -s .claude/hooks -p 'test_*.py' -v
+      - name: Hygiene check, guard wiring and test-safety layer
+        env:
+          SAFE_RUN_ALLOW_NO_NAMESPACE: "1"  # no live node on a CI runner (see ci.yml)
+        run: python -m unittest discover -s scripts/quality/tests -p 'test_*.py' -v

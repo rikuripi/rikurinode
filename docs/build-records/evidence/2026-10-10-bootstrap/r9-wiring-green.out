@@ -1,0 +1,11 @@
+# green run; the same command printed "2026-10-11 10:56:10" right after it (exit 0)
+......claude/settings.local.json: sandbox.enabled must be true
+.claude/settings.local.json: sandbox.filesystem.allowWrite widens the sandbox
+.claude/settings.local.json: sandbox.excludedCommands lets these run unsandboxed: *
+.claude/settings.local.json: permissions.additionalDirectories gives sandboxed commands write access outside the repository
+.....claude/settings.local.json: disableAllHooks is set — no hook runs, the guard included
+.......
+----------------------------------------------------------------------
+Ran 16 tests in 0.007s
+
+OK

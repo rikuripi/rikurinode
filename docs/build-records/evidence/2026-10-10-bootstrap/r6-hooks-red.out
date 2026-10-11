@@ -1,0 +1,333 @@
+FFFFFFFFFFFFFFFFFFFFFFF...usage: guard.py fix-lock on <build-record> | off [--session <id> | --global] | status
+.fix-lock NOT engaged — cannot read /tmp/tmp2sjv7i6_/guard-config.json: guard-config.json: 'fix_lock_preflight' must be a list of argv lists, e.g. [["node", "scripts/quality-ratchet.mjs"]]
+Nothing was changed. Fix it first, then engage.
+.fix-lock NOT engaged — preflight /usr/bin/python3 -c import sys; sys.exit(3) failed (exit 3):
+
+Nothing was changed. Fix it first, then engage.
+.......................F...F....................................................usage: guard.py profile [stable | development]
+.....
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'rm -rf scripts/quality'}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='development')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 46, in test_every_example
+    self.assertEqual(verdict(*args, profile="development"), want_dev)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'mv scripts/quality /tmp/q'}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='development')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 46, in test_every_example
+    self.assertEqual(verdict(*args, profile="development"), want_dev)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'git rm -r scripts/quality'}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='development')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 46, in test_every_example
+    self.assertEqual(verdict(*args, profile="development"), want_dev)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'rm -r scripts'}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='stable')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 41, in test_every_example
+    self.assertEqual(verdict(*args, profile="stable"), ex["expect"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'rm -r scripts'}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='development')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 46, in test_every_example
+    self.assertEqual(verdict(*args, profile="development"), want_dev)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'find scripts -name pre-commit -delete'}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='stable')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 41, in test_every_example
+    self.assertEqual(verdict(*args, profile="stable"), ex["expect"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'find scripts -name pre-commit -delete'}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='development')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 46, in test_every_example
+    self.assertEqual(verdict(*args, profile="development"), want_dev)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': "awk -i inplace '{print}' scripts/quality/hooks/pre-commit"}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='development')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 46, in test_every_example
+    self.assertEqual(verdict(*args, profile="development"), want_dev)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'patch scripts/quality/hooks/pre-commit fix.diff'}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='development')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 46, in test_every_example
+    self.assertEqual(verdict(*args, profile="development"), want_dev)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'rsync -a /tmp/x scripts/quality/hooks/pre-commit'}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='development')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 46, in test_every_example
+    self.assertEqual(verdict(*args, profile="development"), want_dev)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'git checkout HEAD~1 -- scripts/quality'}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='development')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 46, in test_every_example
+    self.assertEqual(verdict(*args, profile="development"), want_dev)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'git restore --source=HEAD~1 scripts/quality'}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='development')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 46, in test_every_example
+    self.assertEqual(verdict(*args, profile="development"), want_dev)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'tar -xf h.tar -C scripts/quality/hooks'}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='stable')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 41, in test_every_example
+    self.assertEqual(verdict(*args, profile="stable"), ex["expect"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'tar -xf h.tar -C scripts/quality/hooks'}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='development')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 46, in test_every_example
+    self.assertEqual(verdict(*args, profile="development"), want_dev)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'unzip h.zip -d scripts/quality/hooks'}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='stable')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 41, in test_every_example
+    self.assertEqual(verdict(*args, profile="stable"), ex["expect"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'unzip h.zip -d scripts/quality/hooks'}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='development')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 46, in test_every_example
+    self.assertEqual(verdict(*args, profile="development"), want_dev)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': "ex -s -c 'wq' scripts/quality/hooks/pre-commit"}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='stable')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 41, in test_every_example
+    self.assertEqual(verdict(*args, profile="stable"), ex["expect"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': "ex -s -c 'wq' scripts/quality/hooks/pre-commit"}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='development')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 46, in test_every_example
+    self.assertEqual(verdict(*args, profile="development"), want_dev)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'git config core.hooksPath ./scripts/quality/hooks'}, 'expect': 'allow'}, profile='stable')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 41, in test_every_example
+    self.assertEqual(verdict(*args, profile="stable"), ex["expect"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'ask' != 'allow'
+- ask
++ allow
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'git config core.hooksPath ./scripts/quality/hooks'}, 'expect': 'allow'}, profile='development')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 46, in test_every_example
+    self.assertEqual(verdict(*args, profile="development"), want_dev)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'ask' != 'allow'
+- ask
++ allow
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'git config core.hooksPath "$PWD/scripts/quality/hooks"'}, 'expect': 'allow'}, profile='stable')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 41, in test_every_example
+    self.assertEqual(verdict(*args, profile="stable"), ex["expect"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'ask' != 'allow'
+- ask
++ allow
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'git config core.hooksPath "$PWD/scripts/quality/hooks"'}, 'expect': 'allow'}, profile='development')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 46, in test_every_example
+    self.assertEqual(verdict(*args, profile="development"), want_dev)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'ask' != 'allow'
+- ask
++ allow
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'rm scripts/quality/tests/__pycache__/x.pyc'}, 'expect': 'allow'}, profile='stable')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 41, in test_every_example
+    self.assertEqual(verdict(*args, profile="stable"), ex["expect"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'ask' != 'allow'
+- ask
++ allow
+
+
+======================================================================
+FAIL: test_round3_money_and_secrets_in_heredocs_still_ask (test_guard.GuardRound2.test_round3_money_and_secrets_in_heredocs_still_ask)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 997, in test_round3_money_and_secrets_in_heredocs_still_ask
+    self.assertNotEqual({"cmd": wrapped, "p": profile, "v": v},
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        {"cmd": wrapped, "p": profile, "v": "allow"})
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'cmd': "ssh node2 <<'EOF'\nrm -rf scripts/quality\nEOF", 'p': 'development', 'v': 'allow'} == {'cmd': "ssh node2 <<'EOF'\nrm -rf scripts/quality\nEOF", 'p': 'development', 'v': 'allow'}
+
+======================================================================
+FAIL: test_round5_cd_segment_itself_is_checked (test_guard.GuardRound2.test_round5_cd_segment_itself_is_checked)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/.claude/hooks/test_guard.py", line 1070, in test_round5_cd_segment_itself_is_checked
+    self.assertNotEqual({"cmd": cmd, "v": verdict("Bash", {"command": cmd}, profile=profile)},
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        {"cmd": cmd, "v": "allow"})
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'cmd': 'cd "$(rm -rf scripts/quality)"', 'v': 'allow'} == {'cmd': 'cd "$(rm -rf scripts/quality)"', 'v': 'allow'}
+
+----------------------------------------------------------------------
+Ran 91 tests in 14.292s
+
+FAILED (failures=25)
+fix-lock ENGAGED for docs/build-records/a.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/b.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/x.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock released (docs/build-records/a.md)
+fix-lock released (docs/build-records/owner.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+profile: stable
+profile: stable -> development
+profile: development -> stable

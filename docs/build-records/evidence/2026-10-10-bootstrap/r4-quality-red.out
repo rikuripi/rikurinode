@@ -1,0 +1,24 @@
+.........claude/settings.local.json: disableAllHooks is set — no hook runs, the guard included
+.....................................FF....
+======================================================================
+FAIL: test_each_program_resolves_to_this_layers_stand_in_that_refuses (test_safe_run.StandIns.test_each_program_resolves_to_this_layers_stand_in_that_refuses)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/scripts/quality/tests/test_safe_run.py", line 63, in test_each_program_resolves_to_this_layers_stand_in_that_refuses
+    self.assertNotIn("stand-in:", r.stdout, prog)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'stand-in:' unexpectedly found in "not this layer's stand-in: /tmp/rikuri-safe-bin.2piPNR/bitcoin-cli\n" : bitcoin-cli
+
+======================================================================
+FAIL: test_stand_ins_are_removed_afterwards (test_safe_run.StandIns.test_stand_ins_are_removed_afterwards)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/wt-main/scripts/quality/tests/test_safe_run.py", line 78, in test_stand_ins_are_removed_afterwards
+    self.assertIn("rikuri-safe-bin.", where)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'rikuri-safe-bin.' not found in ''
+
+----------------------------------------------------------------------
+Ran 51 tests in 8.030s
+
+FAILED (failures=2)

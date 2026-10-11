@@ -1,0 +1,20 @@
+nh1 ||| Bash ||| ask ||| git -c core.hooksPath=/dev/null commit -m x
+nh2 ||| Bash ||| ask ||| git commit -nm x
+nh3 ||| Bash ||| ask ||| git commit -anm x
+nh4 ||| Bash ||| ask ||| git config --unset core.hooksPath
+nh5 ||| Bash ||| ask ||| rm scripts/quality/hooks/pre-commit
+nh6 ||| Bash ||| ask ||| chmod -x scripts/quality/hooks/pre-commit
+nh7 ||| Edit ||| ask ||| .git/config
+nh8 ||| Bash ||| ask ||| echo 'exit 0' > scripts/quality/hooks/pre-commit
+nh9 ||| Bash ||| ask ||| git commit --no-verify -m x
+nh10 ||| Bash ||| ask ||| git merge --no-verify feat/x
+ph1 ||| Bash ||| allow ||| git config core.hooksPath
+ph2 ||| Bash ||| allow ||| git config --get core.hooksPath
+ph3 ||| Bash ||| allow ||| git config core.hooksPath scripts/quality/hooks
+ph4 ||| Bash ||| allow ||| git commit -m "feat: x"
+ph5 ||| Bash ||| allow ||| git push origin feat/x
+ph6 ||| Bash ||| allow ||| cargo test --workspace
+ph7 ||| Bash ||| allow ||| npm ci && npm test
+ph8 ||| Bash ||| allow ||| scripts/quality/safe-run.sh cargo test
+ph9 ||| Bash ||| allow ||| git reset --hard HEAD~1
+ph10 ||| Bash ||| allow ||| git commit -m "$(cat <<'X'\nfeat: add the node status page\nX\n)"

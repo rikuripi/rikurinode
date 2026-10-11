@@ -1,0 +1,40 @@
+# NEW secrets: reads must deny
+ns1 ||| Read ||| deny ||| /home/junc/.cargo/CR@D.toml
+ns2 ||| Read ||| deny ||| /home/junc/rikuri/rikurinode/data/tor/control_auth_C@K
+ns3 ||| Read ||| deny ||| /etc/ssh/ssh_host_ed25519_K@Y
+ns4 ||| Read ||| deny ||| /home/junc/.docker/config.json
+ns5 ||| Read ||| deny ||| /home/junc/.lnd/data/chain/bitcoin/mainnet/admin.M@C
+ns6 ||| Read ||| deny ||| /home/junc/.lnd/tls.K@Y
+ns7 ||| Read ||| deny ||| /home/junc/.lnd/data/chain/bitcoin/mainnet/W@D
+ns8 ||| Read ||| deny ||| /home/junc/.bitcoin/.C@K
+ns9 ||| Read ||| deny ||| /home/junc/.lnd/password.txt
+ns10 ||| Read ||| deny ||| /home/junc/.lnd/data/chain/bitcoin/mainnet/macaroons.db
+ns11 ||| Read ||| deny ||| /home/junc/.lnd/data/chain/bitcoin/mainnet/ADMIN.M@C
+ns12 ||| Read ||| deny ||| /home/junc/backup/channels.backup
+ns13 ||| Read ||| deny ||| /etc/wireguard/wg0.conf
+ns14 ||| Read ||| deny ||| /home/junc/.config/sops/age/keys.txt
+ns15 ||| Read ||| deny ||| /home/junc/rikuri/rikurinode/secrets.json
+ns16 ||| Read ||| deny ||| /home/junc/.kube/config
+ns17 ||| Bash ||| deny ||| xxd -p /home/junc/.lnd/data/chain/bitcoin/mainnet/admin.M@C
+ns18 ||| Bash ||| deny ||| base64 -w0 admin.M@C
+ns19 ||| Bash ||| deny ||| od -An -tx1 admin.M@C
+ns20 ||| Bash ||| deny ||| sqlite3 /home/junc/.bitcoin/wallets/w/wallet.dat .dump
+ns21 ||| Bash ||| deny ||| strings W@D
+ns22 ||| Bash ||| deny ||| docker exec lnd xxd -p /root/.lnd/data/chain/bitcoin/mainnet/admin.M@C
+ns23 ||| Bash ||| deny ||| find / -name admin.M@C -exec cat {} \;
+ns24 ||| Bash ||| deny ||| cat /home/junc/rikuri/rikurinode/.E@NV
+ns25 ||| Bash ||| deny ||| cat /home/junc/rikuri/rikurinode/config/tapd.E@NV
+ns26 ||| Bash ||| ask ||| tar czf /tmp/l.tgz /home/junc/.lnd
+ns27 ||| Bash ||| ask ||| docker cp lnd:/root/.lnd ./lnd-copy
+ns28 ||| Bash ||| deny ||| cat aezeed.txt
+ns29 ||| Bash ||| deny ||| cat /home/junc/rikuri/rikurinode/secrets/lnd_wallet_password
+# secrets: false positives
+ps1 ||| Read ||| allow ||| crates/node/src/aezeed.rs
+ps2 ||| Read ||| allow ||| tests/fixtures/regtest/lnd.conf
+ps3 ||| Bash ||| allow ||| git grep -n W@D -- docs
+ps4 ||| Bash ||| allow ||| git log --oneline -S channel.backup
+ps5 ||| Read ||| allow ||| docs/W@D.md
+ps6 ||| Read ||| allow ||| deploy/bitcoin.conf.template
+ps7 ||| Read ||| allow ||| .E@NV.example
+ps8 ||| Read ||| allow ||| src/seed.rs
+ps9 ||| Read ||| allow ||| docs/runbooks/channel.backup.md

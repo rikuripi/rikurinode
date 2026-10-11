@@ -1,0 +1,69 @@
+c20 ||| Bash ||| ask ||| docker compose \\n  up -d
+c21 ||| Bash ||| ask ||| docker \\n  stop lnd
+m1 ||| Bash ||| ask ||| lncli --network=mainnet sendpayment --pay_req x
+m2 ||| Bash ||| ask ||| docker exec lnd lncli payinvoice lnbc1
+m3 ||| Bash ||| ask ||| lncli wallet psbt fund --template_psbt x
+m4 ||| Bash ||| ask ||| lncli wallet psbt finalize x
+m5 ||| Bash ||| ask ||| lncli wallet psbt publish x
+m6 ||| Bash ||| ask ||| lncli updatechanstatus --chan_point x:0 --action disable
+m7 ||| Bash ||| ask ||| lncli deletepayments --all
+m8 ||| Bash ||| ask ||| lncli \\n  sendcoins --addr bc1q --amt 1000
+m8b ||| Bash ||| ask ||| lncli --rpcserver=localhost:10009 \\n  sendcoins --addr bc1q --amt 1000
+m9 ||| Bash ||| ask ||| L=lncli; $L sendcoins --addr x --amt 1
+m10 ||| Bash ||| ask ||| /usr/local/bin/lncli sendcoins --sweepall --addr x
+m11 ||| Bash ||| ask ||| lncli createwatchonly x.json
+m12 ||| Bash ||| ask ||| lncli wallet bumpfee --sat_per_vbyte 5 x:0
+m13 ||| Bash ||| ask ||| bitcoin-cli -rpcwallet=w -named send outputs='{}'
+m14 ||| Bash ||| ask ||| bitcoin-cli sendrawtransaction 0200
+m15 ||| Bash ||| ask ||| bitcoin-cli listdescriptors true
+m16 ||| Bash ||| ask ||| bitcoin-cli -named listdescriptors private=true
+m17 ||| Bash ||| ask ||| bitcoin-cli setnetworkactive false
+m18 ||| Bash ||| ask ||| bitcoin-cli -named gethdkeys private=true
+m19 ||| Bash ||| ask ||| tapcli assets send --addr x
+m20 ||| Bash ||| ask ||| tapcli assets burn --asset_id x --amount 1
+m21 ||| Bash ||| ask ||| loop out --amt 250000
+m22 ||| Bash ||| ask ||| curl -X POST --cacert tls.cert https://localhost:8080/v1/transactions -d '{}'
+m23 ||| Bash ||| ask ||| curl -X POST https://localhost:8080/v1/channels/transactions -d '{}'
+m24 ||| Bash ||| ask ||| curl -X POST https://localhost:8080/v1/channels -d '{}'
+m25 ||| Bash ||| ask ||| curl -X DELETE https://localhost:8080/v1/channels/abc/0
+m26 ||| Bash ||| ask ||| curl -X POST https://localhost:8080/v2/router/send -d '{}'
+m27 ||| Bash ||| ask ||| wget --post-data '{}' https://localhost:8080/v1/channels/open
+m28 ||| Bash ||| ask ||| python3 -c "import requests; requests.post('https://localhost:8080/v1/transactions')"
+m29 ||| Bash ||| ask ||| echo 'lncli sendcoins --addr x --amt 1' | docker exec -i lnd sh
+m30 ||| Bash ||| ask ||| ssh node 'lncli sendcoins --addr x --amt 1'
+m31 ||| Bash ||| ask ||| docker exec lnd lncli closechannel --force x 0
+m32 ||| Bash ||| ask ||| lncli sendpayment --keysend --dest 02 --amt 1
+m34 ||| Bash ||| ask ||| bitcoin-cli -conf=/x/bitcoin.conf stop
+m35 ||| Bash ||| ask ||| bitcoin-cli rescanblockchain 0
+m36 ||| Bash ||| ask ||| lncli --macaroonpath=/x/readonly.M@C getinfo
+m38 ||| Bash ||| ask ||| lncli restorechanbackup --multi_file x
+m39 ||| Bash ||| ask ||| LNCLI=lncli; "$LNCLI" payinvoice x
+m40 ||| Bash ||| ask ||| lncli --lnddir=/data/lnd payinvoice --force lnbc1
+m41 ||| Bash ||| ask ||| lncli sendpayment --pay_req=x --fee_limit=100 --allow_self_payment
+m42 ||| Bash ||| ask ||| tapcli assets mint --type normal --name x --supply 1
+m43 ||| Bash ||| ask ||| bitcoin-cli -rpcwallet=w walletpassphrase "p" 60
+m44 ||| Bash ||| ask ||| lncli wallet releaseoutput x
+m45 ||| Bash ||| ask ||| lncli sendmany '{"bc1q":1000}'
+m46 ||| Bash ||| ask ||| cat cmds.txt | xargs -L1 lncli
+m47 ||| Bash ||| ask ||| lncli exportchanbackup --all --output_file /tmp/x.bak
+ma1 ||| Bash ||| allow ||| lncli getinfo | jq .synced_to_chain
+ma2 ||| Bash ||| allow ||| bitcoin-cli -named getblock blockhash=00 verbosity=1
+ma3 ||| Bash ||| allow ||| lncli help sendpayment
+ma4 ||| Bash ||| allow ||| lncli sendpayment --help
+ma5 ||| Bash ||| allow ||| git grep -n "lncli sendcoins" -- docs
+ma6 ||| Bash ||| allow ||| tapcli assets mint batches
+ma7 ||| Bash ||| allow ||| tapcli assets list
+ma8 ||| Bash ||| allow ||| lncli listunspent
+ma9 ||| Bash ||| allow ||| bitcoin-cli getwalletinfo
+ma10 ||| Bash ||| allow ||| lncli pendingchannels
+ma11 ||| Bash ||| allow ||| lncli estimatefee '{"bc1q":1000}'
+ma12 ||| Bash ||| allow ||| lncli listchannels | jq '.channels[] | .active'
+ma13 ||| Bash ||| allow ||| bitcoin-cli getrawtransaction 00 true
+ma14 ||| Bash ||| allow ||| lncli feereport
+ma15 ||| Bash ||| allow ||| lncli listpayments --max_payments 5
+ma16 ||| Bash ||| allow ||| bitcoin-cli -getinfo
+ma17 ||| Bash ||| allow ||| lncli walletbalance
+ma18 ||| Bash ||| allow ||| lncli decodepayreq lnbc1
+ma19 ||| Bash ||| allow ||| curl -s https://localhost:8080/v1/getinfo
+ma20 ||| Bash ||| allow ||| bitcoin-cli getblockchaininfo | jq .blocks
+ma21 ||| Bash ||| allow ||| curl -s https://mempool.space/api/v1/fees/recommended

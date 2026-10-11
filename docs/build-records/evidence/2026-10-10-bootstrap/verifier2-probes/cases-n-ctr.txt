@@ -1,0 +1,78 @@
+# NEW container/runtime/daemon lifecycle: must ask
+nc1 ||| Bash ||| ask ||| docker exec lnd lncli getinfo
+nc2 ||| Bash ||| ask ||| docker restart lnd
+nc3 ||| Bash ||| ask ||| docker --context default restart lnd
+nc4 ||| Bash ||| ask ||| docker -H unix:///var/run/docker.sock restart lnd
+nc5 ||| Bash ||| ask ||| /usr/bin/docker stop lnd
+nc6 ||| Bash ||| ask ||| "docker" stop lnd
+nc7 ||| Bash ||| ask ||| docker compose watch
+nc8 ||| Bash ||| ask ||| docker compose scale lnd=0
+nc9 ||| Bash ||| ask ||| podman play kube pod.yaml
+nc10 ||| Bash ||| ask ||| sudo service docker restart
+nc11 ||| Bash ||| ask ||| sudo /etc/init.d/docker restart
+nc12 ||| Bash ||| ask ||| sudo ctr -n moby task kill 4f2a
+nc13 ||| Bash ||| ask ||| sudo runc --root /run/docker/runtime-runc/moby kill 4f2a KILL
+nc14 ||| Bash ||| ask ||| sudo nsenter -t 1234 -m -u -n -p sh
+nc15 ||| Bash ||| ask ||| curl --unix-socket /var/run/docker.sock -X POST http://localhost/containers/lnd/restart
+nc16 ||| Bash ||| ask ||| curl --unix-socket /var/run/docker.sock -X POST http://localhost/v1.43/containers/lnd/stop
+nc17 ||| Bash ||| ask ||| pgrep lnd | xargs kill
+nc18 ||| Bash ||| ask ||| kill -9 `pidof lnd`
+nc19 ||| Bash ||| ask ||| kill -9 $(pidof lnd)
+nc20 ||| Bash ||| ask ||| systemctl reboot
+nc21 ||| Bash ||| ask ||| sudo -n reboot
+nc22 ||| Bash ||| ask ||| sudo systemctl poweroff
+nc23 ||| Bash ||| ask ||| sudo systemctl isolate rescue.target
+nc24 ||| Bash ||| ask ||| sudo init 6
+nc25 ||| Bash ||| ask ||| loginctl reboot
+nc26 ||| Bash ||| ask ||| sudo systemctl restart rikuri-control-plane
+nc27 ||| Bash ||| ask ||| sudo systemctl restart rikuri-tapd
+nc28 ||| Bash ||| ask ||| sudo systemctl start rikuri-upgrade-runner.service
+nc29 ||| Bash ||| ask ||| sudo systemctl start rikuri-backup-channeldb.service
+nc30 ||| Bash ||| ask ||| sudo systemctl stop rikuri-watchdog rikuri-stack-watchdog
+nc31 ||| Bash ||| ask ||| sudo systemctl stop tor
+nc32 ||| Bash ||| ask ||| sudo apt-get -y upgrade
+nc33 ||| Bash ||| ask ||| sudo systemctl stop rikuri-stack
+nc34 ||| Bash ||| ask ||| systemctl --user restart docker
+nc35 ||| Bash ||| ask ||| docker compose -p rikuri up -d
+nc36 ||| Bash ||| ask ||| docker export lnd -o lnd.tar
+nc37 ||| Bash ||| ask ||| docker ps -q | xargs docker stop
+nc38 ||| Bash ||| ask ||| docker compose \\n down
+nc39 ||| Bash ||| ask ||| docker \\n restart lnd
+nc40 ||| Bash ||| ask ||| sudo kill -HUP 1
+nc41 ||| Bash ||| ask ||| docker checkpoint create lnd cp1
+nc42 ||| Bash ||| ask ||| docker plugin disable local-persist
+nc43 ||| Bash ||| ask ||| docker stack rm rikuri
+nc44 ||| Bash ||| ask ||| docker compose -f /home/junc/rikuri/rikurinode/docker-compose.yml config
+# container read-only: must stay free
+pc1 ||| Bash ||| allow ||| docker ps
+pc2 ||| Bash ||| allow ||| docker ps -a --format '{{.Names}} {{.Status}}'
+pc3 ||| Bash ||| allow ||| docker inspect -f '{{.State.StartedAt}}' lnd
+pc4 ||| Bash ||| allow ||| docker logs --tail 50 lnd
+pc5 ||| Bash ||| allow ||| docker logs --since 1h lnd 2>&1 | grep -i 'shutting down'
+pc6 ||| Bash ||| allow ||| docker stats --no-stream
+pc7 ||| Bash ||| allow ||| docker images
+pc8 ||| Bash ||| allow ||| docker compose ps
+pc9 ||| Bash ||| allow ||| docker compose logs --tail 20 lnd
+pc10 ||| Bash ||| allow ||| docker inspect -f '{{.Created}}' bitcoin
+pc11 ||| Bash ||| allow ||| docker events --since 1h --until 1m
+pc12 ||| Bash ||| allow ||| docker top lnd
+pc13 ||| Bash ||| allow ||| docker image inspect lightninglabs/lnd:v0.18.3-beta
+pc14 ||| Bash ||| allow ||| docker container ls --filter name=lnd
+pc15 ||| Bash ||| allow ||| docker volume ls
+pc16 ||| Bash ||| allow ||| docker system df
+pc17 ||| Bash ||| allow ||| docker version
+pc18 ||| Bash ||| allow ||| docker logs rikuri-backup
+pc19 ||| Bash ||| allow ||| docker diff lnd
+pc20 ||| Bash ||| allow ||| docker compose config --services
+pc21 ||| Bash ||| allow ||| docker inspect lnd --format '{{json .Mounts}}' | jq .
+pc22 ||| Bash ||| allow ||| systemctl status rikuri-stack --no-pager
+pc23 ||| Bash ||| allow ||| systemctl list-units 'rikuri-*' --no-pager
+pc24 ||| Bash ||| allow ||| journalctl -u rikuri-stack -n 50 --no-pager
+pc25 ||| Bash ||| allow ||| git commit -m "$(cat <<'X'\nguard: docker compose down asks\nX\n)"
+pc26 ||| Bash ||| allow ||| gh pr create --title "guard asks before docker restart lnd" --body x
+pc27 ||| Bash ||| allow ||| git log --grep='docker compose down' --oneline
+pc28 ||| Bash ||| allow ||| curl -s http://localhost:8080/v1/chat/completions -d '{"model":"x"}'
+pc29 ||| Bash ||| allow ||| curl -sS -X POST https://api.example.com/v1/search -d q=x
+pc30 ||| Bash ||| allow ||| rm -f a.txt \\n b.txt
+pc31 ||| Bash ||| allow ||| curl -fsSL \\n https://example.com/x.json
+pc32 ||| Bash ||| allow ||| docker build -t rikuri-node:dev .

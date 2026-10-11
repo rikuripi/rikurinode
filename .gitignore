@@ -1,0 +1,75 @@
+# What stays on the machine (AGENTS.md > Never in git). The hygiene check
+# (scripts/quality/repo_hygiene.py) refuses these even when force-added;
+# this file keeps them out of `git status`.
+
+# Secrets and credentials
+.env
+.env.*
+!.env.example
+*.env
+!*.env.example
+*.local.env
+*.local.json
+*.local.toml
+*.local.yaml
+*.local.yml
+*.key
+*.pem
+*.p12
+*.pfx
+*.macaroon
+wallet.db
+channel.backup
+*.cookie
+*.token
+*.secret
+*.kdbx
+id_rsa*
+id_ed25519*
+id_ecdsa*
+!*.pub
+credentials
+credentials.json
+
+# Logs and runtime state: on the node, never here
+*.log
+*.log.[0-9]*
+/logs/
+/log/
+/data/
+/backups/
+/run/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.pid
+*.sock
+
+# Build output and dependencies
+node_modules/
+/target/
+dist/
+__pycache__/
+*.pyc
+.venv/
+
+# Models and archives
+*.gguf
+*.safetensors
+*.tar
+*.tar.*
+*.tgz
+*.zip
+
+# AI-session state (the guard's lock and logs; per-user Claude settings)
+.claude/state/
+.claude/settings.local.json
+
+# Editors and OS
+.DS_Store
+*.swp
+.idea/
+.vscode/
+*.code-workspace

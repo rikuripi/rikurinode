@@ -1,0 +1,492 @@
+F
+======================================================================
+FAIL: test_every_listed_form (test_guard_claims.Claims.test_every_listed_form)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<copy of round 7's policy>/scripts/quality/tests/test_guard_claims.py", line 103, in test_every_listed_form
+    self.assertEqual(wrong, [], "%d of %d claims do not hold:\n" % (len(wrong), len(cases())) + "\n".join(wrong))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['rename s/a/b/ /home/junc/rikuri/rikurino[45355 chars]ask'] != []
+
+First list contains 472 additional elements.
+First extra element 0:
+'rename s/a/b/ /home/junc/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow'
+
+Diff is 49325 characters long. Set self.maxDiff to None to see it. : 472 of 1211 claims do not hold:
+rename s/a/b/ /home/junc/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+rename s/a/b/ ~/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+rename s/a/b/ ~junc/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+rename s/a/b/ $HOME/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+rename s/a/b/ ${HOME}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+rename s/a/b/ /home/*/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+rename s/a/b/ scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+rename s/a/b/ ./scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+rename s/a/b/ .git/config: want stable=ask development=ask, got allow/allow
+rename s/a/b/ .git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+rename s/a/b/ /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+rename s/a/b/ ~/rikuripi/rikurinode/.git/config: want stable=ask development=ask, got allow/allow
+rename s/a/b/ $PWD/.git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+rename s/a/b/ scripts/quality/hooks/*: want stable=ask development=ask, got allow/allow
+split -b 1k x /home/junc/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+split -b 1k x ~/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+split -b 1k x ~junc/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+split -b 1k x $HOME/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+split -b 1k x ${HOME}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+split -b 1k x /home/*/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+split -b 1k x scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+split -b 1k x ./scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+split -b 1k x .git/config: want stable=ask development=ask, got allow/allow
+split -b 1k x .git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+split -b 1k x /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+split -b 1k x ~/rikuripi/rikurinode/.git/config: want stable=ask development=ask, got allow/allow
+split -b 1k x $PWD/.git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+split -b 1k x scripts/quality/hooks/*: want stable=ask development=ask, got allow/allow
+csplit -f /home/junc/rikuri/rikurinode/f x 1: want stable=ask development=ask, got allow/allow
+csplit -f ~/rikuri/rikurinode/f x 1: want stable=ask development=ask, got allow/allow
+csplit -f ~junc/rikuri/rikurinode/f x 1: want stable=ask development=ask, got allow/allow
+csplit -f $HOME/rikuri/rikurinode/f x 1: want stable=ask development=ask, got allow/allow
+csplit -f ${HOME}/rikuri/rikurinode/f x 1: want stable=ask development=ask, got allow/allow
+csplit -f /home/*/rikuri/rikurinode/f x 1: want stable=ask development=ask, got allow/allow
+csplit -f scripts/quality/hooks/pre-commit x 1: want stable=ask development=ask, got allow/allow
+csplit -f ./scripts/quality/hooks/pre-commit x 1: want stable=ask development=ask, got allow/allow
+csplit -f .git/config x 1: want stable=ask development=ask, got allow/allow
+csplit -f .git/hooks/pre-commit x 1: want stable=ask development=ask, got allow/allow
+csplit -f /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit x 1: want stable=ask development=ask, got allow/allow
+csplit -f ~/rikuripi/rikurinode/.git/config x 1: want stable=ask development=ask, got allow/allow
+csplit -f $PWD/.git/hooks/pre-commit x 1: want stable=ask development=ask, got allow/allow
+csplit -f scripts/quality/hooks/* x 1: want stable=ask development=ask, got allow/allow
+sed -i s/a/b/ /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+sed -i s/a/b/ ~/rikuripi/rikurinode/.git/config: want stable=ask development=ask, got allow/allow
+sed -i s/a/b/ $PWD/.git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+perl -pi -e s/a/b/ /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+perl -pi -e s/a/b/ ~/rikuripi/rikurinode/.git/config: want stable=ask development=ask, got allow/allow
+perl -pi -e s/a/b/ $PWD/.git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+gawk -i inplace 1 /home/junc/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+gawk -i inplace 1 ~/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+gawk -i inplace 1 ~junc/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+gawk -i inplace 1 $HOME/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+gawk -i inplace 1 ${HOME}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+gawk -i inplace 1 /home/*/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+gawk -i inplace 1 scripts/quality/hooks/pre-commit: want stable=ask development=ask, got ask/allow
+gawk -i inplace 1 ./scripts/quality/hooks/pre-commit: want stable=ask development=ask, got ask/allow
+gawk -i inplace 1 .git/config: want stable=ask development=ask, got ask/allow
+gawk -i inplace 1 .git/hooks/pre-commit: want stable=ask development=ask, got ask/allow
+gawk -i inplace 1 /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+gawk -i inplace 1 ~/rikuripi/rikurinode/.git/config: want stable=ask development=ask, got allow/allow
+gawk -i inplace 1 $PWD/.git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+gawk -i inplace 1 scripts/quality/hooks/*: want stable=ask development=ask, got ask/allow
+cp x /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+cp x ~/rikuripi/rikurinode/.git/config: want stable=ask development=ask, got allow/allow
+cp x $PWD/.git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+cp x /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit 2>/dev/null: want stable=ask development=ask, got allow/allow
+cp x ~/rikuripi/rikurinode/.git/config 2>/dev/null: want stable=ask development=ask, got allow/allow
+cp x $PWD/.git/hooks/pre-commit 2>/dev/null: want stable=ask development=ask, got allow/allow
+cp x /home/junc/rikuri/rikurinode/f &>/dev/null: want stable=ask development=ask, got allow/allow
+cp x ~/rikuri/rikurinode/f &>/dev/null: want stable=ask development=ask, got allow/allow
+cp x ~junc/rikuri/rikurinode/f &>/dev/null: want stable=ask development=ask, got allow/allow
+cp x $HOME/rikuri/rikurinode/f &>/dev/null: want stable=ask development=ask, got allow/allow
+cp x ${HOME}/rikuri/rikurinode/f &>/dev/null: want stable=ask development=ask, got allow/allow
+cp x /home/*/rikuri/rikurinode/f &>/dev/null: want stable=ask development=ask, got allow/allow
+cp x scripts/quality/hooks/pre-commit &>/dev/null: want stable=ask development=ask, got allow/allow
+cp x ./scripts/quality/hooks/pre-commit &>/dev/null: want stable=ask development=ask, got allow/allow
+cp x .git/config &>/dev/null: want stable=ask development=ask, got allow/allow
+cp x .git/hooks/pre-commit &>/dev/null: want stable=ask development=ask, got allow/allow
+cp x /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit &>/dev/null: want stable=ask development=ask, got allow/allow
+cp x ~/rikuripi/rikurinode/.git/config &>/dev/null: want stable=ask development=ask, got allow/allow
+cp x $PWD/.git/hooks/pre-commit &>/dev/null: want stable=ask development=ask, got allow/allow
+cp x scripts/quality/hooks/* &>/dev/null: want stable=ask development=ask, got allow/allow
+cp x /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit -f: want stable=ask development=ask, got allow/allow
+cp x ~/rikuripi/rikurinode/.git/config -f: want stable=ask development=ask, got allow/allow
+cp x $PWD/.git/hooks/pre-commit -f: want stable=ask development=ask, got allow/allow
+cp x /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit --backup=numbered: want stable=ask development=ask, got allow/allow
+cp x ~/rikuripi/rikurinode/.git/config --backup=numbered: want stable=ask development=ask, got allow/allow
+cp x $PWD/.git/hooks/pre-commit --backup=numbered: want stable=ask development=ask, got allow/allow
+cp x /home/junc/rikuri/rikurinode/f -S .bak: want stable=ask development=ask, got allow/allow
+cp x ~/rikuri/rikurinode/f -S .bak: want stable=ask development=ask, got allow/allow
+cp x ~junc/rikuri/rikurinode/f -S .bak: want stable=ask development=ask, got allow/allow
+cp x $HOME/rikuri/rikurinode/f -S .bak: want stable=ask development=ask, got allow/allow
+cp x ${HOME}/rikuri/rikurinode/f -S .bak: want stable=ask development=ask, got allow/allow
+cp x /home/*/rikuri/rikurinode/f -S .bak: want stable=ask development=ask, got allow/allow
+cp x scripts/quality/hooks/pre-commit -S .bak: want stable=ask development=ask, got allow/allow
+cp x ./scripts/quality/hooks/pre-commit -S .bak: want stable=ask development=ask, got allow/allow
+cp x .git/config -S .bak: want stable=ask development=ask, got allow/allow
+cp x .git/hooks/pre-commit -S .bak: want stable=ask development=ask, got allow/allow
+cp x /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit -S .bak: want stable=ask development=ask, got allow/allow
+cp x ~/rikuripi/rikurinode/.git/config -S .bak: want stable=ask development=ask, got allow/allow
+cp x $PWD/.git/hooks/pre-commit -S .bak: want stable=ask development=ask, got allow/allow
+cp x scripts/quality/hooks/* -S .bak: want stable=ask development=ask, got allow/allow
+cp x /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit &: want stable=ask development=ask, got allow/allow
+cp x ~/rikuripi/rikurinode/.git/config &: want stable=ask development=ask, got allow/allow
+cp x $PWD/.git/hooks/pre-commit &: want stable=ask development=ask, got allow/allow
+cp x /home/junc/rikuri/rikurinode/f # note: want stable=ask development=ask, got allow/allow
+cp x ~/rikuri/rikurinode/f # note: want stable=ask development=ask, got allow/allow
+cp x ~junc/rikuri/rikurinode/f # note: want stable=ask development=ask, got allow/allow
+cp x $HOME/rikuri/rikurinode/f # note: want stable=ask development=ask, got allow/allow
+cp x ${HOME}/rikuri/rikurinode/f # note: want stable=ask development=ask, got allow/allow
+cp x /home/*/rikuri/rikurinode/f # note: want stable=ask development=ask, got allow/allow
+cp x scripts/quality/hooks/pre-commit # note: want stable=ask development=ask, got allow/allow
+cp x ./scripts/quality/hooks/pre-commit # note: want stable=ask development=ask, got allow/allow
+cp x .git/config # note: want stable=ask development=ask, got allow/allow
+cp x .git/hooks/pre-commit # note: want stable=ask development=ask, got allow/allow
+cp x /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit # note: want stable=ask development=ask, got allow/allow
+cp x ~/rikuripi/rikurinode/.git/config # note: want stable=ask development=ask, got allow/allow
+cp x $PWD/.git/hooks/pre-commit # note: want stable=ask development=ask, got allow/allow
+cp x scripts/quality/hooks/* # note: want stable=ask development=ask, got allow/allow
+rsync -a x /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+rsync -a x ~/rikuripi/rikurinode/.git/config: want stable=ask development=ask, got allow/allow
+rsync -a x $PWD/.git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scp h:x /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scp h:x ~/rikuripi/rikurinode/.git/config: want stable=ask development=ask, got allow/allow
+scp h:x $PWD/.git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+curl -o /home/junc/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -o ~/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -o ~junc/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -o $HOME/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -o ${HOME}/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -o /home/*/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -o scripts/quality/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -o ./scripts/quality/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -o .git/config https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -o .git/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -o /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -o ~/rikuripi/rikurinode/.git/config https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -o $PWD/.git/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -o scripts/quality/hooks/* https://e.x/y: want stable=ask development=ask, got allow/allow
+curl --output /home/junc/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl --output ~/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl --output ~junc/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl --output $HOME/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl --output ${HOME}/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl --output /home/*/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl --output scripts/quality/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+curl --output ./scripts/quality/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+curl --output .git/config https://e.x/y: want stable=ask development=ask, got allow/allow
+curl --output .git/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+curl --output /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+curl --output ~/rikuripi/rikurinode/.git/config https://e.x/y: want stable=ask development=ask, got allow/allow
+curl --output $PWD/.git/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+curl --output scripts/quality/hooks/* https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -sSLo /home/junc/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -sSLo ~/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -sSLo ~junc/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -sSLo $HOME/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -sSLo ${HOME}/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -sSLo /home/*/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -sSLo scripts/quality/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -sSLo ./scripts/quality/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -sSLo .git/config https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -sSLo .git/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -sSLo /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -sSLo ~/rikuripi/rikurinode/.git/config https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -sSLo $PWD/.git/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -sSLo scripts/quality/hooks/* https://e.x/y: want stable=ask development=ask, got allow/allow
+wget -O /home/junc/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+wget -O ~/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+wget -O ~junc/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+wget -O $HOME/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+wget -O ${HOME}/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+wget -O /home/*/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+wget -O scripts/quality/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+wget -O ./scripts/quality/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+wget -O .git/config https://e.x/y: want stable=ask development=ask, got allow/allow
+wget -O .git/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+wget -O /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+wget -O ~/rikuripi/rikurinode/.git/config https://e.x/y: want stable=ask development=ask, got allow/allow
+wget -O $PWD/.git/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+wget -O scripts/quality/hooks/* https://e.x/y: want stable=ask development=ask, got allow/allow
+wget --output-document=/home/junc/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+wget --output-document=~/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+wget --output-document=~junc/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+wget --output-document=$HOME/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+wget --output-document=${HOME}/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+wget --output-document=/home/*/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+wget --output-document=scripts/quality/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+wget --output-document=./scripts/quality/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+wget --output-document=.git/config https://e.x/y: want stable=ask development=ask, got allow/allow
+wget --output-document=.git/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+wget --output-document=/home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+wget --output-document=~/rikuripi/rikurinode/.git/config https://e.x/y: want stable=ask development=ask, got allow/allow
+wget --output-document=$PWD/.git/hooks/pre-commit https://e.x/y: want stable=ask development=ask, got allow/allow
+wget --output-document=scripts/quality/hooks/* https://e.x/y: want stable=ask development=ask, got allow/allow
+sort -o /home/junc/rikuri/rikurinode/f x: want stable=ask development=ask, got allow/allow
+sort -o ~/rikuri/rikurinode/f x: want stable=ask development=ask, got allow/allow
+sort -o ~junc/rikuri/rikurinode/f x: want stable=ask development=ask, got allow/allow
+sort -o $HOME/rikuri/rikurinode/f x: want stable=ask development=ask, got allow/allow
+sort -o ${HOME}/rikuri/rikurinode/f x: want stable=ask development=ask, got allow/allow
+sort -o /home/*/rikuri/rikurinode/f x: want stable=ask development=ask, got allow/allow
+sort -o scripts/quality/hooks/pre-commit x: want stable=ask development=ask, got allow/allow
+sort -o ./scripts/quality/hooks/pre-commit x: want stable=ask development=ask, got allow/allow
+sort -o .git/config x: want stable=ask development=ask, got allow/allow
+sort -o .git/hooks/pre-commit x: want stable=ask development=ask, got allow/allow
+sort -o /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit x: want stable=ask development=ask, got allow/allow
+sort -o ~/rikuripi/rikurinode/.git/config x: want stable=ask development=ask, got allow/allow
+sort -o $PWD/.git/hooks/pre-commit x: want stable=ask development=ask, got allow/allow
+sort -o scripts/quality/hooks/* x: want stable=ask development=ask, got allow/allow
+sort --output=/home/junc/rikuri/rikurinode/f x: want stable=ask development=ask, got allow/allow
+sort --output=~/rikuri/rikurinode/f x: want stable=ask development=ask, got allow/allow
+sort --output=~junc/rikuri/rikurinode/f x: want stable=ask development=ask, got allow/allow
+sort --output=$HOME/rikuri/rikurinode/f x: want stable=ask development=ask, got allow/allow
+sort --output=${HOME}/rikuri/rikurinode/f x: want stable=ask development=ask, got allow/allow
+sort --output=/home/*/rikuri/rikurinode/f x: want stable=ask development=ask, got allow/allow
+sort --output=scripts/quality/hooks/pre-commit x: want stable=ask development=ask, got allow/allow
+sort --output=./scripts/quality/hooks/pre-commit x: want stable=ask development=ask, got allow/allow
+sort --output=.git/config x: want stable=ask development=ask, got allow/allow
+sort --output=.git/hooks/pre-commit x: want stable=ask development=ask, got allow/allow
+sort --output=/home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit x: want stable=ask development=ask, got allow/allow
+sort --output=~/rikuripi/rikurinode/.git/config x: want stable=ask development=ask, got allow/allow
+sort --output=$PWD/.git/hooks/pre-commit x: want stable=ask development=ask, got allow/allow
+sort --output=scripts/quality/hooks/* x: want stable=ask development=ask, got allow/allow
+echo x > /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+echo x > ~/rikuripi/rikurinode/.git/config: want stable=ask development=ask, got allow/allow
+echo x > $PWD/.git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+echo x >> /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+echo x >> ~/rikuripi/rikurinode/.git/config: want stable=ask development=ask, got allow/allow
+echo x >> $PWD/.git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+echo x >| scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+echo x >| ./scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+echo x >| .git/config: want stable=ask development=ask, got allow/allow
+echo x >| .git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+echo x >| /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+echo x >| ~/rikuripi/rikurinode/.git/config: want stable=ask development=ask, got allow/allow
+echo x >| $PWD/.git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+echo x >| scripts/quality/hooks/*: want stable=ask development=ask, got allow/allow
+/bin/rm -f /home/junc/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+/bin/rm -f ~/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+/bin/rm -f ~junc/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+/bin/rm -f $HOME/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+/bin/rm -f ${HOME}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+/bin/rm -f /home/*/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+/bin/rm -f scripts/quality/hooks/pre-commit: want stable=ask development=ask, got ask/allow
+/bin/rm -f ./scripts/quality/hooks/pre-commit: want stable=ask development=ask, got ask/allow
+/bin/rm -f .git/config: want stable=ask development=ask, got ask/allow
+/bin/rm -f .git/hooks/pre-commit: want stable=ask development=ask, got ask/allow
+/bin/rm -f /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+/bin/rm -f ~/rikuripi/rikurinode/.git/config: want stable=ask development=ask, got allow/allow
+/bin/rm -f $PWD/.git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+/bin/rm -f scripts/quality/hooks/*: want stable=ask development=ask, got ask/allow
+sudo -u root cp x /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+sudo -u root cp x ~/rikuripi/rikurinode/.git/config: want stable=ask development=ask, got allow/allow
+sudo -u root cp x $PWD/.git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C /home/junc/rikuripi/rikurinode/.git/hooks: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -Cscripts/quality/hooks: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C.git/hooks: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C/home/junc/rikuripi/rikurinode/.git/hooks: want stable=ask development=ask, got allow/allow
+tar -xf a.tar --directory=/home/junc/rikuripi/rikurinode/.git/hooks: want stable=ask development=ask, got allow/allow
+tar -xf a.tar --directory /home/junc/rikuripi/rikurinode/.git/hooks: want stable=ask development=ask, got allow/allow
+gtar -xf a.tar -C /home/junc/rikuri/rikurinode: want stable=ask development=ask, got allow/allow
+gtar -xf a.tar -C ~/rikuri/rikurinode: want stable=ask development=ask, got allow/allow
+gtar -xf a.tar -C $HOME/rikuri/rikurinode: want stable=ask development=ask, got allow/allow
+gtar -xf a.tar -C scripts/quality/hooks: want stable=ask development=ask, got allow/allow
+gtar -xf a.tar -C .git/hooks: want stable=ask development=ask, got allow/allow
+gtar -xf a.tar -C /home/junc/rikuripi/rikurinode/.git/hooks: want stable=ask development=ask, got allow/allow
+bsdtar -xf a.tar -C /home/junc/rikuri/rikurinode: want stable=ask development=ask, got allow/allow
+bsdtar -xf a.tar -C ~/rikuri/rikurinode: want stable=ask development=ask, got allow/allow
+bsdtar -xf a.tar -C $HOME/rikuri/rikurinode: want stable=ask development=ask, got allow/allow
+bsdtar -xf a.tar -C scripts/quality/hooks: want stable=ask development=ask, got allow/allow
+bsdtar -xf a.tar -C .git/hooks: want stable=ask development=ask, got allow/allow
+bsdtar -xf a.tar -C /home/junc/rikuripi/rikurinode/.git/hooks: want stable=ask development=ask, got allow/allow
+unzip a.zip -d /home/junc/rikuripi/rikurinode/.git/hooks: want stable=ask development=ask, got allow/allow
+unzip a.zip -dscripts/quality/hooks: want stable=ask development=ask, got allow/allow
+unzip a.zip -d.git/hooks: want stable=ask development=ask, got allow/allow
+unzip a.zip -d/home/junc/rikuripi/rikurinode/.git/hooks: want stable=ask development=ask, got allow/allow
+7z x a.7z -oscripts/quality/hooks: want stable=ask development=ask, got allow/allow
+7z x a.7z -o.git/hooks: want stable=ask development=ask, got allow/allow
+7z x a.7z -o/home/junc/rikuripi/rikurinode/.git/hooks: want stable=ask development=ask, got allow/allow
+cp -t /home/junc/rikuripi/rikurinode/.git/hooks x: want stable=ask development=ask, got allow/allow
+cp --target-directory=/home/junc/rikuripi/rikurinode/.git/hooks x: want stable=ask development=ask, got allow/allow
+rm -rf scripts/**: want stable=ask development=ask, got allow/allow
+rm -rf scripts{,.off}: want stable=ask development=ask, got allow/allow
+rm -rf /home/junc/rikuripi/rikurinode/scripts: want stable=ask development=ask, got allow/allow
+rm -rf ~/rikuripi/rikurinode/.git: want stable=ask development=ask, got allow/allow
+rm -rf $PWD/scripts/quality: want stable=ask development=ask, got allow/allow
+rm -rf /home/junc/rikuri/*: want stable=ask development=ask, got allow/allow
+rm -rf /home/junc/rikuri/**: want stable=ask development=ask, got allow/allow
+rm -rf /home/junc/rikuri{,.bak}: want stable=ask development=ask, got allow/allow
+rmdir scripts/**: want stable=ask development=ask, got allow/allow
+rmdir scripts{,.off}: want stable=ask development=ask, got allow/allow
+rmdir /home/junc/rikuripi/rikurinode/scripts: want stable=ask development=ask, got allow/allow
+rmdir ~/rikuripi/rikurinode/.git: want stable=ask development=ask, got allow/allow
+rmdir $PWD/scripts/quality: want stable=ask development=ask, got allow/allow
+rmdir /home/junc/rikuri/*: want stable=ask development=ask, got allow/allow
+rmdir /home/junc/rikuri/**: want stable=ask development=ask, got allow/allow
+rmdir /home/junc/rikuri{,.bak}: want stable=ask development=ask, got allow/allow
+mv scripts/** /tmp/x: want stable=ask development=ask, got allow/allow
+mv scripts{,.off} /tmp/x: want stable=ask development=ask, got allow/allow
+mv /home/junc/rikuripi/rikurinode/scripts /tmp/x: want stable=ask development=ask, got allow/allow
+mv ~/rikuripi/rikurinode/.git /tmp/x: want stable=ask development=ask, got allow/allow
+mv $PWD/scripts/quality /tmp/x: want stable=ask development=ask, got allow/allow
+mv /home/junc/rikuri/* /tmp/x: want stable=ask development=ask, got allow/allow
+mv /home/junc/rikuri/** /tmp/x: want stable=ask development=ask, got allow/allow
+mv /home/junc/rikuri{,.bak} /tmp/x: want stable=ask development=ask, got allow/allow
+chmod -R 000 scripts: want stable=ask development=ask, got allow/allow
+chmod -R 000 scripts/quality: want stable=ask development=ask, got ask/allow
+chmod -R 000 .git: want stable=ask development=ask, got allow/allow
+chmod -R 000 scripts/: want stable=ask development=ask, got allow/allow
+chmod -R 000 scripts/*: want stable=ask development=ask, got allow/allow
+chmod -R 000 scripts/**: want stable=ask development=ask, got allow/allow
+chmod -R 000 scripts{,.off}: want stable=ask development=ask, got allow/allow
+chmod -R 000 /home/junc/rikuripi/rikurinode/scripts: want stable=ask development=ask, got allow/allow
+chmod -R 000 ~/rikuripi/rikurinode/.git: want stable=ask development=ask, got allow/allow
+chmod -R 000 $PWD/scripts/quality: want stable=ask development=ask, got allow/allow
+chmod -R 000 /home/junc/rikuri/*: want stable=ask development=ask, got allow/allow
+chmod -R 000 /home/junc/rikuri/**: want stable=ask development=ask, got allow/allow
+chmod -R 000 /home/junc/rikuri{,.bak}: want stable=ask development=ask, got allow/allow
+chown -R nobody scripts: want stable=ask development=ask, got allow/allow
+chown -R nobody scripts/quality: want stable=ask development=ask, got ask/allow
+chown -R nobody .git: want stable=ask development=ask, got allow/allow
+chown -R nobody scripts/: want stable=ask development=ask, got allow/allow
+chown -R nobody scripts/*: want stable=ask development=ask, got allow/allow
+chown -R nobody scripts/**: want stable=ask development=ask, got allow/allow
+chown -R nobody scripts{,.off}: want stable=ask development=ask, got allow/allow
+chown -R nobody /home/junc/rikuripi/rikurinode/scripts: want stable=ask development=ask, got allow/allow
+chown -R nobody ~/rikuripi/rikurinode/.git: want stable=ask development=ask, got allow/allow
+chown -R nobody $PWD/scripts/quality: want stable=ask development=ask, got allow/allow
+chown -R nobody /home/junc/rikuri/*: want stable=ask development=ask, got allow/allow
+chown -R nobody /home/junc/rikuri/**: want stable=ask development=ask, got allow/allow
+chown -R nobody /home/junc/rikuri{,.bak}: want stable=ask development=ask, got allow/allow
+shred -u scripts: want stable=ask development=ask, got allow/allow
+shred -u scripts/quality: want stable=ask development=ask, got ask/allow
+shred -u .git: want stable=ask development=ask, got allow/allow
+shred -u scripts/: want stable=ask development=ask, got allow/allow
+shred -u scripts/*: want stable=ask development=ask, got allow/allow
+shred -u scripts/**: want stable=ask development=ask, got allow/allow
+shred -u scripts{,.off}: want stable=ask development=ask, got allow/allow
+shred -u /home/junc/rikuripi/rikurinode/scripts: want stable=ask development=ask, got allow/allow
+shred -u ~/rikuripi/rikurinode/.git: want stable=ask development=ask, got allow/allow
+shred -u $PWD/scripts/quality: want stable=ask development=ask, got allow/allow
+shred -u /home/junc/rikuri/*: want stable=ask development=ask, got allow/allow
+shred -u /home/junc/rikuri/**: want stable=ask development=ask, got allow/allow
+shred -u /home/junc/rikuri{,.bak}: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C scripts/**: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C scripts{,.off}: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C /home/junc/rikuripi/rikurinode/scripts: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C ~/rikuripi/rikurinode/.git: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C $PWD/scripts/quality: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C /home/junc/rikuri: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C ~/rikuri: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C /home/junc/rikuri/: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C /home/junc/rikuri/*: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C /home/junc/rikuri/**: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C /home/junc/rikuri{,.bak}: want stable=ask development=ask, got allow/allow
+unzip a.zip -dscripts: want stable=ask development=ask, got allow/allow
+unzip a.zip -dscripts/quality: want stable=ask development=ask, got allow/allow
+unzip a.zip -d.git: want stable=ask development=ask, got allow/allow
+unzip a.zip -dscripts/: want stable=ask development=ask, got allow/allow
+unzip a.zip -dscripts/*: want stable=ask development=ask, got allow/allow
+unzip a.zip -dscripts/**: want stable=ask development=ask, got allow/allow
+unzip a.zip -dscripts{,.off}: want stable=ask development=ask, got allow/allow
+unzip a.zip -d/home/junc/rikuripi/rikurinode/scripts: want stable=ask development=ask, got allow/allow
+unzip a.zip -d~/rikuripi/rikurinode/.git: want stable=ask development=ask, got allow/allow
+unzip a.zip -d$PWD/scripts/quality: want stable=ask development=ask, got allow/allow
+unzip a.zip -d/home/junc/rikuri: want stable=ask development=ask, got allow/allow
+unzip a.zip -d~/rikuri: want stable=ask development=ask, got allow/allow
+unzip a.zip -d/home/junc/rikuri/: want stable=ask development=ask, got allow/allow
+unzip a.zip -d/home/junc/rikuri/*: want stable=ask development=ask, got allow/allow
+unzip a.zip -d/home/junc/rikuri/**: want stable=ask development=ask, got allow/allow
+unzip a.zip -d/home/junc/rikuri{,.bak}: want stable=ask development=ask, got allow/allow
+7z x a.7z -oscripts: want stable=ask development=ask, got allow/allow
+7z x a.7z -oscripts/quality: want stable=ask development=ask, got allow/allow
+7z x a.7z -o.git: want stable=ask development=ask, got allow/allow
+7z x a.7z -oscripts/: want stable=ask development=ask, got allow/allow
+7z x a.7z -oscripts/*: want stable=ask development=ask, got allow/allow
+7z x a.7z -oscripts/**: want stable=ask development=ask, got allow/allow
+7z x a.7z -oscripts{,.off}: want stable=ask development=ask, got allow/allow
+7z x a.7z -o/home/junc/rikuripi/rikurinode/scripts: want stable=ask development=ask, got allow/allow
+7z x a.7z -o~/rikuripi/rikurinode/.git: want stable=ask development=ask, got allow/allow
+7z x a.7z -o$PWD/scripts/quality: want stable=ask development=ask, got allow/allow
+7z x a.7z -o/home/junc/rikuri: want stable=ask development=ask, got allow/allow
+7z x a.7z -o~/rikuri: want stable=ask development=ask, got allow/allow
+7z x a.7z -o/home/junc/rikuri/: want stable=ask development=ask, got allow/allow
+7z x a.7z -o/home/junc/rikuri/*: want stable=ask development=ask, got allow/allow
+7z x a.7z -o/home/junc/rikuri/**: want stable=ask development=ask, got allow/allow
+7z x a.7z -o/home/junc/rikuri{,.bak}: want stable=ask development=ask, got allow/allow
+rsync -a --delete /tmp/e/ scripts: want stable=ask development=ask, got allow/allow
+rsync -a --delete /tmp/e/ scripts/quality: want stable=ask development=ask, got ask/allow
+rsync -a --delete /tmp/e/ .git: want stable=ask development=ask, got allow/allow
+rsync -a --delete /tmp/e/ scripts/: want stable=ask development=ask, got allow/allow
+rsync -a --delete /tmp/e/ scripts/*: want stable=ask development=ask, got allow/allow
+rsync -a --delete /tmp/e/ scripts/**: want stable=ask development=ask, got allow/allow
+rsync -a --delete /tmp/e/ scripts{,.off}: want stable=ask development=ask, got allow/allow
+rsync -a --delete /tmp/e/ /home/junc/rikuripi/rikurinode/scripts: want stable=ask development=ask, got allow/allow
+rsync -a --delete /tmp/e/ ~/rikuripi/rikurinode/.git: want stable=ask development=ask, got allow/allow
+rsync -a --delete /tmp/e/ $PWD/scripts/quality: want stable=ask development=ask, got allow/allow
+rsync -a --delete /tmp/e/ /home/junc/rikuri/*: want stable=ask development=ask, got allow/allow
+rsync -a --delete /tmp/e/ /home/junc/rikuri/**: want stable=ask development=ask, got allow/allow
+rsync -a --delete /tmp/e/ /home/junc/rikuri{,.bak}: want stable=ask development=ask, got allow/allow
+find scripts/** -delete: want stable=ask development=ask, got allow/allow
+find scripts{,.off} -delete: want stable=ask development=ask, got allow/allow
+find /home/junc/rikuripi/rikurinode/scripts -delete: want stable=ask development=ask, got allow/allow
+find ~/rikuripi/rikurinode/.git -delete: want stable=ask development=ask, got allow/allow
+find $PWD/scripts/quality -delete: want stable=ask development=ask, got allow/allow
+find /home/junc/rikuri/* -delete: want stable=ask development=ask, got allow/allow
+find /home/junc/rikuri/** -delete: want stable=ask development=ask, got allow/allow
+find /home/junc/rikuri{,.bak} -delete: want stable=ask development=ask, got allow/allow
+find scripts/** -exec rm {} +: want stable=ask development=ask, got allow/allow
+find scripts{,.off} -exec rm {} +: want stable=ask development=ask, got allow/allow
+find /home/junc/rikuripi/rikurinode/scripts -exec rm {} +: want stable=ask development=ask, got allow/allow
+find ~/rikuripi/rikurinode/.git -exec rm {} +: want stable=ask development=ask, got allow/allow
+find $PWD/scripts/quality -exec rm {} +: want stable=ask development=ask, got allow/allow
+find /home/junc/rikuri/* -exec rm {} +: want stable=ask development=ask, got allow/allow
+find /home/junc/rikuri/** -exec rm {} +: want stable=ask development=ask, got allow/allow
+find /home/junc/rikuri{,.bak} -exec rm {} +: want stable=ask development=ask, got allow/allow
+git rm -r scripts/**: want stable=ask development=ask, got allow/allow
+git rm -r /home/junc/rikuripi/rikurinode/scripts: want stable=ask development=ask, got allow/allow
+git rm -r ~/rikuripi/rikurinode/.git: want stable=ask development=ask, got allow/allow
+git rm -r $PWD/scripts/quality: want stable=ask development=ask, got allow/allow
+git mv scripts/** /tmp/x: want stable=ask development=ask, got allow/allow
+git mv /home/junc/rikuripi/rikurinode/scripts /tmp/x: want stable=ask development=ask, got allow/allow
+git mv ~/rikuripi/rikurinode/.git /tmp/x: want stable=ask development=ask, got allow/allow
+git mv $PWD/scripts/quality /tmp/x: want stable=ask development=ask, got allow/allow
+git checkout HEAD~1 -- scripts/**: want stable=ask development=ask, got allow/allow
+git checkout HEAD~1 -- /home/junc/rikuripi/rikurinode/scripts: want stable=ask development=ask, got allow/allow
+git checkout HEAD~1 -- ~/rikuripi/rikurinode/.git: want stable=ask development=ask, got allow/allow
+git checkout HEAD~1 -- $PWD/scripts/quality: want stable=ask development=ask, got allow/allow
+git restore scripts/**: want stable=ask development=ask, got allow/allow
+git restore /home/junc/rikuripi/rikurinode/scripts: want stable=ask development=ask, got allow/allow
+git restore ~/rikuripi/rikurinode/.git: want stable=ask development=ask, got allow/allow
+git restore $PWD/scripts/quality: want stable=ask development=ask, got allow/allow
+git stash push scripts/**: want stable=ask development=ask, got allow/allow
+git stash push /home/junc/rikuripi/rikurinode/scripts: want stable=ask development=ask, got allow/allow
+git stash push ~/rikuripi/rikurinode/.git: want stable=ask development=ask, got allow/allow
+git stash push $PWD/scripts/quality: want stable=ask development=ask, got allow/allow
+git reset -- scripts/**: want stable=ask development=ask, got allow/allow
+git reset -- /home/junc/rikuripi/rikurinode/scripts: want stable=ask development=ask, got allow/allow
+git reset -- ~/rikuripi/rikurinode/.git: want stable=ask development=ask, got allow/allow
+git reset -- $PWD/scripts/quality: want stable=ask development=ask, got allow/allow
+git update-index --skip-worktree scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+git update-index --skip-worktree ./scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+git update-index --skip-worktree .git/config: want stable=ask development=ask, got allow/allow
+git update-index --skip-worktree .git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+git update-index --skip-worktree /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+git update-index --skip-worktree ~/rikuripi/rikurinode/.git/config: want stable=ask development=ask, got allow/allow
+git update-index --skip-worktree $PWD/.git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+git update-index --skip-worktree scripts/quality/hooks/*: want stable=ask development=ask, got allow/allow
+git update-index --assume-unchanged scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+git update-index --assume-unchanged ./scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+git update-index --assume-unchanged .git/config: want stable=ask development=ask, got allow/allow
+git update-index --assume-unchanged .git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+git update-index --assume-unchanged /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+git update-index --assume-unchanged ~/rikuripi/rikurinode/.git/config: want stable=ask development=ask, got allow/allow
+git update-index --assume-unchanged $PWD/.git/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+git update-index --assume-unchanged scripts/quality/hooks/*: want stable=ask development=ask, got allow/allow
+cp x .git/: want stable=ask development=ask, got allow/allow
+cp x .git: want stable=ask development=ask, got allow/allow
+rsync -a /tmp/x/ .git/: want stable=ask development=ask, got allow/allow
+install x .git/: want stable=ask development=ask, got allow/allow
+cp -r /tmp/hooks scripts/quality/: want stable=ask development=ask, got ask/allow
+cp -r /tmp/hooks scripts/quality: want stable=ask development=ask, got ask/allow
+rsync -a /tmp/hooks scripts/quality/: want stable=ask development=ask, got ask/allow
+cp -r /tmp/quality scripts/: want stable=ask development=ask, got allow/allow
+cp -r ./quality scripts: want stable=ask development=ask, got allow/allow
+cp -r /tmp/x/hooks/ scripts/quality/: want stable=ask development=ask, got ask/allow
+git config core.sparseCheckout true: want stable=ask development=ask, got allow/allow
+git read-tree -mu HEAD: want stable=ask development=ask, got allow/allow
+git switch --orphan x: want stable=ask development=ask, got allow/allow
+cp x.py scripts/quality/ 2>/dev/null: want stable=ask development=allow, got allow/allow
+cp -t scripts/quality x.py: want stable=ask development=allow, got allow/allow
+install -m 755 /home/junc/rikuri/rikurinode/x.sh scripts/: want stable=allow development=allow, got ask/ask
+
+----------------------------------------------------------------------
+Ran 1 test in 1.128s
+
+FAILED (failures=1)

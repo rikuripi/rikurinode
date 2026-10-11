@@ -1,0 +1,54 @@
+ok   nm1   Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli bakemacaroon --save_to x.macaroon uri:/lnrpc.Lightning/SendCoins
+ok   nm2   Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli bakemacaroon address:read address:write onchain:write offchain:write
+ok   nm3   Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli deletemacaroonid 0
+ok   nm4   Bash  exp=ask   dev=ask   stable=ask   rc=0 | grpcurl -d '{"addr":"bc1q","amount":1}' localhost:10009 lnrpc.Lightning/SendCoins
+ok   nm5   Bash  exp=ask   dev=ask   stable=ask   rc=0 | http --verify=no POST https://localhost:8080/v1/transactions addr=x amount=1
+ok   nm6   Bash  exp=ask   dev=ask   stable=ask   rc=0 | bitcoin-cli migratewallet
+ok   nm7   Bash  exp=ask   dev=ask   stable=ask   rc=0 | bitcoin-cli importmulti '[{"desc":"wpkh(xprv...)"}]'
+ok   nm8   Bash  exp=ask   dev=ask   stable=ask   rc=0 | echo true | bitcoin-cli -stdin listdescriptors
+ok   nm9   Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli wallet psbt fund --outputs '{"bc1q":1000}'
+ok   nm10  Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli --network=mainnet payinvoice lnbc1x
+ok   nm11  Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker exec lnd lncli sendcoins --addr x --amt 1
+ok   nm12  Bash  exp=ask   dev=ask   stable=ask   rc=0 | ssh node 'lncli sendcoins --addr x --amt 1'
+ok   nm13  Bash  exp=ask   dev=ask   stable=ask   rc=0 | curl -X POST https://localhost:8080/v1/transactions -d '{}'
+ok   nm14  Bash  exp=ask   dev=ask   stable=ask   rc=0 | curl -sk https://127.0.0.1:8080/v2/router/send --data-binary @body.json
+ok   nm15  Bash  exp=ask   dev=ask   stable=ask   rc=0 | python3 -c "import requests; requests.post('https://localhost:8080/v1/transactions', json={})"
+ok   nm16  Bash  exp=ask   dev=ask   stable=ask   rc=0 | loop \\n out --amt 100000
+ok   nm17  Bash  exp=ask   dev=ask   stable=ask   rc=0 | pool accounts \\n withdraw --addr x
+ok   nm18  Bash  exp=ask   dev=ask   stable=ask   rc=0 | bitcoin-cli -rpcwallet=w \\n sendtoaddress bc1q 0.1
+ok   nm19  Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli invoices settleinvoice --preimage x
+ok   nm20  Bash  exp=ask   dev=ask   stable=ask   rc=0 | tapcli assets send --addr taprt1x
+ok   nm21  Bash  exp=ask   dev=ask   stable=ask   rc=0 | tapcli assets burn --asset_id x --amount 1
+ok   nm22  Bash  exp=ask   dev=ask   stable=ask   rc=0 | bitcoin-cli -named gethdkeys active_only=true private=true
+ok   nm23  Bash  exp=ask   dev=ask   stable=ask   rc=0 | bitcoin-cli walletpassphrasechange old new
+ok   nm24  Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli wallet accounts import xpub x
+ok   nm25  Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli sendpayment --keysend --dest 02ab --amt 1
+ok   nm26  Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli closechannel --force 1234:0
+MISS nm27  Bash  exp=ask   dev=allow stable=allow rc=0 | L=lncli; $L sendcoins --addr x --amt 1
+ok   nm28  Bash  exp=ask   dev=ask   stable=ask   rc=0 | node -e "require('child_process').execSync('lncli sendcoins --addr x --amt 1')"
+ok   nm29  Bash  exp=ask   dev=ask   stable=ask   rc=0 | echo 'lncli sendcoins --addr x --amt 1' | sh
+MISS nm30  Bash  exp=ask   dev=allow stable=allow rc=0 | frcli insights
+ok   pm1   Bash  exp=allow dev=allow stable=allow rc=0 | lncli getinfo
+ok   pm2   Bash  exp=allow dev=allow stable=allow rc=0 | lncli listchannels --active_only
+ok   pm3   Bash  exp=allow dev=allow stable=allow rc=0 | lncli walletbalance
+ok   pm4   Bash  exp=allow dev=allow stable=allow rc=0 | lncli help sendcoins
+ok   pm5   Bash  exp=allow dev=allow stable=allow rc=0 | lncli sendcoins --help
+ok   pm6   Bash  exp=allow dev=allow stable=allow rc=0 | bitcoin-cli getblockchaininfo
+ok   pm7   Bash  exp=allow dev=allow stable=allow rc=0 | bitcoin-cli listdescriptors
+ok   pm8   Bash  exp=allow dev=allow stable=allow rc=0 | bitcoin-cli help sendtoaddress
+ok   pm9   Bash  exp=allow dev=allow stable=allow rc=0 | loop quote out 100000
+ok   pm10  Bash  exp=allow dev=allow stable=allow rc=0 | tapcli assets list
+ok   pm11  Bash  exp=allow dev=allow stable=allow rc=0 | git grep -n 'lncli sendcoins'
+ok   pm12  Bash  exp=allow dev=allow stable=allow rc=0 | rg -n 'bitcoin-cli sendtoaddress' docs
+ok   pm13  Bash  exp=allow dev=allow stable=allow rc=0 | git commit -m "guard: lncli sendcoins asks"
+MISS pm14  Bash  exp=allow dev=ask   stable=ask   rc=0 | git commit -m "$(cat <<'X'\nguard: lncli sendcoins asks\nX\n)"  [lncli command that moves funds, changes channels, or stops LND — owner approves]
+ok   pm15  Bash  exp=allow dev=allow stable=allow rc=0 | gh pr create --title "guard: lncli sendcoins asks" --body x
+ok   pm16  Bash  exp=allow dev=allow stable=allow rc=0 | git tag -a v0.1.0 -m "lncli sendcoins asks"
+ok   pm17  Bash  exp=allow dev=allow stable=allow rc=0 | curl -s https://mempool.space/api/v1/fees/recommended
+ok   pm18  Bash  exp=allow dev=allow stable=allow rc=0 | lncli fwdinghistory --start_time -1d
+ok   pm19  Bash  exp=allow dev=allow stable=allow rc=0 | lncli listinvoices --reversed
+MISS pm20  Bash  exp=allow dev=ask   stable=ask   rc=0 | cat > /tmp/x.md <<'X'\nRun lncli sendcoins only after approval\nX  [lncli command that moves funds, changes channels, or stops LND — owner approves]
+ok   pm21  Bash  exp=allow dev=allow stable=allow rc=0 | python3 -m json.tool .claude/hooks/guard-config.json | grep -n sendcoins
+ok   pm22  Bash  exp=allow dev=allow stable=allow rc=0 | sed -n '1,80p' docs/runbooks/lnd.md
+ok   pm23  Bash  exp=allow dev=allow stable=allow rc=0 | printf '%s\n' 'lncli sendcoins'
+MISS count: 4 of 53

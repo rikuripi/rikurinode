@@ -1,0 +1,68 @@
+# the gate on commit 3542a87, before this receipt was added
+start 2026-10-11 13:31:38
+
+== 1/7 pinned tools
+
+== 2/7 AI-session guard: wired to every tool, hooks on; policy as generated; every example and failure mode
+....usage: guard.py fix-lock on <build-record> | off [--session <id> | --global] | status
+.fix-lock NOT engaged — cannot read /tmp/tmpcaf_oftj/guard-config.json: guard-config.json: 'fix_lock_preflight' must be a list of argv lists, e.g. [["node", "scripts/quality-ratchet.mjs"]]
+Nothing was changed. Fix it first, then engage.
+.fix-lock NOT engaged — preflight /usr/bin/python3 -c import sys; sys.exit(3) failed (exit 3):
+
+Nothing was changed. Fix it first, then engage.
+................................................................................usage: guard.py profile [stable | development]
+.....
+----------------------------------------------------------------------
+Ran 91 tests in 20.892s
+
+OK
+fix-lock ENGAGED for docs/build-records/a.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/b.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/x.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock released (docs/build-records/a.md)
+fix-lock released (docs/build-records/owner.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+profile: stable
+profile: stable -> development
+profile: development -> stable
+
+== 3/7 the quality tools' own tests (hygiene, guard wiring, guard policy, test-safety layer)
+.............claude/settings.local.json: sandbox.enabled must be true
+.claude/settings.local.json: sandbox.filesystem.allowWrite widens the sandbox
+.claude/settings.local.json: sandbox.excludedCommands lets these run unsandboxed: *
+.claude/settings.local.json: permissions.additionalDirectories gives sandboxed commands write access outside the repository
+.....claude/settings.local.json: disableAllHooks is set — no hook runs, the guard included
+.............................................
+----------------------------------------------------------------------
+Ran 61 tests in 14.353s
+
+OK
+
+== 4/7 repository hygiene: nothing tracked that belongs on the machine
+
+== 5/7 shell lint
+
+== 6/7 whitespace errors in every tracked file, committed or not
+
+== 7/7 secret scan of history
+1:32PM INF 1 commits scanned.
+1:32PM INF scanned ~1258631 bytes (1.26 MB) in 212ms
+1:32PM INF no leaks found
+
+full-gate: all 7 steps passed
+exit 0
+end 2026-10-11 13:32:15

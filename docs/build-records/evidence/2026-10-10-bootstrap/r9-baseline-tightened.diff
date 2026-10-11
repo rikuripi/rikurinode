@@ -1,0 +1,14 @@
+365c365
+< {"development": "allow", "stable": "allow", "text": "cd /home/junc/rikuri/rikurinode-archive", "tool": "Bash"}
+---
+> {"development": "ask", "stable": "ask", "text": "cd /home/junc/rikuri/rikurinode-archive", "tool": "Bash"}
+446c446
+< {"development": "allow", "stable": "allow", "text": "touch /home/junc/rikuri/x", "tool": "Bash"}
+---
+> {"development": "ask", "stable": "ask", "text": "touch /home/junc/rikuri/x", "tool": "Bash"}
+731,732c731,732
+< {"development": "allow", "stable": "allow", "text": "rm -rf /home/junc/rikuri/rikurinod?", "tool": "Bash"}
+< {"development": "allow", "stable": "allow", "text": "rm -rf /home/junc/rikuri/riku*", "tool": "Bash"}
+---
+> {"development": "ask", "stable": "ask", "text": "rm -rf /home/junc/rikuri/rikurinod?", "tool": "Bash"}
+> {"development": "ask", "stable": "ask", "text": "rm -rf /home/junc/rikuri/riku*", "tool": "Bash"}

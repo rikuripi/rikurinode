@@ -1,0 +1,869 @@
+# Build Record — bootstrap: a Full-tier repository for the rebuilt node
+
+| | |
+|---|---|
+| **Date** | 2026-10-10 |
+| **Author / session** | Claude Code (Opus 5.5); owner Henry |
+| **Branch** | main (the first commit of an empty repository) |
+| **Commits** | the commit that adds this line |
+| **Status** | Rounds 1–8 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked); round 9 adds the OS sandbox (owner) and answers round 8 — verifier pending; the sandbox's drill Not yet proven |
+| **Change type** | bootstrap (process, security gates) |
+
+## 0. Intent — the owner's words, approved before design
+- [x] Problem: the node is rebuilt in its own repository. The previous one
+      ("rikurinode", `github.com/hchengit/rikurinode`, checked out at
+      `/home/junc/rikuri/rikurinode`, where the live mainnet node runs)
+      "has been changed so many times, there are a lot of orphans and stale
+      parts." Owner, 2026-10-10: node is its own repo; "it can share some of
+      Rikuri-PI's foundation if it helps"; Full tier.
+- [x] Outcome: an empty repository that already enforces the procedure: the
+      guard, CI that gates, a pre-commit secret scan, and a check that no
+      machine state (logs, runtime data, secrets, unpinned images) is ever
+      tracked — before the first line of node code.
+- [x] Who/what it affects: every future session and contributor in this
+      repository; nothing on the running node.
+- [x] Owner's standing direction (2026-10-10): "Security and reliability come
+      first. Then its ease of use and ease of maintenance. Minimize a
+      novice's need to ever see a command line." "Whether the code is
+      reliable and works has to be based on test, verification and results."
+      Logs stay local, never in git.
+- [x] Owner approved: the messages above, and the three GitHub steps (create
+      the private repository, push this first commit to `main`, protect
+      `main`), 2026-10-10.
+
+## 0b. Spec
+- [ ] Requirements (Phase 0 of `.agents/workflows/BUILD-PROCEDURE.md`):
+      - B1 The procedure, its template and the guard (`guard.py`,
+        `guard_base.py`, `test_guard.py`) copied unchanged from the previous
+        repository (`cmp` identical; the guard also equals Rikuri-PI's).
+        `.claude/settings.json` starts from the previous repository's and is
+        this repository's own (owner's bootstrap rules): round 2 adds one
+        deny rule for file edits in the previous checkout.
+      - B2 This repository's guard policy: secrets (with `*.macaroon`,
+        `wallet.db`, `*.cookie`, `channel.backup`), the previous repository's
+        money and node-lifecycle rules, Rikuri-PI's GitHub rules, and a rule
+        that asks before any command runs or changes something in the
+        previous checkout (the live node). Worked examples for each rule.
+      - B3 `AGENTS.md` as the one source of agent rules (`CLAUDE.md` imports
+        it), `REVIEW.md`, and the `verifier` agent.
+      - B4 A repository-hygiene check: no tracked log, runtime state, secret,
+        large blob or unpinned container image; tests first.
+      - B5 A pre-commit hook: secret scan of the staged change, then the
+        hygiene check.
+      - B9 (round 2) The outer test-safety layer as a script
+        (`scripts/quality/safe-run.sh`), with tests.
+      - B6 One full gate (`scripts/quality/full-gate.sh`) that CI runs as is:
+        guard tests, hygiene self-tests and check, shell lint, whitespace, the
+        secret scan of history.
+      - B7 CI on GitHub: the full gate, and the guard tests on Python 3.9 and
+        3.12; actions pinned by commit; tools checksum-verified.
+      - B8 `main` protected: changes by pull request, the full gate required.
+- [x] Design: Rikuri-PI's shapes where they fit — `AGENTS.md` + `CLAUDE.md`
+      import, one full-gate script run by CI and developers alike, the
+      pre-commit hook, the history secret scan. Rejected: copying Rikuri-PI's
+      Rust/cargo gates now (no code, no language chosen yet; they arrive with
+      the first code); a separate deny rule in `guard.py` for the old checkout
+      (`guard.py` must stay identical across repositories — an `always_ask`
+      funds pattern does it within the policy file).
+- [x] Policy applied: the guard's profile is `development`, as in every
+      Full-tier repository (owner, 2026-09-27): asks are logged and allowed
+      except money moves, secrets and the old checkout (`always_ask`).
+- [ ] Flagged concerns: the two checkouts' paths differ by two letters
+      (`rikuri/` and `rikuripi/`). Answered by B2's rule and a warning at the
+      top of `AGENTS.md`.
+
+## 1. Plan
+- [ ] Files: `.claude/hooks/{guard.py,test_guard.py,guard-config.json}`,
+      `.claude/settings.json`, `.claude/agents/verifier.md`,
+      `.agents/workflows/{BUILD-PROCEDURE.md,BUILD-CHECKLIST-TEMPLATE.md}`,
+      `AGENTS.md`, `CLAUDE.md`, `REVIEW.md`, `README.md`, `.gitignore`,
+      `.gitleaks.toml`, `scripts/quality/{full-gate.sh,secret-scan.sh,
+      repo_hygiene.py}`, `scripts/quality/hooks/pre-commit`,
+      `scripts/quality/tests/test_repo_hygiene.py`; round 2:
+      `scripts/quality/safe-run.sh`, `scripts/quality/tests/test_safe_run.py`;
+      round 3: `scripts/quality/check_guard_wiring.py`,
+      `scripts/quality/tests/test_guard_wiring.py`,
+      `scripts/quality/guard_policy.py`,
+      `scripts/quality/tests/test_guard_policy.py`,
+      `.github/workflows/{ci.yml,claude-guard.yml}`, this record.
+- [ ] Order: record → hygiene tests (red) → hygiene check (green) → guard
+      policy + examples → `AGENTS.md`, `REVIEW.md`, verifier → gate script,
+      hook, CI → a local commit (a draft: the gate's whitespace and secret
+      steps read HEAD) → local gate → verifier → amend until it passes →
+      create the GitHub repository → push → CI observed green → protect
+      `main` → red-test drill on a pull request. (Round 1 committed before
+      its gate without saying this was the plan; written down from round 3.)
+- [ ] Risks: a guard policy that blocks routine work, or misses a money
+      command — every rule carries worked examples replayed by the tests; a
+      hygiene check so broad it blocks legitimate files — each pattern has a
+      passing and a failing test.
+- [ ] I will know this works when: the full gate passes locally and in CI;
+      the hygiene check fails on a tracked log, `.env`, macaroon, runtime
+      `data/` file, 2 MB blob and `:latest` image, and passes on a clean
+      tree; the pre-commit hook refuses a staged secret; the guard asks
+      before `cd /home/junc/rikuri/rikurinode` and allows reading it by
+      absolute path; CI is observed green on `main` and red on a planted
+      failing test; `main` refuses a direct push.
+
+## 2. Build
+- [x] B1 copied unchanged from the previous repository, `cmp` identical:
+      `.claude/hooks/guard.py`, `guard_base.py`, `test_guard.py`,
+      `.agents/workflows/BUILD-PROCEDURE.md`,
+      `BUILD-CHECKLIST-TEMPLATE.md`. `guard_base.py` is not named in the
+      owner's bootstrap list but is part of the guard (imported by
+      `guard.py`; identical and tracked in both previous Full-tier
+      repositories). Without it the guard failed closed: every call asked
+      with "guard.py failed (FileNotFoundError …) — gates are NOT being
+      checked" (observed 20:5x).
+- [x] B2 policy (`guard-config.json`), round 1: 24 rules, 97 worked examples
+      (98 was written here: wrong — round 1's verifier). The
+      previous repository's 13 money and node-lifecycle rules, all
+      `always_ask` here: the ones its owner relaxed for development
+      (2026-09-26/27) operate the live node, which a session in this
+      repository never does; tightening is free under the profile policy.
+      New: the previous checkout (enter, run, git write, `rm`/`mv`/`sed -i`/
+      redirect or copy into it — reads by absolute path stay free), and any
+      container start/stop/remove/enter (Docker or Podman). Rikuri-PI's
+      GitHub rules. Two inherited rules extended to match inside code
+      strings, as the shared tests require of every must-ask example
+      (`docker compose … up` with no service; `reboot`/`shutdown` after a
+      quote or separator). Secrets: Rikuri-PI's list plus `*.macaroon`,
+      `wallet.db`, `channel.backup`, `*.cookie`, `*.keychain*`. Guard tests:
+      91 OK (three failures on the way, all in my policy: an example that
+      expected the wrong answer, and the old-checkout rule anchored to a
+      segment's start — fixed).
+- [x] B4 tests first: `test_repo_hygiene.py` red at 20:45:12 (the module did
+      not exist), the check green at 20:46:01 (17/17). Mutations: 8 of 9 red;
+      a template name exempting a file from the log and state rules (M2)
+      survived → a test added → 9 of 9 red, 18 tests.
+- [x] B5–B7: pre-commit hook (staged secret scan, staged whitespace, the
+      hygiene check on the index), `full-gate.sh` (7 steps), `ci.yml`
+      (Full gate (Ubuntu)), `claude-guard.yml` (Python 3.9 and 3.12).
+      ShellCheck 0.11.0 pinned by its release archive's sha256
+      `8c3be12b…7198` (recorded from the download, 2026-10-10); gitleaks
+      8.30.1 by Rikuri-PI's recorded sha256. shellcheck clean.
+
+## 3. Debug
+- N/A — no defect is being fixed.
+
+## 4. Verify
+- [x] **Verifier, round 1: FAIL.** Passed: B1 byte-identical (also with
+      Iceman's and AISecurity's guard); the local gate 7/7 on a fresh clone,
+      and red at the right step for each of 8 planted failures; the
+      pre-commit hook refuses a staged secret, log, macaroon, unpinned image
+      and whitespace, and lets a legitimate commit through; both checksums
+      match the published ones; LND unchanged. Failed: **B2** — through real
+      guard events (`rn-verify/probe.py`), 43 of 88 cases on the previous
+      checkout, 21 of 71 on containers, 30 of 69 on money and 23 of 45 on
+      secrets differed from the rule's intent: scripts there run by path,
+      `$HOME` paths, removing its parent folder, git writes beyond the list,
+      other in-place edits, and the Edit/Write tools (which the policy file
+      cannot cover); `systemctl restart docker`, `docker update/rename/commit`,
+      `pkill`/`killall` of node daemons; the node's own key files
+      (`wallet_password.txt`, `wallet.dat`, `macaroons.db`, Tor's
+      `hs_ed25519_secret_key`, backup copies under other names) in both the
+      guard and the hygiene check, whose lists had drifted; key-printing
+      `bitcoin-cli` forms, `lncli wallet psbt`, LND's REST paths. **The shared
+      `guard.py` judges a command continued onto the next line one line at a
+      time** (`guard.py:368`): `lncli \⏎ sendcoins …` passed — in all five
+      repositories. Compliance: AGENTS.md presented the guard as complete;
+      floating image tags (`:stable`, `node:lts`) passed the check that
+      claimed to refuse unpinned images; the hygiene check refused source
+      folders named `data`, `log`, `backups`, `run`; four mutants survived
+      (compose.yaml not parsed, a registry port read as a tag, the `run`
+      folder rule, the index data never reaching the pin check through the
+      command line); the record's counts and its "9 of 9 mutants" (no list
+      kept) were wrong or unproven. **Said plainly:** I committed (ed25b64)
+      before the gate and the verifier, against the Plan's order — the gate's
+      whitespace and secret steps read HEAD, and this was the repository's
+      first commit; the red (20:45:12) and green (20:46:01) runs of round 1
+      have no saved output; this session started in Rikuri-PI, so this
+      repository's guard did not check my own actions — the previous
+      checkout was kept safe by discipline (reads by absolute path only).
+- [x] **Round 2** (tests first). Hygiene: 7 new or changed tests red at
+      21:16:22 (`hyg-r2-red.out`): the node's key files and backup copies,
+      case-insensitive names, more runtime files (`peers.dat`, `blk*.dat`,
+      `*.ldb`, `*.db-journal`, `compose.lock`, `nohup.out`, `*.log.gz`),
+      runtime folders only at the root (source folders named `data`, `log`,
+      `backups`, `run` accepted), floating tags and registry ports refused,
+      `lnd:${LND_VERSION:-v0.18.3-beta}` and `ARG`-pinned `FROM` accepted,
+      any YAML with top-level `services:` parsed as compose, pins through the
+      command line, a missing git object a loud failure (exit 2). The secret
+      list now comes from the guard's policy: one list, no drift. Green: 21
+      tests (`hyg-r2-green.out`; 22 after the R12 test below). Mutations (`hyg-r2-mut.out`): 13 of 16 red;
+      K9 showed the file-name check redundant (any compose file has
+      `services:`) → removed; R7 was a mutant of mine that stayed refused
+      (rebuilt: red); R12 (a missing object read as empty) → a test added →
+      red. Guard policy: 34 rules, 205 worked examples, 62 secret globs —
+      every rule has examples; the previous checkout's rule rebuilt (scripts
+      run by path, `$HOME`/`${HOME}`/`//` forms, its parent folder, any
+      `git -C` command but reads, `GIT_DIR`, clone into it, `sed`/`perl -i`
+      with options in any order, `tar`/`unzip`/`rsync` into it, `find -delete`)
+      with searches, commit messages and help text excluded; container rule
+      with explicit verbs (pods, kube, swarm, nerdctl; `container ls/inspect`
+      free); runtime and daemon kills; a backslash-continued node command
+      always asks (the guard.py defect, until it is fixed); `--no-verify` and
+      `core.hooksPath` elsewhere ask; key-printing `bitcoin-cli`, `lncli`
+      PSBT/`updatechanstatus`/`deletepayments`/`exportchanbackup`, Loop and
+      Pool, writes to LND's REST API by curl, wget, httpie or `requests`;
+      archives of the node's key folders; secrets: the node's key files,
+      seeds, wallet passwords, live `bitcoin.conf`/`lnd.conf`/`tapd.conf`,
+      `channel.db`, Tailscale's state. Guard tests 91 OK. The verifier's own
+      probes rerun (`rn-verify/r2b-*.out`): every remaining difference is
+      inherent to reading command text (variables, `..`/relative paths, code
+      that opens files), stricter than expected by choice (turning off the
+      pre-commit gate asks; `cp` of a secret is denied), or the Edit/Write
+      tools — now denied by `.claude/settings.json`
+      (`Edit(//home/junc/rikuri/rikurinode/**)`), which the guard probes
+      cannot exercise. Gate: the guard wiring checked for every file and
+      shell tool (not a text match); whitespace also against the working
+      tree; the quality tools' tests on Python 3.9 and 3.12 in CI.
+      `safe-run.sh` with 4 tests (stand-ins refuse with 126 from a child
+      process; `DOCKER_HOST` points nowhere; the command's result passes
+      through; the stand-ins are removed); LND unchanged. Docs: the guard is
+      "a tripwire, not a sandbox", its limits named; the security baseline
+      stated as requirements; the README's design goal no longer a claim.
+      (Two counts in this entry were wrong — round 2's verifier: 63 secret
+      globs, not 62; 22 hygiene tests, not 23.)
+- [x] **Verifier, round 2: FAIL.** Passed: the gate 7/7 on a fresh clone;
+      every acceptance-line item that can run locally; round 1's probes now
+      miss 6/88, 0/71, 2/69, 8/45, 2/12; the `Edit(//…)` deny rule's syntax,
+      checked against the installed Claude Code (2.1.221: a leading `//` is
+      an absolute path; Edit rules cover Edit, Write and NotebookEdit; not
+      Bash); routine work in this repository free; LND unchanged. Failed:
+      (1) new guard gaps — `git --no-pager -C <old> checkout -- .`, `"$HOME"/…`,
+      `git worktree add` into it, `rsync --delete`, `scp`, `awk -i inplace`,
+      `uv`; `systemctl reboot`/`poweroff`/`isolate`, `sudo -n reboot`,
+      `init 6`, `loginctl reboot`, restarts of any unit not named in a rule;
+      `compose scale/watch`, `ctr`/`runc`/`nsenter`, the Docker socket by
+      curl, `xargs kill`, backtick `pidof`; `bakemacaroon`,
+      `deletemacaroonid`, `grpcurl`, httpie with options, `importmulti`,
+      `migratewallet`, `-stdin`; Tor's `control_auth_cookie`, cargo
+      credentials, `channels.backup`, `wg0.conf`, age `keys.txt`,
+      `secrets.json`; (2) **`safe-run.sh` did not isolate**: `env -i docker`,
+      `docker -H unix:///var/run/docker.sock`, `curl --unix-socket` and a
+      Python socket reached the live daemon (read-only queries); `pkill`,
+      `killall`, `kill` were not covered; and its own test ran `reboot` and
+      `docker restart lnd` through PATH — real programs, had the layer been
+      broken; (3) **the gate's wiring step stayed green with
+      `"disableAllHooks": true`** or `"command": "echo guard.py"`; (4) ways
+      to skip the pre-commit gate (`-c core.hooksPath=`, `commit -nm`,
+      `merge --no-verify`, rewriting the hook file); (5) the record's counts,
+      "every remaining difference is inherent" (not for `~/.docker/config.json`
+      nor `docker exec … cat <secret>`), "commit messages excluded" (not for
+      heredoc messages), and "not a text match" (it was). Nits: node configs
+      treated as secrets everywhere; `python:3`, `node:20` accepted;
+      `.gitignore` still ignored `src/target/`, `pages/logs/`; routine asks
+      (any `curl -d` to `/v1/`, `git config core.hooksPath` as a read); rule 0
+      a single 2,628-character regex. Evidence: its `rn-verify2/`.
+- [x] **Round 3** (tests first: 13 red at 22:41:26 — `r3-red.out`).
+      `safe-run.sh` rebuilt on unprivileged namespaces — an empty `/run` (no
+      runtime or systemd socket), no network but an empty loopback, a
+      private process list — with the stand-ins (now also `ctr`, `runc`,
+      `nsenter`, `pkexec`, `su`, `loginctl`, `service`, `init`, `pkill`,
+      `killall`) as a second layer; without namespaces it refuses unless
+      `SAFE_RUN_ALLOW_NO_NAMESPACE=1` (CI), and says so; it compares the
+      start times of `lnd`, `bitcoin` and `tor` and says when there is no
+      node to compare. Its tests run a program only after confirming, in the
+      same layer, that it resolved to a stand-in; the network test probes a
+      listener the test itself opens — never a live service. The wiring
+      check is a tested script (`check_guard_wiring.py`, 8 tests): hooks
+      not disabled (also in `settings.local.json`), the exact guard command,
+      PreToolUse, every file and shell tool (split entries and `*` accepted).
+      The guard policy rebuilt by one script with named fragments (`_doc`):
+      34 rules, one per behaviour — the previous checkout (enter / run / git
+      / write, each in every spelling found), containers and the runtime,
+      services and power, host packages, kills, money and keys, a command
+      naming a node key file, a macaroon handed to a command, a continued
+      command, the pre-commit gate, GitHub — 109 secret globs (the node's
+      key files and their backup copies by suffix, so `wallet.db.ts` and
+      `channel.backup.md` stay free), `.git/config` and `.git/hooks`
+      protected. 598 worked examples: the earlier 205, every probe case of
+      both verifiers that the policy now decides as intended (389), and 4
+      more. Guard tests 91 OK. Hygiene: numbered floating tags refused
+      (`python:3`, `node:20-alpine`, `rust:1`; at least major.minor or a
+      digest; `fedora:41` needs a digest), `COPY --from=<image>` checked,
+      `target/` only at the root, a fixtures folder inside a runtime folder
+      still refused, backup copies of key files by suffix; 24 tests.
+      `.gitignore` anchors `/logs/`, `/log/`, `/target/`, `/run/`. Quality
+      tools: 42 tests (`r3-green.out`). Mutations (`mut-r3.out`), run inside
+      an outer namespace with no network and no `/run`, so a broken mutant
+      could not reach the node: **15 of 15 red** — the network mutant first
+      "survived" because the outer layer hid every port, which showed the
+      network test probing live ports; it now probes its own listener.
+      LND unchanged throughout. The verifiers' probes rerun: every
+      remaining difference is listed under Skipped items by kind.
+- [x] **Round 3, continued (2026-10-11).** The round-3 verifier stopped at
+      the session's usage limit before reporting (its last note: 9 of 15
+      mutants red so far, every file restored and its sha256 checked). Before
+      it reruns, the script that writes the guard policy moved from my
+      scratch folder into the repository as
+      `scripts/quality/guard_policy.py`, so the policy has a reviewable
+      source: the rules are named fragments and lists, the worked examples
+      stay in the JSON as data. Tests first (`test_guard_policy.py`, red on
+      the committed policy: it predated the script): the committed policy
+      must equal what the script writes, a hand edit is refused and named, a
+      rewrite keeps the examples, and every one of the 34 rules matches at
+      least one worked example. The gate's step 2 runs `--check`. The
+      regenerated policy differs from the reviewed one only in wording: four
+      reasons (two repeated themselves), two regexes wrapped in an
+      equivalent group, the GitHub rules' `always_ask: false` written out,
+      the `_doc` text and the order of the secret globs (same 109). Guard
+      tests 91 OK; quality tools 46 OK (hygiene 24, wiring 8, policy 4,
+      safe-run 10), both inside `safe-run.sh`.
+- [x] **Verifier, round 3: FAIL.** Passed: the gate 7/7; every acceptance
+      item that runs locally (hygiene refuses each offender and passes the
+      clean tree; the pre-commit hook refuses a staged token; the guard asks
+      before entering the previous checkout and lets it be read); all four
+      of round 2's failures fixed — 59 real guard events from its list, 0
+      mismatches; inside the layer an `env -i` child sees no runtime or
+      systemd socket, cannot reach a listener on 127.0.0.1, cannot signal a
+      process outside, and finds all 27 programs replaced; the wiring check
+      fails on disabled hooks, on a command that only mentions the guard and
+      on a local settings file that disables hooks; the four named ways of
+      skipping the pre-commit hook ask; the policy counts (34, 109, 598) and
+      `--check` (a hand edit fails gate step 2); 18 of its 20 mutants red;
+      LND, bitcoind and Tor unchanged. Failed: (1) **eight literal ways to
+      switch off the pre-commit hook were allowed** — git reads config keys
+      in any case (`core.hookspath`) and long options by unique prefix
+      (`--no-verif`), and takes config from `GIT_CONFIG_*` variables,
+      `--config-env` and quoted `-c` values — while `AGENTS.md` said the
+      guard always asks; (2) **two checks had no test**: removing
+      `safe-run.sh`'s start-time comparison (S2) or the wiring check's read
+      of `settings.local.json` (W3) left every test green, while the commit
+      message said every mutation tried was caught and the record listed
+      none of round 3's; (3) `test_safe_run` failed 3 of 3 runs started as
+      `safe-run.sh python3 -m unittest …`: the runner is then PID 1, and its
+      "outside" PID exists inside the nested layer. Also: run inside an
+      outer layer, the `/run` and stand-in tests could not fail (S5, S6
+      masked); a same-size mutant's cached bytecode can outlive its restore;
+      CI's "Guard wired" step was only a `grep`; this record's receipts were
+      in a scratch folder, outside the repository. Evidence: its
+      `rn-verify4/`.
+- [x] **Round 4** (tests first). The pre-commit rule now reads
+      `core.hooksPath` in any case and quoted, `--config-env`, the
+      `GIT_CONFIG_*` variables, `git config set`/`unset`, and `--no-verify` by
+      any unique prefix: 17 worked examples (15 must ask, 2 stay free — first
+      written "13 and 4": round 4's verifier), red at 03:04:23 (all 15 failed
+      in both profiles, 30 example failures, `r4-hooks-red.out`), green at
+      03:04:55 (91 OK, 615 examples). New
+      tests: a stand-in `docker`, confirmed to be what resolves, reports a
+      different start time after the command and the run must fail with 125
+      (and keep the command's own result when nothing changed, and say when
+      there is no node); the signal test watches a `sleep` of its own instead
+      of a PID number; inside an outer layer the `/run` test plants a marker
+      that must stay hidden; each program must resolve to this layer's own
+      stand-in (`SAFE_RUN_BIN`, now exported) and the test's list must equal
+      the script's; the default wiring run must read the local settings.
+      Red at 03:06:17 for the two that need `SAFE_RUN_BIN`; green at
+      03:06:41 (51 OK). Mutants, run inside an outer layer with Python's
+      bytecode cache off (`mut_r4.py`, `mut-r4.out`): S2, S4 (no private PID
+      namespace), S5, S6, W3 and four of the pre-commit rule (case, prefixes,
+      `GIT_CONFIG_*`, `--config-env`) — 9 of 9 red (10 of 10 with W5 below), every file restored and
+      checked by sha256. CI's wiring step runs `check_guard_wiring.py`, and
+      the guard workflow also runs `guard_policy.py --check`. `AGENTS.md`
+      says what the guard asks about the hook (commands always; the file
+      tools are a protected-path ask, logged and allowed in `development`)
+      and what `safe-run.sh` does not cover (Unix sockets outside `/run`,
+      file writes). The receipts are now in the repository:
+      `evidence/2026-10-10-bootstrap/` (the gate logs renamed `.out`: the
+      hygiene check refuses `*.log` anywhere, by the owner's rule).
+- [x] **Round 4, a gap found beside the shared guard's fix.** The verifier of
+      the guard fix timed a 69 KB one-line command at 14 s through the guard
+      (12 s in the previous guard) — past the hook's 10 s. Claude Code's
+      hooks reference (read 2026-10-11): "A timed-out `command` … hook
+      doesn't block the tool call … don't count on a stalled hook to act as
+      a gate", and a hook that crashes without output is a non-blocking
+      error; `"onFailure": "block"` (Claude Code 2.1.295 or later) blocks the
+      call instead. So a command slow enough, or a guard that crashed, would
+      have let the call through. Tests first (`r4-onfailure-red.out`, red at
+      04:46:51): the wiring check refuses a guard hook without
+      `"onFailure": "block"`, or with `"continue"`; green at 04:47:15 with
+      `.claude/settings.json` set (`r4-onfailure-green.out`, 52 OK); mutant
+      W5 (a fail-open guard counts) red — 10 of 10 (`mut-r4.out`). The guard
+      itself bounds its time in the shared fix
+      (`2026-10-11-guard-line-continuation.md`). **A default chosen for the
+      owner:** a guard that times out or crashes now blocks the call — the
+      fix is to shorten the command or repair the guard, never to switch the
+      setting off. Installed here: the VS Code extension 2.1.295 (this
+      session); the `claude` command on `PATH` is 2.1.221, which ignores the
+      setting — README says 2.1.295 or later. The other four repositories'
+      settings are the owner's call (their settings govern the session
+      changing them).
+- [x] **Verifier, round 4: FAIL.** Passed: the gate 7/7 (91, 52); all of
+      round 3's forms ask in both profiles and the install and reads stay
+      free; S2, W3, W5 red; the quality tests pass four times as PID 1; S5 and
+      a stricter S6 red inside an outer layer, and two control mutants show
+      the round-4 tests are what remove the masking; the new tests cannot run
+      a real program; `onFailure` confirmed in the installed 2.1.295 settings
+      schema (absent from 2.1.289, 2.1.292 and the 2.1.221 binary); 18 of its
+      19 mutants red; LND, bitcoind and Tor unchanged. Failed: (1) **14 more
+      spellings git accepts skip the hook and were allowed**: a config
+      include (`-c include.path=…`, `includeIf.…path`, `git config
+      include.path …`), an alias (`git config alias.ci 'commit -n'`, `-c
+      alias.ci=…`), removing or renaming the `core` section, options that take
+      a value before the key (`--type path`, `--comment x`), `git config
+      --edit` — against the commit message's "in every spelling git accepts"
+      and `AGENTS.md`'s "always asks"; spellings the shell assembles
+      (`core.hoo""ksPath`, `core.hooks\Path`, `$'…'`) also skip it; rewrites of
+      the hook file by `git checkout`/`restore`, `perl -pi`, `install` and `dd`
+      asked only in `stable`; (2) wrong counts: round 4's examples were 15 and
+      2, not 13 and 4, and 15 failed per profile, not 16; the commit message
+      still said 598 examples; it said every round's mutants are listed, but
+      round 1's have neither list nor receipt; no receipt of round 4's own
+      gate; (3) mutant G10 survived: no example showed that a value merely
+      starting with the install path (`scripts/quality/hooks-off`) must ask;
+      the quoted and trailing-slash install forms asked (false positives); the
+      `onFailure` default was not listed as an owner choice with its reversal.
+      Evidence: its `rn-verify6/`.
+- [x] **Round 5** (tests first). What was learned, said plainly: a tripwire on
+      command text cannot list every way git can be told to skip a hook —
+      each round found more — and promising "every spelling" was an overclaim
+      of mine. The rule now covers the common forms the verifiers found
+      (includes, aliases, the `core` section, valued options before the key,
+      `config --edit`, the hook file rewritten by `git checkout`/`restore`/
+      `apply`/`reset`, `perl -i`, `install`, `dd of=`), and the claims say what
+      is true: `AGENTS.md` lists the common forms and names CI's full gate on
+      every pull request to the protected `main` as the gate that cannot be
+      skipped; words the shell assembles from pieces join the guard's listed
+      limits. 27 worked examples (21 must ask, 6 stay free, including the
+      quoted and trailing-slash install forms and `scripts/quality/hooks-off`,
+      which must ask), red at 05:10:27 (`r5-hooks-red.out`: 23 of the 27
+      failed, in one or both profiles), green at 05:11:33 (91 OK, 642
+      examples, `r5-hooks-green.out`). Mutants (`mut_r5.py`, `mut-r5.out`,
+      Python's bytecode cache off, inside an outer layer): round 4's ten plus
+      G10 and seven of round 5's alternatives — 18 of 18 red, every file
+      restored and checked by sha256 (one mutant of mine was first written
+      wrong and broke the generator's syntax; the run stopped, the files were
+      restored, it was rewritten and the run repeated).
+- [x] **Verifier, round 5: FAIL.** Passed: the gate 7/7; all of round 4's
+      forms ask in both profiles (0 of 77 wrong) and the installs and reads
+      stay free; round 4's corrected counts and round 5's (27 = 21 + 6; 23
+      red; 18 of 18) match the receipts; every receipt named is present; the
+      pre-commit hook refuses a staged token through its real entry point;
+      LND unchanged. Failed: (1) in `development` the guard still allowed
+      simple ways to skip the hook that git confirmed — deleting or moving its
+      folders (`rm -rf scripts/quality`, `git rm -r scripts/quality`, `mv`,
+      `rm -r scripts`, `find … -delete`) and rewriting it (`awk -i inplace`,
+      `patch`, `rsync`, `tar -C`, `unzip -d`, `ex`) — the forms the policy
+      already covers for the previous checkout, but not for the hook; (2) the
+      commit message said "three" failed rounds (there were four) and "every
+      new check was written test-first" (the gate scripts and the pre-commit
+      hook have no tests of their own), left out that the file tools are
+      allowed in `development`, and stated CI's gate as proven; (3) the
+      Evidence log's round-1 line named a file renamed since and "9 mutants
+      listed" (none were kept); (4) mutants V7 (`git apply`/`reset` of the
+      hook), V8 (`git config -e`) and V10 (`CORE` in capitals) survived — the
+      alternatives worked but no example pinned them. Evidence: its
+      `rn-verify7/`.
+- [x] **Round 6** (tests first). The previous checkout's write rule and the
+      hook's now share one list of command forms (`writes()` in
+      `guard_policy.py`): the hook's files (`scripts/quality/hooks/…`,
+      `.git/hooks/…`, `.git/config`) count for every form; the folders that
+      hold them (`scripts`, `scripts/quality`, `.git`) count when deleted or
+      moved — copying a file into `scripts/` is porting and stays free (a
+      first draft asked for it, and three existing examples caught that).
+      `git rm`/`mv`/`checkout`/`restore`/`apply`/`reset`/`stash` of either
+      ask; the install is free also as `./scripts/quality/hooks` and
+      `"$PWD/scripts/quality/hooks"`. 25 worked examples (19 ask, 6 free —
+      one of them first written as free when the protected path makes it
+      ask in `stable`; corrected), red at 05:36:40 (`r6-hooks-red.out`: 13
+      must-ask forms allowed, the 2 install forms asked, and the 1 example
+      written wrong — 25 test failures; first written here as "15 forms
+      allowed": round 6's verifier), green at 05:38:33 (91 OK, 667 examples,
+      `r6-hooks-green.out`). Mutants (`mut_r6.py`, `mut-r6.out`): round 4's
+      ten, round 5's G10 and G12–G16 and G18 (its G17, `dd of=`, was left out
+      by mistake), V7, V8, V10 and the new parts — 26 of 26 red. `AGENTS.md`
+      and the commit message said what the rule covered.
+- [x] **Verifier, round 6: FAIL.** Passed: the gate 7/7; every round-5 form
+      asks in both profiles; V7, V8, V10 and round 4's probes 0 wrong; porting
+      copies into `scripts/` free; 156 earlier probes of the previous
+      checkout answered exactly as in round 5. Failed: (1) **a regression of
+      mine** — round 6's end-of-path anchors stopped a path matching when a
+      glob, a redirection, an option or `&` followed it, so 17 forms round 5
+      asked about in both profiles (`rm -rf scripts/quality/hooks/*`, `cp …
+      pre-commit 2>/dev/null`, `mv scripts/quality/hooks{,.off}`, …) were
+      allowed in `development`, 3 of them in both profiles; git confirmed each
+      skips the hook; (2) **older, in the previous checkout's own write rule:**
+      `cp x /home/junc/rikuri/rikurinode/f 2>/dev/null` (and `>/dev/null`,
+      `-f`, `&`, `rsync … 2>&1`, `scp … 2>/dev/null`) wrote into the live
+      node's checkout without asking, in rounds 5 and 6 alike; (3) the claims
+      said more than the rule did: writing into the hook's folders (`tar -C
+      scripts/quality`, `unzip -d`, `cp -r … scripts/quality/`), `git
+      sparse-checkout`, an alias appended to `~/.gitconfig`; and the folders
+      counted with no word boundary (`touch docs/scripts` asked); (4) counts:
+      "15 forms allowed" and the mutant list; 9 non-equivalent mutants
+      survived (cpio, 7z, `tar --directory`, rmdir, shred/unlink, editors,
+      `.git` as a folder, `git stash`). Evidence: its `rn-verify10/`.
+- [x] **Round 7.** Rounds 3 to 6 showed that regular expressions over command
+      text cannot be trusted to find every write to a path — each round's fix
+      missed or broke forms the last one caught. Round 7 keeps the regular
+      expressions to what they can do reliably and says exactly that:
+      - the previous checkout: a destination now counts whether it ends the
+        command, ends a code string, or is followed by redirections, options or
+        `&` (`writes()`); copies *from* the checkout stay free;
+      - the hook's own files (`scripts/quality/hooks`, `.git/hooks`,
+        `.git/config`), matched as a path prefix so globs and anything after
+        count, in every form of `writes()` and by `git rm`/`mv`/`checkout`/
+        `restore`/`apply`/`reset`/`stash`;
+      - the folders that hold them (`scripts`, `scripts/quality`, `.git`),
+        matched only as whole words, when deleted, moved or extracted into
+        (`rm`, `rmdir`, `mv`, `find -delete`, `tar`/`unzip`/`7z`/`cpio`);
+      - `git sparse-checkout` (but `list`);
+      - copying into those folders and file-tool edits are left to the
+        protected-path check that `guard.py` itself runs: asked in `stable`,
+        logged in `development`. A first draft also protected `scripts` and
+        `.git` as paths, which (globs without `/` match any folder of that
+        name) made `docs/scripts` ask and porting into `scripts/` ask in
+        `stable`; reverted before commit.
+      40 worked examples (the verifier's forms, the previous checkout's
+      tails, `cpio`/`7z`/`tar --directory`/`rmdir`/`shred`/`unlink`/editors,
+      `git sparse-checkout`, and the lookalikes that must stay free:
+      `docs/scripts`, `build/scripts`, `docs/old-scripts`, `myscripts/…`,
+      porting). They were written after the rule this time; run against round
+      6's rules they fail — 25 of them (`r7-red-on-r6.out`). Green at 06:20:21
+      (91 OK, 709 examples, `r7-guard.out`); the shared test that wraps every
+      must-ask example in `subprocess.run('…')` caught three anchor drafts on
+      the way (a closing quote, a redirection before it, `&` before it).
+      Mutants (`mut_r7.py`, `mut-r7.out`): rounds 4 to 6's that still apply,
+      the destination's tail (E1–E3), the hook's paths (H1–H7) and the verbs
+      no example pinned (O1–O5) — 32 of 34 red at first; H1 (the word start
+      before the hook path) and H3 (`rmdir` of a hook folder) had no example
+      → `myscripts/quality/hooks` and `rmdir scripts/quality` added → 34 of
+      34 red.
+- [x] **Verifier, round 7: FAIL.** Passed: the gate 7/7; round 6's 17
+      regressions and the previous checkout's tails now ask; 156 earlier
+      probes unchanged; the 34 mutants reproduced. Failed: (1) **13
+      regressions of mine** against round 6 — the lookbehinds I added kept a
+      `/` or an option letter from coming before the hook's folders, so
+      absolute and `~` paths (`rm -rf /home/junc/rikuripi/rikurinode/scripts`)
+      and attached options (`7z x -oscripts/quality/hooks`, `tar -Cscripts`,
+      `cpio -Dscripts`) no longer asked, and `writes()` had lost the folders
+      for `rsync --delete`/`--remove-source-files`; git confirmed the hook
+      skipped; (2) forms inside the stated scope that did not ask: `&>`,
+      `>|`, an option with a separate value after the destination, braces
+      and `**`, copying into `.git/` or `scripts/` in `stable`, `cp -t`; (3)
+      claims the evidence contradicted (AGENTS.md, the commit message), and
+      writers into the previous checkout never listed as limits (`curl -o`,
+      `wget -O`, `gawk -i inplace`, `rename`, `sort -o`, `split`, `gtar`,
+      `bsdtar`); (4) not proven: "green at 06:20:21 … 709" and "32 of 34 at
+      first" — `r7-guard.out` shows neither, and no first-run receipt was
+      kept; (5) mutants X3, X7, X8 survived for want of an example. Evidence:
+      its `rn-verify12/`.
+- [x] **Round 8: enumerated claims.** Seven rounds showed that a claim about
+      a class ("the forms it covers", "matched as a path prefix") is wider
+      than any set of regular expressions over command text. AGENTS.md now
+      lists every form that asks, and what gets through, and a test holds the
+      policy to that list:
+      - one set of fragments for every write form (`guard_policy.py`): a
+        path's start (`START`), the folders before a name (`PFX`: `./`, an
+        absolute path, `~`, a variable, `$(pwd)` — not a relative path, so
+        `build/scripts` stays free), a folder as a whole word with `/*`,
+        `/**` or a brace list (`WHOLE`), and a destination's tail that takes
+        `&>`, an option with its value, a comment, and a quoted name with
+        spaces (`dest()`); commands may be called by path (`/bin/rm`);
+      - `writes()` lists its forms one by one: the delete-and-move family
+        (with the folder), the write family (target only: `mkdir scripts`
+        and `touch docs/scripts` are free again), in-place edits (now
+        `gawk`/`mawk`), extraction with the option's value attached or not
+        (now `gtar`, `bsdtar`, `7za`/`7zr`/`7zz`), the copy destination (now
+        `install`), `curl -o`, `wget -O`, `sort -o`, `find`;
+      - the hook: those forms on its files and folders, plus
+        `core.sparseCheckout`, `read-tree`, `switch --orphan`,
+        `update-index --skip-worktree|--assume-unchanged`, and copying
+        anything into `.git`, a folder named `hooks` into `scripts/quality`
+        or one named `quality` into `scripts` (always ask); a stable-only
+        rule for copies into `scripts/quality` that `guard.py`'s own reading
+        misses (a tail after the destination, `-t`); `.git/info/sparse-checkout`
+        a protected path;
+      - `>|`: the shared `guard.py` splits a command at every `|` outside
+        quotes, so the policy asks before any segment that ends in `>`; the
+        hook's redirect alternative keeps `>|` for a quoted code string.
+      **The claims test** (`scripts/quality/tests/test_guard_claims.py`)
+      builds 1,211 cases from the forms and path spellings AGENTS.md lists,
+      and the lookalikes it leaves free, and checks both profiles (1.2 s);
+      on round 7's policy 472 of them fail (`r8-claims-on-r7.out`). 98 new
+      worked examples (807 in all), 75 of the 100 drafted wrong on round 7
+      (`r8-new-examples.out`); one existing example tightened (`cp -r
+      /tmp/hooks scripts/quality/` now asks in `development` too).
+      Replaying both earlier verifiers' 797 cases (`r8-replay.out`): looser
+      than rounds 6 or 7 only where meant — 19 lookalikes and copies *from*
+      the previous checkout that are free again; the misses left are the
+      listed limits or deliberate asks. Mutants (`mut_r8.py`): 43 at first,
+      40 red; the 3 green were equivalents (`>` and `|` in a path's start;
+      `>|` in the tail, whose `\S+` takes the `|`; the previous checkout's
+      `>|` redirect, which the "runs a program from the previous checkout"
+      rule already catches once `guard.py` splits at the `|`) — removed from
+      the policy rather than kept as dead parts. A mistake on the way,
+      caught by the shared heredoc test: I first removed the hook's `>|`
+      alternative as dead too; inside a quoted code string `guard.py` does
+      not split, so it is needed — restored.
+- [x] **Verifier, round 8: FAIL.** Passed: the gate, every receipt and
+      number of round 8 (472 of 1,211; 75 of 100; 807 examples; the 797-case
+      replay; 40 of 40 mutants), and everything outside the round's change
+      list. Failed: (1) **a read command plus a lone `&`** got money moves,
+      node stops, a reboot, package changes and writes into the live
+      checkout past the guard in both profiles (`echo & lncli sendcoins …`):
+      `guard.py` does not split at a lone `&`, and every rule exempts a
+      segment that starts with a read; (2) **regressions of mine** — git's
+      pathspec magic (`:/scripts/…`, `:(top)…`), `~+/`, `$(git rev-parse
+      --show-toplevel)/` and `.//` before the hook's paths, which round 7
+      and 6 asked about, were allowed (git confirmed the hook skipped); (3)
+      forms AGENTS.md listed that did not ask: a program run from the
+      previous checkout through `sudo -u`, `env`, `timeout`, `nice` and the
+      like; `git -C … reflog expire`, `--output`; clustered extraction
+      options (`-xvC`, `-qod`); `gawk -i 'inplace'`, `--include=inplace`;
+      `curl --output-dir`, `wget -P`; nine editors; `cp -t .git`,
+      `install -t .git`, `ln … .git/`; sparse checkout through `-c`;
+      continued `nerdctl`, `apt-get`, `rpm-ostree`, `dnf`, `snap`, `grpcurl`,
+      `wget`, `http`; `/home//junc`; (4) 24 of its 42 mutants survived;
+      (5) **a rule that backtracked**: the pre-commit rule's `git -a -a …`
+      took 21 s at 117 characters; (6) claims: "test-first from round 2"
+      (round 7's examples came after the rule), "mitigated here" (the lone
+      `&` unmentioned), `GIT_CONFIG_*` and "any `>|`" wider than the rules;
+      `r8-gate.out` was a run on round 7's tree (it scanned 820,746 bytes,
+      round 7's size). Evidence: its `rn-verify18/`.
+- [x] **Round 9: the OS sandbox, and the guard's holes.**
+      - **The sandbox** (owner, 2026-10-11: "Turn it on").
+        `.claude/settings.json` enables Claude Code's sandbox: writes only
+        inside the repository and the temporary folder, no Unix socket or
+        local port, network only to GitHub, the previous checkout's `.env` and
+        `data/` and `/run/rikuri` unreadable, `scripts/quality/hooks`
+        write-protected (the sandbox protects `.git/hooks`, `.git/config` and
+        `.claude` itself), `failIfUnavailable`, no unsandboxed retry, and only
+        `git push`, `fetch` and `pull` excluded (SSH cannot use its proxy).
+        `check_guard_wiring.py` checks all of it, in both settings files: six
+        tests written first, red at 10:55:41 (`r9-wiring-red.out`), green at
+        10:56:10. **The drill** (a headless Claude Code 2.1.295 session in
+        this repository, `r9-drill*.out`): every sandboxed command failed with
+        `apply-seccomp: … nested userns is capability-restricted` — Ubuntu's
+        AppArmor profile `bwrap-userns-restrict` keeps bubblewrap's children
+        from creating the namespace Claude Code's seccomp helper needs. It
+        failed closed: nothing ran, no probe file appeared, the node's start
+        times did not change. `enableWeakerNestedSandbox` failed the same way.
+        The owner chose to relax AppArmor for bubblewrap; the script
+        (`/home/junc/rikuripi/allow-bwrap-for-claude-sandbox.sh`, outside this
+        repository, run by the owner with sudo) is not yet run. Until it is
+        and the drill passes, the sandbox is **Not yet proven**, and on this
+        machine a session here cannot run shell commands at all. The drill
+        also hit the guard's own friction: `curl -w '%{http_code}\n'` asks
+        (the `\n` reads as a continued line).
+      - **The read exemption** now ends when a segment also runs a lone `&`
+        or a `$(…)`: the round-8 verifier's `&` forms all ask.
+      - **The previous checkout, closed-world**: any command naming it, or
+        anything in its parent folder, asks unless it is one of the listed
+        reads alone in its segment or a copy out of it (not as a link).
+        Prefix runners, editors, writers not listed, `reflog expire`,
+        `--output`, `cd /home/junc/rikuri` all ask now, and so do globs
+        inside the parent (`rikurinod?`, `riku*`), which were listed limits.
+      - **The hook**: its files under any folder prefix (the regressions
+        back), the folders through pathspec magic, `~+`, `$(…)` and
+        repeated `./`; clustered options, `gawk --include`, `curl
+        --output-dir`, `wget -P`, more editors, `-t` and `ln` into `.git`,
+        sparse checkout through `-c`, `extensions.worktreeConfig` and
+        `.git/config.worktree`, paths fed by `xargs` to a deleting command,
+        `zip -m`, old-style `tar x…`; `/home//junc`; the continued-line rule
+        for every command family a rule guards.
+      - **No rule backtracks**: a search of every rule against 162 inputs,
+        each in a child process with a time limit (`r9-redos.out`), found
+        four constructs that could read one word two ways — the commit
+        rule's options, the container rule's `-{1,2}`, an option's value
+        that could be the next option (container and `xargs`), and the
+        old-checkout git rule's `-c` value — all rewritten.
+      - **Tests that hold it**: `test_guard_claims.py` grew to 1,561 cases
+        (the closed-world reads and non-reads, the `&` forms, the new
+        spellings) and a speed test that runs the searches in a child
+        process and fails if it does not finish in 60 s (a backtracking
+        rule would otherwise hang the suite: first written in-process, it
+        hung); `test_guard_baseline.py` replays the 1,089 cases the
+        verifiers wrote in rounds 6 to 8 against their recorded verdicts.
+        The baseline caught this round's own last change: four verdicts
+        tightened (`cd /home/junc/rikuri/rikurinode-archive`, `touch
+        /home/junc/rikuri/x`, `rm -rf …/rikurinod?`, `…/riku*`), reviewed
+        and regenerated. Loosenings against rounds 6 to 8: none but the 33
+        intended ones round 8 named.
+      - **Deliberate tightenings** in the worked examples: reading the
+        previous checkout through `python3 -c`, a script given `--root
+        <it>`, a `sed -i` whose script names it, `cd
+        /home/junc/rikuri/rikurinode-archive` now ask.
+      - **Mutants** (`mut_r9.py`): 43 at first, 31 red (`mut-r9-first-run.out`);
+        two of the twelve green were equivalents, removed from the policy
+        (a backtick in the exemption: `guard.py` reads a backtick's command
+        itself; the git rule's `reflog`/`--output` alternative: the
+        closed-world rule asks for them); the other ten (the read list's
+        exclusions, `././`, `~+/`, `$(…)/` before a folder, the added
+        editors) got claim cases. Final run: 41 mutants, 40 red
+        (13:14:26, `mut-r9.out`); the one green, Q10 (`rg --pre`), was
+        hidden by `guard.py`'s own refusal of a recursive search over a
+        folder holding secret files — its claim case now names a single
+        file, and Q10 alone is red (`mut-r9-q10.out`): 41 of 41.
+      - **Receipts:** round 9's claims test fails 346 of its 1,561 cases on
+        round 8's policy, and its speed test fails there too
+        (`r9-claims-on-r8.out`); no rule is slow on any of the 162 inputs
+        (`r9-redos.out`, with `r9-redos-find.py`); the round-8 verifier's
+        cases replayed (`r9-replay-round8-cases.out`): every miss is a
+        listed limit, a git experiment without an expectation, or one of
+        `GIT_CONFIG_GLOBAL`/`SYSTEM` (git keeps the repository's own
+        `hooksPath`) and a `>|` inside a quoted code string (AGENTS.md now
+        says "outside a quoted code string"); the baseline's four
+        tightenings (`r9-baseline-tightened.diff`). Green at 13:15:33: 37
+        rules, 807 worked examples, 91 guard tests (`r9-guard.out`); 61
+        quality-tool tests (`r9-quality.out`).
+- [ ] Verifier, round 9: pending.
+
+## 5. Close Out
+
+## Skipped items — visible, never silent
+- **What the guard still does not catch or decides otherwise** (round 3's
+  rerun of both verifiers' probes, `evidence/2026-10-10-bootstrap/verifier*-probes/`):
+  - inherent to reading command text: a command built from variables
+    (`L=lncli; $L sendcoins …`); a relative or `..` path into the previous
+    checkout; a program that writes files from its own code; credential
+    files with generic names (`~/.docker/config.json`, `~/.kube/config`);
+    `find / -name '*.macaroon'` (names only);
+  - the file tools: `Edit`/`Write` in the previous checkout are denied by
+    `.claude/settings.json` (not by the guard); an `Edit` of `.git/config`
+    or of the pre-commit hook asks in `stable` and is logged in
+    `development` (protected paths);
+  - stricter than the verifiers expected, by choice: turning off the
+    pre-commit gate asks; copying a secret is denied; `docker exec … cat
+    <secret>` and similar ask (always) rather than being denied — the shared
+    guard denies only reads it can see;
+  - accepted friction: a heredoc's body is read as commands, so a commit
+    message or document that names a guarded command asks — commit messages
+    go through a file (`git commit -F`); a continued `rm` or `curl` asks;
+    `tar -t … -C <old>` asks; the shared guard asks when a search names a
+    secret file (`git grep -n wallet.db`).
+  Owner: Henry. Reactivate: a miss seen in practice.
+- **A default chosen for the owner:** live node config names
+  (`bitcoin.conf`, `lnd.conf`, `tapd.conf`) are secrets — the previous
+  repository printed a Tor password from `lnd.conf` into a transcript.
+  Cost: porting the previous repository's `configs/*.conf` takes one
+  approval per file (`git -C … show`), and tracked configs and test
+  fixtures are named `*.conf.template`. Reversible: three globs. Owner:
+  Henry.
+- **A default chosen for the owner (round 4):** the guard hook blocks the
+  tool call when it times out or fails (`"onFailure": "block"`); without it
+  Claude Code lets the call through. Cost: a command the guard cannot judge
+  in 10 s, or a broken guard, stops work until the command is shortened or
+  the guard repaired. Reversible: remove the field from
+  `.claude/settings.json` and its requirement from
+  `check_guard_wiring.py` — not recommended, it reopens the hole. Owner:
+  Henry.
+- **The sandbox's drill** (round 9): Not yet proven. It needs the owner's
+  AppArmor change on this machine, then a passing drill (writes outside the
+  repository, the hook folder, a Unix socket, a local port, an unlisted
+  site and the previous checkout's secrets all refused; a write inside the
+  repository allowed). Until then, sessions in this folder on this machine
+  cannot run shell commands. Owner: Henry. Reactivate: the AppArmor script
+  has run.
+- **The pre-commit hook is not a boundary** (rounds 3–8): what always asks,
+  and what gets through, is listed in `AGENTS.md` and held by
+  `test_guard_claims.py`. Not covered: a path relative to a folder entered
+  earlier, or through `..`; a glob inside a name and `git rm -r .`; `find
+  -name … -delete`; copying a folder's contents into `scripts/`; writers
+  not listed; variables and words the shell assembles; `~/.gitconfig`; and
+  in `development`, copying into `scripts/quality` and file-tool edits
+  (logged, not asked). The shared `guard.py` splits at every `|` and judges
+  a continued line by line — to fix in the shared guard with its other
+  parsing holes. The boundary is CI's full gate on every pull
+  request to a protected `main` — Not yet proven until the repository is on
+  GitHub and `main` is protected. Owner: Henry. Reactivate: a skip seen in
+  practice; the next change to the shared guard.
+- **An owner choice for later:** whether hook writes should ask in
+  `development` too, for every form — that needs the shared guard to treat
+  some protected paths as "always ask", a change to `guard.py` in all five
+  repositories. Recommended with the next guard change. Owner: Henry.
+- **The gate scripts have no tests of their own**: `full-gate.sh`,
+  `secret-scan.sh` and the pre-commit hook are exercised by every gate run
+  and by the verifiers (round 1: red at the right step for each of 8
+  planted failures; rounds 3 and 5: the hook refuses a staged token), not
+  by unit tests. Owner: Henry. Reactivate: the first change to one of them.
+- **Accepted friction** (round 5's and round 7's verifiers): restoring the
+  committed hook (`git checkout -- scripts/quality/hooks/pre-commit`, `git
+  restore …`) asks; so do any `git config alias.…`, a commit message
+  containing ` -n `, deleting any folder named `.git` or `scripts` by an
+  absolute path (`rm -rf /tmp/x/.git`), `-C <folder>` with a listing (`tar
+  -tf a.tar -C scripts`), and copying anything into `.git`. Owner: Henry.
+- **What `safe-run.sh` does not cover** (round 3's verifier): Unix sockets
+  bound outside `/run` (a desktop's, an editor's, under `/tmp` or the home
+  folder) stay reachable, and files stay writable. None belongs to the node;
+  the layer keeps tests away from the node and is not a general sandbox
+  (`AGENTS.md`). Owner: Henry. Reactivate: a node socket outside `/run`.
+- Namespace isolation on GitHub's runners: unknown until CI runs; if the
+  runner forbids user namespaces, the namespace tests are reported as
+  skipped there (`SAFE_RUN_ALLOW_NO_NAMESPACE=1`; no live node in CI).
+- **The shared `guard.py` and backslash-newline** (round 1's verifier, I3):
+  every repository's guard judges a continued command line by line. This
+  policy asks before any continued node command meanwhile. The fix belongs in
+  the shared file, copied to all five repositories in one session — Rikuri-PI
+  has another session's fix-lock engaged now. Owner: Henry. Reactivate: the
+  owner's choice.
+- The `Edit(…)` deny rule and this repository's guard apply only to sessions
+  opened in this folder; neither has been observed in such a session yet:
+  Not yet proven. Reactivate: the first session opened here.
+- Inherent to a command-text tripwire: commands built from variables,
+  relative or `..` paths, programs that open files from their own code, a
+  search that names a secret file (the shared guard asks). Owner: Henry.
+- Smoke script, debt ratchet, typecheck in pre-commit: Phase 0 items that
+  need code to measure. Owner: Henry. Reactivate: the first service and the
+  choice of language (the architecture plan).
+
+## Evidence log
+```
+round 1  gate 7/7 (gate-round1.out); guard 91 OK; hygiene 18 OK; mutations: "9 of 9 red" as written
+         then, with no list or receipt kept (round 1's verifier)
+         verifier: FAIL — B2 probes 43/88 old, 21/71 containers, 30/69 money, 23/45 secrets differed
+round 2  hygiene red 21:16:22 (7), green 21 (hyg-r2-green.out), 22 after the R12 test (the gate ran 26
+         quality-tool tests: 22 hygiene, 4 safe-run, gate-round2.out); guard 34 rules / 205 examples, 91 OK
+         mutations 13/16 → K9 removed (redundant), R7 rebuilt, R12 test added → all red
+         gate 7/7 in safe-run, LND 2026-10-09T20:20:27.903167252Z unchanged
+         verifier: FAIL — its probes 26/68, 32/76, 17/53, 18/38, 9/20 differed; safe-run reached
+         the live daemon from env -i; gate green with disableAllHooks
+round 3  tests red 22:41:26 (13); quality tools green 42 (hygiene 24, wiring 8, safe-run 10)
+         guard 34 rules / 598 examples / 109 secret globs, 91 OK
+         mutations in an outer namespace: 15/15 red; LND unchanged
+         probes rerun: all remaining differences listed by kind under Skipped items
+         verifier: stopped at the usage limit (9/15 mutants red so far), no report
+round 3+ policy script tracked; test_guard_policy red (committed policy predated it), green after
+         regenerating; guard 91 OK, quality tools 46 OK, in safe-run (gp-guard.out)
+         verifier: FAIL — 8 hook-skipping forms allowed; S2, W3 untested; test_safe_run as PID 1
+round 4  hooks red 03:04:23 (r4-hooks-red.out), green 03:04:55, 615 examples (r4-hooks-green.out)
+         quality red 03:06:17 (r4-quality-red.out), green 03:06:41, 51 OK (r4-quality-green.out)
+         onFailure red 04:46:51 (r4-onfailure-red.out), green 04:47:15, 52 OK (r4-onfailure-green.out)
+         mutants in an outer layer, bytecode cache off: 10/10 red (mut-r4.out)
+         gate 7/7 on the round-4 commit (gate-round4.out)
+         verifier: FAIL — 14 more hook-skipping spellings; wrong counts; G10 survived
+round 5  hooks red 05:10:27 (r5-hooks-red.out), green 05:11:33, 642 examples (r5-hooks-green.out)
+         mutants: 18/18 red (mut-r5.out)
+         verifier: FAIL — hook folders deleted/moved and hook rewrites allowed in development; counts
+round 6  hooks red 05:36:40 (r6-hooks-red.out), green 05:38:33, 667 examples (r6-hooks-green.out)
+         mutants: 26/26 red (mut-r6.out)
+         verifier: FAIL — anchors of mine let globs, redirections, & through; old checkout's cp … 2>/dev/null
+round 7  examples run on round 6's rules: 25 fail (r7-red-on-r6.out); green 06:20:21, 709 (r7-guard.out)
+         mutants: 32/34 → H1, H3 examples → 34/34 red (mut-r7.out)
+         verifier: FAIL — 13 regressions of mine (absolute/~ hook folders, attached -o/-C/-D, rsync
+         --delete); &>, >|, braces; claims wider than the rules; 06:20:21 and 32/34 not on receipts
+round 8  claims test on round 7's policy: 472 of 1,211 wrong (r8-claims-on-r7.out); 100 drafted cases,
+         75 wrong on round 7 (r8-new-examples.out); 797 earlier verifier cases replayed (r8-replay.out)
+         mutants: 43, 40 red, 3 equivalents removed (mut-r8-first-run.out); final 40/40 red,
+         07:52:41–08:04:28 (mut-r8.out)
+         green 08:13:18–08:13:37: 36 rules, 807 examples, 91 OK (r8-guard.out); quality tools 53 OK
+         (r8-quality.out)
+         verifier: FAIL — a read plus a lone & got money moves past; regressions (pathspec magic, ~+, $(…));
+         listed forms not asking; a rule backtracking 21 s; 24 mutants surviving
+round 9  sandbox wiring red 10:55:41, green 10:56:10 (r9-wiring-*.out); drills: the sandbox cannot start
+         here (AppArmor), closed (r9-drill1.out, r9-drill2.out); claims on round 8's policy: 346 of 1,561
+         wrong, speed red (r9-claims-on-r8.out); ReDoS search clean (r9-redos.out); mutants 43 → 31 red,
+         2 equivalents removed, final 41/41 (mut-r9*.out); green 13:15:33: 37 rules, 807 examples,
+         91 OK; quality tools 61 OK (r9-guard.out, r9-quality.out)
+```
+Receipts: `evidence/2026-10-10-bootstrap/` — `gate-round1.out` to
+`gate-round3.out`, `gate-round3b.out` (the "round 3, continued" gate) and
+`gate-round4.out` (written as `.log` files: the hygiene check refuses
+`*.log`), the hygiene, round-3, round-4 and round-5 runs, the mutation
+scripts and their tables, and both verifiers' final probe reruns
+(`verifier1-probes/`, `verifier2-probes/`), rounds 6, 7 and 8's runs
+(`r6-*`, `r7-*`, `r8-*`, `r9-*`, `mut_r6.py` to `mut_r9.py` and their
+tables). Round 1's red and green runs and
+its mutants' list were never saved (said in round 1's verifier entry).

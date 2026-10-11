@@ -1,0 +1,5 @@
+start 2026-10-11 13:14:47
+Q10 rg --pre counts as a read                  RED   test_every_listed_form
+restored, sha256 checked: .claude/hooks/guard-config.json 0021783a8ff9, scripts/quality/check_guard_wiring.py 72ffd8d2c73c, scripts/quality/guard_policy.py 6da30257327b
+exit 0
+end 2026-10-11 13:15:22

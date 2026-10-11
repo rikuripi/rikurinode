@@ -1,0 +1,804 @@
+ok   cases- O1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cd /home/junc/rikuri/rikurinode
+ok   cases- O2     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cat /home/junc/rikuri/rikurinode/README.md
+ok   cases- O3     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -C /home/junc/rikuri/rikurinode log --oneline -3
+ok   cases- O4     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | /home/junc/rikuri/rikurinode/README.md
+ok   cases- O5     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | lncli sendcoins --addr x --amt 1
+ok   cases- O6     want=deny       r8: s=deny  d=deny  | r7: s=deny  d=deny  | r6: s=deny  d=deny  | /home/junc/.lnd/data/chain/bitcoin/mainnet/admin.macaroon
+ok   cases- X1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf scripts/quality
+ok   cases- X2     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | mv scripts/quality /tmp/q
+ok   cases- X3     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -r scripts
+ok   cases- X4     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git rm -r scripts/quality
+MISS cases- X5     want=ask        r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | cd scripts/quality/hooks && rm pre-commit
+ok   cases- X50    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf scripts/quality/
+ok   cases- X6     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | chmod -x scripts/quality/hooks/pre-commit
+ok   cases- X7     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | echo 'exit 0' > scripts/quality/hooks/pre-commit
+ok   cases- X8     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cp /bin/true scripts/quality/hooks/pre-commit
+ok   cases- X9     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | ln -sf /bin/true scripts/quality/hooks/pre-commit
+ok   cases- X10    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | awk -i inplace '{print}' scripts/quality/hooks/pre-commit
+ok   cases- X11    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config --global alias.ci 'commit -n'
+MISS cases- X12    want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | echo '[alias] ci = commit -n' >> ~/.gitconfig
+ok   cases- X13    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config --global core.hooksPath /dev/null
+ok   cases- X14    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config core.hooksPath ''
+ok   cases- X15    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config core.hooksPath .git/hooks
+ok   cases- X16    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git commit -anm x
+ok   cases- X17    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git commit --amend -n --no-edit
+ok   cases- X18    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -c core.hooksPath=/dev/null merge origin/x
+ok   cases- X21    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config --unset-all core.hooksPath
+ok   cases- X22    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config --replace-all core.hooksPath /dev/null
+ok   cases- X23    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | printf '[core]\n\thooksPath = /dev/null\n' >> .git/config
+ok   cases- X24    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config -f .git/config --unset core.hooksPath
+ok   cases- X25    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | truncate -s0 scripts/quality/hooks/pre-commit
+ok   cases- X31    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | sed -i.bak 's/exit 1/exit 0/' scripts/quality/hooks/pre-commit
+ok   cases- X32    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | sed --in-place=.bak 's/exit 1/exit 0/' scripts/quality/hooks/pre-commit
+ok   cases- X33    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | patch scripts/quality/hooks/pre-commit fix.diff
+ok   cases- X36    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -c core.hooksPath=/dev/null -C . commit -m x
+ok   cases- X37    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config core.hooksPath /dev/null --local
+ok   cases- X38    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | export GIT_CONFIG_COUNT=1
+ok   cases- X39    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config --global include.path /tmp/x.cfg
+ok   cases- X40    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config set core.hooksPath ""
+ok   cases- X42    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config core.hooksPath scripts/quality/hooks; git commit -n -m x
+ok   cases- X43    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -f .git/config
+ok   cases- X47    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | mv scripts/quality/hooks scripts/quality/hooks.off
+ok   cases- X48    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git mv scripts/quality/hooks/pre-commit scripts/quality/hooks/pre-commit.off
+ok   cases- X51    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | find scripts -name pre-commit -delete
+ok   cases- X53    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | git sparse-checkout set docs
+ok   cases- X54    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git apply --include=scripts/quality/hooks/pre-commit x.patch
+ok   cases- X55    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git reset --hard HEAD~1 -- scripts/quality/hooks/pre-commit
+ok   cases- X56    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config includeIf.gitdir:~/.path /tmp/x.cfg
+ok   cases- X57    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git commit --no-verify --amend --no-edit
+ok   cases- X58    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config core.hooksPath scripts/quality/hooks/../../../tmp/x
+ok   cases- X59    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config core.hooksPath 'scripts/quality/hooks'x
+ok   cases- X60    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config core.hooksPath scripts/quality/hooks"/../../../tmp"
+ok   cases- X61    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config core.hooksPath "scripts/quality/hooks/../../../tmp"
+ok   cases- X62    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | sudo rm scripts/quality/hooks/pre-commit
+ok   cases- X63    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git commit --no-verify
+ok   cases- X64    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git commit -n
+ok   cases- X65    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git --no-pager commit --no-verify -m x
+ok   cases- L1     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | python3 -c "import os; os.remove('scripts/quality/hooks/pre-commit')"
+ok   cases- R1     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git commit --amend --no-edit
+ok   cases- R2     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git commit -m "fix: x"
+ok   cases- R3     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git commit -F /tmp/msg.txt
+ok   cases- R4     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git status
+ok   cases- R5     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git diff -- scripts/quality/hooks
+ok   cases- R6     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config --get core.hooksPath
+ok   cases- R7     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config user.name "Henry Chen"
+ok   cases- R8     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config --list --show-origin
+ok   cases- R9     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git checkout -b feature/x
+ok   cases- R10    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git restore --staged README.md
+ok   cases- R11    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git reset HEAD~1
+ok   cases- R12    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git apply x.patch
+ok   cases- R13    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | shellcheck scripts/quality/hooks/pre-commit
+ok   cases- R14    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cat .git/config
+ok   cases- R15    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | scripts/quality/hooks/pre-commit
+ok   cases- R17    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git log -n 5
+ok   cases- R18    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git commit -m "x" --signoff
+ok   cases- R21    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git commit -S -m x
+ok   cases- R22    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git commit --allow-empty -m x
+ok   cases- R23    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git commit -m x -- README.md
+ok   cases- R26    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git commit --dry-run
+ok   cases- R27    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -c user.name=x commit -m x
+ok   cases- R28    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -c color.ui=never log
+ok   cases- R29    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config --unset user.email
+ok   cases- R30    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git checkout main
+ok   cases- R31    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git checkout -- README.md
+ok   cases- R32    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config core.hooksPath scripts/quality/hooks/
+ok   cases- R33    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config --get-regexp alias
+ok   cases- R34    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git log --oneline -- scripts/quality/hooks
+ok   cases- R35    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git reset --soft HEAD~1
+ok   cases- R36    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git merge origin/main
+ok   cases- R37    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git rebase origin/main
+ok   cases- P1     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config core.hooksPath "$PWD/scripts/quality/hooks"
+ok   cases- P2     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config core.hooksPath ./scripts/quality/hooks
+MISS cases- P3     want=allow      r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git checkout -- scripts/quality/hooks/pre-commit
+MISS cases- P4     want=allow      r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git commit -m "docs: the -n flag skips hooks"
+MISS cases- P5     want=allow      r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config alias.st status
+MISS cases- P6     want=allow      r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git restore scripts/quality/hooks/pre-commit
+ok   cases- Y1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git checkout HEAD~1 -- scripts/quality
+ok   cases- Y2     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git restore --source=HEAD~1 scripts/quality
+ok   cases- Y3     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rsync /bin/true scripts/quality/hooks/pre-commit
+ok   cases- Y4     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | tar -xf /tmp/h.tar -C scripts/quality/hooks
+MISS cases- Y5     want=ask        r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | cp -r /tmp/h scripts/quality
+ok   cases- Y6     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rmdir scripts/quality/hooks
+ok   cases- Y7     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | unzip -o /tmp/h.zip -d scripts/quality/hooks
+ok   cases- Y8     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git stash push -- scripts/quality/hooks/pre-commit
+ok   cases- Y9     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | ex -sc '2i|exit 0' -cx scripts/quality/hooks/pre-commit
+ok   cases- Y10    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf ./scripts/quality
+ok   cases- Y11    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git rm -rq scripts
+ok   cases- Y12    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | mv scripts /tmp/s
+ok   cases- R1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -c core.hookspath= commit -m x
+ok   cases- R2     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -c core.HOOKSPATH=/dev/null commit -m x
+ok   cases- R3     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config core.hookspath /dev/null
+ok   cases- R4     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git commit --no-verif -m x
+ok   cases- R5     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git commit --no-veri -m x
+ok   cases- R6     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git commit -m x
+ok   cases- R7     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -c 'core.hooksPath=' commit -m x
+ok   cases- R8     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git --config-env=core.hooksPath=HOME commit -m x
+ok   cases- R9     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | env GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git commit -m x
+ok   cases- R10    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -c core.hooksPath=/dev/null commit -m x
+ok   cases- R11    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git commit --no-verify -m x
+ok   cases- R12    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git commit -nm x
+ok   cases- N1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -c core.hooksPath commit -m x
+ok   cases- N2     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git --config-env core.hooksPath=HOME commit -m x
+ok   cases- N3     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -c include.path=/tmp/x.cfg commit -m x
+ok   cases- N4     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config include.path /tmp/x.cfg
+ok   cases- N5     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config --remove-section core
+ok   cases- N6     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config --rename-section core corex
+ok   cases- N7     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config alias.ci "commit --no-verify"
+ok   cases- N8     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -c alias.ci="commit -n" ci -m x
+ok   cases- N9     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config --type path core.hooksPath /dev/null
+ok   cases- N10    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config --comment x core.hooksPath /dev/null
+ok   cases- N11    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config --file .git/config core.hooksPath /dev/null
+ok   cases- N12    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config -f .git/config core.hooksPath /dev/null
+ok   cases- N13    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | GIT_CONFIG_PARAMETERS="'core.hooksPath'='/dev/null'" git commit -m x
+ok   cases- N14    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config rename-section core corex
+ok   cases- N15    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config remove-section core
+ok   cases- N16    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -c includeIf.onbranch:main.path=/tmp/x.cfg commit -m x
+ok   cases- N17    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config --local include.path /tmp/x.cfg
+ok   cases- N18    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config --add core.hooksPath /dev/null
+ok   cases- N19    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config set --all core.hooksPath /dev/null
+ok   cases- N20    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config --type=path core.hooksPath /dev/null
+ok   cases- N21    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config --worktree core.hooksPath /dev/null
+ok   cases- N22    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -c CORE.HOOKSPATH= commit -m x
+ok   cases- N23    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -ccore.hooksPath=/dev/null commit -m x
+ok   cases- N24    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config set --comment x core.hooksPath /dev/null
+ok   cases- N25    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config --local --unset-all core.hooksPath
+ok   cases- N26    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | GIT_EDITOR="sed -i s/hooks$/none/" git config --edit
+ok   cases- N27    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -c core.hooksPath=/dev/null -c user.name=x commit -m x
+ok   cases- N28    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git --no-pager -c core.hooksPath=/dev/null commit -m x
+ok   cases- N29    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C . commit --no-veri -m x
+ok   cases- N30    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config alias.ci "commit -n"
+ok   cases- Q1     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -c core.hoo""ksPath=/dev/null commit -m x
+ok   cases- Q2     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -c core.hooks\Path=/dev/null commit -m x
+ok   cases- Q3     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git commit --no-ver""ify -m x
+ok   cases- Q4     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -c $'core.hooksPath=' commit -m x
+ok   cases- H1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git checkout HEAD~1 -- scripts/quality/hooks/pre-commit
+ok   cases- H2     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | perl -pi -e 's/^set/exit 0\nset/' scripts/quality/hooks/pre-commit
+ok   cases- H3     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | install -m 755 /bin/true scripts/quality/hooks/pre-commit
+ok   cases- H4     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | dd if=/dev/null of=scripts/quality/hooks/pre-commit
+ok   cases- H5     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git restore --source=HEAD~1 scripts/quality/hooks/pre-commit
+ok   cases- A1     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config core.hooksPath scripts/quality/hooks
+ok   cases- A2     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config core.hooksPath
+ok   cases- A3     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config --get core.hooksPath
+ok   cases- A4     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config get core.hooksPath
+ok   cases- A5     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config --list
+ok   cases- A6     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config --show-origin --get core.hooksPath
+ok   cases- A7     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config core.hooksPath "scripts/quality/hooks"
+ok   cases- A8     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config --local core.hooksPath scripts/quality/hooks
+ok   cases- A9     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cat scripts/quality/hooks/pre-commit
+ok   cases- A10    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | shellcheck --severity=style scripts/quality/*.sh scripts/quality/hooks/*
+ok   cases- A11    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git commit -F /tmp/msg.txt
+ok   cases- A12    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git commit -m "docs: say what the hook does"
+ok   cases- A13    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config get --show-origin core.hooksPath
+ok   cases- A14    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config core.hooksPath 'scripts/quality/hooks'
+ok   cases- A15    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git log --oneline -5
+ok   cases- A16    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config --get-regexp core
+ok   cases- B1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config core.hooksPath scripts/quality/hooks-off
+ok   cases- B2     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config core.hooksPath scripts/quality/hooks/../../../tmp
+ok   cases- B3     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config core.hooksPath scripts/quality/hooks2
+ok   cases- B4     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config core.hooksPath scripts/quality/hooks/
+ok   cases- B5     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config core.hooksPath scripts/quality/hooks && scripts/quality/full-gate.sh
+ok   cases- F1     want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | scripts/quality/hooks/pre-commit
+ok   cases- F2     want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | scripts/quality/hooks/pre-commit
+ok   cases- F3     want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | .git/config
+ok   cases- F4     want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | .git/hooks/pre-commit
+ok   cases- F5     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | scripts/quality/hooks/pre-commit
+ok   cases- Z1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config -e
+ok   cases- Z2     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config edit
+ok   cases- Z3     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config --local -e
+ok   cases- Z4     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config --remove-section CORE
+ok   cases- Z5     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git apply --include=scripts/quality/hooks/pre-commit x.patch
+ok   cases- Z6     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git reset --hard HEAD~1 -- scripts/quality/hooks/pre-commit
+ok   cases- Z7     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config rename-section Core corex
+ok   cases- o1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cd $HOME/rikuri/rikurinode && git pull
+ok   cases- o2     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cd "${HOME}/rikuri/rikurinode"
+MISS cases- o3     want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cd /home/junc/rikuri && cd rikurinode && git pull
+MISS cases- o4     want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cd /home/junc/rikuripi/rikurinode/../../rikuri/rikurinode
+ok   cases- o5     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cd /home/junc//rikuri/rikurinode
+ok   cases- o6     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | /home/junc/rikuri/rikurinode/scripts/rikuri-stack-compose.sh up
+ok   cases- o7     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | ~/rikuri/rikurinode/scripts/lnd-start.sh
+ok   cases- o8     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | sudo /home/junc/rikuri/rikurinode/scripts/lnd-start.sh
+ok   cases- o9     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | source /home/junc/rikuri/rikurinode/scripts/env.sh
+ok   cases- o10    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | . /home/junc/rikuri/rikurinode/scripts/env.sh
+ok   cases- o11    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | env -C /home/junc/rikuri/rikurinode make up
+ok   cases- o12    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | make -C /home/junc/rikuri/rikurinode up
+ok   cases- o13    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C /home/junc/rikuri/rikurinode -c user.name=x commit -m y
+ok   cases- o14    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C /home/junc/rikuri/rikurinode fetch origin
+ok   cases- o15    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C /home/junc/rikuri/rikurinode gc --prune=now
+ok   cases- o16    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git --git-dir=/home/junc/rikuri/rikurinode/.git --work-tree=/home/junc/rikuri/rikurinode checkout -- .
+ok   cases- o17    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C /home/junc/rikuri/rikurinode remote set-url origin x
+ok   cases- o18    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | sed -E -i 's/a/b/' /home/junc/rikuri/rikurinode/docker-compose.yml
+ok   cases- o19    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | sed -n -i 's/a/b/' /home/junc/rikuri/rikurinode/x
+ok   cases- o20    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | perl -pi -e 's/a/b/' /home/junc/rikuri/rikurinode/x
+ok   cases- o21    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cp -t /home/junc/rikuri/rikurinode/scripts x.sh
+ok   cases- o22    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cp x.sh /home/junc/rikuri/rikurinode/scripts/ && echo ok
+ok   cases- o23    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | tar -xf x.tar -C /home/junc/rikuri/rikurinode
+ok   cases- o24    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf /home/junc/rikuri
+ok   cases- o25    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf ~/rikuri/
+ok   cases- o26    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | mv /home/junc/rikuri /home/junc/rikuri.old
+ok   cases- o27    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | echo x > "$HOME/rikuri/rikurinode/n"
+ok   cases- o28    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | echo x | tee /home/junc/rikuri/rikurinode/n
+MISS cases- o29    want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | python3 -c "open('/home/junc/rikuri/rikurinode/x','w')"
+ok   cases- o30    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cd ~/rikuri/rikurinode/scripts
+ok   cases- o31    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | pushd /home/junc/rikuri/rikurinode
+ok   cases- o32    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C ~/rikuri/rikurinode stash pop
+ok   cases- o33    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cd /tmp; cd /home/junc/rikuri/rikurinode; docker compose ps
+ok   cases- o34    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | unzip -o x.zip -d /home/junc/rikuri/rikurinode
+ok   cases- o35    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git clone https://x/y.git /home/junc/rikuri/rikurinode/sub
+ok   cases- o36    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cd /home/junc/rikuri/rikurinode/
+ok   cases- o37    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cd -- /home/junc/rikuri/rikurinode
+ok   cases- o38    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cd -P /home/junc/rikuri/rikurinode
+ok   cases- o39    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | (cd /home/junc/rikuri/rikurinode && ls)
+ok   cases- o40    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cd /home/junc/rikuri/rikurinode\ngit status
+ok   cases- o41    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | find /home/junc/rikuri/rikurinode -name '*.orig' -delete
+ok   cases- o42    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | find /home/junc/rikuri/rikurinode -name x -exec rm {} \;
+ok   cases- o44    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | truncate -s0 /home/junc/rikuri/rikurinode/logs/x.log
+ok   cases- o46    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | npm --prefix /home/junc/rikuri/rikurinode install
+ok   cases- o47    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | docker compose --project-directory /home/junc/rikuri/rikurinode up -d
+ok   cases- o48    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | nohup /home/junc/rikuri/rikurinode/scripts/watchdog.sh &
+ok   cases- o50    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | node /home/junc/rikuri/rikurinode/scripts/x.js
+ok   cases- o51    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C /home/junc/rikuri/rikurinode checkout main
+ok   cases- o52    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C /home/junc/rikuri/rikurinode/ pull
+ok   cases- o53    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | GIT_DIR=/home/junc/rikuri/rikurinode/.git git commit -m x
+MISS cases- o54    want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | /home/junc/rikuri/rikurinode/docker-compose.yml
+MISS cases- o55    want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | /home/junc/rikuri/rikurinode/notes.txt
+MISS cases- o56    want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | /home/junc/rikuri/rikurinode/scripts/lnd-start.sh
+ok   cases- o57    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cd ~/rikuri/rikurinode && ./scripts/rikuri-stack-compose.sh up
+ok   cases- o58    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | ln -sfn /tmp/x /home/junc/rikuri/rikurinode/current
+ok   cases- o59    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C "$HOME/rikuri/rikurinode" reset --hard
+ok   cases- a1     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | ls -la /home/junc/rikuri/rikurinode/scripts
+ok   cases- a2     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | diff -ru /home/junc/rikuri/rikurinode/scripts scripts
+ok   cases- a3     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -C /home/junc/rikuri/rikurinode show HEAD:scripts/lnd-start.sh > scripts/lnd-start.sh
+ok   cases- a4     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -C /home/junc/rikuri/rikurinode diff HEAD~3 -- scripts | head -50
+ok   cases- a5     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | head -40 /home/junc/rikuri/rikurinode/README.md
+ok   cases- a6     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | wc -l /home/junc/rikuri/rikurinode/scripts/*.sh
+ok   cases- a7     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cmp /home/junc/rikuri/rikurinode/.claude/hooks/guard.py .claude/hooks/guard.py
+ok   cases- a8     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | sha256sum /home/junc/rikuri/rikurinode/scripts/lnd-start.sh
+ok   cases- a9     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp -r /home/junc/rikuri/rikurinode/scripts/lib scripts/
+ok   cases- a10    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rsync -a /home/junc/rikuri/rikurinode/scripts/ /tmp/old-scripts/
+ok   cases- a11    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | python3 scripts/quality/repo_hygiene.py --root /home/junc/rikuri/rikurinode
+ok   cases- a12    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | sed -i 's#/home/junc/rikuri/rikurinode#/home/junc/rikuripi/rikurinode#' docs/x.md
+ok   cases- a13    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git grep -n "cd /home/junc/rikuri/rikurinode"
+ok   cases- a14    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git commit -m "port lnd-start.sh from /home/junc/rikuri/rikurinode"
+ok   cases- a15    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cd /home/junc/rikuripi/rikurinode && make
+ok   cases- a16    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cd ~/rikuripi/rikurinode
+ok   cases- a17    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rm -rf /home/junc/rikuripi/rikurinode/tmp
+ok   cases- a19    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp scripts/x.sh /home/junc/rikuripi/rikurinode/scripts/
+ok   cases- a20    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | echo hi > /home/junc/rikuripi/rikurinode/notes.txt
+ok   cases- a21    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -C /home/junc/rikuripi/rikurinode commit -m x
+ok   cases- a22    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cat /home/junc/rikuri/rikurinode/scripts/a.sh /home/junc/rikuri/rikurinode/scripts/b.sh > /tmp/both.sh
+ok   cases- a23    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -C /home/junc/rikuri/rikurinode log -p -- scripts/lnd-start.sh | less
+ok   cases- a24    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -C /home/junc/rikuri/rikurinode status --short
+ok   cases- a25    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cd /home/junc/rikuri/rikurinode-archive
+ok   cases- a26    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | /home/junc/rikuri/rikurinode/README.md
+ok   cases- a27    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | grep -n flock /home/junc/rikuri/rikurinode/scripts/lnd-start.sh
+ok   cases- a28    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git commit -m "rm stale files; see /home/junc/rikuri/rikurinode"
+ok   cases- a29    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp /home/junc/rikuri/rikurinode/README.md "docs/old README.md"
+ok   cases- a30    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp /home/junc/rikuri/rikurinode/scripts/a.sh /home/junc/rikuripi/rikurinode/scripts/
+ok   cases- a31    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | /home/junc/rikuripi/rikurinode/docs/notes.md
+ok   cases- a32    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | echo "previous: /home/junc/rikuri/rikurinode" >> docs/notes.md
+ok   cases- a33    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | python3 -c "print(open('/home/junc/rikuri/rikurinode/README.md').read())"
+ok   cases- A1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=allow | rm -rf scripts/quality/hooks/*
+ok   cases- A2     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=allow | rm scripts/quality/hooks/*
+ok   cases- A3     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | rm -rf scripts/*
+ok   cases- A4     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=allow | rm -rf scripts/quality/*
+ok   cases- A5     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=allow | rm -f scripts/quality/hooks/pre-*
+ok   cases- A6     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=allow | rm -rf .git/hooks/*
+ok   cases- A7     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=allow | mv scripts/quality/hooks/* /tmp/
+ok   cases- A8     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=allow | chmod -x scripts/quality/hooks/*
+ok   cases- A9     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp /bin/true scripts/quality/hooks/pre-commit 2>/dev/null
+ok   cases- A10    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=allow | cp /bin/true scripts/quality/hooks/pre-commit -f
+ok   cases- A11    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cp -f /bin/true scripts/quality/hooks/pre-commit
+ok   cases- A12    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | rsync -a /tmp/x scripts/quality/hooks/pre-commit 2>/dev/null
+ok   cases- A13    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=ask   d=ask   | rm -rf /home/junc/rikuripi/rikurinode/scripts/quality
+ok   cases- A14    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=ask   d=ask   | rm -rf ~/rikuripi/rikurinode/scripts
+ok   cases- A15    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf "scripts/quality"
+ok   cases- A16    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | sudo rm -r scripts
+ok   cases- A17    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | dd if=/dev/null of=scripts/quality/hooks/pre-commit
+ok   cases- A18    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | shred -u scripts/quality/hooks/pre-commit
+ok   cases- A19    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | unlink scripts/quality/hooks/pre-commit
+ok   cases- A20    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | tee scripts/quality/hooks/pre-commit < /dev/null
+ok   cases- A21    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | install -m 755 /bin/true scripts/quality/hooks/pre-commit
+ok   cases- A22    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | ln -sf /bin/true .git/hooks/pre-commit
+ok   cases- A23    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | sed -i 's/exit 1/exit 0/' scripts/quality/hooks/pre-commit
+ok   cases- A24    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | perl -i -pe 's/exit 1/exit 0/' scripts/quality/hooks/pre-commit
+ok   cases- A25    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | tar -C scripts/quality/hooks -xf h.tar
+ok   cases- A26    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | tar xf h.tar --directory=scripts/quality/hooks
+ok   cases- A27    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=ask   d=ask   | 7z x h.7z -oscripts/quality/hooks
+ok   cases- A28    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | scp host:x scripts/quality/hooks/pre-commit
+ok   cases- A29    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=ask   d=ask   | rsync -a --delete /tmp/empty/ scripts/
+ok   cases- A30    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | find scripts/quality/hooks -type f -exec rm {} +
+ok   cases- A31    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | find ./scripts -delete
+ok   cases- A32    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git rm -r --cached scripts
+ok   cases- A33    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git mv scripts tools
+ok   cases- A34    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git stash push -- scripts
+ok   cases- A35    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git checkout HEAD~3 -- .git/hooks
+ok   cases- A36    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | mv .git /tmp/g
+ok   cases- A37    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf .git
+ok   cases- A38    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | echo 'exit 0' >scripts/quality/hooks/pre-commit
+ok   cases- A39    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cat /tmp/x >> "scripts/quality/hooks/pre-commit"
+ok   cases- A40    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | vim scripts/quality/hooks/pre-commit
+ok   cases- A41    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rmdir scripts/quality/hooks
+ok   cases- A42    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | truncate -s 0 ./scripts/quality/hooks/pre-commit
+ok   cases- A43    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cp -t scripts/quality/hooks /tmp/pre-commit
+ok   cases- A44    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | mv scripts/quality/hooks scripts/quality/hooks.off && git commit -m x
+ok   cases- A45    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | ls && rm -rf scripts/quality
+ok   cases- A46    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cpio -pdm scripts/quality/hooks < list
+ok   cases- A47    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf scripts/quality/hooks/pre-commit scripts/quality/hooks
+ok   cases- B1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=allow | r6: s=ask   d=allow | cp -r /tmp/hooks scripts/quality/
+ok   cases- B2     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | tar -xf hooks.tar -C scripts/quality
+ok   cases- B3     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | unzip -o hooks.zip -d scripts/quality
+MISS cases- B4     want=ask        r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | rsync -a /tmp/q/ scripts/quality/
+ok   cases- B5     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=allow | r6: s=ask   d=allow | gawk -i inplace '{print}' scripts/quality/hooks/pre-commit
+ok   cases- B6     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | echo 'exit 0' >| scripts/quality/hooks/pre-commit
+ok   cases- B7     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | curl -o scripts/quality/hooks/pre-commit https://example.com/x
+MISS cases- B8     want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | find . -name pre-commit -delete
+ok   cases- B9     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | git sparse-checkout set docs
+ok   cases- B10    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=allow | mv scripts/quality/hooks{,.off}
+MISS cases- B11    want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | echo '[alias] ci = commit -n' >> ~/.gitconfig
+ok   cases- B12    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | wget -O scripts/quality/hooks/pre-commit https://example.com/x
+ok   cases- B13    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=allow | cp /bin/true scripts/quality/hooks/pre-commit>/dev/null
+ok   cases- B14    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | rename s/pre-commit/x/ scripts/quality/hooks/pre-commit
+ok   cases- C1     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp /home/junc/rikuri/rikurinode/scripts/x.sh scripts/
+ok   cases- C2     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp /home/junc/rikuri/rikurinode/scripts/x.sh scripts/x.sh
+ok   cases- C3     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp -r /home/junc/rikuri/rikurinode/scripts/lib scripts/
+ok   cases- C4     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp ~/rikuri/rikurinode/scripts/backup.sh scripts/node/
+ok   cases- C5     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | mkdir -p scripts/node
+ok   cases- C6     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cat scripts/quality/hooks/pre-commit
+ok   cases- C7     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config core.hooksPath scripts/quality/hooks
+ok   cases- C8     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | shellcheck scripts/quality/*.sh scripts/quality/hooks/*
+ok   cases- C9     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | python3 scripts/quality/guard_policy.py --check
+ok   cases- C10    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git add scripts/quality/guard_policy.py
+ok   cases- C11    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git diff -- scripts/quality/hooks/pre-commit
+ok   cases- C12    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rm -rf scripts/node/tmp
+ok   cases- C13    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rsync -a /home/junc/rikuri/rikurinode/scripts/ scripts/old/
+ok   cases- C14    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git log -p -- scripts
+ok   cases- C15    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp scripts/quality/hooks/pre-commit /tmp/pc
+ok   cases- C16    want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | cp /tmp/new.py scripts/quality/new_check.py
+ok   LOOSER cases- C17    want=allow      r8: s=allow d=allow | r7: s=ask   d=ask   | r6: s=ask   d=ask   | install -m 755 /home/junc/rikuri/rikurinode/scripts/x.sh scripts/
+ok   cases- C18    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | chmod +x scripts/node/x.sh
+ok   cases- C19    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git show HEAD:scripts/quality/hooks/pre-commit
+ok   cases- D1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf /home/junc/rikuri/rikurinode/data
+ok   cases- D2     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cp x /home/junc/rikuri/rikurinode/
+ok   cases- D3     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | sed -i s/a/b/ ~/rikuri/rikurinode/docker-compose.yml
+ok   cases- D4     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | echo x > /home/junc/rikuri/rikurinode/f
+ok   cases- D5     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf /home/junc/rikuri
+ok   cases- D6     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | mv /home/junc/rikuri /tmp/r
+ok   cases- D7     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | tar -xf x.tar -C /home/junc/rikuri/rikurinode
+ok   cases- D8     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rsync -a x/ /home/junc/rikuri/rikurinode/
+ok   cases- D9     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | find /home/junc/rikuri/rikurinode -name '*.log' -delete
+ok   cases- D10    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | find /home/junc/rikuri/rikurinode -name '*.log'
+ok   cases- D11    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cat /home/junc/rikuri/rikurinode/README.md
+ok   cases- D12    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | awk -i inplace '{print}' /home/junc/rikuri/rikurinode/x
+ok   cases- D13    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | patch /home/junc/rikuri/rikurinode/x fix.diff
+ok   cases- D14    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | perl -pi -e 's/a/b/' $HOME/rikuri/rikurinode/x
+ok   cases- D15    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf /home/junc/rikuri/rikurinode/*
+MISS cases- D16    want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp x /home/junc/rikuri/
+MISS cases- D17    want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | touch /home/junc/rikuri/x
+ok   cases- D18    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rsync --delete -a /tmp/e/ /home/junc/rikuri/
+ok   cases- D19    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cp -t /home/junc/rikuri/rikurinode/scripts x.sh
+ok   cases- D20    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | unzip x.zip -d ~/rikuri/rikurinode
+ok   cases- D21    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | ex -s -c wq /home/junc/rikuri/rikurinode/x
+ok   cases- D22    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | find /home/junc/rikuri -delete
+ok   cases- D23    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -C /home/junc/rikuri/rikurinode log --oneline -3
+ok   cases- D24    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | sed -n 1,20p /home/junc/rikuri/rikurinode/README.md
+ok   cases- D25    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f 2>/dev/null
+ok   cases- E1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f 2>/dev/null
+ok   cases- E2     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f -f
+ok   cases- E3     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f >/dev/null
+ok   cases- E4     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | rsync -a x /home/junc/rikuri/rikurinode/ 2>&1
+ok   cases- E5     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | scp host:x /home/junc/rikuri/rikurinode/f 2>/dev/null
+ok   cases- E6     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f &
+ok   cases- E7     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | (cp x /home/junc/rikuri/rikurinode/f)
+ok   cases- E8     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | gawk -i inplace '{print}' /home/junc/rikuri/rikurinode/x
+ok   cases- E9     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | echo x >| /home/junc/rikuri/rikurinode/f
+ok   cases- E10    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | curl -o /home/junc/rikuri/rikurinode/f https://example.com/x
+ok   cases- E11    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cp x /home/junc/rikuri/rikurinode/f && echo ok
+ok   cases- E12    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cp x "/home/junc/rikuri/rikurinode/f" 2>/dev/null
+ok   cases- E13    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cp x /home/junc/rikuri/rikurinode/f; echo ok
+ok   cases- E14    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cp x /home/junc/rikuri/rikurinode/f | cat
+ok   cases- F1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp /tmp/cfg .git/config 2>/dev/null
+ok   cases- F2     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp /bin/true scripts/quality/hooks/pre-commit &
+ok   cases- F3     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | (cp /bin/true scripts/quality/hooks/pre-commit)
+ok   cases- F4     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cp /bin/true scripts/quality/hooks/pre-commit && git commit -m x
+ok   cases- F5     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=allow | rsync /bin/true scripts/quality/hooks/pre-commit -q
+ok   cases- F6     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=allow | rm -rf scripts/quality/hooks/pre-commit*
+MISS cases- F7     want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rm -rf scripts/qualit?
+ok   cases- F8     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=allow | rm -rf scripts/quality/hooks/[p]re-commit
+ok   cases- F9     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | mv .git/config .git/config.off
+ok   cases- F10    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=allow | rm -f .git/hooks/*
+ok   cases- F11    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | chmod 644 scripts/quality/hooks/pre-commit
+ok   cases- F12    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=allow | git rm -q scripts/quality/hooks/*
+ok   cases- F13    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=allow | git checkout HEAD~1 -- scripts/quality/hooks/*
+ok   cases- F14    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -r scripts/quality/hooks/
+ok   cases- G1     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config core.hooksPath "${PWD}/scripts/quality/hooks"
+ok   cases- G2     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config core.hooksPath "$PWD/scripts/quality/hooks/../../../tmp"
+ok   cases- G3     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config core.hooksPath ./scripts/quality/hooks-off
+ok   cases- G4     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config core.hooksPath $PWD/scripts/quality/hooksx
+ok   cases- G5     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config core.hooksPath './scripts/quality/hooks/'
+ok   cases- G6     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config core.hooksPath ./scripts/quality/hooks/x
+ok   cases- G7     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config core.hooksPath "$HOME/scripts/quality/hooks"
+ok   LOOSER cases- H1     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=ask   d=ask   | rm -rf build/scripts
+ok   LOOSER cases- H2     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=ask   d=ask   | rm -rf node_modules/.bin/scripts
+ok   LOOSER cases- H3     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=ask   d=ask   | mkdir scripts
+ok   LOOSER cases- H4     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=ask   d=ask   | touch docs/scripts
+MISS cases- H5     want=allow      r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=ask   d=ask   | rm -rf /tmp/x/.git
+ok   LOOSER cases- H6     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=ask   d=ask   | git rm docs/old-scripts
+ok   cases- H7     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git checkout main -- docs/ && ls scripts
+ok   cases- nh1    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -c core.hooksPath=/dev/null commit -m x
+ok   cases- nh2    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git commit -nm x
+ok   cases- nh3    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git commit -anm x
+ok   cases- nh4    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git config --unset core.hooksPath
+ok   cases- nh5    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm scripts/quality/hooks/pre-commit
+ok   cases- nh6    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | chmod -x scripts/quality/hooks/pre-commit
+MISS cases- nh7    want=ask        r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | .git/config
+ok   cases- nh8    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | echo 'exit 0' > scripts/quality/hooks/pre-commit
+ok   cases- nh9    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git commit --no-verify -m x
+ok   cases- nh10   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git merge --no-verify feat/x
+ok   cases- ph1    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config core.hooksPath
+ok   cases- ph2    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config --get core.hooksPath
+ok   cases- ph3    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config core.hooksPath scripts/quality/hooks
+ok   cases- ph4    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git commit -m "feat: x"
+ok   cases- ph5    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git push origin feat/x
+ok   cases- ph6    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cargo test --workspace
+ok   cases- ph7    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | npm ci && npm test
+ok   cases- ph8    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | scripts/quality/safe-run.sh cargo test
+ok   cases- ph9    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git reset --hard HEAD~1
+ok   cases- ph10   want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git commit -m "$(cat <<'X'
+feat: add the node status page
+X
+)"
+ok   cases- no1    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cd "$HOME"/rikuri/rikurinode && git pull
+ok   cases- no2    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cd /home/junc/rikuri/./rikurinode
+ok   cases- no3    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cd /home/*/rikuri/rikurinode
+ok   cases- no4    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cd /home/junc/rikuri/rikurinod*
+ok   cases- no5    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cd ~junc/rikuri/rikurinode
+ok   cases- no6    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C /home/junc/rikuri/rikurinode --no-pager pull
+ok   cases- no7    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C /home/junc/rikuri/rikurinode -P reset --hard
+ok   cases- no8    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git --no-pager -C /home/junc/rikuri/rikurinode checkout -- .
+ok   cases- no9    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C /home/junc/rikuri/rikurinode --literal-pathspecs stash
+ok   cases- no10   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C /home/junc/rikuri/rikurinode pull
+ok   cases- no11   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C /home/junc/rikuri/rikurinode clean -fdx
+ok   cases- no12   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C /home/junc/rikuri/rikurinode reset --hard origin/main
+ok   cases- no13   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git worktree add /home/junc/rikuri/rikurinode/wt
+ok   cases- no14   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rsync -a src/ /home/junc/rikuri/rikurinode/ --delete
+ok   cases- no15   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rsync -a --remove-source-files /home/junc/rikuri/rikurinode/ /tmp/x/
+ok   cases- no16   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | scp x.sh /home/junc/rikuri/rikurinode/scripts/
+ok   cases- no17   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | awk -i inplace '{print}' /home/junc/rikuri/rikurinode/x
+ok   cases- no18   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | awk 'BEGIN{system("cd /home/junc/rikuri/rikurinode && make up")}'
+ok   cases- no19   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | uv run --directory /home/junc/rikuri/rikurinode pytest
+ok   cases- no20   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | pip install -e /home/junc/rikuri/rikurinode/control-plane
+ok   cases- no21   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C /home/junc/rikuri/rikurinode \\n pull
+ok   cases- no22   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cd \\n /home/junc/rikuri/rikurinode && git pull
+ok   cases- no23   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | bash -c "cd /home/junc/rikuri/rikurinode && make up"
+ok   cases- no24   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | sh -c 'cd ~/rikuri/rikurinode; git pull'
+ok   cases- no25   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | ex -s +'%s/a/b/' +wq /home/junc/rikuri/rikurinode/x
+ok   cases- no26   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | npm --prefix /home/junc/rikuri/rikurinode/dashboard/backend install
+ok   cases- no27   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cargo build --manifest-path /home/junc/rikuri/rikurinode/control-plane/Cargo.toml
+ok   cases- no28   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | python3 /home/junc/rikuri/rikurinode/scripts/reset-owner-password.py
+ok   cases- no29   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | /home/junc/rikuri/rikurinode/scripts/sync-bitcoin-cookie.sh
+ok   cases- no30   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C /home/junc/rikuri/rikurinode config core.hooksPath /dev/null
+ok   cases- no31   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C /home/junc/rikuri/rikurinode -c core.fsmonitor=x status
+ok   cases- no32   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | GIT_WORK_TREE=/home/junc/rikuri/rikurinode git checkout -- .
+ok   cases- no33   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git --git-dir /home/junc/rikuri/rikurinode/.git gc
+ok   cases- no34   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | find /home/junc/rikuri/rikurinode -name '*.pyc' -delete
+ok   cases- no35   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | xargs rm < /tmp/list /home/junc/rikuri/rikurinode/x
+ok   cases- no36   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | touch /home/junc/rikuri/rikurinode/.maintenance
+ok   cases- no37   want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | ln -sf /tmp/x /home/junc/rikuri/rikurinode/scripts/lnd-start.sh
+ok   cases- po1    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cat /home/junc/rikuri/rikurinode/docker-compose.yml
+ok   cases- po2    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | sed -n '1,40p' /home/junc/rikuri/rikurinode/scripts/sync-bitcoin-cookie.sh
+ok   cases- po3    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | grep -n lncli /home/junc/rikuri/rikurinode/scripts/sync-bitcoin-cookie.sh
+ok   cases- po4    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -C /home/junc/rikuri/rikurinode grep -n sendcoins
+ok   cases- po5    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -C /home/junc/rikuri/rikurinode log --oneline -5
+ok   cases- po6    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -C /home/junc/rikuri/rikurinode show HEAD:docker-compose.yml
+ok   cases- po7    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -C /home/junc/rikuri/rikurinode diff HEAD~1 --stat
+ok   cases- po8    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -C /home/junc/rikuri/rikurinode --no-pager log -3
+ok   cases- po9    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -C /home/junc/rikuri/rikurinode ls-files scripts
+ok   cases- po10   want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | ls -la /home/junc/rikuri/rikurinode
+ok   cases- po11   want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | find /home/junc/rikuri/rikurinode/scripts -name '*.sh'
+ok   cases- po12   want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | wc -l /home/junc/rikuri/rikurinode/scripts/sync-bitcoin-cookie.sh
+ok   cases- po13   want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | diff -u /home/junc/rikuri/rikurinode/README.md README.md
+ok   cases- po14   want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | head -50 /home/junc/rikuri/rikurinode/README.md
+ok   cases- po15   want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp /home/junc/rikuri/rikurinode/scripts/sync-bitcoin-cookie.sh scripts/
+ok   cases- po16   want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp -r /home/junc/rikuri/rikurinode/control-plane/src ./ref
+ok   cases- po17   want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git commit -m "port sync-bitcoin-cookie.sh from /home/junc/rikuri/rikurinode"
+MISS cases- po18   want=allow      r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git commit -m "$(cat <<'X'
+guard: ask before cd /home/junc/rikuri/rikurinode
+X
+)"
+ok   cases- po19   want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | gh pr create --title t --body "never cd /home/junc/rikuri/rikurinode"
+ok   cases- po20   want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rg -n 'cd /home/junc/rikuri/rikurinode' docs
+ok   cases- po21   want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git grep -n 'rm -rf ~/rikuri'
+ok   cases- po22   want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cd /home/junc/rikuripi/rikurinode && git status
+ok   cases- po23   want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -C /home/junc/rikuripi/rikurinode pull
+ok   cases- po24   want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | ls /home/junc/rikuri/
+MISS cases- po25   want=allow      r8: s=deny  d=deny  | r7: s=deny  d=deny  | r6: s=deny  d=deny  | /home/junc/rikuri/rikurinode/configs/bitcoin.conf
+MISS cases- po26   want=allow      r8: s=deny  d=deny  | r7: s=deny  d=deny  | r6: s=deny  d=deny  | cat /home/junc/rikuri/rikurinode/configs/bitcoin.conf
+MISS cases- po27   want=allow      r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C /home/junc/rikuri/rikurinode show HEAD:configs/bitcoin.conf
+ok   cases- po28   want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | /home/junc/rikuri/rikurinode/control-plane/src/cookie.rs
+ok   cases- po29   want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | diff <(git -C /home/junc/rikuri/rikurinode show HEAD:scripts/sync-bitcoin-cookie.sh) scripts/x.sh
+ok   cases- po30   want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | jq . /home/junc/rikuri/rikurinode/ragdocs/runbooks/RB-SEED-RECOVERY-DRILL-01.json
+MISS cases- po31   want=allow      r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | tar -tzf /tmp/x.tgz -C /home/junc/rikuri/rikurinode
+ok   cases- a1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f 2> /dev/null
+ok   cases- a2     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f &>/dev/null
+ok   cases- a3     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f &> /dev/null
+ok   cases- a4     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f &>>/tmp/log
+ok   cases- a5     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f >/dev/null 2>&1
+ok   cases- a6     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f >/dev/null 2>&1 &
+ok   cases- a7     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f >&2
+ok   cases- a8     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f 2>|/dev/null
+ok   cases- a9     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f -v --preserve=all
+ok   cases- a10    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f --
+ok   cases- a11    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f 2>/dev/null || true
+ok   cases- a12    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cp x /home/junc/rikuri/rikurinode/f&
+ok   cases- a13    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cp x /home/junc/rikuri/rikurinode/f>/dev/null
+ok   cases- a14    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cp x '/home/junc/rikuri/rikurinode/f' -f
+ok   cases- a15    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | bash -c "cp x /home/junc/rikuri/rikurinode/f 2>/dev/null"
+ok   cases- a16    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | bash -c "cp x /home/junc/rikuri/rikurinode/f" &
+ok   cases- a17    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | python3 -c 'import os; os.system("cp x /home/junc/rikuri/rikurinode/f -f")'
+ok   cases- a18    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | sh -c 'cp x /home/junc/rikuri/rikurinode/f' 2>/dev/null
+ok   cases- a19    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | rsync -a x /home/junc/rikuri/rikurinode/ --exclude .git
+ok   cases- a20    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | rsync -a x /home/junc/rikuri/rikurinode/ --exclude=.git
+ok   cases- a21    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | rsync -a x /home/junc/rikuri/rikurinode/ -v 2>&1 | tail -1
+ok   cases- a22    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | scp host:x /home/junc/rikuri/rikurinode/f -q &
+ok   cases- a23    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x ~/rikuri/rikurinode/f 2>/dev/null
+ok   cases- a24    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x $HOME/rikuri/rikurinode/f -f
+ok   cases- a25    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x /home/junc//rikuri/rikurinode/f &
+ok   cases- a26    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | (cp x /home/junc/rikuri/rikurinode/f 2>/dev/null)
+ok   cases- a27    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f 2>/dev/null; echo done
+ok   cases- a28    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f	2>/dev/null
+ok   cases- a29    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f # port back
+ok   cases- a30    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f < /dev/null
+ok   cases- a31    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp -f x /home/junc/rikuri/rikurinode/f 1>/dev/null 2>/dev/null
+ok   cases- a32    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f 2>/dev/null &&
+ok   cases- a33    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | timeout 5 cp x /home/junc/rikuri/rikurinode/f 2>/dev/null
+ok   cases- a34    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | cp x "/home/junc/rikuri/rikurinode/my file" 2>/dev/null
+ok   cases- a35    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f -S .bak
+ok   cases- af1    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp /home/junc/rikuri/rikurinode/x /tmp/x 2>/dev/null
+ok   cases- af2    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp /home/junc/rikuri/rikurinode/x . -v
+ok   cases- af3    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp -r /home/junc/rikuri/rikurinode/scripts ./ported/ 2>/dev/null &
+ok   cases- af4    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rsync -a /home/junc/rikuri/rikurinode/configs/ /tmp/configs/ --exclude=.git
+ok   cases- af5    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | scp /home/junc/rikuri/rikurinode/x host:/tmp/ 2>/dev/null
+ok   cases- af6    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp /home/junc/rikuri/rikurinode/README.md docs/old-readme.md &>/dev/null
+ok   cases- af7    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cat /home/junc/rikuri/rikurinode/README.md 2>/dev/null
+ok   cases- b1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm scripts/quality/hooks/pre-commit
+ok   cases- b2     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm ./scripts/quality/hooks/pre-commit 2>/dev/null
+ok   cases- b3     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rmdir scripts/quality/hooks
+ok   cases- b4     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | mv scripts/quality/hooks /tmp/h &
+ok   cases- b5     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | tee scripts/quality/hooks/pre-commit < /dev/null
+ok   cases- b6     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | touch scripts/quality/hooks/pre-commit
+ok   cases- b7     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | truncate -s0 scripts/quality/hooks/pre-commit
+ok   cases- b8     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | chmod 644 .git/hooks/pre-commit
+ok   cases- b9     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | chown nobody scripts/quality/hooks
+ok   cases- b10    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | ln -sf /bin/true scripts/quality/hooks/pre-commit
+ok   cases- b11    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | install -m 755 /bin/true scripts/quality/hooks/pre-commit
+ok   cases- b12    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | dd if=/dev/null of=scripts/quality/hooks/pre-commit
+ok   cases- b13    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | shred -u .git/config
+ok   cases- b14    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | unlink scripts/quality/hooks/pre-commit
+ok   cases- b15    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | patch scripts/quality/hooks/pre-commit < x.diff
+ok   cases- b16    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | vim scripts/quality/hooks/pre-commit
+ok   cases- b17    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | ed -s .git/config < x.ed
+ok   cases- b18    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | sed -i 1d scripts/quality/hooks/pre-commit
+ok   cases- b19    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | sed -i '/hooksPath/d' .git/config
+ok   cases- b20    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | perl -pi -e 's/x/y/' scripts/quality/hooks/pre-commit
+ok   cases- b21    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | awk -i inplace '{print}' .git/config
+ok   cases- b22    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | tar -xf h.tar -C scripts/quality/hooks
+ok   cases- b23    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | unzip -o h.zip -d .git/hooks
+ok   cases- b24    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=ask   d=ask   | 7z x h.7z -oscripts/quality/hooks
+ok   cases- b25    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=ask   d=ask   | 7z x h.7z -o.git/hooks
+ok   cases- b26    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=ask   d=ask   | tar -xf h.tar -Cscripts/quality/hooks
+ok   cases- b27    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | rsync /bin/true scripts/quality/hooks/pre-commit 2>/dev/null
+ok   cases- b28    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rsync -a --delete /tmp/e/ scripts/quality/hooks/
+ok   cases- b29    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | scp host:x .git/config &
+ok   cases- b30    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp /bin/true scripts/quality/hooks/pre-commit 2>/dev/null
+ok   cases- b31    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | cp /bin/true scripts/quality/hooks/pre-commit &>/dev/null
+ok   cases- b32    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cp -t scripts/quality/hooks /bin/true
+ok   cases- b33    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cp --target-directory=.git/hooks x
+ok   cases- b34    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | find scripts/quality/hooks -type f -delete
+ok   cases- b35    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | find .git/hooks -name 'pre-*' -exec rm {} +
+ok   cases- b36    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | echo 'exit 0' > scripts/quality/hooks/pre-commit
+ok   cases- b37    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | echo '[core]' >> .git/config
+ok   cases- b38    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | echo 'exit 0' >| scripts/quality/hooks/pre-commit
+ok   cases- b39    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cat x >"scripts/quality/hooks/pre-commit"
+ok   cases- b40    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git rm --cached -q scripts/quality/hooks/pre-commit
+ok   cases- b41    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git mv scripts/quality/hooks scripts/quality/hooks.off
+ok   cases- b42    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git checkout HEAD~3 -- scripts/quality/hooks/pre-commit
+ok   cases- b43    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git restore --source=HEAD~3 scripts/quality/hooks
+ok   cases- b44    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git apply x.diff --include=scripts/quality/hooks/pre-commit
+ok   cases- b45    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git reset -q HEAD~3 -- scripts/quality/hooks/pre-commit
+ok   cases- b46    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git stash push -- scripts/quality/hooks
+ok   cases- b47    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=allow | rm -rf scripts/quality/hooks/../hooks
+ok   cases- b48    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | mv "scripts/quality/hooks" /tmp/
+ok   cases- b49    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf {ROOT}/scripts/quality/hooks
+ok   cases- b50    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=allow | r6: s=ask   d=allow | cp /bin/true {ROOT}/scripts/quality/hooks/pre-commit
+ok   cases- b51    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | cp /tmp/cfg {ROOT}/.git/config 2>/dev/null
+ok   cases- b52    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=allow | r6: s=ask   d=allow | echo '[core]' > {ROOT}/.git/config
+ok   cases- b53    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=allow | r6: s=ask   d=allow | sed -i '/hooksPath/d' {ROOT}/.git/config
+ok   cases- b54    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | cp /bin/true /home/junc/rikuripi/rikurinode/scripts/quality/hooks/pre-commit
+ok   cases- b55    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | sed -i '/hooksPath/d' /home/junc/rikuripi/rikurinode/.git/config
+ok   cases- b56    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | echo '[core]' > /home/junc/rikuripi/rikurinode/.git/config
+ok   cases- b57    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=allow | r6: s=ask   d=allow | rm scripts//quality/hooks/pre-commit
+ok   cases- b58    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=allow | r6: s=ask   d=allow | rm ./scripts/./quality/hooks/pre-commit
+MISS cases- b59    want=ask        r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | rm -rf scripts/quality/hook*
+MISS cases- b60    want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rm -f .git/conf*
+ok   cases- b61    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=allow | r6: s=ask   d=allow | rm -rf scripts/quality/{hooks,x}
+ok   cases- b62    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | cp /tmp/cfg .git/config >/dev/null 2>&1
+ok   cases- b63    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cpio -idm -D scripts/quality/hooks < h.cpio
+ok   cases- b64    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | sudo rm -rf scripts/quality/hooks
+ok   cases- b65    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C . rm -q scripts/quality/hooks/pre-commit
+ok   cases- b66    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | mv .git/config{,.off}
+ok   cases- g1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git show HEAD~1:scripts/quality/hooks/pre-commit > scripts/quality/hooks/pre-commit
+ok   cases- g2     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | echo hi | tee -a .git/config
+ok   cases- g3     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git log -1 > .git/config
+ok   cases- g4     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git checkout stash@{0} -- scripts/quality/hooks
+ok   cases- g5     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | printf 'exit 0' 1>scripts/quality/hooks/pre-commit
+ok   cases- g6     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | cp /bin/true scripts/quality/hooks/pre-commit &> /dev/null
+ok   cases- g7     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | rsync /bin/true scripts/quality/hooks/pre-commit &>/dev/null
+ok   cases- c1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf scripts
+ok   cases- c2     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf scripts/
+ok   cases- c3     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf ./scripts/quality
+ok   cases- c4     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf "scripts/quality"
+ok   cases- c5     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf .git
+ok   cases- c6     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf .git/
+ok   cases- c7     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | rm -rf .git/*
+ok   cases- c8     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -r -- scripts 2>/dev/null
+ok   cases- c9     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | rm -rf scripts>/dev/null
+ok   cases- c10    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf scripts/quality&>/dev/null
+ok   cases- c11    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf scripts/quality &>/dev/null
+ok   cases- c12    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | rm -rf scripts/**
+ok   cases- c13    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=allow | r6: s=ask   d=allow | rm -rf scripts/quality/**
+ok   cases- c14    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=allow | r6: s=ask   d=allow | rm -rf scripts/quality/{*,.*}
+ok   cases- c15    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | mv scripts /tmp/
+ok   cases- c16    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | mv scripts/quality{,.off}
+ok   cases- c17    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | mv scripts{,.off}
+ok   cases- c18    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | mv .git .git.off
+ok   cases- c19    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | mv .git{,.off}
+ok   cases- c20    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | mv -t /tmp scripts
+ok   cases- c21    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rmdir scripts
+ok   cases- c22    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | find scripts -delete
+ok   cases- c23    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | find ./scripts/quality -name '*' -delete
+ok   cases- c24    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | find .git -name config -delete
+ok   cases- c25    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | find scripts/ -exec rm -rf {} +
+ok   cases- c26    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | tar -xf a.tar -C scripts
+ok   cases- c27    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | tar -C scripts/quality -xf a.tar
+ok   cases- c28    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | tar --directory scripts -xf a.tar
+ok   cases- c29    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | tar -xf a.tar --directory=scripts/quality
+ok   cases- c30    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | tar -xf a.tar -Cscripts
+ok   cases- c31    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | tar -xf a.tar -C"scripts/quality"
+ok   cases- c32    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | unzip -o a.zip -d scripts
+ok   cases- c33    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | unzip -o a.zip -dscripts/quality
+ok   cases- c34    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | 7z x a.7z -oscripts
+ok   cases- c35    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | 7z x a.7z -oscripts/quality
+ok   cases- c36    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | 7z x a.7z -o.git
+ok   cases- c37    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | 7z x a.7z -o"scripts/quality"
+ok   cases- c38    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cpio -idm -D scripts < a.cpio
+ok   cases- c39    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | cpio -idm --directory=scripts/quality < a.cpio
+ok   cases- c40    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=ask   d=ask   | cpio -idm -Dscripts < a.cpio
+ok   cases- c41    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | unzip -o a.zip -d .git
+ok   cases- c42    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=ask   d=ask   | rsync -a --delete /tmp/empty/ scripts/
+ok   cases- c43    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=allow | r6: s=ask   d=ask   | rsync -a --delete /tmp/empty/ scripts/quality/
+ok   cases- c44    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=ask   d=ask   | rsync -a --remove-source-files scripts/ /tmp/s/
+ok   cases- c45    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=ask   d=ask   | rm -rf /home/junc/rikuripi/rikurinode/scripts/quality
+ok   cases- c46    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=ask   d=ask   | rm -rf {ROOT}/scripts
+ok   cases- c47    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=ask   d=ask   | rm -rf {ROOT}/.git
+ok   cases- c48    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=ask   d=ask   | rm -rf ~/rikuripi/rikurinode/scripts
+ok   cases- c49    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=allow | r6: s=ask   d=ask   | mv {ROOT}/scripts/quality /tmp/q
+ok   cases- c50    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=ask   d=ask   | rm -rf $PWD/scripts
+ok   cases- c51    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | sudo rm -rf scripts
+MISS cases- c52    want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rm -rf scripts/qualit?
+MISS cases- c53    want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rm -rf scrip*
+MISS cases- c54    want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rm -rf .gi?
+MISS cases- c55    want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rm -rf *
+ok   cases- c56    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git rm -rq scripts
+MISS cases- c57    want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git rm -r -q .
+ok   cases- c58    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git mv scripts tools
+ok   cases- c59    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git stash push -- scripts/quality
+ok   cases- c60    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | find . -path ./scripts -delete
+ok   cases- c61    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | (rm -rf scripts)
+ok   cases- c62    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | bash -c 'rm -rf scripts/quality'
+ok   cases- c63    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf scripts/quality/
+ok   cases- c64    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | tar -xf a.tar -C scripts/ 2>/dev/null
+ok   cases- c65    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | tar -xf a.tar -C ./scripts/quality/
+ok   cases- d1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | git sparse-checkout set docs
+ok   cases- d2     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | git sparse-checkout init --cone
+ok   cases- d3     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | git sparse-checkout add docs
+ok   cases- d4     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | git sparse-checkout reapply
+ok   cases- d5     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | git -C . sparse-checkout set docs
+ok   cases- d6     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | git sparse-checkout list; git sparse-checkout set docs
+ok   cases- d7     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | git sparse-checkout set --no-cone '/docs/'
+ok   cases- d8     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | git -c core.sparseCheckout=true sparse-checkout set docs
+ok   cases- d9     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | bash -c 'git sparse-checkout set docs'
+ok   cases- d10    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | git sparse-checkout set docs 2>/dev/null &
+ok   cases- d11    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | git sparse-checkout listx
+ok   cases- d12    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | git config core.sparseCheckout true
+ok   cases- d13    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | git read-tree -mu HEAD
+ok   cases- d14    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | echo '/docs/' > .git/info/sparse-checkout
+ok   cases- d15    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | git switch --orphan scratch
+ok   cases- d16    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | git update-index --skip-worktree scripts/quality/hooks/pre-commit
+ok   cases- d17    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | git sparse-checkout list && git sparse-checkout disable
+ok   cases- dl1    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git sparse-checkout list
+ok   cases- dl2    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git sparse-checkout  list
+ok   cases- dl3    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git -C . sparse-checkout list
+ok   cases- e1     want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | cp x.py scripts/quality/
+ok   cases- e2     want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | cp x.py scripts/quality/x.py
+MISS cases- e3     want=ask/allow  r8: s=ask   d=ask   | r7: s=ask   d=allow | r6: s=ask   d=allow | cp -r /tmp/hooks scripts/quality/
+ok   cases- e4     want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | rsync -a /tmp/q/ scripts/quality/
+MISS cases- e5     want=ask/allow  r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | cp x .git/
+MISS cases- e6     want=ask/allow  r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | cp /tmp/x/config .git/
+MISS cases- e7     want=ask/allow  r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | cp -r /tmp/evil/hooks .git/
+MISS cases- e8     want=ask/allow  r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | cp -r /tmp/evil/quality scripts/
+MISS cases- e9     want=ask/allow  r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rsync -a /tmp/evil/ scripts/
+MISS cases- e10    want=ask/allow  r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp x.py scripts/
+ok   cases- e11    want=ask/allow  r8: s=ask   d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp x.py scripts/quality/ 2>/dev/null
+ok   cases- e12    want=ask/allow  r8: s=ask   d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp x.py scripts/quality/ &>/dev/null
+ok   cases- e13    want=ask/allow  r8: s=ask   d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp -t scripts/quality x.py
+ok   LOOSER cases- e14    want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=ask   | install -m 644 x.py scripts/quality/
+MISS cases- e15    want=ask/allow  r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | mv /tmp/x.py scripts/quality/
+ok   cases- e16    want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | cp x.py {ROOT}/scripts/quality/
+ok   cases- e17    want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | echo x > scripts/quality/x.py
+ok   cases- e18    want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | tee scripts/quality/x.py < /dev/null
+MISS cases- e19    want=ask/allow  r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | cp /tmp/x/config .git
+ok   cases- f1     want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | scripts/quality/hooks/pre-commit
+ok   cases- f2     want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | scripts/quality/hooks/pre-commit
+ok   cases- f3     want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | .git/config
+ok   cases- f4     want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | .git/config
+ok   cases- f5     want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | .git/hooks/pre-commit
+ok   cases- f6     want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | scripts/quality/new_check.py
+ok   cases- f7     want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | {ROOT}/scripts/quality/hooks/pre-commit
+ok   cases- f8     want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | {ROOT}/.git/config
+ok   cases- f9     want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | ./scripts/quality/hooks/pre-commit
+ok   cases- f10    want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | scripts//quality/hooks/pre-commit
+ok   cases- f11    want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | scripts/quality/../quality/hooks/pre-commit
+ok   cases- f12    want=ask/allow  r8: s=ask   d=allow | r7: s=allow d=allow | r6: s=allow d=allow | .git/info/sparse-checkout
+ok   cases- f13    want=ask/allow  r8: s=ask   d=allow | r7: s=ask   d=allow | r6: s=ask   d=allow | scripts/quality/hooks/pre-commit
+ok   cases- p1     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp x.sh scripts/
+ok   LOOSER cases- p2     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=ask   d=ask   | install -m 755 x.sh scripts/
+ok   cases- p3     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp /home/junc/rikuri/rikurinode/scripts/x.sh scripts/
+ok   cases- p4     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | mkdir -p scripts/node
+ok   cases- p5     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git mv scripts/old.sh scripts/new.sh
+ok   cases- p6     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rm scripts/old.sh
+ok   cases- p7     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git rm scripts/old.sh
+ok   LOOSER cases- p8     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=ask   d=ask   | touch docs/scripts
+ok   LOOSER cases- p9     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=ask   d=ask   | rm -rf build/scripts
+ok   LOOSER cases- p10    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=ask   d=ask   | git rm docs/old-scripts
+ok   LOOSER cases- p11    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=ask   d=ask   | rm -rf myscripts/quality/hooks
+ok   LOOSER cases- p12    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=ask   d=ask   | rm -rf docs/scripts
+ok   cases- p13    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rm -rf scripts-old
+ok   cases- p14    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rm -rf scripts.bak
+ok   LOOSER cases- p15    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=ask   d=ask   | rm -rf old_scripts
+ok   LOOSER cases- p16    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=ask   d=ask   | rm -rf x.git
+MISS cases- p17    want=allow      r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=ask   d=ask   | rm -rf /tmp/x/.git
+ok   LOOSER cases- p18    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=ask   d=ask   | rm -rf build/scripts/quality
+ok   LOOSER cases- p19    want=allow      r8: s=allow d=allow | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf build/scripts/quality/hooks
+ok   LOOSER cases- p20    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=ask   d=ask   | mv docs/scripts docs/tools
+ok   cases- p21    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cp -r /home/junc/rikuri/rikurinode/scripts/lib scripts/lib
+ok   cases- p22    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rsync -a /home/junc/rikuri/rikurinode/scripts/ scripts/old/
+ok   cases- p23    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git add scripts/x.sh
+ok   cases- p24    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | ls scripts/quality/hooks
+ok   cases- p25    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | cat .git/config
+ok   cases- p26    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | git config core.hooksPath scripts/quality/hooks
+MISS cases- p27    want=allow      r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=allow d=allow | tar -tf a.tar -C scripts
+ok   LOOSER cases- p28    want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=ask   d=ask   | rm -rf node_modules/x/scripts
+ok   cases- o1     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | curl -o /home/junc/rikuri/rikurinode/f https://example.com/x
+ok   cases- o2     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | curl -sSL https://example.com/x --output /home/junc/rikuri/rikurinode/f
+ok   cases- o3     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | wget -O /home/junc/rikuri/rikurinode/f https://example.com/x
+ok   cases- o4     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | gawk -i inplace '{print}' /home/junc/rikuri/rikurinode/x
+ok   cases- o5     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | rename s/a/b/ /home/junc/rikuri/rikurinode/a
+ok   cases- o6     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | git -C /tmp/r archive HEAD | tar -x -C /home/junc/rikuri/rikurinode
+ok   cases- o7     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | split -b 1k x /home/junc/rikuri/rikurinode/part
+ok   cases- o8     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | sort -o /home/junc/rikuri/rikurinode/f x
+ok   cases- o9     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | cp x /home/junc/rikuri/rikurinode/f &>/dev/null
+ok   cases- o10    want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | busybox rm /home/junc/rikuri/rikurinode/f
+ok   cases- o11    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | gtar -xf a.tar -C /home/junc/rikuri/rikurinode
+ok   cases- o12    want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | bsdtar -xf a.tar -C /home/junc/rikuri/rikurinode
+ok   cases- q1     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | mv /home/junc/rikuri{,.bak}
+ok   cases- q2     want=ask        r8: s=ask   d=ask   | r7: s=allow d=allow | r6: s=allow d=allow | rm -rf /home/junc/rikuri>/dev/null
+MISS cases- q3     want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rm -rf /home/junc/rikuri/rikurinod?
+MISS cases- q4     want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rm -rf /home/junc/rikuri/riku*
+ok   cases- q5     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | mv /home/junc/rikuri/rikurinode{,.bak}
+ok   cases- q6     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf /home/junc/rikuri/rikurinode>/dev/null
+ok   cases- q7     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rsync -a --delete /tmp/empty/ /home/junc/rikuri/
+MISS cases- q8     want=ask        r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | rm -rf /home/junc/rikur?
+ok   cases- q9     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=ask   | rm -rf /home/junc/rikuri &>/dev/null
+ok   cases- T1     want=ask        r8: s=ask   d=ask   | r7: s=ask   d=ask   | r6: s=ask   d=allow | rm -rf scripts/quality/hooks/*
+ok   cases- T2     want=allow      r8: s=allow d=allow | r7: s=allow d=allow | r6: s=allow d=allow | ls scripts
+cases 797; MISS (round 8 vs want) 47; LOOSER than round 7 or 6: 19

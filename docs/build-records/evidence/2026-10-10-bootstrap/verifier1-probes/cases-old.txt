@@ -1,0 +1,90 @@
+# previous checkout: must ask
+o1 ||| Bash ||| ask ||| cd $HOME/rikuri/rikurinode && git pull
+o2 ||| Bash ||| ask ||| cd "${HOME}/rikuri/rikurinode"
+o3 ||| Bash ||| ask ||| cd /home/junc/rikuri && cd rikurinode && git pull
+o4 ||| Bash ||| ask ||| cd /home/junc/rikuripi/rikurinode/../../rikuri/rikurinode
+o5 ||| Bash ||| ask ||| cd /home/junc//rikuri/rikurinode
+o6 ||| Bash ||| ask ||| /home/junc/rikuri/rikurinode/scripts/rikuri-stack-compose.sh up
+o7 ||| Bash ||| ask ||| ~/rikuri/rikurinode/scripts/lnd-start.sh
+o8 ||| Bash ||| ask ||| sudo /home/junc/rikuri/rikurinode/scripts/lnd-start.sh
+o9 ||| Bash ||| ask ||| source /home/junc/rikuri/rikurinode/scripts/env.sh
+o10 ||| Bash ||| ask ||| . /home/junc/rikuri/rikurinode/scripts/env.sh
+o11 ||| Bash ||| ask ||| env -C /home/junc/rikuri/rikurinode make up
+o12 ||| Bash ||| ask ||| make -C /home/junc/rikuri/rikurinode up
+o13 ||| Bash ||| ask ||| git -C /home/junc/rikuri/rikurinode -c user.name=x commit -m y
+o14 ||| Bash ||| ask ||| git -C /home/junc/rikuri/rikurinode fetch origin
+o15 ||| Bash ||| ask ||| git -C /home/junc/rikuri/rikurinode gc --prune=now
+o16 ||| Bash ||| ask ||| git --git-dir=/home/junc/rikuri/rikurinode/.git --work-tree=/home/junc/rikuri/rikurinode checkout -- .
+o17 ||| Bash ||| ask ||| git -C /home/junc/rikuri/rikurinode remote set-url origin x
+o18 ||| Bash ||| ask ||| sed -E -i 's/a/b/' /home/junc/rikuri/rikurinode/docker-compose.yml
+o19 ||| Bash ||| ask ||| sed -n -i 's/a/b/' /home/junc/rikuri/rikurinode/x
+o20 ||| Bash ||| ask ||| perl -pi -e 's/a/b/' /home/junc/rikuri/rikurinode/x
+o21 ||| Bash ||| ask ||| cp -t /home/junc/rikuri/rikurinode/scripts x.sh
+o22 ||| Bash ||| ask ||| cp x.sh /home/junc/rikuri/rikurinode/scripts/ && echo ok
+o23 ||| Bash ||| ask ||| tar -xf x.tar -C /home/junc/rikuri/rikurinode
+o24 ||| Bash ||| ask ||| rm -rf /home/junc/rikuri
+o25 ||| Bash ||| ask ||| rm -rf ~/rikuri/
+o26 ||| Bash ||| ask ||| mv /home/junc/rikuri /home/junc/rikuri.old
+o27 ||| Bash ||| ask ||| echo x > "$HOME/rikuri/rikurinode/n"
+o28 ||| Bash ||| ask ||| echo x | tee /home/junc/rikuri/rikurinode/n
+o29 ||| Bash ||| ask ||| python3 -c "open('/home/junc/rikuri/rikurinode/x','w')"
+o30 ||| Bash ||| ask ||| cd ~/rikuri/rikurinode/scripts
+o31 ||| Bash ||| ask ||| pushd /home/junc/rikuri/rikurinode
+o32 ||| Bash ||| ask ||| git -C ~/rikuri/rikurinode stash pop
+o33 ||| Bash ||| ask ||| cd /tmp; cd /home/junc/rikuri/rikurinode; docker compose ps
+o34 ||| Bash ||| ask ||| unzip -o x.zip -d /home/junc/rikuri/rikurinode
+o35 ||| Bash ||| ask ||| git clone https://x/y.git /home/junc/rikuri/rikurinode/sub
+o36 ||| Bash ||| ask ||| cd /home/junc/rikuri/rikurinode/
+o37 ||| Bash ||| ask ||| cd -- /home/junc/rikuri/rikurinode
+o38 ||| Bash ||| ask ||| cd -P /home/junc/rikuri/rikurinode
+o39 ||| Bash ||| ask ||| (cd /home/junc/rikuri/rikurinode && ls)
+o40 ||| Bash ||| ask ||| cd /home/junc/rikuri/rikurinode\ngit status
+o41 ||| Bash ||| ask ||| find /home/junc/rikuri/rikurinode -name '*.orig' -delete
+o42 ||| Bash ||| ask ||| find /home/junc/rikuri/rikurinode -name x -exec rm {} \;
+o44 ||| Bash ||| ask ||| truncate -s0 /home/junc/rikuri/rikurinode/logs/x.log
+o46 ||| Bash ||| ask ||| npm --prefix /home/junc/rikuri/rikurinode install
+o47 ||| Bash ||| ask ||| docker compose --project-directory /home/junc/rikuri/rikurinode up -d
+o48 ||| Bash ||| ask ||| nohup /home/junc/rikuri/rikurinode/scripts/watchdog.sh &
+o50 ||| Bash ||| ask ||| node /home/junc/rikuri/rikurinode/scripts/x.js
+o51 ||| Bash ||| ask ||| git -C /home/junc/rikuri/rikurinode checkout main
+o52 ||| Bash ||| ask ||| git -C /home/junc/rikuri/rikurinode/ pull
+o53 ||| Bash ||| ask ||| GIT_DIR=/home/junc/rikuri/rikurinode/.git git commit -m x
+o54 ||| Edit ||| ask ||| /home/junc/rikuri/rikurinode/docker-compose.yml
+o55 ||| Write ||| ask ||| /home/junc/rikuri/rikurinode/notes.txt
+o56 ||| MultiEdit ||| ask ||| /home/junc/rikuri/rikurinode/scripts/lnd-start.sh
+o57 ||| Bash ||| ask ||| cd ~/rikuri/rikurinode && ./scripts/rikuri-stack-compose.sh up
+o58 ||| Bash ||| ask ||| ln -sfn /tmp/x /home/junc/rikuri/rikurinode/current
+o59 ||| Bash ||| ask ||| git -C "$HOME/rikuri/rikurinode" reset --hard
+# previous checkout: must allow (reads, copies from; this repository)
+a1 ||| Bash ||| allow ||| ls -la /home/junc/rikuri/rikurinode/scripts
+a2 ||| Bash ||| allow ||| diff -ru /home/junc/rikuri/rikurinode/scripts scripts
+a3 ||| Bash ||| allow ||| git -C /home/junc/rikuri/rikurinode show HEAD:scripts/lnd-start.sh > scripts/lnd-start.sh
+a4 ||| Bash ||| allow ||| git -C /home/junc/rikuri/rikurinode diff HEAD~3 -- scripts | head -50
+a5 ||| Bash ||| allow ||| head -40 /home/junc/rikuri/rikurinode/README.md
+a6 ||| Bash ||| allow ||| wc -l /home/junc/rikuri/rikurinode/scripts/*.sh
+a7 ||| Bash ||| allow ||| cmp /home/junc/rikuri/rikurinode/.claude/hooks/guard.py .claude/hooks/guard.py
+a8 ||| Bash ||| allow ||| sha256sum /home/junc/rikuri/rikurinode/scripts/lnd-start.sh
+a9 ||| Bash ||| allow ||| cp -r /home/junc/rikuri/rikurinode/scripts/lib scripts/
+a10 ||| Bash ||| allow ||| rsync -a /home/junc/rikuri/rikurinode/scripts/ /tmp/old-scripts/
+a11 ||| Bash ||| allow ||| python3 scripts/quality/repo_hygiene.py --root /home/junc/rikuri/rikurinode
+a12 ||| Bash ||| allow ||| sed -i 's#/home/junc/rikuri/rikurinode#/home/junc/rikuripi/rikurinode#' docs/x.md
+a13 ||| Bash ||| allow ||| git grep -n "cd /home/junc/rikuri/rikurinode"
+a14 ||| Bash ||| allow ||| git commit -m "port lnd-start.sh from /home/junc/rikuri/rikurinode"
+a15 ||| Bash ||| allow ||| cd /home/junc/rikuripi/rikurinode && make
+a16 ||| Bash ||| allow ||| cd ~/rikuripi/rikurinode
+a17 ||| Bash ||| allow ||| rm -rf /home/junc/rikuripi/rikurinode/tmp
+a19 ||| Bash ||| allow ||| cp scripts/x.sh /home/junc/rikuripi/rikurinode/scripts/
+a20 ||| Bash ||| allow ||| echo hi > /home/junc/rikuripi/rikurinode/notes.txt
+a21 ||| Bash ||| allow ||| git -C /home/junc/rikuripi/rikurinode commit -m x
+a22 ||| Bash ||| allow ||| cat /home/junc/rikuri/rikurinode/scripts/a.sh /home/junc/rikuri/rikurinode/scripts/b.sh > /tmp/both.sh
+a23 ||| Bash ||| allow ||| git -C /home/junc/rikuri/rikurinode log -p -- scripts/lnd-start.sh | less
+a24 ||| Bash ||| allow ||| git -C /home/junc/rikuri/rikurinode status --short
+a25 ||| Bash ||| allow ||| cd /home/junc/rikuri/rikurinode-archive
+a26 ||| Read ||| allow ||| /home/junc/rikuri/rikurinode/README.md
+a27 ||| Bash ||| allow ||| grep -n flock /home/junc/rikuri/rikurinode/scripts/lnd-start.sh
+a28 ||| Bash ||| allow ||| git commit -m "rm stale files; see /home/junc/rikuri/rikurinode"
+a29 ||| Bash ||| allow ||| cp /home/junc/rikuri/rikurinode/README.md "docs/old README.md"
+a30 ||| Bash ||| allow ||| cp /home/junc/rikuri/rikurinode/scripts/a.sh /home/junc/rikuripi/rikurinode/scripts/
+a31 ||| Edit ||| allow ||| /home/junc/rikuripi/rikurinode/docs/notes.md
+a32 ||| Bash ||| allow ||| echo "previous: /home/junc/rikuri/rikurinode" >> docs/notes.md
+a33 ||| Bash ||| allow ||| python3 -c "print(open('/home/junc/rikuri/rikurinode/README.md').read())"

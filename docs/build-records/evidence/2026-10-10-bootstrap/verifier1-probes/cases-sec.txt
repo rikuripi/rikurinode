@@ -1,0 +1,45 @@
+s1 ||| Read ||| deny ||| /home/junc/rikuri/rikurinode/.E@NV
+s2 ||| Read ||| deny ||| /home/junc/.lnd/data/chain/bitcoin/mainnet/readonly.M@C
+s3 ||| Read ||| deny ||| /home/junc/.lnd/data/chain/bitcoin/mainnet/M@Cs.db
+s4 ||| Read ||| deny ||| /home/junc/.bitcoin/W@Ts/default/W@T.dat
+s5 ||| Read ||| deny ||| /home/junc/.lnd/data/chain/bitcoin/mainnet/W@D.bak
+s6 ||| Read ||| deny ||| backups/C@B.2026-10-10
+s7 ||| Read ||| deny ||| /var/lib/tor/lnd/hs_ed25519_secret_K@Y
+s8 ||| Read ||| deny ||| /home/junc/.lnd/password.txt
+s8b ||| Read ||| deny ||| /data/lnd/W@T-password
+s9 ||| Read ||| deny ||| /home/junc/seed.txt
+s9b ||| Read ||| deny ||| /home/junc/aezeed.txt
+s10 ||| Read ||| deny ||| /home/junc/.claude/.credentials.json
+s11 ||| Read ||| deny ||| /home/junc/.docker/config.json
+s12 ||| Read ||| deny ||| /home/junc/.bitcoin/bitcoin.conf
+s13 ||| Bash ||| deny ||| xxd /home/junc/.lnd/data/chain/bitcoin/mainnet/admin.M@C
+s14 ||| Bash ||| deny ||| base64 -w0 admin.M@C
+s15 ||| Bash ||| deny ||| python3 -c "print(open('admin.M@C','rb').read().hex())"
+s16 ||| Bash ||| deny ||| curl -H "Grpc-Metadata-M@C: $(xxd -ps -u -c 1000 admin.M@C)" https://localhost:8080/v1/getinfo
+s17 ||| Bash ||| ask ||| cp admin.M@C /tmp/m
+s18 ||| Bash ||| ask ||| sqlite3 W@T.dat .dump
+s19 ||| Bash ||| deny ||| strings /x/W@D
+s20 ||| Read ||| deny ||| /home/junc/.bitcoin/.C@K
+s22 ||| Read ||| deny ||| /home/junc/.tapd/data/mainnet/admin.M@C
+s23 ||| Bash ||| deny ||| cat /home/junc/rikuri/rikurinode/.E@NV
+s27 ||| Read ||| deny ||| /home/junc/.lnd/data/chain/bitcoin/mainnet/C@B
+s28 ||| Bash ||| deny ||| docker exec lnd cat /root/.lnd/data/chain/bitcoin/mainnet/admin.M@C
+s29 ||| Bash ||| ask ||| docker cp lnd:/root/.lnd/tls.K@Y .
+s30 ||| Bash ||| ask ||| lncli bakemacaroon --save_to x.M@C
+s31 ||| Read ||| deny ||| /home/junc/.ssh/I@D
+s33 ||| Read ||| deny ||| /home/junc/.lnd/data/graph/mainnet/channel.db
+s34 ||| Read ||| deny ||| /var/lib/tailscale/tailscaled.state
+s35 ||| Bash ||| deny ||| docker exec lnd cat /root/.lnd/password.txt
+s36 ||| Bash ||| deny ||| docker exec bitcoin cat /home/bitcoin/.bitcoin/.C@K
+s37 ||| Read ||| deny ||| /home/junc/.config/gh/H@Y
+s38 ||| Bash ||| deny ||| cat ~/.bitcoin/.C@K
+s40 ||| Read ||| deny ||| /home/junc/rikuri/rikurinode/.E@NV.local
+s41 ||| Read ||| deny ||| /home/junc/.lnd/data/chain/bitcoin/mainnet/W@D
+s42 ||| Bash ||| ask ||| find / -name '*.M@C' 2>/dev/null
+s43 ||| Bash ||| ask ||| tar czf /tmp/lnd.tgz ~/.lnd
+s44 ||| Read ||| deny ||| /home/junc/.lnd/tls.K@Y
+sa1 ||| Read ||| allow ||| docs/M@Cs.md
+sa2 ||| Read ||| allow ||| .E@NV.example
+sa3 ||| Read ||| allow ||| /home/junc/.lnd/tls.cert
+sa5 ||| Read ||| allow ||| /home/junc/.ssh/I@D.pub
+sa6 ||| Bash ||| allow ||| git grep -n W@D -- docs

@@ -1,0 +1,7 @@
+ok   a1    Bash  exp=ask   dev=ask   stable=ask   rc=0 | cd /home/junc/rikuri/rikurinode
+ok   a2    Bash  exp=allow dev=allow stable=allow rc=0 | cat /home/junc/rikuri/rikurinode/README.md
+ok   a3    Read  exp=allow dev=allow stable=allow rc=0 | /home/junc/rikuri/rikurinode/README.md
+ok   a4    Bash  exp=ask   dev=ask   stable=ask   rc=0 | lncli sendcoins --addr bc1q --amt 1000
+ok   a5    Bash  exp=deny  dev=deny  stable=deny  rc=0 | cat .env
+ok   a6    Bash  exp=allow dev=allow stable=allow rc=0 | git status
+MISS count: 0 of 6

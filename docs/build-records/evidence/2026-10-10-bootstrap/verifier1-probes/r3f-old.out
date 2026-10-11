@@ -1,0 +1,89 @@
+ok   o1    Bash  exp=ask   dev=ask   stable=ask   rc=0 | cd $HOME/rikuri/rikurinode && git pull
+ok   o2    Bash  exp=ask   dev=ask   stable=ask   rc=0 | cd "${HOME}/rikuri/rikurinode"
+MISS o3    Bash  exp=ask   dev=allow stable=allow rc=0 | cd /home/junc/rikuri && cd rikurinode && git pull
+MISS o4    Bash  exp=ask   dev=allow stable=allow rc=0 | cd /home/junc/rikuripi/rikurinode/../../rikuri/rikurinode
+ok   o5    Bash  exp=ask   dev=ask   stable=ask   rc=0 | cd /home/junc//rikuri/rikurinode
+ok   o6    Bash  exp=ask   dev=ask   stable=ask   rc=0 | /home/junc/rikuri/rikurinode/scripts/rikuri-stack-compose.sh up
+ok   o7    Bash  exp=ask   dev=ask   stable=ask   rc=0 | ~/rikuri/rikurinode/scripts/lnd-start.sh
+ok   o8    Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo /home/junc/rikuri/rikurinode/scripts/lnd-start.sh
+ok   o9    Bash  exp=ask   dev=ask   stable=ask   rc=0 | source /home/junc/rikuri/rikurinode/scripts/env.sh
+ok   o10   Bash  exp=ask   dev=ask   stable=ask   rc=0 | . /home/junc/rikuri/rikurinode/scripts/env.sh
+ok   o11   Bash  exp=ask   dev=ask   stable=ask   rc=0 | env -C /home/junc/rikuri/rikurinode make up
+ok   o12   Bash  exp=ask   dev=ask   stable=ask   rc=0 | make -C /home/junc/rikuri/rikurinode up
+ok   o13   Bash  exp=ask   dev=ask   stable=ask   rc=0 | git -C /home/junc/rikuri/rikurinode -c user.name=x commit -m y
+ok   o14   Bash  exp=ask   dev=ask   stable=ask   rc=0 | git -C /home/junc/rikuri/rikurinode fetch origin
+ok   o15   Bash  exp=ask   dev=ask   stable=ask   rc=0 | git -C /home/junc/rikuri/rikurinode gc --prune=now
+ok   o16   Bash  exp=ask   dev=ask   stable=ask   rc=0 | git --git-dir=/home/junc/rikuri/rikurinode/.git --work-tree=/home/junc/rikuri/rikurinode checkout -- .
+ok   o17   Bash  exp=ask   dev=ask   stable=ask   rc=0 | git -C /home/junc/rikuri/rikurinode remote set-url origin x
+ok   o18   Bash  exp=ask   dev=ask   stable=ask   rc=0 | sed -E -i 's/a/b/' /home/junc/rikuri/rikurinode/docker-compose.yml
+ok   o19   Bash  exp=ask   dev=ask   stable=ask   rc=0 | sed -n -i 's/a/b/' /home/junc/rikuri/rikurinode/x
+ok   o20   Bash  exp=ask   dev=ask   stable=ask   rc=0 | perl -pi -e 's/a/b/' /home/junc/rikuri/rikurinode/x
+ok   o21   Bash  exp=ask   dev=ask   stable=ask   rc=0 | cp -t /home/junc/rikuri/rikurinode/scripts x.sh
+ok   o22   Bash  exp=ask   dev=ask   stable=ask   rc=0 | cp x.sh /home/junc/rikuri/rikurinode/scripts/ && echo ok
+ok   o23   Bash  exp=ask   dev=ask   stable=ask   rc=0 | tar -xf x.tar -C /home/junc/rikuri/rikurinode
+ok   o24   Bash  exp=ask   dev=ask   stable=ask   rc=0 | rm -rf /home/junc/rikuri
+ok   o25   Bash  exp=ask   dev=ask   stable=ask   rc=0 | rm -rf ~/rikuri/
+ok   o26   Bash  exp=ask   dev=ask   stable=ask   rc=0 | mv /home/junc/rikuri /home/junc/rikuri.old
+ok   o27   Bash  exp=ask   dev=ask   stable=ask   rc=0 | echo x > "$HOME/rikuri/rikurinode/n"
+ok   o28   Bash  exp=ask   dev=ask   stable=ask   rc=0 | echo x | tee /home/junc/rikuri/rikurinode/n
+MISS o29   Bash  exp=ask   dev=allow stable=allow rc=0 | python3 -c "open('/home/junc/rikuri/rikurinode/x','w')"
+ok   o30   Bash  exp=ask   dev=ask   stable=ask   rc=0 | cd ~/rikuri/rikurinode/scripts
+ok   o31   Bash  exp=ask   dev=ask   stable=ask   rc=0 | pushd /home/junc/rikuri/rikurinode
+ok   o32   Bash  exp=ask   dev=ask   stable=ask   rc=0 | git -C ~/rikuri/rikurinode stash pop
+ok   o33   Bash  exp=ask   dev=ask   stable=ask   rc=0 | cd /tmp; cd /home/junc/rikuri/rikurinode; docker compose ps
+ok   o34   Bash  exp=ask   dev=ask   stable=ask   rc=0 | unzip -o x.zip -d /home/junc/rikuri/rikurinode
+ok   o35   Bash  exp=ask   dev=ask   stable=ask   rc=0 | git clone https://x/y.git /home/junc/rikuri/rikurinode/sub
+ok   o36   Bash  exp=ask   dev=ask   stable=ask   rc=0 | cd /home/junc/rikuri/rikurinode/
+ok   o37   Bash  exp=ask   dev=ask   stable=ask   rc=0 | cd -- /home/junc/rikuri/rikurinode
+ok   o38   Bash  exp=ask   dev=ask   stable=ask   rc=0 | cd -P /home/junc/rikuri/rikurinode
+ok   o39   Bash  exp=ask   dev=ask   stable=ask   rc=0 | (cd /home/junc/rikuri/rikurinode && ls)
+ok   o40   Bash  exp=ask   dev=ask   stable=ask   rc=0 | cd /home/junc/rikuri/rikurinode\ngit status
+ok   o41   Bash  exp=ask   dev=ask   stable=ask   rc=0 | find /home/junc/rikuri/rikurinode -name '*.orig' -delete
+ok   o42   Bash  exp=ask   dev=ask   stable=ask   rc=0 | find /home/junc/rikuri/rikurinode -name x -exec rm {} \;
+ok   o44   Bash  exp=ask   dev=ask   stable=ask   rc=0 | truncate -s0 /home/junc/rikuri/rikurinode/logs/x.log
+ok   o46   Bash  exp=ask   dev=ask   stable=ask   rc=0 | npm --prefix /home/junc/rikuri/rikurinode install
+ok   o47   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker compose --project-directory /home/junc/rikuri/rikurinode up -d
+ok   o48   Bash  exp=ask   dev=ask   stable=ask   rc=0 | nohup /home/junc/rikuri/rikurinode/scripts/watchdog.sh &
+ok   o50   Bash  exp=ask   dev=ask   stable=ask   rc=0 | node /home/junc/rikuri/rikurinode/scripts/x.js
+ok   o51   Bash  exp=ask   dev=ask   stable=ask   rc=0 | git -C /home/junc/rikuri/rikurinode checkout main
+ok   o52   Bash  exp=ask   dev=ask   stable=ask   rc=0 | git -C /home/junc/rikuri/rikurinode/ pull
+ok   o53   Bash  exp=ask   dev=ask   stable=ask   rc=0 | GIT_DIR=/home/junc/rikuri/rikurinode/.git git commit -m x
+MISS o54   Edit  exp=ask   dev=allow stable=allow rc=0 | /home/junc/rikuri/rikurinode/docker-compose.yml
+MISS o55   Write exp=ask   dev=allow stable=allow rc=0 | /home/junc/rikuri/rikurinode/notes.txt
+MISS o56   MultiEdit exp=ask   dev=allow stable=allow rc=0 | /home/junc/rikuri/rikurinode/scripts/lnd-start.sh
+ok   o57   Bash  exp=ask   dev=ask   stable=ask   rc=0 | cd ~/rikuri/rikurinode && ./scripts/rikuri-stack-compose.sh up
+ok   o58   Bash  exp=ask   dev=ask   stable=ask   rc=0 | ln -sfn /tmp/x /home/junc/rikuri/rikurinode/current
+ok   o59   Bash  exp=ask   dev=ask   stable=ask   rc=0 | git -C "$HOME/rikuri/rikurinode" reset --hard
+ok   a1    Bash  exp=allow dev=allow stable=allow rc=0 | ls -la /home/junc/rikuri/rikurinode/scripts
+ok   a2    Bash  exp=allow dev=allow stable=allow rc=0 | diff -ru /home/junc/rikuri/rikurinode/scripts scripts
+ok   a3    Bash  exp=allow dev=allow stable=allow rc=0 | git -C /home/junc/rikuri/rikurinode show HEAD:scripts/lnd-start.sh > scripts/lnd-start.sh
+ok   a4    Bash  exp=allow dev=allow stable=allow rc=0 | git -C /home/junc/rikuri/rikurinode diff HEAD~3 -- scripts | head -50
+ok   a5    Bash  exp=allow dev=allow stable=allow rc=0 | head -40 /home/junc/rikuri/rikurinode/README.md
+ok   a6    Bash  exp=allow dev=allow stable=allow rc=0 | wc -l /home/junc/rikuri/rikurinode/scripts/*.sh
+ok   a7    Bash  exp=allow dev=allow stable=allow rc=0 | cmp /home/junc/rikuri/rikurinode/.claude/hooks/guard.py .claude/hooks/guard.py
+ok   a8    Bash  exp=allow dev=allow stable=allow rc=0 | sha256sum /home/junc/rikuri/rikurinode/scripts/lnd-start.sh
+ok   a9    Bash  exp=allow dev=allow stable=allow rc=0 | cp -r /home/junc/rikuri/rikurinode/scripts/lib scripts/
+ok   a10   Bash  exp=allow dev=allow stable=allow rc=0 | rsync -a /home/junc/rikuri/rikurinode/scripts/ /tmp/old-scripts/
+ok   a11   Bash  exp=allow dev=allow stable=allow rc=0 | python3 scripts/quality/repo_hygiene.py --root /home/junc/rikuri/rikurinode
+ok   a12   Bash  exp=allow dev=allow stable=allow rc=0 | sed -i 's#/home/junc/rikuri/rikurinode#/home/junc/rikuripi/rikurinode#' docs/x.md
+ok   a13   Bash  exp=allow dev=allow stable=allow rc=0 | git grep -n "cd /home/junc/rikuri/rikurinode"
+ok   a14   Bash  exp=allow dev=allow stable=allow rc=0 | git commit -m "port lnd-start.sh from /home/junc/rikuri/rikurinode"
+ok   a15   Bash  exp=allow dev=allow stable=allow rc=0 | cd /home/junc/rikuripi/rikurinode && make
+ok   a16   Bash  exp=allow dev=allow stable=allow rc=0 | cd ~/rikuripi/rikurinode
+ok   a17   Bash  exp=allow dev=allow stable=allow rc=0 | rm -rf /home/junc/rikuripi/rikurinode/tmp
+ok   a19   Bash  exp=allow dev=allow stable=allow rc=0 | cp scripts/x.sh /home/junc/rikuripi/rikurinode/scripts/
+ok   a20   Bash  exp=allow dev=allow stable=allow rc=0 | echo hi > /home/junc/rikuripi/rikurinode/notes.txt
+ok   a21   Bash  exp=allow dev=allow stable=allow rc=0 | git -C /home/junc/rikuripi/rikurinode commit -m x
+ok   a22   Bash  exp=allow dev=allow stable=allow rc=0 | cat /home/junc/rikuri/rikurinode/scripts/a.sh /home/junc/rikuri/rikurinode/scripts/b.sh > /tmp/both.sh
+ok   a23   Bash  exp=allow dev=allow stable=allow rc=0 | git -C /home/junc/rikuri/rikurinode log -p -- scripts/lnd-start.sh | less
+ok   a24   Bash  exp=allow dev=allow stable=allow rc=0 | git -C /home/junc/rikuri/rikurinode status --short
+ok   a25   Bash  exp=allow dev=allow stable=allow rc=0 | cd /home/junc/rikuri/rikurinode-archive
+ok   a26   Read  exp=allow dev=allow stable=allow rc=0 | /home/junc/rikuri/rikurinode/README.md
+ok   a27   Bash  exp=allow dev=allow stable=allow rc=0 | grep -n flock /home/junc/rikuri/rikurinode/scripts/lnd-start.sh
+ok   a28   Bash  exp=allow dev=allow stable=allow rc=0 | git commit -m "rm stale files; see /home/junc/rikuri/rikurinode"
+ok   a29   Bash  exp=allow dev=allow stable=allow rc=0 | cp /home/junc/rikuri/rikurinode/README.md "docs/old README.md"
+ok   a30   Bash  exp=allow dev=allow stable=allow rc=0 | cp /home/junc/rikuri/rikurinode/scripts/a.sh /home/junc/rikuripi/rikurinode/scripts/
+ok   a31   Edit  exp=allow dev=allow stable=allow rc=0 | /home/junc/rikuripi/rikurinode/docs/notes.md
+ok   a32   Bash  exp=allow dev=allow stable=allow rc=0 | echo "previous: /home/junc/rikuri/rikurinode" >> docs/notes.md
+ok   a33   Bash  exp=allow dev=allow stable=allow rc=0 | python3 -c "print(open('/home/junc/rikuri/rikurinode/README.md').read())"
+MISS count: 6 of 88

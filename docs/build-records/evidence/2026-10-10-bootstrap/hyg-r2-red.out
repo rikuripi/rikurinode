@@ -1,0 +1,91 @@
+....FFFFF.FF.........
+======================================================================
+FAIL: test_logs_stay_local (test_repo_hygiene.ForbiddenPaths.test_logs_stay_local)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_repo_hygiene.py", line 38, in test_logs_stay_local
+    self.assertRefused(p, "log")
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_repo_hygiene.py", line 29, in assertRefused
+    self.assertTrue(found, "%s should be refused" % path)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true : lnd.log.gz should be refused
+
+======================================================================
+FAIL: test_runtime_state_lives_outside_the_repo (test_repo_hygiene.ForbiddenPaths.test_runtime_state_lives_outside_the_repo)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_repo_hygiene.py", line 70, in test_runtime_state_lives_outside_the_repo
+    self.assertRefused(p, "state")
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_repo_hygiene.py", line 29, in assertRefused
+    self.assertTrue(found, "%s should be refused" % path)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true : x.db-journal should be refused
+
+======================================================================
+FAIL: test_secrets_never (test_repo_hygiene.ForbiddenPaths.test_secrets_never)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_repo_hygiene.py", line 55, in test_secrets_never
+    self.assertRefused(p, "secret")
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_repo_hygiene.py", line 29, in assertRefused
+    self.assertTrue(found, "%s should be refused" % path)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true : lnd/wallet_password.txt should be refused
+
+======================================================================
+FAIL: test_compose_pinned_accepted (test_repo_hygiene.Pins.test_compose_pinned_accepted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_repo_hygiene.py", line 126, in test_compose_pinned_accepted
+    self.assertEqual(problems_for("docker-compose.yml", self.compose(image)), [], image)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['line 3: image not pinned (a variable decides the version)'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'line 3: image not pinned (a variable decides the version)'
+
+- ['line 3: image not pinned (a variable decides the version)']
++ [] : lightninglabs/lnd:${LND_VERSION:-v0.18.3-beta}
+
+======================================================================
+FAIL: test_compose_unpinned_refused (test_repo_hygiene.Pins.test_compose_unpinned_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_repo_hygiene.py", line 119, in test_compose_unpinned_refused
+    self.assertTrue(any("pinned" in p for p in found), image)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : node:lts
+
+======================================================================
+FAIL: test_containerfile_arg_pins (test_repo_hygiene.Pins.test_containerfile_arg_pins)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_repo_hygiene.py", line 136, in test_containerfile_arg_pins
+    self.assertEqual(problems_for("Containerfile", "ARG BASE=fedora:41\nFROM ${BASE}\n"), [])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['line 2: base image not pinned (no default version)'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'line 2: base image not pinned (no default version)'
+
+- ['line 2: base image not pinned (no default version)']
++ []
+
+======================================================================
+FAIL: test_every_compose_file_name (test_repo_hygiene.Pins.test_every_compose_file_name)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_repo_hygiene.py", line 130, in test_every_compose_file_name
+    self.assertTrue(any("pinned" in p for p in problems_for(name, self.compose("redis:latest"))), name)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : deploy/stack.compose.yaml
+
+----------------------------------------------------------------------
+Ran 21 tests in 0.633s
+
+FAILED (failures=7)

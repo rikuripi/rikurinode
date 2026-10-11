@@ -1,0 +1,45 @@
+R1 a path's start without >                GREEN 0 failing subtests
+R2 no absolute prefix                      RED   16 failing subtests
+R3 no ~ prefix                             RED   6 failing subtests
+R4 no $VAR prefix                          RED   6 failing subtests
+R5 no ./ prefix                            RED   3 failing subtests
+R6 any relative prefix                     RED   8 failing subtests
+R7 a folder without braces                 RED   12 failing subtests
+R8 a folder without /**                    RED   4 failing subtests
+R9 redirections without &>                 RED   9 failing subtests
+R41 redirections without >|                GREEN 0 failing subtests
+R42 >| into the hook ignored               RED   1 failing subtests
+R43 >| into the old checkout ignored       GREEN 0 failing subtests
+R10 options without a value                RED   4 failing subtests
+R11 no comment after the destination       RED   4 failing subtests
+R12 no quoted destination with spaces      RED   4 failing subtests
+R13 a closing quote ends no destination    RED   1 failing subtests
+R14 no command called by path              RED   5 failing subtests
+R15 install not a copy                     RED   7 failing subtests
+R16 no curl/wget output                    RED   12 failing subtests
+R17 no sort -o                             RED   4 failing subtests
+R18 awk only                               RED   5 failing subtests
+R19 no rename                              RED   6 failing subtests
+R20 no split                               RED   4 failing subtests
+R21 no gtar/bsdtar                         RED   6 failing subtests
+R22 extraction options need a space        RED   10 failing subtests
+R23 no 7z -o                               RED   12 failing subtests
+R24 chmod/chown not on a folder            RED   6 failing subtests
+R25 rsync --delete only on the files       RED   7 failing subtests
+R26 the old parent as before               RED   6 failing subtests
+R27 core.sparseCheckout ignored            RED   4 failing subtests
+R28 read-tree ignored                      RED   4 failing subtests
+R29 switch --orphan ignored                RED   4 failing subtests
+R30 update-index ignored                   RED   6 failing subtests
+R31 copies into .git ignored               RED   12 failing subtests
+R32 a folder named hooks ignored           RED   3 failing subtests
+R33 a folder named quality ignored         RED   4 failing subtests
+R34 the stable-only copy rule gone         RED   2 failing subtests
+R35 the >| rule gone                       RED   6 failing subtests
+R36 hook names without a right boundary    RED   5 failing subtests
+R37 mkdir deletes a folder                 RED   2 failing subtests
+R38 find only -delete                      RED   4 failing subtests
+R39 hook names without //                  RED   4 failing subtests
+R40 sparse-checkout list asks              RED   2 failing subtests
+restored, sha256 checked: .claude/hooks/guard-config.json 6cb632a0e5bd, scripts/quality/guard_policy.py 11559b30e80b
+exit 0

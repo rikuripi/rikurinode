@@ -1,0 +1,6 @@
+a1 ||| Bash ||| ask ||| cd /home/junc/rikuri/rikurinode
+a2 ||| Bash ||| allow ||| cat /home/junc/rikuri/rikurinode/README.md
+a3 ||| Read ||| allow ||| /home/junc/rikuri/rikurinode/README.md
+a4 ||| Bash ||| ask ||| lncli sendcoins --addr bc1q --amt 1000
+a5 ||| Bash ||| deny ||| cat .E@NV
+a6 ||| Bash ||| allow ||| git status

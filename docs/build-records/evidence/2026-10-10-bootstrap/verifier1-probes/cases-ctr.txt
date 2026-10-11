@@ -1,0 +1,71 @@
+c1 ||| Bash ||| ask ||| docker container stop lnd
+c2 ||| Bash ||| ask ||| docker update --restart=no lnd
+c3 ||| Bash ||| ask ||| docker rename lnd lnd-old
+c4 ||| Bash ||| ask ||| docker commit lnd snap:1
+c5 ||| Bash ||| ask ||| docker network disconnect bridge lnd
+c6 ||| Bash ||| ask ||| sudo systemctl restart docker
+c7 ||| Bash ||| ask ||| systemctl stop docker.socket docker.service
+c8 ||| Bash ||| ask ||| sudo service docker restart
+c9 ||| Bash ||| ask ||| podman pod stop rikuri
+c10 ||| Bash ||| ask ||| podman kube play stack.yaml
+c11 ||| Bash ||| ask ||| docker -H unix:///var/run/docker.sock stop lnd
+c12 ||| Bash ||| ask ||| /usr/bin/docker restart tor
+c13 ||| Bash ||| ask ||| DOCKER_HOST=unix:///var/run/docker.sock docker compose up -d
+c14 ||| Bash ||| ask ||| docker compose --profile mainnet up -d lnd
+c15 ||| Bash ||| ask ||| docker-compose -f x.yml restart lnd
+c16 ||| Bash ||| ask ||| docker compose exec lnd sh
+c17 ||| Bash ||| ask ||| docker kill -s HUP tor
+c18 ||| Bash ||| ask ||| sudo pkill -f bitcoind
+c19 ||| Bash ||| ask ||| killall lnd
+c20 ||| Bash ||| ask ||| docker compose \\\n  up -d
+c21 ||| Bash ||| ask ||| docker \\\n  stop lnd
+c22 ||| Bash ||| ask ||| podman-compose up -d
+c23 ||| Bash ||| ask ||| docker start lnd
+c24 ||| Bash ||| ask ||| docker compose start
+c26 ||| Bash ||| ask ||| docker context use remote && docker stop lnd
+c27 ||| Bash ||| ask ||| sudo systemctl restart containerd
+c28 ||| Bash ||| ask ||| docker container rm -f lnd
+c29 ||| Bash ||| ask ||| docker volume prune -f
+c30 ||| Bash ||| ask ||| nerdctl stop lnd
+c31 ||| Bash ||| ask ||| docker --log-level debug stop lnd
+c32 ||| Bash ||| ask ||| docker compose -f /srv/compose.yml --env-file /srv/x.envx up --detach
+c33 ||| Bash ||| ask ||| docker compose up --force-recreate lnd
+c34 ||| Bash ||| ask ||| sudo -u root docker stop lnd
+c35 ||| Bash ||| ask ||| systemctl --user restart podman-lnd.service
+c36 ||| Bash ||| ask ||| docker run --rm -v /var/lib/lnd:/x alpine ls /x
+c37 ||| Bash ||| ask ||| docker buildx bake --load && docker compose up -d
+c38 ||| Bash ||| ask ||| docker image rm lightninglabs/lnd:v0.18.0-beta
+c39 ||| Bash ||| ask ||| docker swarm leave --force
+c40 ||| Bash ||| ask ||| sudo systemctl disable --now docker
+c41 ||| Bash ||| ask ||| sudo kill -9 $(pidof dockerd)
+ca1 ||| Bash ||| allow ||| docker container ls -a
+ca2 ||| Bash ||| allow ||| docker container inspect lnd
+ca3 ||| Bash ||| allow ||| docker compose -f compose.yml logs -f --tail 50 lnd
+ca4 ||| Bash ||| allow ||| docker stats --no-stream
+ca5 ||| Bash ||| allow ||| docker compose ps --format json
+ca6 ||| Bash ||| allow ||| docker image ls
+ca7 ||| Bash ||| allow ||| docker events --since 10m --until 0s
+ca8 ||| Bash ||| allow ||| docker top lnd
+ca9 ||| Bash ||| allow ||| docker inspect --format '{{.HostConfig.RestartPolicy.Name}}' lnd
+ca10 ||| Bash ||| allow ||| podman inspect lnd
+ca11 ||| Bash ||| allow ||| docker compose config --services
+ca12 ||| Bash ||| allow ||| git grep -n "docker compose up" -- docs
+ca13 ||| Bash ||| allow ||| docker ps --filter status=created
+ca14 ||| Bash ||| allow ||| docker logs --since 1h lnd 2>&1 | tail -20
+ca15 ||| Bash ||| allow ||| docker system df
+ca16 ||| Bash ||| allow ||| docker volume ls
+ca17 ||| Bash ||| allow ||| docker network ls
+ca18 ||| Bash ||| allow ||| docker info
+ca20 ||| Bash ||| allow ||| docker compose version
+ca21 ||| Bash ||| allow ||| docker history lightninglabs/lnd:v0.18.0-beta
+ca22 ||| Bash ||| allow ||| systemctl status docker
+ca23 ||| Bash ||| allow ||| journalctl -u docker --since today
+ca24 ||| Bash ||| allow ||| docker port lnd
+ca25 ||| Bash ||| allow ||| docker diff lnd
+ca26 ||| Bash ||| allow ||| git -C /home/junc/rikuri/rikurinode grep -n "docker stop" -- scripts
+ca27 ||| Bash ||| allow ||| docker ps --format '{{.Names}} {{.Status}}' | grep -c Up
+ca28 ||| Bash ||| allow ||| docker image inspect lightninglabs/lnd:v0.18.0-beta --format '{{.Id}}'
+ca29 ||| Bash ||| allow ||| docker volume inspect lnd_data
+ca30 ||| Bash ||| allow ||| docker logs lnd 2>&1 | grep -i "restart" | tail
+ca31 ||| Bash ||| allow ||| docker ps --filter name=lnd --format '{{.Status}}'
+ca32 ||| Bash ||| allow ||| docker manifest inspect lightninglabs/lnd:v0.18.0-beta

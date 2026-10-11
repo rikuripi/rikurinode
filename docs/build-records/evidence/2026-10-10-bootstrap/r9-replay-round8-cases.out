@@ -1,0 +1,56 @@
+start 2026-10-11 13:19:48
+# cases-amp.txt (round 8's verifier; want '-' marks its git experiments, '-/allow' its listed limits)
+cases 19, MISS 0
+# cases-chain.txt (round 8's verifier; want '-' marks its git experiments, '-/allow' its listed limits)
+MISS k1     want=-         got s=ask   d=ask   | printf '/docs/\n' > .git/info/sparse-checkout
+MISS k2     want=-         got s=ask   d=ask   | git config extensions.worktreeConfig true
+MISS k3     want=-         got s=ask   d=ask   | printf '[core]\n\thooksPath = /dev/null\n' > .git/config.worktree
+MISS k4     want=-         got s=ask   d=ask   | echo scripts/quality/hooks/pre-commit | xargs rm -f
+MISS k5     want=-         got s=ask   d=ask   | git rm -r -q :/scripts/quality
+MISS k6     want=-         got s=ask   d=ask   | git rm -r ':(top)scripts'
+MISS k7     want=-         got s=ask   d=ask   | git restore --source=evil -- :/scripts/quality/hooks
+MISS k8     want=-         got s=ask   d=ask   | git checkout evil -- ':(top).git'
+MISS k9     want=-         got s=ask   d=ask   | git rm -r ':(glob)scripts/quality/**'
+MISS k10    want=-         got s=ask   d=ask   | git rm -r ':(literal)scripts/quality/hooks'
+MISS k11    want=-         got s=ask   d=ask   | git rm -r :/scripts
+MISS k12    want=-         got s=ask   d=ask   | git mv :/scripts/quality/hooks :/scripts/quality/off
+MISS k13    want=-         got s=ask   d=ask   | git stash push -- :/scripts/quality/hooks
+MISS k14    want=-         got s=ask   d=ask   | git reset -q evil -- :/scripts/quality/hooks
+MISS k15    want=-         got s=ask   d=ask   | git -c core.sparseCheckout=true reset --hard HEAD
+MISS k16    want=-         got s=ask   d=ask   | git -c core.sparseCheckout=true checkout -f HEAD
+MISS k17    want=-         got s=ask   d=ask   | git --config-env=core.sparseCheckout=V checkout -f HEAD
+MISS k18    want=-         got s=ask   d=ask   | GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.sparseCheckout GIT_CONFIG_VALUE_0=true git checkout -f HEAD
+cases 18, MISS 18
+# cases-hook.txt (round 8's verifier; want '-' marks its git experiments, '-/allow' its listed limits)
+MISS h7     want=ask       got s=allow d=allow | GIT_CONFIG_GLOBAL=/tmp/g git commit -m x
+MISS h8     want=ask       got s=allow d=allow | GIT_CONFIG_SYSTEM=/tmp/g git commit -m x
+cases 112, MISS 2
+# cases-money.txt (round 8's verifier; want '-' marks its git experiments, '-/allow' its listed limits)
+cases 15, MISS 0
+# cases-mvreg.txt (round 8's verifier; want '-' marks its git experiments, '-/allow' its listed limits)
+cases 6, MISS 0
+# cases-old.txt (round 8's verifier; want '-' marks its git experiments, '-/allow' its listed limits)
+cases 63, MISS 0
+# cases-oldw.txt (round 8's verifier; want '-' marks its git experiments, '-/allow' its listed limits)
+cases 98, MISS 0
+# cases-stated.txt (round 8's verifier; want '-' marks its git experiments, '-/allow' its listed limits)
+MISS n1     want=-/allow   got s=ask   d=allow | cd scripts/quality/hooks && rm pre-commit
+MISS n2     want=-/allow   got s=ask   d=ask   | rm -rf scripts/../scripts/quality/hooks
+MISS n3     want=-/allow   got s=ask   d=ask   | touch /home/junc/rikuri/x
+MISS n4     want=-/allow   got s=ask   d=allow | rm -rf scripts/quality/hook*
+MISS n5     want=-/allow   got s=allow d=allow | rm -rf scrip*
+MISS n6     want=-/allow   got s=allow d=allow | rm -f .gi?/config
+MISS n7     want=-/allow   got s=allow d=allow | rm -rf *
+MISS n8     want=-/allow   got s=allow d=allow | git rm -r .
+MISS n9     want=-/allow   got s=allow d=allow | find . -name pre-commit -delete
+MISS n10    want=-/allow   got s=allow d=allow | rsync -a /tmp/x/ scripts/
+MISS n11    want=-/allow   got s=allow d=allow | python3 -c "open('scripts/quality/hooks/pre-commit','w')"
+MISS n12    want=-/allow   got s=allow d=allow | L=lncli; $L sendcoins --addr x --amt 1
+MISS n13    want=-/allow   got s=allow d=allow | git -c core.hoo""ksPath=/dev/null commit -m x
+MISS n14    want=-/allow   got s=allow d=allow | git -c $'core.hooksPath=/dev/null' commit -m x
+MISS n15    want=-/allow   got s=allow d=allow | cat ~/.docker/config.json
+MISS n16    want=-/allow   got s=allow d=allow | echo "[alias] ci = commit -n" >> ~/.gitconfig
+MISS r3     want=ask       got s=allow d=allow | python3 -c "import os; os.system('echo x >| /tmp/y')"
+MISS e1     want=ask       got s=allow d=allow | cat <<EOF > /tmp/msg\nrm -rf scripts/quality/hooks\nEOF
+cases 63, MISS 18
+end 2026-10-11 13:19:49

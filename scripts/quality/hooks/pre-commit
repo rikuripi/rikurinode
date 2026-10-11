@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Pre-commit gate (BUILD-PROCEDURE.md, Phase 0): the staged change is scanned
+# for secrets, and the index is checked for files that never belong in git.
+# Install once per clone: git config core.hooksPath scripts/quality/hooks
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+fail() { echo "pre-commit: $1" >&2; exit 1; }
+
+command -v gitleaks >/dev/null || fail "gitleaks not installed (README > Working on this repository)"
+gitleaks git --pre-commit --staged --config .gitleaks.toml --redact --verbose --no-banner --exit-code 1 \
+  || fail "possible secret in the staged change (finding above, value redacted); remove it, do not allowlist it"
+
+git diff --cached --check || fail "whitespace errors in the staged change (listed above)"
+
+python3 scripts/quality/repo_hygiene.py . \
+  || fail "the index holds a file that never belongs in git (listed above); unstage it"

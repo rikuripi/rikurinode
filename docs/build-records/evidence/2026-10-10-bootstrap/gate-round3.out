@@ -1,0 +1,59 @@
+
+== 1/7 pinned tools
+
+== 2/7 AI-session guard: wired before every file and shell tool, hooks enabled; every policy example and failure mode
+....usage: guard.py fix-lock on <build-record> | off [--session <id> | --global] | status
+.fix-lock NOT engaged — cannot read /tmp/tmpfl25qco7/guard-config.json: guard-config.json: 'fix_lock_preflight' must be a list of argv lists, e.g. [["node", "scripts/quality-ratchet.mjs"]]
+Nothing was changed. Fix it first, then engage.
+.fix-lock NOT engaged — preflight /usr/bin/python3 -c import sys; sys.exit(3) failed (exit 3):
+
+Nothing was changed. Fix it first, then engage.
+................................................................................usage: guard.py profile [stable | development]
+.....
+----------------------------------------------------------------------
+Ran 91 tests in 16.815s
+
+OK
+fix-lock ENGAGED for docs/build-records/a.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/b.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/x.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock released (docs/build-records/a.md)
+fix-lock released (docs/build-records/owner.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+profile: stable
+profile: stable -> development
+profile: development -> stable
+
+== 3/7 the quality tools' own tests (hygiene, guard wiring, test-safety layer)
+..........................................
+----------------------------------------------------------------------
+Ran 42 tests in 8.564s
+
+OK
+
+== 4/7 repository hygiene: nothing tracked that belongs on the machine
+
+== 5/7 shell lint
+
+== 6/7 whitespace errors in every tracked file, committed or not
+
+== 7/7 secret scan of history
+[90m11:06PM[0m [32mINF[0m [1m1 commits scanned.[0m
+[90m11:06PM[0m [32mINF[0m [1mscanned ~438494 bytes (438.49 KB) in 182ms[0m
+[90m11:06PM[0m [32mINF[0m [1mno leaks found[0m
+
+full-gate: all 7 steps passed

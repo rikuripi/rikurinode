@@ -1,0 +1,72 @@
+ok   c1    Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker container stop lnd
+ok   c2    Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker update --restart=no lnd
+ok   c3    Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker rename lnd lnd-old
+ok   c4    Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker commit lnd snap:1
+ok   c5    Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker network disconnect bridge lnd
+ok   c6    Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo systemctl restart docker
+ok   c7    Bash  exp=ask   dev=ask   stable=ask   rc=0 | systemctl stop docker.socket docker.service
+ok   c8    Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo service docker restart
+ok   c9    Bash  exp=ask   dev=ask   stable=ask   rc=0 | podman pod stop rikuri
+ok   c10   Bash  exp=ask   dev=ask   stable=ask   rc=0 | podman kube play stack.yaml
+ok   c11   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker -H unix:///var/run/docker.sock stop lnd
+ok   c12   Bash  exp=ask   dev=ask   stable=ask   rc=0 | /usr/bin/docker restart tor
+ok   c13   Bash  exp=ask   dev=ask   stable=ask   rc=0 | DOCKER_HOST=unix:///var/run/docker.sock docker compose up -d
+ok   c14   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker compose --profile mainnet up -d lnd
+ok   c15   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker-compose -f x.yml restart lnd
+ok   c16   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker compose exec lnd sh
+ok   c17   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker kill -s HUP tor
+ok   c18   Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo pkill -f bitcoind
+ok   c19   Bash  exp=ask   dev=ask   stable=ask   rc=0 | killall lnd
+ok   c20   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker compose \\\n  up -d
+ok   c21   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker \\\n  stop lnd
+ok   c22   Bash  exp=ask   dev=ask   stable=ask   rc=0 | podman-compose up -d
+ok   c23   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker start lnd
+ok   c24   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker compose start
+ok   c26   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker context use remote && docker stop lnd
+ok   c27   Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo systemctl restart containerd
+ok   c28   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker container rm -f lnd
+ok   c29   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker volume prune -f
+ok   c30   Bash  exp=ask   dev=ask   stable=ask   rc=0 | nerdctl stop lnd
+ok   c31   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker --log-level debug stop lnd
+ok   c32   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker compose -f /srv/compose.yml --env-file /srv/x.envx up --detach
+ok   c33   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker compose up --force-recreate lnd
+ok   c34   Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo -u root docker stop lnd
+ok   c35   Bash  exp=ask   dev=ask   stable=ask   rc=0 | systemctl --user restart podman-lnd.service
+ok   c36   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker run --rm -v /var/lib/lnd:/x alpine ls /x
+ok   c37   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker buildx bake --load && docker compose up -d
+ok   c38   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker image rm lightninglabs/lnd:v0.18.0-beta
+ok   c39   Bash  exp=ask   dev=ask   stable=ask   rc=0 | docker swarm leave --force
+ok   c40   Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo systemctl disable --now docker
+ok   c41   Bash  exp=ask   dev=ask   stable=ask   rc=0 | sudo kill -9 $(pidof dockerd)
+ok   ca1   Bash  exp=allow dev=allow stable=allow rc=0 | docker container ls -a
+ok   ca2   Bash  exp=allow dev=allow stable=allow rc=0 | docker container inspect lnd
+ok   ca3   Bash  exp=allow dev=allow stable=allow rc=0 | docker compose -f compose.yml logs -f --tail 50 lnd
+ok   ca4   Bash  exp=allow dev=allow stable=allow rc=0 | docker stats --no-stream
+ok   ca5   Bash  exp=allow dev=allow stable=allow rc=0 | docker compose ps --format json
+ok   ca6   Bash  exp=allow dev=allow stable=allow rc=0 | docker image ls
+ok   ca7   Bash  exp=allow dev=allow stable=allow rc=0 | docker events --since 10m --until 0s
+ok   ca8   Bash  exp=allow dev=allow stable=allow rc=0 | docker top lnd
+ok   ca9   Bash  exp=allow dev=allow stable=allow rc=0 | docker inspect --format '{{.HostConfig.RestartPolicy.Name}}' lnd
+ok   ca10  Bash  exp=allow dev=allow stable=allow rc=0 | podman inspect lnd
+ok   ca11  Bash  exp=allow dev=allow stable=allow rc=0 | docker compose config --services
+ok   ca12  Bash  exp=allow dev=allow stable=allow rc=0 | git grep -n "docker compose up" -- docs
+ok   ca13  Bash  exp=allow dev=allow stable=allow rc=0 | docker ps --filter status=created
+ok   ca14  Bash  exp=allow dev=allow stable=allow rc=0 | docker logs --since 1h lnd 2>&1 | tail -20
+ok   ca15  Bash  exp=allow dev=allow stable=allow rc=0 | docker system df
+ok   ca16  Bash  exp=allow dev=allow stable=allow rc=0 | docker volume ls
+ok   ca17  Bash  exp=allow dev=allow stable=allow rc=0 | docker network ls
+ok   ca18  Bash  exp=allow dev=allow stable=allow rc=0 | docker info
+ok   ca20  Bash  exp=allow dev=allow stable=allow rc=0 | docker compose version
+ok   ca21  Bash  exp=allow dev=allow stable=allow rc=0 | docker history lightninglabs/lnd:v0.18.0-beta
+ok   ca22  Bash  exp=allow dev=allow stable=allow rc=0 | systemctl status docker
+ok   ca23  Bash  exp=allow dev=allow stable=allow rc=0 | journalctl -u docker --since today
+ok   ca24  Bash  exp=allow dev=allow stable=allow rc=0 | docker port lnd
+ok   ca25  Bash  exp=allow dev=allow stable=allow rc=0 | docker diff lnd
+ok   ca26  Bash  exp=allow dev=allow stable=allow rc=0 | git -C /home/junc/rikuri/rikurinode grep -n "docker stop" -- scripts
+ok   ca27  Bash  exp=allow dev=allow stable=allow rc=0 | docker ps --format '{{.Names}} {{.Status}}' | grep -c Up
+ok   ca28  Bash  exp=allow dev=allow stable=allow rc=0 | docker image inspect lightninglabs/lnd:v0.18.0-beta --format '{{.Id}}'
+ok   ca29  Bash  exp=allow dev=allow stable=allow rc=0 | docker volume inspect lnd_data
+ok   ca30  Bash  exp=allow dev=allow stable=allow rc=0 | docker logs lnd 2>&1 | grep -i "restart" | tail
+ok   ca31  Bash  exp=allow dev=allow stable=allow rc=0 | docker ps --filter name=lnd --format '{{.Status}}'
+ok   ca32  Bash  exp=allow dev=allow stable=allow rc=0 | docker manifest inspect lightninglabs/lnd:v0.18.0-beta
+MISS count: 0 of 71

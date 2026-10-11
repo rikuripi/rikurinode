@@ -1,0 +1,148 @@
+E...F.FF.F..F...........FFFF.F..FF
+======================================================================
+ERROR: test_guard_wiring (unittest.loader._FailedTest.test_guard_wiring)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_guard_wiring
+Traceback (most recent call last):
+  File "/usr/lib/python3.14/unittest/loader.py", line 426, in _find_test_path
+    module = self._get_module_from_name(name)
+  File "/usr/lib/python3.14/unittest/loader.py", line 367, in _get_module_from_name
+    __import__(name)
+    ~~~~~~~~~~^^^^^^
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_guard_wiring.py", line 17, in <module>
+    import check_guard_wiring as w  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'check_guard_wiring'
+
+
+======================================================================
+FAIL: test_build_output_and_dependencies (test_repo_hygiene.ForbiddenPaths.test_build_output_and_dependencies)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_repo_hygiene.py", line 91, in test_build_output_and_dependencies
+    self.assertAccepted("src/target/mod.rs")  # a module, not Cargo's root target/
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_repo_hygiene.py", line 33, in assertAccepted
+    self.assertEqual(problems_for(path, text), [], path)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['build output or dependencies'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'build output or dependencies'
+
+- ['build output or dependencies']
++ [] : src/target/mod.rs
+
+======================================================================
+FAIL: test_runtime_state_lives_outside_the_repo (test_repo_hygiene.ForbiddenPaths.test_runtime_state_lives_outside_the_repo)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_repo_hygiene.py", line 78, in test_runtime_state_lives_outside_the_repo
+    self.assertRefused(p, "state" if p.startswith("data") else "log")
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_repo_hygiene.py", line 30, in assertRefused
+    self.assertIn(why, " ".join(found), path)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'log' not found in 'runtime state: it lives on the node, outside the repository' : dashboard/backend/data/auth.db
+
+======================================================================
+FAIL: test_secrets_never (test_repo_hygiene.ForbiddenPaths.test_secrets_never)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_repo_hygiene.py", line 58, in test_secrets_never
+    self.assertRefused(p, "secret")
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_repo_hygiene.py", line 29, in assertRefused
+    self.assertTrue(found, "%s should be refused" % path)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true : tor/control_auth_cookie should be refused
+
+======================================================================
+FAIL: test_compose_unpinned_refused (test_repo_hygiene.Pins.test_compose_unpinned_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_repo_hygiene.py", line 130, in test_compose_unpinned_refused
+    self.assertTrue(any("pinned" in p for p in found), image)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : python:3
+
+======================================================================
+FAIL: test_copy_from_an_image (test_repo_hygiene.Pins.test_copy_from_an_image)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_repo_hygiene.py", line 148, in test_copy_from_an_image
+    self.assertTrue(any("pinned" in p for p in problems_for("Containerfile", "FROM fedora:41\nCOPY --from=alpine:latest /x /x\n")))
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_it_runs_isolated (test_safe_run.Namespace.test_it_runs_isolated)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_safe_run.py", line 72, in setUp
+    self.fail("safe-run.sh did not report namespace mode; probes not run")
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: safe-run.sh did not report namespace mode; probes not run
+
+======================================================================
+FAIL: test_no_network_not_even_loopback_services (test_safe_run.Namespace.test_no_network_not_even_loopback_services)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_safe_run.py", line 72, in setUp
+    self.fail("safe-run.sh did not report namespace mode; probes not run")
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: safe-run.sh did not report namespace mode; probes not run
+
+======================================================================
+FAIL: test_no_runtime_sockets_even_with_a_clean_environment (test_safe_run.Namespace.test_no_runtime_sockets_even_with_a_clean_environment)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_safe_run.py", line 72, in setUp
+    self.fail("safe-run.sh did not report namespace mode; probes not run")
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: safe-run.sh did not report namespace mode; probes not run
+
+======================================================================
+FAIL: test_processes_outside_cannot_be_signalled (test_safe_run.Namespace.test_processes_outside_cannot_be_signalled)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_safe_run.py", line 72, in setUp
+    self.fail("safe-run.sh did not report namespace mode; probes not run")
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: safe-run.sh did not report namespace mode; probes not run
+
+======================================================================
+FAIL: test_each_program_resolves_to_a_stand_in_that_refuses (test_safe_run.StandIns.test_each_program_resolves_to_a_stand_in_that_refuses)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_safe_run.py", line 44, in test_each_program_resolves_to_a_stand_in_that_refuses
+    self.assertIn("rc=126", r.stdout, prog)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'rc=126' not found in 'rc=127\n' : docker
+
+======================================================================
+FAIL: test_refuses_unless_explicitly_allowed (test_safe_run.WithoutIsolation.test_refuses_unless_explicitly_allowed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_safe_run.py", line 105, in test_refuses_unless_explicitly_allowed
+    self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 2 : RAN
+
+
+======================================================================
+FAIL: test_stand_ins_only_when_allowed_and_said (test_safe_run.WithoutIsolation.test_stand_ins_only_when_allowed_and_said)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/scripts/quality/tests/test_safe_run.py", line 113, in test_stand_ins_only_when_allowed_and_said
+    self.assertEqual(r.stdout.strip(), "stand-ins only")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: '' != 'stand-ins only'
++ stand-ins only
+
+
+----------------------------------------------------------------------
+Ran 34 tests in 2.277s
+
+FAILED (failures=12, errors=1)

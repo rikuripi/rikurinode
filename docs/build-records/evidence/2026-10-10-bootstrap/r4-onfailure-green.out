@@ -1,0 +1,6 @@
+..........claude/settings.local.json: disableAllHooks is set — no hook runs, the guard included
+...........................................
+----------------------------------------------------------------------
+Ran 52 tests in 9.577s
+
+OK
