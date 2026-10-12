@@ -1175,7 +1175,8 @@ class LineContinuation(unittest.TestCase):
         seg = guard.split_segments
         self.assertEqual(seg("echo 'x \\\n y'; z"), ["echo 'x \\\n y'", "z"])    # single quotes keep it
         self.assertEqual(seg("echo a\\\\\nb"), ["echo a\\\\", "b"])              # an escaped backslash
-        self.assertEqual(seg("echo hi # note \\\nb"), ["echo hi # note \\", "b"])  # a comment ends at the newline
+        self.assertEqual(seg("echo hi # note \\\nb"), ["echo hi # note", "b"])  # a comment ends at the newline
+        # (its last backslash is its text, dropped since round 4 so the words stay readable)
         self.assertEqual(seg('echo "a\\"; b"; c'), ['echo "a\\"; b"', "c"])       # \" does not end the quote
 
     def test_a_continued_command_is_judged_whole(self):
@@ -1434,6 +1435,112 @@ print(json.dumps([d[0], time.time() - start]))
 
     def test_a_long_harmless_command_below_the_limit_is_free(self):
         self.assertEqual(verdict("Bash", {"command": "echo " + "a" * (guard.MAX_COMMAND_CHARS - 5)}), "allow")
+
+
+class LineContinuationRound4(unittest.TestCase):
+    """The continuation fix's verifier, round 3 (rikuripi/rikurinode,
+    docs/build-records/2026-10-11-guard-line-continuation.md, round 4): the
+    fix made the guard looser than before in three ways bash and zsh run —
+    an escaped blank at a command's end (`\\ `) became a trailing backslash
+    when the segment was stripped; a comment ending in a backslash did the
+    same; a `#` inside a backtick or `$(…)` was read as a comment, so the
+    newline inside the substitution split the command and its text was never
+    judged. And a quote in a heredoc's body swallowed the commands after it."""
+
+    SYN = LineContinuation.SYN
+
+    def v(self, cmd: str, profile: str = "stable") -> str:
+        return verdict("Bash", {"command": cmd}, cfg=self.SYN, profile=profile)
+
+    def test_an_escaped_blank_at_the_end_is_a_word(self):
+        seg = guard.split_segments
+        self.assertEqual(seg("echo a \\ "), ["echo a \\ "])
+        self.assertEqual(seg("echo a \\\t"), ["echo a \\\t"])
+        self.assertEqual(seg("echo a \\  "), ["echo a \\ "])           # the blank after it is not escaped
+        self.assertEqual(seg("echo a \\\\ "), ["echo a \\\\"])          # an escaped backslash, then a blank
+        for tail in ("\\ ", "\\\t", "\\ ;true", "\\ |cat", "\\ &&true", "\\ \ntrue"):
+            for head in ("sh -c 'git push --force origin x' ", 'eval "git push --force origin x" '):
+                for profile in ("stable", "development"):
+                    cmd = head + tail
+                    self.assertEqual({"cmd": cmd, "p": profile, "v": self.v(cmd, profile)},
+                                     {"cmd": cmd, "p": profile, "v": "deny"})
+        for cmd in ("sh -c 'git push origin main' \\ ", "sh -c 'movemoney --amt 5' \\ "):
+            self.assertEqual({"cmd": cmd, "v": self.v(cmd)}, {"cmd": cmd, "v": "ask"})
+
+    def test_a_comment_ending_in_a_backslash(self):
+        for cmd in ('eval "cat .env" # note \\', "sh -c 'git push --force origin x' # c \\",
+                    "bash -c 'cat .env' #\\", "sh -c 'git push --force origin x' # c \\\\\\"):
+            for profile in ("stable", "development"):
+                self.assertEqual({"cmd": cmd, "p": profile, "v": self.v(cmd, profile)},
+                                 {"cmd": cmd, "p": profile, "v": "deny"})
+        # the newline still ends the comment, so the next line is a command (mutant V16 of round 3)
+        self.assertEqual(self.v("echo a # note \\\necho b"), "allow")
+        self.assertEqual(self.v("echo a # note \\\ncat .env"), "deny")
+
+    def test_a_hash_inside_a_substitution_is_not_a_comment(self):
+        # bash reads a comment there too, but this splitter does not try: as the
+        # guard before the fix, it keeps the substitution's text in one piece,
+        # and judges it as a command of its own
+        for cmd in ("echo `git push -f origin #'\"\nx`", "echo $(git push -f origin #'\"\nx)",
+                    "x=$( true # it's\n); git push --force origin x",
+                    "x=$( true # it's\n); cat .env"):  # an unclosed substitution's text, to its last character
+            for profile in ("stable", "development"):
+                self.assertEqual({"cmd": cmd, "p": profile, "v": self.v(cmd, profile)},
+                                 {"cmd": cmd, "p": profile, "v": "deny"})
+        for cmd in ("zsh -c $( true # it's\n) 'cat .env'", "sh -c `true # it's\n` 'git push --force origin x'"):
+            self.assertNotEqual({"cmd": cmd, "v": self.v(cmd)}, {"cmd": cmd, "v": "allow"})
+
+    def test_a_quote_in_a_heredoc_body_does_not_hide_what_follows(self):
+        for cmd in (": # it's\n<<X\n'\nX\n(git push --force origin x)", "cat <<X\n'\nX\ngit push --force origin x",
+                    "cat <<'X'\n\"\nX\ncat .env", "sh <<'X'\n'\ngit push --force origin x\nX"):
+            for profile in ("stable", "development"):
+                self.assertEqual({"cmd": cmd, "p": profile, "v": self.v(cmd, profile)},
+                                 {"cmd": cmd, "p": profile, "v": "deny"})
+        self.assertEqual(self.v("cat <<'X' > notes.md\nit's fine\nX"), "allow")
+
+    def test_a_comment_starts_after_a_separator_or_a_parenthesis(self):
+        # round 3's surviving mutants V18, V20 and V21: after `;`, `(` and `)` a
+        # `#` starts a comment, so its apostrophe opens no quote
+        for cmd in ("true;# it's\ncat .env", "(# it's\ncat .env\n)", "(true)# it's\ncat .env"):
+            self.assertEqual({"cmd": cmd, "v": self.v(cmd)}, {"cmd": cmd, "v": "deny"})
+
+
+class TimeBoundRound4(unittest.TestCase):
+    """Round 3's verifier: a deny the new checks found in time became ask when
+    the previous guard was then stopped; and two timer mutants survived (V2:
+    a disarmed timer left running; V10: the new checks given the whole
+    budget)."""
+
+    def test_a_deny_found_in_time_stands_when_the_previous_guard_is_stopped(self):
+        saved = guard.CHECK_TIME_BUDGET, guard.OVERALL_TIME_BUDGET, guard.base_decide
+        guard.CHECK_TIME_BUDGET, guard.OVERALL_TIME_BUDGET = 1.0, 1.5
+        guard.base_decide = lambda *a, **k: time.sleep(30) or ("allow", [])
+        try:
+            start = time.time()
+            self.assertEqual(verdict("Bash", {"command": "git push --force origin x"}), "deny")
+            self.assertLess(time.time() - start, 4.0)
+        finally:
+            guard.CHECK_TIME_BUDGET, guard.OVERALL_TIME_BUDGET, guard.base_decide = saved
+
+    def test_the_timer_is_off_once_the_guard_has_answered(self):
+        import signal
+        if not hasattr(signal, "setitimer"):
+            self.skipTest("no interval timer on this platform")
+        before = signal.getsignal(signal.SIGALRM)
+        verdict("Bash", {"command": "git status"})
+        self.assertEqual(signal.getitimer(signal.ITIMER_REAL), (0.0, 0.0))
+        self.assertIs(signal.getsignal(signal.SIGALRM), before)
+
+    def test_the_new_checks_have_their_own_budget(self):
+        # they finish (allow) after their budget but within the overall one: out of time, so ask
+        saved = guard.CHECK_TIME_BUDGET, guard.OVERALL_TIME_BUDGET, guard._decide_new, guard.base_decide
+        guard.CHECK_TIME_BUDGET, guard.OVERALL_TIME_BUDGET = 0.3, 2.0
+        guard._decide_new = lambda *a, **k: time.sleep(0.8) or ("allow", [])
+        guard.base_decide = lambda *a, **k: ("allow", [])
+        try:
+            self.assertEqual(verdict("Bash", {"command": "git status"}), "ask")
+        finally:
+            guard.CHECK_TIME_BUDGET, guard.OVERALL_TIME_BUDGET, guard._decide_new, guard.base_decide = saved
 
 
 if __name__ == "__main__":

@@ -1,0 +1,94 @@
+2026-10-11 17:12:03
+92c39a2 fix(guard): read a continued command as the shell does, and answer in time
+test_a_comment_ending_in_a_backslash (test_guard.LineContinuationRound4.test_a_comment_ending_in_a_backslash) ... FAIL
+test_a_comment_starts_after_a_separator_or_a_parenthesis (test_guard.LineContinuationRound4.test_a_comment_starts_after_a_separator_or_a_parenthesis) ... ok
+test_a_hash_inside_a_substitution_is_not_a_comment (test_guard.LineContinuationRound4.test_a_hash_inside_a_substitution_is_not_a_comment) ... FAIL
+test_a_quote_in_a_heredoc_body_does_not_hide_what_follows (test_guard.LineContinuationRound4.test_a_quote_in_a_heredoc_body_does_not_hide_what_follows) ... FAIL
+test_an_escaped_blank_at_the_end_is_a_word (test_guard.LineContinuationRound4.test_an_escaped_blank_at_the_end_is_a_word) ... FAIL
+test_a_deny_found_in_time_stands_when_the_previous_guard_is_stopped (test_guard.TimeBoundRound4.test_a_deny_found_in_time_stands_when_the_previous_guard_is_stopped) ... FAIL
+test_the_new_checks_have_their_own_budget (test_guard.TimeBoundRound4.test_the_new_checks_have_their_own_budget) ... ok
+test_the_timer_is_off_once_the_guard_has_answered (test_guard.TimeBoundRound4.test_the_timer_is_off_once_the_guard_has_answered) ... ok
+
+======================================================================
+FAIL: test_a_comment_ending_in_a_backslash (test_guard.LineContinuationRound4.test_a_comment_ending_in_a_backslash)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<scratch>/wt-fix/.claude/hooks/test_guard.py", line 1473, in test_a_comment_ending_in_a_backslash
+    self.assertEqual({"cmd": cmd, "p": profile, "v": self.v(cmd, profile)},
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     {"cmd": cmd, "p": profile, "v": "deny"})
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'cmd': 'eval "cat .env" # note \\', 'p': 'stable', 'v': 'allow'} != {'cmd': 'eval "cat .env" # note \\', 'p': 'stable', 'v': 'deny'}
+- {'cmd': 'eval "cat .env" # note \\', 'p': 'stable', 'v': 'allow'}
+?                                                           ^^^^^
+
++ {'cmd': 'eval "cat .env" # note \\', 'p': 'stable', 'v': 'deny'}
+?                                                           ^^^^
+
+
+======================================================================
+FAIL: test_a_hash_inside_a_substitution_is_not_a_comment (test_guard.LineContinuationRound4.test_a_hash_inside_a_substitution_is_not_a_comment)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<scratch>/wt-fix/.claude/hooks/test_guard.py", line 1486, in test_a_hash_inside_a_substitution_is_not_a_comment
+    self.assertEqual({"cmd": cmd, "p": profile, "v": self.v(cmd, profile)},
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     {"cmd": cmd, "p": profile, "v": "deny"})
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'cmd': 'echo `git push -f origin #\'"\nx`', 'p': 'stable', 'v': 'allow'} != {'cmd': 'echo `git push -f origin #\'"\nx`', 'p': 'stable', 'v': 'deny'}
+- {'cmd': 'echo `git push -f origin #\'"\nx`', 'p': 'stable', 'v': 'allow'}
+?                                                                   ^^^^^
+
++ {'cmd': 'echo `git push -f origin #\'"\nx`', 'p': 'stable', 'v': 'deny'}
+?                                                                   ^^^^
+
+
+======================================================================
+FAIL: test_a_quote_in_a_heredoc_body_does_not_hide_what_follows (test_guard.LineContinuationRound4.test_a_quote_in_a_heredoc_body_does_not_hide_what_follows)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<scratch>/wt-fix/.claude/hooks/test_guard.py", line 1495, in test_a_quote_in_a_heredoc_body_does_not_hide_what_follows
+    self.assertEqual({"cmd": cmd, "p": profile, "v": self.v(cmd, profile)},
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     {"cmd": cmd, "p": profile, "v": "deny"})
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'cmd[20 chars]\nX\n(git push --force origin x)", 'p': 'stable', 'v': 'allow'} != {'cmd[20 chars]\nX\n(git push --force origin x)", 'p': 'stable', 'v': 'deny'}
+  {'cmd': ": # it's\n<<X\n'\nX\n(git push --force origin x)",
+   'p': 'stable',
+-  'v': 'allow'}
++  'v': 'deny'}
+
+======================================================================
+FAIL: test_an_escaped_blank_at_the_end_is_a_word (test_guard.LineContinuationRound4.test_an_escaped_blank_at_the_end_is_a_word)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<scratch>/wt-fix/.claude/hooks/test_guard.py", line 1456, in test_an_escaped_blank_at_the_end_is_a_word
+    self.assertEqual(seg("echo a \\ "), ["echo a \\ "])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['echo a \\'] != ['echo a \\ ']
+
+First differing element 0:
+'echo a \\'
+'echo a \\ '
+
+- ['echo a \\']
++ ['echo a \\ ']
+?            +
+
+
+======================================================================
+FAIL: test_a_deny_found_in_time_stands_when_the_previous_guard_is_stopped (test_guard.TimeBoundRound4.test_a_deny_found_in_time_stands_when_the_previous_guard_is_stopped)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<scratch>/wt-fix/.claude/hooks/test_guard.py", line 1518, in test_a_deny_found_in_time_stands_when_the_previous_guard_is_stopped
+    self.assertEqual(verdict("Bash", {"command": "git push --force origin x"}), "deny")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'ask' != 'deny'
+- ask
++ deny
+
+
+----------------------------------------------------------------------
+Ran 8 tests in 1.818s
+
+FAILED (failures=5)

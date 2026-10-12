@@ -425,7 +425,7 @@ def shell_names(target: str, cwd: str) -> list:
 WORD_BREAK = " \t\n;&|()<>"
 
 
-def split_segments(cmd: str) -> list:
+def split_segments(cmd: str, notes: list | None = None) -> list:
     """Split on ; && || | and newlines, outside quotes, reading backslashes as
     the shell does (2026-10-11: each line of `lncli \\⏎ sendcoins …` used to be
     judged alone). Outside single quotes a backslash-newline continues the
@@ -434,9 +434,16 @@ def split_segments(cmd: str) -> list:
     does not end a double quote. A comment starts only where a word starts —
     never after an escaped character, a quote or a `$(…)`, which stay part of
     the word — and quotes inside it are just text. A backslash that ends the
-    command is dropped (round 2's verifier: `sh -c '…' \\` hid a force push)."""
+    command is dropped (round 2's verifier: `sh -c '…' \\` hid a force push).
+    Inside a `$(…)` or a backtick a `#` opens no comment: bash would read one
+    there, but `_substitutions` cuts the text out without reading comments, so
+    this splitter does not either, as the guard before this fix (round 3's
+    verifier: a comment's newline inside a substitution split the command, and
+    its text was never judged). Such a `#` is noted in `notes`, if given: the
+    caller asks, because what bash then skips is not modelled."""
     segs, cur, quote, comment, i = [], [], None, False, 0
     word_start, subst = True, 0  # a `#` here opens a comment; open `$(` (their `)` ends no word)
+    tick = False  # inside a backtick
     while i < len(cmd):
         c = cmd[i]
         if c == "\\" and quote != "'" and not comment and i + 1 == len(cmd):
@@ -454,31 +461,52 @@ def split_segments(cmd: str) -> list:
         if quote:
             if c == quote:
                 quote = None
+            elif c == "`" and quote == '"':
+                tick = not tick
             cur.append(c)
         elif c in "'\"" and not comment:
             quote, word_start = c, False
             cur.append(c)
         elif c in ";|\n" or cmd.startswith("&&", i):
-            segs.append("".join(cur))
+            segs.append(_end_segment("".join(cur), comment))
             cur, word_start = [], True
             if c == "\n":
                 comment = False
             if cmd.startswith("&&", i) or cmd.startswith("||", i):
                 i += 1
         else:
-            if c == "#" and word_start:
+            if c == "#" and word_start and not subst and not tick:
                 comment = True
+            elif c == "#" and (subst or tick) and notes is not None and (not cur or cur[-1] in WORD_BREAK + "(`"):
+                notes.append("comment-in-substitution")
             if not comment:
                 if c == "(" and cur and cur[-1] == "$":
                     subst, word_start = subst + 1, False
                 elif c == ")" and subst:
                     subst, word_start = subst - 1, False
+                elif c == "`":
+                    tick, word_start = not tick, False
                 else:
                     word_start = c in WORD_BREAK
             cur.append(c)
         i += 1
-    segs.append("".join(cur))
-    return [s.strip() for s in segs if s.strip()]
+    segs.append(_end_segment("".join(cur), comment))
+    return [s for s in segs if s]
+
+
+def _end_segment(text: str, in_comment: bool) -> str:
+    """A segment without the blanks around it — but a blank escaped by a
+    backslash is a word (`sh -c '…' \\ ` runs the command with one more
+    argument), and a backslash that ends a comment is the comment's text.
+    Round 3's verifier: stripping either left a trailing backslash, so the
+    words could not be read and a force push got through."""
+    t = text.strip()
+    if (len(t) - len(t.rstrip("\\"))) % 2:
+        if in_comment:
+            t = t[:-1].rstrip()
+        elif len(t) < len(text.lstrip()):
+            t = text.lstrip()[:len(t) + 1]
+    return t
 
 
 def words_of(seg: str) -> list:
@@ -690,8 +718,10 @@ STRING_LIT = re.compile(r"""\s*[rRbBuU]{0,2}(?:'([^'\\\n]*)'|"([^"\\\n]*)")\s*""
 DYNAMIC_SCOPE = re.compile(r"\b(?:globals|locals|vars|exec|eval|setattr|Function)\s*\(|__dict__|\bReflect\.")
 
 
-def _balanced(code: str, i: int) -> int:
-    """Index just past the ')' matching the '(' at code[i] (quotes respected)."""
+def _balanced(code: str, i: int, open_end: bool = False) -> int:
+    """Index just past the ')' matching the '(' at code[i] (quotes respected).
+    Unclosed: the text's length, or one past it with `open_end` (so that
+    `code[i + 1:end - 1]` keeps the text to its end)."""
     depth, quote, j = 0, None, i
     while j < len(code):
         c = code[j]
@@ -709,7 +739,7 @@ def _balanced(code: str, i: int) -> int:
             if depth == 0:
                 return j + 1
         j += 1
-    return len(code)
+    return len(code) + 1 if open_end else len(code)
 
 
 def _top_args(argtext: str) -> list:
@@ -1632,8 +1662,8 @@ def decide(event: dict, cfg: dict, root: str = ROOT, lock_present: bool | None =
         return new, new_relaxed
 
     got = _timed(_DEADLINE_ALL - CHECK_TIME_BUDGET + OVERALL_TIME_BUDGET - time.time(), finish)
-    if got is None:
-        return TOO_SLOW
+    if got is None:  # the previous guard was stopped: a deny the new checks found stands (round 3's verifier)
+        return new if new[0] == "deny" else TOO_SLOW
     chosen, chosen_relaxed = got
     if relaxed is not None:
         relaxed.extend(chosen_relaxed)
@@ -1702,11 +1732,28 @@ def _decide_new(event: dict, cfg: dict, root: str = ROOT, lock_present: bool | N
     return worst, [r for d, r, _keep in hits if d == worst]
 
 
+def _all_segments(cmd: str, notes: list | None = None) -> list:
+    """The segments to judge: the command's own and, where it has a heredoc,
+    also those of the command without its bodies and of each body line on its
+    own — a quote in a body must not hide the commands after it (round 3's
+    verifier: `: # it's⏎<<X⏎'⏎X⏎(git push --force …)`). Only adds."""
+    segs = split_segments(cmd, notes)
+    shell, bodies = split_heredocs(cmd)
+    if bodies:
+        seen = set(segs)
+        for seg in split_segments("\n".join(shell)) + [s for _tag, body, _at in bodies for line in body.split("\n")
+                                                       for s in split_segments(line)]:
+            if seg not in seen:
+                seen.add(seg)
+                segs.append(seg)
+    return segs
+
+
 def _substitutions(seg: str) -> list:
     """Command text inside $(…) and `…` — run before the command itself."""
     out = []
     for m in re.finditer(r"\$\(", seg):
-        end = _balanced(seg, m.end() - 1)
+        end = _balanced(seg, m.end() - 1, open_end=True)  # unclosed: all of the rest (round 3's verifier)
         out.append(seg[m.end():end - 1])
     out += re.findall(r"`([^`]*)`", seg)
     return out
@@ -1717,8 +1764,12 @@ def bash_hits(cmd: str, cwd: str, cfg: dict, root: str, lock_present: bool, bran
     paths from — it never replaces the original, because it may not take effect
     (`cd nowhere; …`, `cd x || true`, `if false; then cd x; fi` — verifier round
     4). Heredoc bodies stay commands (money moves via ssh / docker exec)."""
-    hits, heres, prev = [], [cwd], None
-    for seg in split_segments(cmd):
+    hits, heres, prev, notes = [], [cwd], None, []
+    segs = _all_segments(cmd, notes)
+    if notes:
+        hits.append(("ask", "a `#` that starts a word inside a $(…) or a backtick: bash may read the rest of that line "
+                            "as a comment, which the guard does not model — owner approves", True))
+    for seg in segs:
         _tick()
         words = words_of(seg)
         if words and words[0].startswith("(") and words[0] != "(":  # `(cat .env)`
