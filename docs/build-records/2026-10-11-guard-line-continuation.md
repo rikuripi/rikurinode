@@ -734,4 +734,5 @@ round 4  rebased onto main 0f407f3 (round 3 = 7c77ce4); red 17:12:03 (r4-red.out
          mutants: mut_cont10.py → mut-cont10-first-run.out 20/22 → final mut-cont10.out 29/32 (A2, V16
          equivalent; J4 stricter only)
          sync4-{Rikuri-PI,Iceman,AISecurity,old-rikurinode}.out: 130 OK each, own policy
+         gate5.out: full gate 7/7 on 517e385 (guard 130 OK, quality 68 OK), added in the next commit
 ```
