@@ -749,8 +749,8 @@
 - [x] **Round 10 — the owner's choice** (2026-10-11, asked after round 9;
       the owner picked the option labelled "Close money/keys, then sandbox",
       whose description, written by me, said what follows): close the
-      payment and key forms at the root — a command that names a node tool asks unless the whole
-      command is a known safe read; fix the sandbox settings check; narrow
+      payment and key forms at the root — a command that names a node tool
+      asks unless the whole command is a known safe read; fix the sandbox settings check; narrow
       `AGENTS.md` to what the tests show; the remaining file-write tricks on
       the hook become listed limits, which the sandbox blocks once the
       owner's AppArmor change lets it run. Writes into, and programs run
@@ -916,7 +916,37 @@
       evidence and mutants and judges generated test cases against real
       bash and zsh, not hand-written bypass attempts; if the classifier
       stops it again, the work stops and the owner is told.
-- [ ] Verifier, round 10 (generated tests): pending.
+- [x] **Verifier, round 10 (generated tests): stopped again, Not yet
+      proven** (its `rn-verify36/`, in the persistent folder). Passed: the
+      gate on 737bb47 (91, 68, no leaks); every count (39 rules, 934
+      examples, 2,147 claim cases, 162 speed inputs, 1,089 baseline rows);
+      `git diff --check`; that 0f407f3 and 737bb47 change only what they
+      say; the worked examples (807 → 934: none removed, 127 added, 4
+      flipped allow → ask, each reason holding); the claims test only adds
+      claims, and the three changes after red hold as stated; the baseline
+      diff equals `r10-baseline.diff`, row 497's real text is allow under
+      round 9's guard too (a correction, not a loosening), and no two rows
+      share tool and text (counting text alone gives five extra rows — one
+      path under five tools, `.git/config` under two — which likely
+      explains round 9's "5 duplicates"). Then Claude's safety classifier
+      stopped it, before it had written any generator; as the owner chose,
+      the verification stopped there and the owner is told. Its findings:
+      the commit message's "69 of 139 new worked examples wrong" — 12 of
+      the 139 were already examples, so 127 were new (69 of the 139 were
+      wrong on round 9's policy, as recorded); the Round 10 entry's "(d)
+      claims added after red … the fifteen reads above" — six of those are
+      held only by worked examples, not by claims (`docker manifest
+      inspect`, the `HostConfig` format, `image inspect --format`, `docker
+      events --since 10m`, the `Mounts | jq` form, `sort -o /tmp/f
+      <the previous checkout>/README.md`); `r10-claims-red.txt` lost the
+      first line of each multi-line claim and starts with a stray quoted
+      copy of its first entry (the receipt was cut from the test's output
+      line by line); the claims list holds `find
+      /home/junc/rikuri/rikurinode -ok rm {} ;` twice (2,147 cases, 2,146
+      distinct). Its mutant replay (R1–R5 red when it stopped) was stopped
+      by me and its clone restored and checked by sha256; the node's start
+      times were the same before and after (lnd 2026-10-12T01:46:20Z,
+      since the machine's second reboot).
 
 ## 5. Close Out
 
