@@ -15,7 +15,9 @@ keys and its timeout (required, at most 10 s), the permission mode and the
 environment are closed-world too.
 Record: docs/build-records/2026-10-10-bootstrap.md
 """
+import contextlib
 import copy
+import io
 import json
 import os
 import sys
@@ -368,6 +370,64 @@ class Wiring(unittest.TestCase):
                 f.write("{not json")
             self.assertTrue(w.problems(p))
             self.assertTrue(w.problems(os.path.join(d, "missing.json")))
+
+    def test_the_sandboxs_placeholder_is_no_local_settings(self):
+        # Bootstrap round 18: inside Claude Code's sandbox an absent
+        # settings.local.json is /dev/null, bound on a nodev mount where it
+        # cannot be opened, and the gate failed at step 2. /dev/null holds no
+        # settings anywhere; the check reads it as none, and says so.
+        rc, out = run_with_local(lambda p: os.symlink(os.devnull, p))
+        self.assertEqual(rc, 0)
+        self.assertIn("/dev/null", out)
+
+    def test_only_dev_null_itself_is_the_placeholder(self):
+        # This change's mutants: any character device (M2), or a missing path
+        # (M5), read as the placeholder survived the tests above. By stat
+        # alone: /dev/zero is never opened.
+        self.assertTrue(w.is_dev_null(os.devnull))
+        self.assertFalse(w.is_dev_null("/dev/zero"))
+        with tempfile.TemporaryDirectory() as d:
+            self.assertFalse(w.is_dev_null(os.path.join(d, "missing.json")))
+        self.assertEqual(run_with_local(lambda p: None), (0, ""))
+
+    def test_any_other_local_file_that_is_not_settings_fails(self):
+        # Only /dev/null reads as no settings. Round 18's verifier: a check
+        # using os.path.isfile passed every test and would skip a folder or a
+        # FIFO, which Claude Code may still read.
+        def empty(p):
+            open(p, "w").close()
+
+        def unreadable(p):
+            if os.geteuid() == 0:
+                self.skipTest("root reads a mode-000 file")
+            with open(p, "w") as f:
+                f.write("{}")
+            os.chmod(p, 0)
+
+        for name, make in (("empty", empty), ("folder", os.mkdir), ("unreadable", unreadable)):
+            with self.subTest(name=name):
+                self.assertEqual(run_with_local(make)[0], 1)
+
+
+def run_with_local(make):
+    """The gate's default run, with the local settings path made by `make`:
+    (exit status, what it printed)."""
+    here = os.getcwd()
+    with tempfile.TemporaryDirectory() as d:
+        os.makedirs(os.path.join(d, ".claude"))
+        with open(os.path.join(d, ".claude", "settings.json"), "w") as f:
+            json.dump(settings(), f)
+        local = os.path.join(d, ".claude", "settings.local.json")
+        try:
+            make(local)
+            os.chdir(d)
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                rc = w.main(["check_guard_wiring.py"])
+            return rc, out.getvalue()
+        finally:
+            os.chdir(here)
+            if os.path.isfile(local) and not os.path.islink(local):
+                os.chmod(local, 0o600)
 
 
 if __name__ == "__main__":

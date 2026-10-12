@@ -6,7 +6,7 @@
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | main |
 | **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (its gate receipt), 737bb47 and 87e2249 (the record only), db4a3ac (round 11), 3540614 (its gate receipt), 26d6862 (round 12), 383a6dc (its gate receipt), 0dd2660 (round 13), 439d295 (its gate receipt), 8117fc4 (round 14), 5628ac1 (its gate receipt), ddc759b (round 15), 91ca836 (its gate receipt), bccf79d (round 16), 69e52a6 (its gate receipt; the first commit on GitHub), round 17: the commits of the pull request that adds this line, and round 18 (the sandbox's drill): e8ff1da, and the commit with its verifier's corrections |
-| **Status** | Rounds 1–13 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings, claims wider than the tests or the code); rounds 14 and 15 FAIL on wording (round 14's verifier also found a crash that failed closed, fixed in round 15); round 16 (wording) committed, with no check round after it by the owner's stop rule (2026-10-11); on GitHub since 2026-10-12, CI green on `main`, `main` protected by the owner's ruleset — a direct push refused and a planted failing test blocked (round 17); the sandbox's drill: nine of nine probes as intended, in a worktree session in `auto` mode (round 18); its verifier FAIL on the record's wording and omissions, corrected, with no check round after; the full gate fails at step 2 inside the sandbox (the local-settings placeholder; CI's gate stands meanwhile, the owner's choice) |
+| **Status** | Rounds 1–13 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings, claims wider than the tests or the code); rounds 14 and 15 FAIL on wording (round 14's verifier also found a crash that failed closed, fixed in round 15); round 16 (wording) committed, with no check round after it by the owner's stop rule (2026-10-11); on GitHub since 2026-10-12, CI green on `main`, `main` protected by the owner's ruleset — a direct push refused and a planted failing test blocked (round 17); the sandbox's drill: nine of nine probes as intended, in a worktree session in `auto` mode (round 18); its verifier FAIL on the record's wording and omissions, corrected, with no check round after; the full gate fails at step 2 inside the sandbox (the local-settings placeholder; CI's gate stands meanwhile, the owner's choice; fixed in `2026-10-12-wiring-sandbox-placeholder.md`) |
 | **Change type** | bootstrap (process, security gates) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -1413,8 +1413,11 @@
   start-time check finds no node containers and compares nothing. The
   owner's choice (2026-10-12): CI's gate on the pull request stands
   meanwhile; the wiring check changes in its own record, test first, with
-  a test that kills the `os.path.isfile` mutant. Owner: Henry. Reactivate:
-  that change.
+  a test that kills the `os.path.isfile` mutant — done in
+  `2026-10-12-wiring-sandbox-placeholder.md`. Still open: the start-time
+  check inside the sandbox. Owner: Henry. Reactivate: a way for
+  `safe-run.sh` to see the node from inside the sandbox, or a session
+  that runs tests outside it.
 - **The pre-commit hook is not a boundary** (rounds 3–10): what always asks,
   and what gets through, is listed in `AGENTS.md` and held by
   `test_guard_claims.py`. Not covered: a path relative to a folder entered

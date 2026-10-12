@@ -25,14 +25,17 @@ green with "disableAllHooks": true or a command that merely mentioned the
 guard.
 
 Usage: check_guard_wiring.py [settings.json …]   (default: .claude/settings.json,
-and .claude/settings.local.json when present) — exit 0 wired, 1 not.
-Record: docs/build-records/2026-10-10-bootstrap.md
+and .claude/settings.local.json when present and not /dev/null, the sandbox's
+placeholder) — exit 0 wired, 1 not.
+Record: docs/build-records/2026-10-10-bootstrap.md;
+docs/build-records/2026-10-12-wiring-sandbox-placeholder.md
 """
 from __future__ import annotations
 
 import json
 import os
 import re
+import stat
 import sys
 
 GUARD = 'python3 "$CLAUDE_PROJECT_DIR/.claude/hooks/guard.py"'
@@ -238,6 +241,18 @@ def problems(path: str, require_guard: bool = True) -> list:
     return found
 
 
+def is_dev_null(path: str) -> bool:
+    """Whether `path` is /dev/null itself. Inside Claude Code's sandbox an
+    absent protected file is /dev/null, bound on a nodev mount where it cannot
+    be opened (bootstrap round 18: the gate failed at step 2). It holds no
+    settings anywhere; nothing else unreadable is excused."""
+    try:
+        here, null = os.stat(path), os.stat(os.devnull)
+    except OSError:
+        return False
+    return stat.S_ISCHR(here.st_mode) and here.st_rdev == null.st_rdev
+
+
 def main(argv: list) -> int:
     paths = argv[1:]
     found = []
@@ -246,8 +261,11 @@ def main(argv: list) -> int:
             found += problems(p)
     else:
         found += problems(".claude/settings.json")
-        if os.path.exists(".claude/settings.local.json"):  # may switch every hook, or the sandbox, off here
-            found += problems(".claude/settings.local.json", require_guard=False)
+        local = ".claude/settings.local.json"
+        if is_dev_null(local):
+            print("%s is /dev/null (the sandbox's placeholder for a missing file): no local settings" % local)
+        elif os.path.exists(local):  # may switch every hook, or the sandbox, off here
+            found += problems(local, require_guard=False)
     for line in found:
         print(line, file=sys.stderr)
     return 1 if found else 0
