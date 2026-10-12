@@ -1,0 +1,6 @@
+2026-10-11 16:41:05
+R33 listdescriptors with any words             GREEN
+X11 the local file may add PreToolUse          RED   test_another_hook_before_tool_calls_or_permissions_fails
+X18 a guard that fails open counts             RED   test_a_guard_that_lets_calls_through_when_it_fails_fails
+restored, sha256 checked: .claude/hooks/guard-config.json db1524dbfa53, scripts/quality/check_guard_wiring.py df15ee484024, scripts/quality/guard_policy.py 7a0c5e659868
+2026-10-11 16:42:13

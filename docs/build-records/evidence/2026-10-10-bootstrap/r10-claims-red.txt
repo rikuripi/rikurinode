@@ -1,0 +1,437 @@
+'rm -f "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow'
+rm -f "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+rm -f ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+rmdir "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+rmdir ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+mv "${HOME:?}/rikuri/rikurinode/f" /tmp/x: want stable=ask development=ask, got allow/allow
+mv ${HOME%/}/rikuri/rikurinode/f /tmp/x: want stable=ask development=ask, got allow/allow
+rename s/a/b/ "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+rename s/a/b/ ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+shred -u "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+shred -u ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+chmod -x "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+chmod -x ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+chown nobody "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+chown nobody ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+chgrp nobody "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+chgrp nobody ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+echo x | tee "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+echo x | tee ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+touch "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+touch ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+truncate -s0 "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+truncate -s0 ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+ln -sf /tmp/x "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+ln -sf /tmp/x ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+dd if=/tmp/x of="${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+dd if=/tmp/x of=${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+unlink "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+unlink ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+mkdir -p "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+mkdir -p ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+patch "${HOME:?}/rikuri/rikurinode/f" x.diff: want stable=ask development=ask, got allow/allow
+patch ${HOME%/}/rikuri/rikurinode/f x.diff: want stable=ask development=ask, got allow/allow
+split -b 1k x "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+split -b 1k x ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+csplit -f "${HOME:?}/rikuri/rikurinode/f" x 1: want stable=ask development=ask, got allow/allow
+csplit -f ${HOME%/}/rikuri/rikurinode/f x 1: want stable=ask development=ask, got allow/allow
+vi "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+vi ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+vim "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+vim ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+nvim "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+nvim ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+nano "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+nano ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+ed "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+ed ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+emacs "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+emacs ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+ex "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+ex ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+pico "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+pico ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+micro "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+micro ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+gvim "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+gvim ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+vimdiff "${HOME:?}/rikuri/rikurinode/f" x: want stable=ask development=ask, got allow/allow
+vimdiff ${HOME%/}/rikuri/rikurinode/f x: want stable=ask development=ask, got allow/allow
+view "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+view ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+emacsclient "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+emacsclient ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+joe "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+joe ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+code "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+code ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+mcedit "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+mcedit ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+hx "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+hx ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+kate "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+kate ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+gedit "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+gedit ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+subl "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+subl ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+jed "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+jed ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+sed -i s/a/b/ "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+sed -i s/a/b/ ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+perl -pi -e s/a/b/ "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+perl -pi -e s/a/b/ ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+awk -i inplace 1 "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+awk -i inplace 1 ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+gawk -i inplace 1 "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+gawk -i inplace 1 ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+cp x "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+cp x ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+cp x "${HOME:?}/rikuri/rikurinode/f" 2>/dev/null: want stable=ask development=ask, got allow/allow
+cp x ${HOME%/}/rikuri/rikurinode/f 2>/dev/null: want stable=ask development=ask, got allow/allow
+cp x "${HOME:?}/rikuri/rikurinode/f" &>/dev/null: want stable=ask development=ask, got allow/allow
+cp x ${HOME%/}/rikuri/rikurinode/f &>/dev/null: want stable=ask development=ask, got allow/allow
+cp x "${HOME:?}/rikuri/rikurinode/f" -f: want stable=ask development=ask, got allow/allow
+cp x ${HOME%/}/rikuri/rikurinode/f -f: want stable=ask development=ask, got allow/allow
+cp x "${HOME:?}/rikuri/rikurinode/f" --backup=numbered: want stable=ask development=ask, got allow/allow
+cp x ${HOME%/}/rikuri/rikurinode/f --backup=numbered: want stable=ask development=ask, got allow/allow
+cp x "${HOME:?}/rikuri/rikurinode/f" -S .bak: want stable=ask development=ask, got allow/allow
+cp x ${HOME%/}/rikuri/rikurinode/f -S .bak: want stable=ask development=ask, got allow/allow
+cp x "${HOME:?}/rikuri/rikurinode/f" &: want stable=ask development=ask, got allow/allow
+cp x ${HOME%/}/rikuri/rikurinode/f &: want stable=ask development=ask, got allow/allow
+cp x "${HOME:?}/rikuri/rikurinode/f" # note: want stable=ask development=ask, got allow/allow
+cp x ${HOME%/}/rikuri/rikurinode/f # note: want stable=ask development=ask, got allow/allow
+install -m 644 x "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+install -m 644 x ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+rsync -a x "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+rsync -a x ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+scp h:x "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+scp h:x ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+curl -o "${HOME:?}/rikuri/rikurinode/f" https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -o ${HOME%/}/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl --output "${HOME:?}/rikuri/rikurinode/f" https://e.x/y: want stable=ask development=ask, got allow/allow
+curl --output ${HOME%/}/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -sSLo "${HOME:?}/rikuri/rikurinode/f" https://e.x/y: want stable=ask development=ask, got allow/allow
+curl -sSLo ${HOME%/}/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+wget -O "${HOME:?}/rikuri/rikurinode/f" https://e.x/y: want stable=ask development=ask, got allow/allow
+wget -O ${HOME%/}/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+wget --output-document="${HOME:?}/rikuri/rikurinode/f" https://e.x/y: want stable=ask development=ask, got allow/allow
+wget --output-document=${HOME%/}/rikuri/rikurinode/f https://e.x/y: want stable=ask development=ask, got allow/allow
+sort -o "${HOME:?}/rikuri/rikurinode/f" x: want stable=ask development=ask, got allow/allow
+sort -o ${HOME%/}/rikuri/rikurinode/f x: want stable=ask development=ask, got allow/allow
+sort --output="${HOME:?}/rikuri/rikurinode/f" x: want stable=ask development=ask, got allow/allow
+sort --output=${HOME%/}/rikuri/rikurinode/f x: want stable=ask development=ask, got allow/allow
+echo x > "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+echo x > ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+echo x >> "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+echo x >> ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+sudo rm -f "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+sudo rm -f ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+/bin/rm -f "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+/bin/rm -f ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+sudo -u root cp x "${HOME:?}/rikuri/rikurinode/f": want stable=ask development=ask, got allow/allow
+sudo -u root cp x ${HOME%/}/rikuri/rikurinode/f: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C "${HOME:?}/rikuri/rikurinode": want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C ${HOME:-/home/junc}/rikuri/rikurinode: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C"${HOME:?}/rikuri/rikurinode": want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C${HOME:-/home/junc}/rikuri/rikurinode: want stable=ask development=ask, got allow/allow
+tar -xf a.tar --directory="${HOME:?}/rikuri/rikurinode": want stable=ask development=ask, got allow/allow
+tar -xf a.tar --directory=${HOME:-/home/junc}/rikuri/rikurinode: want stable=ask development=ask, got allow/allow
+tar -xf a.tar --directory "${HOME:?}/rikuri/rikurinode": want stable=ask development=ask, got allow/allow
+tar -xf a.tar --directory ${HOME:-/home/junc}/rikuri/rikurinode: want stable=ask development=ask, got allow/allow
+gtar -xf a.tar -C "${HOME:?}/rikuri/rikurinode": want stable=ask development=ask, got allow/allow
+gtar -xf a.tar -C ${HOME:-/home/junc}/rikuri/rikurinode: want stable=ask development=ask, got allow/allow
+bsdtar -xf a.tar -C "${HOME:?}/rikuri/rikurinode": want stable=ask development=ask, got allow/allow
+bsdtar -xf a.tar -C ${HOME:-/home/junc}/rikuri/rikurinode: want stable=ask development=ask, got allow/allow
+unzip a.zip -d "${HOME:?}/rikuri/rikurinode": want stable=ask development=ask, got allow/allow
+unzip a.zip -d ${HOME:-/home/junc}/rikuri/rikurinode: want stable=ask development=ask, got allow/allow
+unzip a.zip -d"${HOME:?}/rikuri/rikurinode": want stable=ask development=ask, got allow/allow
+unzip a.zip -d${HOME:-/home/junc}/rikuri/rikurinode: want stable=ask development=ask, got allow/allow
+7z x a.7z -o"${HOME:?}/rikuri/rikurinode": want stable=ask development=ask, got allow/allow
+7z x a.7z -o${HOME:-/home/junc}/rikuri/rikurinode: want stable=ask development=ask, got allow/allow
+cpio -idm -D "${HOME:?}/rikuri/rikurinode" < a.cpio: want stable=ask development=ask, got allow/allow
+cpio -idm -D ${HOME:-/home/junc}/rikuri/rikurinode < a.cpio: want stable=ask development=ask, got allow/allow
+cp -t "${HOME:?}/rikuri/rikurinode" x: want stable=ask development=ask, got allow/allow
+cp -t ${HOME:-/home/junc}/rikuri/rikurinode x: want stable=ask development=ask, got allow/allow
+cp --target-directory="${HOME:?}/rikuri/rikurinode" x: want stable=ask development=ask, got allow/allow
+cp --target-directory=${HOME:-/home/junc}/rikuri/rikurinode x: want stable=ask development=ask, got allow/allow
+install -t "${HOME:?}/rikuri/rikurinode" x: want stable=ask development=ask, got allow/allow
+install -t ${HOME:-/home/junc}/rikuri/rikurinode x: want stable=ask development=ask, got allow/allow
+rsync -a --delete /tmp/e/ "${HOME:?}/rikuri/rikurinode"/: want stable=ask development=ask, got allow/allow
+rsync -a --delete /tmp/e/ ${HOME:-/home/junc}/rikuri/rikurinode/: want stable=ask development=ask, got allow/allow
+rsync -a --remove-source-files "${HOME:?}/rikuri/rikurinode"/ /tmp/s/: want stable=ask development=ask, got allow/allow
+rsync -a --remove-source-files ${HOME:-/home/junc}/rikuri/rikurinode/ /tmp/s/: want stable=ask development=ask, got allow/allow
+find "${HOME:?}/rikuri/rikurinode" -delete: want stable=ask development=ask, got allow/allow
+find ${HOME:-/home/junc}/rikuri/rikurinode -delete: want stable=ask development=ask, got allow/allow
+find "${HOME:?}/rikuri/rikurinode" -exec rm {} +: want stable=ask development=ask, got allow/allow
+find ${HOME:-/home/junc}/rikuri/rikurinode -exec rm {} +: want stable=ask development=ask, got allow/allow
+find "${HOME:?}/rikuri/rikurinode" -execdir rm {} +: want stable=ask development=ask, got allow/allow
+find ${HOME:-/home/junc}/rikuri/rikurinode -execdir rm {} +: want stable=ask development=ask, got allow/allow
+find "${HOME:?}/rikuri/rikurinode" -ok rm {} ;: want stable=ask development=ask, got allow/allow
+find ${HOME:-/home/junc}/rikuri/rikurinode -ok rm {} ;: want stable=ask development=ask, got allow/allow
+rm -rf "${PWD:?}/scripts": want stable=ask development=ask, got allow/allow
+rm -rf "${PWD%/}/.git": want stable=ask development=ask, got allow/allow
+rm -rf ${PWD:?}/scripts/quality: want stable=ask development=ask, got allow/allow
+rm -rf `pwd`/scripts: want stable=ask development=ask, got allow/allow
+rmdir "${PWD:?}/scripts": want stable=ask development=ask, got allow/allow
+rmdir "${PWD%/}/.git": want stable=ask development=ask, got allow/allow
+rmdir ${PWD:?}/scripts/quality: want stable=ask development=ask, got allow/allow
+rmdir `pwd`/scripts: want stable=ask development=ask, got allow/allow
+mv "${PWD:?}/scripts" /tmp/x: want stable=ask development=ask, got allow/allow
+mv "${PWD%/}/.git" /tmp/x: want stable=ask development=ask, got allow/allow
+mv ${PWD:?}/scripts/quality /tmp/x: want stable=ask development=ask, got allow/allow
+mv `pwd`/scripts /tmp/x: want stable=ask development=ask, got allow/allow
+chmod -R 000 "${PWD:?}/scripts": want stable=ask development=ask, got allow/allow
+chmod -R 000 "${PWD%/}/.git": want stable=ask development=ask, got allow/allow
+chmod -R 000 ${PWD:?}/scripts/quality: want stable=ask development=ask, got allow/allow
+chmod -R 000 `pwd`/scripts: want stable=ask development=ask, got allow/allow
+chown -R nobody "${PWD:?}/scripts": want stable=ask development=ask, got allow/allow
+chown -R nobody "${PWD%/}/.git": want stable=ask development=ask, got allow/allow
+chown -R nobody ${PWD:?}/scripts/quality: want stable=ask development=ask, got allow/allow
+chown -R nobody `pwd`/scripts: want stable=ask development=ask, got allow/allow
+shred -u "${PWD:?}/scripts": want stable=ask development=ask, got allow/allow
+shred -u "${PWD%/}/.git": want stable=ask development=ask, got allow/allow
+shred -u ${PWD:?}/scripts/quality: want stable=ask development=ask, got allow/allow
+shred -u `pwd`/scripts: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C "${PWD:?}/scripts": want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C "${PWD%/}/.git": want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C ${PWD:?}/scripts/quality: want stable=ask development=ask, got allow/allow
+tar -xf a.tar -C `pwd`/scripts: want stable=ask development=ask, got allow/allow
+unzip a.zip -d"${PWD:?}/scripts": want stable=ask development=ask, got allow/allow
+unzip a.zip -d"${PWD%/}/.git": want stable=ask development=ask, got allow/allow
+unzip a.zip -d${PWD:?}/scripts/quality: want stable=ask development=ask, got allow/allow
+unzip a.zip -d`pwd`/scripts: want stable=ask development=ask, got allow/allow
+7z x a.7z -o"${PWD:?}/scripts": want stable=ask development=ask, got allow/allow
+7z x a.7z -o"${PWD%/}/.git": want stable=ask development=ask, got allow/allow
+7z x a.7z -o${PWD:?}/scripts/quality: want stable=ask development=ask, got allow/allow
+7z x a.7z -o`pwd`/scripts: want stable=ask development=ask, got allow/allow
+rsync -a --delete /tmp/e/ "${PWD:?}/scripts": want stable=ask development=ask, got allow/allow
+rsync -a --delete /tmp/e/ "${PWD%/}/.git": want stable=ask development=ask, got allow/allow
+rsync -a --delete /tmp/e/ ${PWD:?}/scripts/quality: want stable=ask development=ask, got allow/allow
+rsync -a --delete /tmp/e/ `pwd`/scripts: want stable=ask development=ask, got allow/allow
+find "${PWD:?}/scripts" -delete: want stable=ask development=ask, got allow/allow
+find "${PWD%/}/.git" -delete: want stable=ask development=ask, got allow/allow
+find ${PWD:?}/scripts/quality -delete: want stable=ask development=ask, got allow/allow
+find `pwd`/scripts -delete: want stable=ask development=ask, got allow/allow
+find "${PWD:?}/scripts" -exec rm {} +: want stable=ask development=ask, got allow/allow
+find "${PWD%/}/.git" -exec rm {} +: want stable=ask development=ask, got allow/allow
+find ${PWD:?}/scripts/quality -exec rm {} +: want stable=ask development=ask, got allow/allow
+find `pwd`/scripts -exec rm {} +: want stable=ask development=ask, got allow/allow
+git rm -r `pwd`/scripts: want stable=ask development=ask, got allow/allow
+git mv `pwd`/scripts /tmp/x: want stable=ask development=ask, got allow/allow
+git checkout HEAD~1 -- `pwd`/scripts: want stable=ask development=ask, got allow/allow
+git restore `pwd`/scripts: want stable=ask development=ask, got allow/allow
+git stash push `pwd`/scripts: want stable=ask development=ask, got allow/allow
+git reset -- `pwd`/scripts: want stable=ask development=ask, got allow/allow
+cp -lv /home/junc/rikuri/rikurinode/x ./x: want stable=ask development=ask, got allow/allow
+cp -sf /home/junc/rikuri/rikurinode/x ./x: want stable=ask development=ask, got allow/allow
+cp -la /home/junc/rikuri/rikurinode/x ./x: want stable=ask development=ask, got allow/allow
+cp --lin /home/junc/rikuri/rikurinode/x ./x: want stable=ask development=ask, got allow/allow
+cp --sym /home/junc/rikuri/rikurinode/x ./x: want stable=ask development=ask, got allow/allow
+install -lv /home/junc/rikuri/rikurinode/x ./x: want stable=ask development=ask, got allow/allow
+tree -aCo /home/junc/rikuri/rikurinode/x /tmp: want stable=ask development=ask, got allow/allow
+git -C /home/junc/rikuri/rikurinode grep -Ovim x: want stable=ask development=ask, got allow/allow
+git -C /home/junc/rikuri/rikurinode grep -nOvim x: want stable=ask development=ask, got allow/allow
+git -C /home/junc/rikuri/rikurinode grep --open-files=vim x: want stable=ask development=ask, got allow/allow
+git grep --no-index -O/home/junc/rikuri/rikurinode/x.sh x /tmp/f: want stable=ask development=ask, got allow/allow
+git -C /home/junc/rikuri/rikurinode diff --ext-diff: want stable=ask development=ask, got allow/allow
+git -C /home/junc/rikuri/rikurinode log -p --textconv: want stable=ask development=ask, got allow/allow
+sed -n 1p -e 'w /home/junc/rikuri/rikurinode/f' /tmp/x: want stable=ask development=ask, got allow/allow
+sed -n 1p -e '1e /home/junc/rikuri/rikurinode/x.sh' /tmp/x: want stable=ask development=ask, got allow/allow
+sort --compress-program=/home/junc/rikuri/rikurinode/x.sh -S 1K /tmp/f: want stable=ask development=ask, got allow/allow
+sort -T /home/junc/rikuri/rikurinode /tmp/f: want stable=ask development=ask, got allow/allow
+rsync -e /home/junc/rikuri/rikurinode/x.sh /tmp/a h:/tmp/b: want stable=ask development=ask, got allow/allow
+rsync --rsh=/home/junc/rikuri/rikurinode/x.sh /tmp/a h:/tmp/b: want stable=ask development=ask, got allow/allow
+rsync --rsync-path=/home/junc/rikuri/rikurinode/x.sh /tmp/a h:/tmp/b: want stable=ask development=ask, got allow/allow
+rsync --log-file=/home/junc/rikuri/rikurinode/x /tmp/a /tmp/b: want stable=ask development=ask, got allow/allow
+scp -S /home/junc/rikuri/rikurinode/x.sh /tmp/a h:/tmp/b: want stable=ask development=ask, got allow/allow
+scp -o ProxyCommand=/home/junc/rikuri/rikurinode/x.sh /tmp/a h:/tmp/b: want stable=ask development=ask, got allow/allow
+install --strip --strip-program=/home/junc/rikuri/rikurinode/x.sh /tmp/a /tmp/b: want stable=ask development=ask, got allow/allow
+git commit -F /home/junc/rikuri/rikurinode/notes: want stable=ask development=ask, got allow/allow
+gh pr create --title x --body-file /home/junc/rikuri/rikurinode/notes: want stable=ask development=ask, got allow/allow
+gh issue create --title x -F /home/junc/rikuri/rikurinode/data/bitcoin/debug.log: want stable=ask development=ask, got allow/allow
+grep x <(lncli sendcoins --addr x --amt 1): want stable=ask development=ask, got allow/allow
+echo <(lncli sendcoins --addr x --amt 1): want stable=ask development=ask, got allow/allow
+head -1 <(bitcoin-cli stop): want stable=ask development=ask, got allow/allow
+tail -n1 <(docker stop lnd): want stable=ask development=ask, got allow/allow
+grep x <(sudo reboot): want stable=ask development=ask, got allow/allow
+echo >(lncli closeallchannels): want stable=ask development=ask, got allow/allow
+echo =(lncli sendcoins --addr x --amt 1): want stable=ask development=ask, got allow/allow
+less <(rm -rf /home/junc/rikuri/rikurinode): want stable=ask development=ask, got allow/allow
+git log -1 <(lncli sendcoins --addr x --amt 1): want stable=ask development=ask, got allow/allow
+printf x <(sudo apt-get install -y foo): want stable=ask development=ask, got allow/allow
+grep -c x <(pkill lnd): want stable=ask development=ask, got allow/allow
+git grep -O'lncli sendcoins --addr x --amt 1' x: want stable=ask development=ask, got allow/allow
+git grep --open-files-in-pager=sh x: want stable=ask development=ask, got allow/allow
+git grep --op=sh x: want stable=ask development=ask, got allow/allow
+rg --pre 'lncli sendcoins' x: want stable=ask development=ask, got allow/allow
+ag --pager 'lncli sendcoins' x: want stable=ask development=ask, got allow/allow
+git log --output=scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+git diff --ext-diff: want stable=ask development=ask, got allow/allow
+git log -p --textconv: want stable=ask development=ask, got allow/allow
+lncli debuglevel --level debug: want stable=ask development=ask, got allow/allow
+lncli wallet labeltx x y: want stable=ask development=ask, got allow/allow
+lncli newaddress p2tr: want stable=ask development=ask, got allow/allow
+lncli signmessage x: want stable=ask development=ask, got allow/allow
+lncli getdebuginfo: want stable=ask development=ask, got allow/allow
+lncli --no-macaroons getinfo: want stable=ask development=ask, got allow/allow
+bitcoin-cli settxfee 0.0001: want stable=ask development=ask, got allow/allow
+bitcoin-cli -stdinrpcpass getblockcount: want stable=ask development=ask, got allow/allow
+bitcoin-cli -rpcpassword=x getblockcount: want stable=ask development=ask, got allow/allow
+bitcoin-cli logging: want stable=ask development=ask, got allow/allow
+bitcoin-cli listdescriptors: want stable=ask development=ask, got allow/allow
+tapcli addrs new --asset_id x --amt 1: want stable=ask development=ask, got allow/allow
+litcli sessions add --label x --type admin: want stable=ask development=ask, got allow/allow
+litcli sessions list: want stable=ask development=ask, got allow/allow
+chantools sweepremoteclosed: want stable=ask development=ask, got allow/allow
+cat <(lncli getinfo): want stable=ask development=ask, got allow/allow
+/usr/local/bin/lncli getinfo: want stable=ask development=ask, got allow/allow
+LNCLI=1 lncli getinfo: want stable=ask development=ask, got allow/allow
+sudo lncli getinfo: want stable=ask development=ask, got allow/allow
+env lncli getinfo: want stable=ask development=ask, got allow/allow
+timeout 5 lncli getinfo: want stable=ask development=ask, got allow/allow
+nohup lncli getinfo: want stable=ask development=ask, got allow/allow
+ssh n150 lncli getinfo: want stable=ask development=ask, got allow/allow
+python3 -c 'import subprocess; subprocess.run(["lncli", "getinfo"])': want stable=ask development=ask, got allow/allow
+lncli getinfo && lncli debuglevel --level debug: want stable=ask development=ask, got allow/allow
+lncli getinfo $(echo x): want stable=ask development=ask, got allow/allow
+lncli getinfo `echo x`: want stable=ask development=ask, got allow/allow
+docker inspect lnd: want stable=ask development=ask, got allow/allow
+docker inspect -f '{{.Config.Env}}' lnd: want stable=ask development=ask, got allow/allow
+docker inspect -f '{{json .}}' lnd: want stable=ask development=ask, got allow/allow
+docker compose config: want stable=ask development=ask, got allow/allow
+docker pull x: want stable=ask development=ask, got allow/allow
+docker save lnd -o /tmp/x.tar: want stable=ask development=ask, got allow/allow
+docker stats: want stable=ask development=ask, got allow/allow
+podman generate systemd lnd: want stable=ask development=ask, got allow/allow
+podman secret inspect x: want stable=ask development=ask, got allow/allow
+docker-compose config: want stable=ask development=ask, got allow/allow
+/usr/bin/docker ps -q | xargs docker inspect: want stable=ask development=ask, got allow/allow
+systemctl status docker: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit x.diff: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit x 1: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit x: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit x: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit x: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+scripts/quality/hooks/pre-commit: want stable=ask development=ask, got allow/allow
+echo x > /home/junc/rikuri/x: want stable=ask development=ask, got allow/allow
+echo x > ~/rikuri/x: want stable=ask development=ask, got allow/allow
+echo x > "${HOME:?}/rikuri/x": want stable=ask development=ask, got allow/allow
+echo x > /home/junc/rikuri/rikurinode-old/x: want stable=ask development=ask, got allow/allow
+echo x > /home/junc/rikuri/x/../rikurinode/f: want stable=ask development=ask, got allow/allow
+echo x >> /home/junc/rikuri/x: want stable=ask development=ask, got allow/allow
+echo x >> ~/rikuri/x: want stable=ask development=ask, got allow/allow
+echo x >> "${HOME:?}/rikuri/x": want stable=ask development=ask, got allow/allow
+echo x >> /home/junc/rikuri/rikurinode-old/x: want stable=ask development=ask, got allow/allow
+echo x >> /home/junc/rikuri/x/../rikurinode/f: want stable=ask development=ask, got allow/allow
+printf x > /home/junc/rikuri/x: want stable=ask development=ask, got allow/allow
+printf x > ~/rikuri/x: want stable=ask development=ask, got allow/allow
+printf x > "${HOME:?}/rikuri/x": want stable=ask development=ask, got allow/allow
+printf x > /home/junc/rikuri/rikurinode-old/x: want stable=ask development=ask, got allow/allow
+printf x > /home/junc/rikuri/x/../rikurinode/f: want stable=ask development=ask, got allow/allow
+cat /tmp/f >> /home/junc/rikuri/x: want stable=ask development=ask, got allow/allow
+cat /tmp/f >> ~/rikuri/x: want stable=ask development=ask, got allow/allow
+cat /tmp/f >> "${HOME:?}/rikuri/x": want stable=ask development=ask, got allow/allow
+cat /tmp/f >> /home/junc/rikuri/rikurinode-old/x: want stable=ask development=ask, got allow/allow
+cat /tmp/f >> /home/junc/rikuri/x/../rikurinode/f: want stable=ask development=ask, got allow/allow
+ls /tmp > /home/junc/rikuri/x: want stable=ask development=ask, got allow/allow
+ls /tmp > ~/rikuri/x: want stable=ask development=ask, got allow/allow
+ls /tmp > "${HOME:?}/rikuri/x": want stable=ask development=ask, got allow/allow
+ls /tmp > /home/junc/rikuri/rikurinode-old/x: want stable=ask development=ask, got allow/allow
+ls /tmp > /home/junc/rikuri/x/../rikurinode/f: want stable=ask development=ask, got allow/allow
+cp /tmp/x /home/junc/rikuri/x: want stable=ask development=ask, got allow/allow
+cp /tmp/x ~/rikuri/x: want stable=ask development=ask, got allow/allow
+cp /tmp/x "${HOME:?}/rikuri/x": want stable=ask development=ask, got allow/allow
+cp /tmp/x /home/junc/rikuri/rikurinode-old/x: want stable=ask development=ask, got allow/allow
+cp /tmp/x /home/junc/rikuri/x/../rikurinode/f: want stable=ask development=ask, got allow/allow
+cp /tmp/x /home/junc/rikuri/: want stable=ask development=ask, got allow/allow
+cp /tmp/x ~/rikuri: want stable=ask development=ask, got allow/allow
+cp -r /tmp/rikurinode /home/junc/rikuri/x: want stable=ask development=ask, got allow/allow
+cp -r /tmp/rikurinode ~/rikuri/x: want stable=ask development=ask, got allow/allow
+cp -r /tmp/rikurinode "${HOME:?}/rikuri/x": want stable=ask development=ask, got allow/allow
+cp -r /tmp/rikurinode /home/junc/rikuri/rikurinode-old/x: want stable=ask development=ask, got allow/allow
+cp -r /tmp/rikurinode /home/junc/rikuri/x/../rikurinode/f: want stable=ask development=ask, got allow/allow
+cp -r /tmp/rikurinode /home/junc/rikuri/: want stable=ask development=ask, got allow/allow
+cp -r /tmp/rikurinode ~/rikuri: want stable=ask development=ask, got allow/allow
+rsync -a /tmp/x /home/junc/rikuri/x: want stable=ask development=ask, got allow/allow
+rsync -a /tmp/x ~/rikuri/x: want stable=ask development=ask, got allow/allow
+rsync -a /tmp/x "${HOME:?}/rikuri/x": want stable=ask development=ask, got allow/allow
+rsync -a /tmp/x /home/junc/rikuri/rikurinode-old/x: want stable=ask development=ask, got allow/allow
+rsync -a /tmp/x /home/junc/rikuri/x/../rikurinode/f: want stable=ask development=ask, got allow/allow
+rsync -a /tmp/x /home/junc/rikuri/: want stable=ask development=ask, got allow/allow
+rsync -a /tmp/x ~/rikuri: want stable=ask development=ask, got allow/allow
+scp /tmp/x localhost:/home/junc/rikuri/x: want stable=ask development=ask, got allow/allow
+scp /tmp/x localhost:~/rikuri/x: want stable=ask development=ask, got allow/allow
+scp /tmp/x localhost:"${HOME:?}/rikuri/x": want stable=ask development=ask, got allow/allow
+scp /tmp/x localhost:/home/junc/rikuri/rikurinode-old/x: want stable=ask development=ask, got allow/allow
+scp /tmp/x localhost:/home/junc/rikuri/x/../rikurinode/f: want stable=ask development=ask, got allow/allow
+scp /tmp/x localhost:/home/junc/rikuri/: want stable=ask development=ask, got allow/allow
+scp /tmp/x localhost:~/rikuri: want stable=ask development=ask, got allow/allow
+rsync -a /tmp/x localhost:/home/junc/rikuri/x: want stable=ask development=ask, got allow/allow
+rsync -a /tmp/x localhost:~/rikuri/x: want stable=ask development=ask, got allow/allow
+rsync -a /tmp/x localhost:"${HOME:?}/rikuri/x": want stable=ask development=ask, got allow/allow
+rsync -a /tmp/x localhost:/home/junc/rikuri/rikurinode-old/x: want stable=ask development=ask, got allow/allow
+rsync -a /tmp/x localhost:/home/junc/rikuri/x/../rikurinode/f: want stable=ask development=ask, got allow/allow
+rsync -a /tmp/x localhost:/home/junc/rikuri/: want stable=ask development=ask, got allow/allow
+rsync -a /tmp/x localhost:~/rikuri: want stable=ask development=ask, got allow/allow
+install -m 644 /tmp/x /home/junc/rikuri/x: want stable=ask development=ask, got allow/allow
+install -m 644 /tmp/x ~/rikuri/x: want stable=ask development=ask, got allow/allow
+install -m 644 /tmp/x "${HOME:?}/rikuri/x": want stable=ask development=ask, got allow/allow
+install -m 644 /tmp/x /home/junc/rikuri/rikurinode-old/x: want stable=ask development=ask, got allow/allow
+install -m 644 /tmp/x /home/junc/rikuri/x/../rikurinode/f: want stable=ask development=ask, got allow/allow
+install -m 644 /tmp/x /home/junc/rikuri/: want stable=ask development=ask, got allow/allow
+install -m 644 /tmp/x ~/rikuri: want stable=ask development=ask, got allow/allow
+sort -o /home/junc/rikuri/x /tmp/f: want stable=ask development=ask, got allow/allow
+sort -o ~/rikuri/x /tmp/f: want stable=ask development=ask, got allow/allow
+sort -o "${HOME:?}/rikuri/x" /tmp/f: want stable=ask development=ask, got allow/allow
+sort -o /home/junc/rikuri/rikurinode-old/x /tmp/f: want stable=ask development=ask, got allow/allow
+sort -o /home/junc/rikuri/x/../rikurinode/f /tmp/f: want stable=ask development=ask, got allow/allow
+sort -o /home/junc/rikuri/ /tmp/f: want stable=ask development=ask, got allow/allow
+sort -o ~/rikuri /tmp/f: want stable=ask development=ask, got allow/allow
+sed -n 1p -i /home/junc/rikuri/x: want stable=ask development=ask, got allow/allow
+sed -n 1p -i ~/rikuri/x: want stable=ask development=ask, got allow/allow
+sed -n 1p -i "${HOME:?}/rikuri/x": want stable=ask development=ask, got allow/allow
+sed -n 1p -i /home/junc/rikuri/rikurinode-old/x: want stable=ask development=ask, got allow/allow
+sed -n 1p -i /home/junc/rikuri/x/../rikurinode/f: want stable=ask development=ask, got allow/allow
+sed -n 1p -i /home/junc/rikuri/: want stable=ask development=ask, got allow/allow
+sed -n 1p -i ~/rikuri: want stable=ask development=ask, got allow/allow
+cp -t /home/junc/rikuri/x /tmp/x: want stable=ask development=ask, got allow/allow
+cp -t ~/rikuri/x /tmp/x: want stable=ask development=ask, got allow/allow
+cp -t "${HOME:?}/rikuri/x" /tmp/x: want stable=ask development=ask, got allow/allow
+cp -t /home/junc/rikuri/rikurinode-old/x /tmp/x: want stable=ask development=ask, got allow/allow
+cp -t /home/junc/rikuri/x/../rikurinode/f /tmp/x: want stable=ask development=ask, got allow/allow
+cp -t /home/junc/rikuri/ /tmp/x: want stable=ask development=ask, got allow/allow
+cp -t ~/rikuri /tmp/x: want stable=ask development=ask, got allow/allow
+ag x /home/junc/rikuri/rikurinode/README.md: want stable=allow development=allow, got ask/ask
+docker stop --help: want stable=allow development=allow, got ask/ask

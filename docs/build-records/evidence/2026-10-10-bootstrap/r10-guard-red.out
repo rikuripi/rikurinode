@@ -1,0 +1,9 @@
+2026-10-11 15:45:46
+tree: a443085 + round 10's tests and worked examples (policy unchanged)
+    138 FAIL: test_every_example
+      1 FAIL: test_round3_money_and_secrets_in_heredocs_still_ask
+      1 FAIL: test_round5_cd_segment_itself_is_checked
+AssertionError: {'cmd': "ssh node2 <<'EOF'\ngrep x <(lncli sendcoins --addr x --amt 1)\nEOF", 'p': 'stable', 'v': 'allow'} == {'cmd': "ssh node2 <<'EOF'\ngrep x <(lncli sendcoins --addr x --amt 1)\nEOF", 'p': 'stable', 'v': 'allow'}
+AssertionError: {'cmd': 'cd "$(bitcoin-cli settxfee 0.0001)"', 'v': 'allow'} == {'cmd': 'cd "$(bitcoin-cli settxfee 0.0001)"', 'v': 'allow'}
+Ran 91 tests in 21.087s
+FAILED (failures=140)

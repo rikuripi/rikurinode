@@ -25,8 +25,9 @@ CONFIG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".
 # --- shared fragments ---------------------------------------------------------
 # The previous checkout runs the live node: /home/junc/rikuri/rikurinode, in
 # every spelling the verifiers found (~, ~junc, $HOME, ${HOME}, /home/*, a quote
-# after $HOME, //, /./, a trailing glob, /home//junc).
-HOME = r"(?:~\w*|\$HOME|\$\{HOME\}|/+(?:\./+)*home/+(?:\./+)*(?:junc|\*))[\"']?"
+# after $HOME, //, /./, a trailing glob, /home//junc), and $HOME as a parameter
+# expansion (${HOME:?}, ${HOME%/}, ${HOME:-…}: verifier round 9).
+HOME = r"(?:~\w*|\$HOME|\$\{HOME(?:[^}\w][^}]*)?\}|/+(?:\./+)*home/+(?:\./+)*(?:junc|\*))[\"']?"
 SEP = r"/+(?:\./)*"
 # A folder named as a whole word: optionally with a trailing /, a /* or /**,
 # or a brace list ({,.off}, /{a,b}), then the word's end.
@@ -38,9 +39,12 @@ SUDO = r"(?:sudo\s+(?:-\S+\s+)*)?"           # an optional sudo with its options
 CMD = W + SUDO + r"(?:[\w.~/-]*/)?"           # a command, maybe called by its path (/bin/rm)
 START = r"(?<![^\s\"'=(])"                    # a path's start: after a space, a quote, = or (
 # The folders before a folder's name: git's pathspec magic (:/, :(top)), then
-# ./ (repeated), or an absolute path, or one under ~ or ~+, a variable or a
-# $(…). A relative path (build/scripts, ../x) is another folder: not matched.
-PFX = (r"(?::/|:\([^)\s]*\))?(?:(?:\./+)+|(?:/|~[\w+]*/|\$\{?\w+\}?[\"']?/|\$\([^)]*\)[\"']?/)"
+# ./ (repeated), or an absolute path, or one under ~ or ~+, a variable (also as
+# a parameter expansion, ${PWD:?}, ${PWD%/}), a $(…) or a backtick. A relative
+# path (build/scripts, ../x) is another folder: not matched. (The expansions
+# and the backtick asked in round 6 and were lost in round 7: verifier round 9.)
+PFX = (r"(?::/|:\([^)\s]*\))?(?:(?:\./+)+|(?:/|~[\w+]*/|(?:\$\w+|\$\{\w+(?:[^}\w][^}]*)?\})[\"']?/"
+       r"|\$\([^)]*\)[\"']?/|`[^`]*`[\"']?/)"
        r"(?:[^\s\"';|&<>()]*/)?)?")
 # The folders before a file's name: any (the hook's file names are specific
 # enough that build/scripts/quality/hooks may ask too).
@@ -50,16 +54,23 @@ FPFX = r"(?:[^\s\"';|&<>()]*/)?"
 # every | outside quotes, so a bare >| reaches the rules cut in two (the >\s*$
 # rule asks); inside a quoted code string it arrives whole.
 REDIR = r"(?:[0-9]*|&)[<>]{1,2}&?\s*\S+"
+# Options with which a read runs another program or writes a file: git grep's
+# -O<program> (in a cluster too, -nOvim) and --open-files-in-pager (any
+# abbreviation: --op…), rg's --pre, ag's --pager, git's --output (--ou…),
+# --ext-diff and --textconv (verifier round 9).
+RUNS = r"\s(?:-[A-Za-z]*O|--(?:op|pre\b|pager\b|ou|ext(?:-d\w*|-)?(?![\w-])|textc))"
 # A segment that runs more than its first command: a lone & (guard.py splits at
-# ; && || | and newlines, not at &) or a $(…). (guard.py reads a backtick's
-# command itself.)
-MORE = r"(?=.*(?:(?<![&>])&(?![&>])|\$\())"
+# ; && || | and newlines, not at &), a $(…), a process substitution — <(…),
+# >(…) or zsh's =(…), which guard.py does not read (verifier round 9: `grep x
+# <(lncli sendcoins …)`) — or an option in RUNS. (guard.py reads a backtick's
+# command itself, and a $(…)'s.)
+MORE = r"(?=.*(?:(?<![&>])&(?![&>])|\$\(|[<>=]\(|" + RUNS + r"))"
 # A leading lookahead that exempts segments which only read or describe:
 # searches, logs, commit and tag messages, PR and issue text, echo, printf —
 # unless the segment runs more than that (verifier round 8: `echo & lncli …`).
-NR = (r"^(?:(?!\s*(?:git\s+(?:-C\s+\S+\s+)?(?:grep|log|show|diff)|git\s+(?:commit|tag)\b"
-      r"|gh\s+(?:pr|issue)\s+(?:create|edit|comment)|grep|egrep|fgrep|rg|ag|less|head|tail|echo|printf)\b)|"
-      + MORE + ")")
+READS = (r"(?:git\s+(?:-C\s+\S+\s+)?(?:grep|log|show|diff)|git\s+(?:commit|tag)\b"
+         r"|gh\s+(?:pr|issue)\s+(?:create|edit|comment)|grep|egrep|fgrep|rg|ag|less|head|tail|echo|printf)\b")
+NR = r"^(?:(?!\s*" + READS + r")|" + MORE + ")"
 # A command started from code: system(), subprocess.run(), exec…() with a string.
 CALL = r"(?:system|popen|run|call|Popen|check_output|check_call|exec[lv]p?e?|spawn\w*)\s*\(\s*\[?\s*\\?[\"']"
 GITREADS = (r"(?:log|show|diff|grep|status|blame|ls-files|ls-tree|cat-file|rev-parse|describe|shortlog|reflog"
@@ -156,28 +167,46 @@ rule(rx(r"\bgit\s+(?=[^|;&]*?(?:-C\s+|--git-dir[= ]|--work-tree[= ])[\"']?" + OL
         r"\bgit\b.*\b(?:clone|init|worktree\s+add)\b.*\s[\"']?" + OLD),
      "git command that changes the previous rikurinode checkout (only log/show/diff/grep and other reads are free; "
      "a -c option can run a program)")
-rule(rx(*writes(OLD, PARENT))
-     + r"|>>?\s*[\"']?(?:" + OLD + "|" + PARENT + ")",
+# anything under the parent folder, the previous checkout included (not rikuripi, this repository's parent)
+PARENT_TREE = HOME + SEP + r"rikuri(?![\w.-])"
+# A copy's destination may name a host (scp/rsync host:path); this machine may be the host.
+HOST = r"(?:[\w.@-]+:[\"']?)?"
+rule(rx(*writes(OLD, PARENT),
+        # anything in the parent folder as a copy's destination (round 10: `cp -r /tmp/rikurinode
+        # /home/junc/rikuri/` overwrote the checkout's files in the verifier's scratch copy)
+        CMD + r"(?:cp|install|rsync|scp)\b.*" + dest(HOST + PARENT_TREE),
+        CMD + r"(?:cp|install)\b.*(?:\s-[A-Za-z]*t\s*|--target-directory[= ])[\"']?" + PARENT_TREE,
+        r"\bsort\b.*(?:\s-[A-Za-z]*o\s*|--ou\w*[= ]\s*)[\"']?" + PARENT_TREE)
+     + r"|(?:>\||>>?)\s*[\"']?" + PARENT_TREE,
      "writes, edits, moves or deletes files in the previous rikurinode checkout or its parent folder, where the LIVE "
      "node runs. The owner decides")
 # Closed-world (round 9): any command that names the previous checkout asks,
 # unless it is one of these reads, alone in its segment — or a copy out of it
-# (cp, install, rsync, scp: judged by writes() above, and never as a link).
+# (cp, install, rsync, scp: judged by the rule above). An option that links,
+# runs a program or writes a file ends the exemption: here, or in RUNS (MORE).
 OLD_READS = (r"(?:(?:cat|less|more|head|tail|wc|ls|stat|file|diff|cmp|sha\d*sum|md5sum|b2sum|du|readlink|realpath"
-             r"|basename|dirname|grep|egrep|fgrep|jq|test|strings|echo|printf|sort)\b|\["
-             r"|tree\b(?![^|;&]*\s-o)|rg\b(?![^|;&]*\s--pre)"
+             r"|basename|dirname|grep|egrep|fgrep|jq|test|strings|echo|printf|rg|ag)\b|\["
+             # sort without -T or --compress-program (round 10; -o into the parent folder: the rule above)
+             r"|sort\b(?![^|;&]*\s(?:-[A-Za-z]*T|--(?:com|te)\w*))"
+             r"|tree\b(?![^|;&]*\s(?:-[A-Za-z]*o|--o\w*))"
              r"|find\b(?![^|;&]*\s-(?:delete|exec|execdir|ok|okdir|fprint\w*|fls)\b)"
-             r"|sed\s+-n\s+(?:-E\s+)?[\"']?[\d,$]+p[\"']?(?=\s)"
-             # git reads there (no -c, which can run a program; no option that writes a file or runs a pager)
+             # sed -n '<lines>p' and then only file names, to the end (round 10: -e 'w …', -i)
+             r"|sed\s+-n\s+(?:-E\s+)?(?:'[\d,$]+p'|\"[\d,$]+p\"|[\d,$]+p)(?:\s+[^\s;|&<>`$()'\"-][^\s;|&<>`$()'\"]*)+"
+             r"\s*(?:[0-9]*>{1,2}\s*[^\s;|&<>()]+\s*)?$"
+             # git reads there (no -c, which can run a program)
              r"|git\s+-C\s+[\"']?\S+\s+(?:--no-pager\s+|--no-optional-locks\s+)*(?:log|show|diff|grep|status|blame"
-             r"|ls-files|ls-tree|cat-file|rev-parse|describe|shortlog)\b(?![^|;&]*\s(?:--output|-O|--open-files-in-pager)\b)"
-             # text that names it: a commit or tag message, a search here, a PR or issue
-             r"|git\s+(?:commit|tag|grep)\b|gh\s+(?:pr|issue)\s+(?:create|edit|comment)\b"
-             # copies out of it, judged by writes(): never as a link
-             r"|(?:cp|install)\b(?![^|;&]*\s(?:-[A-Za-z]*[ls]|--link|--symbolic-link)\b)"
-             r"|rsync\b(?![^|;&]*--link-dest)|scp\b)")
-# anything under the parent folder, the previous checkout included (not rikuripi, this repository's parent)
-PARENT_TREE = HOME + SEP + r"rikuri(?![\w.-])"
+             r"|ls-files|ls-tree|cat-file|rev-parse|describe|shortlog)\b"
+             # text that names it: a commit or tag message (not from a file), a search here, a PR or issue
+             # (not a body read from a file: it would be posted)
+             r"|git\s+(?:commit|tag)\b(?![^|;&]*\s(?:-[A-Za-z]*[Ft]|--(?:fi|te)\w*))|git\s+grep\b"
+             r"|gh\s+(?:pr|issue)\s+(?:create|edit|comment)\b(?![^|;&]*\s(?:-[A-Za-z]*F|--body-file))"
+             # copies out of it, judged by the rule above: never as a link, never running a program
+             # (cp -l/-s/--link/--symbolic-link in any cluster or abbreviation; install -s/--strip-program;
+             # rsync -e/--rsh/--rsync-path, its files written elsewhere, --link-dest; scp -S/-o/-F/-J)
+             r"|(?:cp|install)\b(?![^|;&]*\s(?:-[A-Za-z]*[ls]|--(?:l|sy|st)\w*))"
+             r"|rsync\b(?![^|;&]*\s(?:-[A-Za-z]*[eT]|--(?:rs|link-d|log-f|te|backup-d|partial-d|write-b|only-w"
+             r"|copy-d|compare-d)\w*))"
+             r"|scp\b(?![^|;&]*\s-[A-Za-z]*[SoFJ]))")
 rule(r"^(?:(?!\s*(?:sudo\s+)?" + OLD_READS + r")|" + MORE + r")(?=.*" + PARENT_TREE + r")",
      "names the previous rikurinode checkout, or anything in its parent folder, where the LIVE node runs, in a command "
      "that is not one of the reads "
@@ -266,6 +295,71 @@ rule(rx(r"\b(?:tar|zip|7z|rsync|scp|cp)\b.*(?:\.lnd|\.bitcoin|\.tapd|lnd[-_]?dat
         r"|/var/lib/rikuri)(?:/|\b)"),
      "copies or archives the node's wallet, key or channel folders — owner approves")
 
+# --- node and container tools, closed-world (owner, 2026-10-11) ---------------------------
+# The rules above list what moves money; each review found a form they missed
+# (round 9: `grep x <(lncli sendcoins …)`). So a command that names a node or
+# container tool asks unless it is, alone in its segment and whole, one of the
+# reads below: named as a word anywhere — called by a path, after sudo, env,
+# timeout or ssh, inside quotes or code, in a process substitution — but not
+# inside a longer name (lncli.md, docker-compose.yml, ~/.docker, docker/).
+NODE_TOOLS = (r"(?<![\w.-])(?:docker-compose|podman-compose|docker|podman|nerdctl|lncli|bitcoin-cli|tapcli|litcli"
+              r"|chantools)(?![\w./-])")
+ARG = r"(?:[\w./:=,@%+~-]+|'[^'$`\\]*'|\"[^\"$`\\]*\")"   # a plain word, or quoted text with no $, ` or \
+TAIL = (r"(?:\s+" + ARG + r")*(?:\s+(?:[0-9]*|&)>{1,2}(?:&\d|\s*[\w./~-]+))*\s*$")  # its words, then redirections
+HELP = r"(?:\s+[a-z]+)*\s+(?:--help|-h)\s*$|\s+(?:help(?:\s+[a-z]+)*|--version|-v|version)\s*$"
+LNCLI_READS = (r"getinfo|getrecoveryinfo|getnetworkinfo|getnodeinfo|getchaninfo|getnodemetrics|describegraph"
+               r"|listchannels|closedchannels|pendingchannels|listpeers|listinvoices|lookupinvoice|listpayments"
+               r"|walletbalance|channelbalance|feereport|fwdinghistory|queryroutes|decodepayreq|listunspent"
+               r"|listchaintxns|estimatefee|verifymessage|state|wallet\s+(?:accounts\s+list|listsweeps|pendingsweeps"
+               r"|estimatefeerate|addresses\s+list)|chain\s+(?:getblock|getblockheader|getblockhash|getbestblock)")
+BTC_READS = (r"getblockchaininfo|getblockcount|getbestblockhash|getblock|getblockhash|getblockheader|getblockstats"
+             r"|getchaintips|getchaintxstats|getdifficulty|getmempoolinfo|getrawmempool|getmempoolentry"
+             r"|getmempoolancestors|getmempooldescendants|getnetworkinfo|getpeerinfo|getconnectioncount|getnettotals"
+             r"|getnodeaddresses|getaddednodeinfo|getindexinfo|getrawtransaction|decoderawtransaction|decodescript"
+             r"|decodepsbt|analyzepsbt|estimatesmartfee|testmempoolaccept|getwalletinfo|getbalance|getbalances"
+             r"|getunconfirmedbalance|listwallets|listwalletdir|listunspent|listtransactions|listsinceblock"
+             r"|gettransaction|getaddressinfo|validateaddress|getdescriptorinfo|deriveaddresses|uptime|getmininginfo"
+             r"|getnetworkhashps|gettxout|gettxoutproof|verifytxoutproof|gettxoutsetinfo|getdeploymentinfo"
+             r"|getrpcinfo|getmemoryinfo|getzmqnotifications|listlabels|getaddressesbylabel|listreceivedbyaddress"
+             r"|listreceivedbylabel|listaddressgroupings|getreceivedbyaddress|getreceivedbylabel|verifymessage")
+# Reads only: the docker family's listings and logs, and inspect only with a
+# --format naming fields that hold no secret (a container's environment can).
+INSPECT_FIELDS = (r"(?:State|Name|Id|Created|RestartCount|Image|Platform|Driver|NetworkSettings|HostConfig|Mounts"
+                  r"|Config\.(?:Image|Labels|Hostname))")
+TEMPLATE = r"(?:[^'\"{}$`\\]|\{\{\s*(?:json\s+)?\." + INSPECT_FIELDS + r"(?:\.\w+)*\s*\}\})*"
+COMPOSE = (r"(?:\s+(?:-f|--file|-p|--project-name|--project-directory)(?:=|\s+)[\w./-]+)*\s+"
+           r"(?:(?:ps|logs|ls|images|top|version)" + TAIL + r"|config\s+--(?:services|images|volumes)\s*$)")
+DOCKER_READS = (r"(?:ps|images|version|info|logs|top|port|history|diff|events|stats\s+--no-stream"
+                r"|(?:container|image|network|volume|pod)\s+(?:ls|list|ps)|container\s+(?:logs|top|port|diff)"
+                r"|image\s+(?:history|inspect)|manifest\s+inspect|(?:network|volume)\s+inspect|system\s+df"
+                r"|context\s+(?:ls|show)|pod\s+ps)" + TAIL
+                + r"|compose" + COMPOSE
+                # a container's inspect: only with a --format of the fields above, before or after its names
+                + r"|(?:container\s+)?inspect(?=[^|;&]*\s(?:-f|--format)[=\s])(?:\s+(?:[\w.-]+|(?:-f|--format)"
+                r"(?:=|\s+)(?:'" + TEMPLATE + r"'|\"" + TEMPLATE + r"\")))+\s*$")
+NODE_READ = (r"(?:lncli(?:\s+(?:-n\s+\w+|--network[= ]\w+|--rpcserver[= ][\w.:-]+|--chain[= ]\w+"
+             r"|--lnddir[= ][\w./~-]+|--tlscertpath[= ][\w./~-]+))*(?:\s+(?:" + LNCLI_READS + r")" + TAIL + "|" + HELP
+             + r")|bitcoin-cli(?:\s+-(?:rpcwallet=[\w.-]+|chain=\w+|testnet|regtest|signet|rpcport=\d+"
+             r"|rpcconnect=[\w.:-]+|datadir=[\w./~-]+|named|rpcclienttimeout=\d+))*(?:\s+(?:" + BTC_READS + r")" + TAIL
+             + r"|\s+listdescriptors(?:\s+false)?\s*$"   # its public descriptors; `true` prints the private keys
+             r"|\s+-(?:getinfo|netinfo(?:=\d)?|version|help|\?)\s*$|\s+help(?:\s+\w+)?\s*$)"
+             r"|tapcli(?:\s+(?:-n\s+\w+|--network[= ]\w+|--rpcserver[= ][\w.:-]+))*(?:\s+(?:getinfo"
+             r"|assets\s+(?:list|balance|transfers|utxos|groups|meta|mint\s+batches)|addrs\s+(?:query|receives|decode)"
+             r"|universe\s+(?:roots|stats|leaves|keys|info|federation\s+list))" + TAIL + "|" + HELP + r")"
+             r"|litcli(?:\s+(?:getinfo|status)" + TAIL + "|" + HELP + r")"
+             r"|chantools(?:" + HELP + r")"
+             r"|(?:docker|podman|nerdctl)(?:\s+(?:" + DOCKER_READS + r")|" + HELP + r")"
+             r"|(?:docker|podman)-compose(?:" + COMPOSE + "|" + HELP + r"))")
+# a command that only names it: which, type, command -v, a listing, a checksum,
+# a service's status or journal (not journalctl's --vacuum, --rotate, --flush, …)
+NAMES_ONLY = (r"(?:which|type|whereis|command\s+-[vV]|ls|stat|file|readlink|realpath|basename|dirname|sha\d*sum"
+              r"|md5sum|b2sum|du|wc|test|\[|systemctl\s+(?:--user\s+)?(?:status|is-active|is-enabled|is-failed|show|cat"
+              r"|list-units|list-unit-files)|journalctl(?![^|;&]*\s--(?:vac|rot|flu|rel|set|syn|upd|cur)))"
+              r"(?:\s+[\w./~=\]-]+)*\s*$")
+rule(NR + r"(?!\s*(?:" + NODE_READ + "|" + NAMES_ONLY + r"))(?=.*" + NODE_TOOLS + ")",
+     "names a node or container tool (lncli, bitcoin-cli, tapcli, litcli, chantools, docker, podman, nerdctl, "
+     "docker-compose, podman-compose) in a command that is not one of the reads this repository allows" + LIVE)
+
 # --- a command the guard cannot see whole ---------------------------------------------
 # every command family a rule here guards (verifier round 8 found nerdctl, the
 # package managers, grpcurl, wget and http missing)
@@ -274,10 +368,20 @@ CONTINUED = (r"(?:lncli|bitcoin-cli|tapcli|loop|pool|docker|docker-compose|podma
              r"|rpm-ostree|dnf|yum|zypper|pacman|curl|wget|https?|grpcurl|kill|pkill|killall|rm|rmdir|mv|cp|install"
              r"|rsync|scp|ln|tar|gtar|bsdtar|unzip|7z\w*|cpio|sed|perl|g?awk|find|chmod|chown|git|gh|cd|pushd|xargs"
              r"|sudo|sh|bash|zsh|eval|python3?)")
-rule(rx(W + SUDO + r"(?:\S*/)?" + CONTINUED + r"\b.*?\\(?:\s*$|\\|n(?![A-Za-z]))"),
+rule(rx(W + SUDO + r"(?:\S*/)?" + CONTINUED + r"\b.*?\\(?:\\|n(?![A-Za-z]))"),
+     "a command continued onto the next line inside a code string (a doubled backslash or \\n): the shared guard.py "
+     "judges each line on its own, so it cannot see this command whole (verifier, 2026-10-10). Join it onto one line")
+# Any command continued onto the next line (backslash-newline) asks, whatever
+# it is (verifier round 9: `shred -u \⏎scripts/quality/hooks/pre-commit`, and
+# tee, truncate, dd, unlink, vim, …) — except a read that writes nowhere: a
+# read with a redirection asks too (`echo x > \⏎<the hook>` writes the hook).
+# A backslash-newline inside quotes (a code string) is not split by guard.py:
+# it asks wherever it is in the segment, also written as Python writes it in
+# a string (`'rm \\\nx'`: an escaped backslash, then \n).
+rule(r"^(?:(?!\s*" + READS + r")|" + MORE + r"|(?=[\s\S]*>))[\s\S]*?(?:\\(?:\n|$)|\\\\\\n)",
      "a command continued onto the next line (backslash-newline): the shared guard.py judges each line on its own, "
-     "so it cannot see this command whole (verifier, 2026-10-10; the fix to guard.py is the owner's call). Join it "
-     "onto one line")
+     "so it cannot see this command whole (verifier, 2026-10-10; the fix to guard.py is in review). Join it onto one "
+     "line")
 
 rule(r">\s*$",
      "a `>|` redirection (it overwrites even under noclobber): the shared guard.py splits a command at every `|`, "

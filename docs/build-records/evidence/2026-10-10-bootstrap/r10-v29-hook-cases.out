@@ -1,0 +1,48 @@
+2026-10-11 16:04:21 — round 9 verifier's hook (h) and continued (k) cases, replayed on round 10's policy
+h1   verifier-wanted ask       got ask/ask | 'rm -rf ${PWD:?}/scripts'
+h2   verifier-wanted ask       got ask/ask | 'rm -rf "${PWD%/}/.git"'
+h3   verifier-wanted ask       got ask/ask | 'rm -rf "${PWD:?}/scripts/quality"'
+h4   verifier-wanted -         got ask/ask | 'rm -rf `pwd`/scripts'
+h5   verifier-wanted -         got ask/ask | 'rm -rf `git rev-parse --show-toplevel`/.git'
+h6   verifier-wanted -         got allow/allow | "git rm -r ':(icase)SCRIPTS/quality/hooks'"  (gets through: listed limit)
+h7   verifier-wanted -         got allow/allow | 'GIT_ICASE_PATHSPECS=1 git rm -r Scripts/Quality/Hooks'  (gets through: listed limit)
+h8   verifier-wanted ask       got ask/ask | "git rm -r ':(top,literal)scripts/quality/hooks'"
+h9   verifier-wanted ask       got ask/ask | 'rm -rf ~+//scripts'
+h10  verifier-wanted ask       got ask/ask | 'rm -rf $PWD/./scripts'
+h11  verifier-wanted ask       got ask/ask | 'rm -rf /proc/self/cwd/scripts'
+h12  verifier-wanted -         got allow/allow | 'cp -r /tmp/scripts .'  (gets through: listed limit)
+h13  verifier-wanted -         got allow/allow | 'tar -xf /tmp/hook.tar'  (gets through: listed limit)
+h14  verifier-wanted -         got allow/allow | 'git worktree add --orphan -b x /tmp/wt'  (gets through: listed limit)
+h15  verifier-wanted ask       got ask/ask | 'git config set core.hooksPath /dev/null'
+h16  verifier-wanted ask       got ask/ask | 'git config --file=.git/config core.hooksPath /dev/null'
+h17  verifier-wanted ask       got ask/ask | 'git -ccore.hooksPath=/dev/null commit -m x'
+h18  verifier-wanted ask       got ask/ask | "sed -i'' -e s/x/y/ scripts/quality/hooks/pre-commit"
+h19  verifier-wanted ask       got ask/ask | 'perl -0777 -pi -e s/x/y/ scripts/quality/hooks/pre-commit'
+h20  verifier-wanted ask       got ask/ask | 'gawk -i inplace.awk 1 scripts/quality/hooks/pre-commit'
+h21  verifier-wanted ask       got ask/ask | 'rm -rf "$(git rev-parse --show-toplevel)"/.git'
+h22  verifier-wanted ask       got ask/ask | 'rm -rf $(pwd)/scripts'
+h23  verifier-wanted ask       got ask/ask | 'rm -rf -- "$PWD"/scripts'
+h24  verifier-wanted ask       got ask/ask | 'rm -rf /tmp/x/.git'
+h25  verifier-wanted ask       got ask/ask | 'tar -tf a.tar -C scripts'
+h26  verifier-wanted ask       got ask/ask | 'mv x scripts/quality/'
+h27  verifier-wanted ask       got ask/ask | 'git restore scripts/quality/hooks/pre-commit'
+h28  verifier-wanted ask       got ask/ask | "curl -w '%{http_code}\\n' https://example.com"
+h29  verifier-wanted ask       got ask/ask | 'echo x >| /tmp/y'
+h30  verifier-wanted ask       got ask/ask | 'cp -t .git/hooks /tmp/pre-commit'
+h31  verifier-wanted ask       got ask/ask | 'git commit -nm x'
+h32  verifier-wanted ask       got ask/ask | 'git commit --no-veri -m x'
+h33  verifier-wanted ask/allow got ask/allow | 'cp -r /tmp/q/. scripts/quality'
+k1   verifier-wanted ask       got ask/ask | 'shred -u \\\nscripts/quality/hooks/pre-commit'
+k2   verifier-wanted ask       got ask/ask | 'echo x | tee \\\nscripts/quality/hooks/pre-commit'
+k3   verifier-wanted ask       got ask/ask | 'truncate -s0 \\\nscripts/quality/hooks/pre-commit'
+k4   verifier-wanted ask       got ask/ask | 'dd if=/dev/null \\\nof=scripts/quality/hooks/pre-commit'
+k5   verifier-wanted ask       got ask/ask | 'unlink \\\nscripts/quality/hooks/pre-commit'
+k6   verifier-wanted ask       got ask/ask | 'chgrp nobody \\\nscripts/quality/hooks/pre-commit'
+k7   verifier-wanted ask       got ask/ask | 'vim \\\nscripts/quality/hooks/pre-commit'
+k8   verifier-wanted ask       got ask/ask | 'sort -o \\\nscripts/quality/hooks/pre-commit x'
+k9   verifier-wanted ask       got ask/ask | 'zip -m a.zip \\\nscripts/quality/hooks/pre-commit'
+k10  verifier-wanted ask       got ask/ask | 'touch \\\nscripts/quality/hooks/pre-commit'
+k11  verifier-wanted ask       got ask/ask | 'rm -f \\\nscripts/quality/hooks/pre-commit'
+k12  verifier-wanted ask       got ask/ask | 'chmod -x \\\nscripts/quality/hooks/pre-commit'
+k13  verifier-wanted ask       got ask/ask | 'rename s/a/b/ \\\nscripts/quality/hooks/pre-commit'
+k14  verifier-wanted ask       got ask/ask | 'shred -u \\\n/home/junc/rikuri/rikurinode/f'

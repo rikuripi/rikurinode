@@ -442,7 +442,7 @@
 {"tool": "Bash", "text": "patch /home/junc/rikuri/rikurinode/x fix.diff", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "perl -pi -e 's/a/b/' $HOME/rikuri/rikurinode/x", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "rm -rf /home/junc/rikuri/rikurinode/*", "stable": "ask", "development": "ask"}
-{"tool": "Bash", "text": "cp x /home/junc/rikuri/", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cp x /home/junc/rikuri/", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "touch /home/junc/rikuri/x", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "rsync --delete -a /tmp/e/ /home/junc/rikuri/", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "unzip x.zip -d ~/rikuri/rikurinode", "stable": "ask", "development": "ask"}
@@ -494,7 +494,7 @@
 {"tool": "Bash", "text": "npm ci && npm test", "stable": "allow", "development": "allow"}
 {"tool": "Bash", "text": "scripts/quality/safe-run.sh cargo test", "stable": "allow", "development": "allow"}
 {"tool": "Bash", "text": "git reset --hard HEAD~1", "stable": "allow", "development": "allow"}
-{"tool": "Bash", "text": "git commit -m \"$(cat <<'X'\\nfeat: add the node status page\\nX\\n)\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git commit -m \"$(cat <<'X'\nfeat: add the node status page\nX\n)\"", "stable": "allow", "development": "allow"}
 {"tool": "Bash", "text": "cd \"$HOME\"/rikuri/rikurinode && git pull", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "cd /home/junc/rikuri/./rikurinode", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "cd /home/*/rikuri/rikurinode", "stable": "ask", "development": "ask"}
@@ -548,7 +548,7 @@
 {"tool": "Bash", "text": "cp /home/junc/rikuri/rikurinode/scripts/sync-bitcoin-cookie.sh scripts/", "stable": "allow", "development": "allow"}
 {"tool": "Bash", "text": "cp -r /home/junc/rikuri/rikurinode/control-plane/src ./ref", "stable": "allow", "development": "allow"}
 {"tool": "Bash", "text": "git commit -m \"port sync-bitcoin-cookie.sh from /home/junc/rikuri/rikurinode\"", "stable": "allow", "development": "allow"}
-{"tool": "Bash", "text": "git commit -m \"$(cat <<'X'\\nguard: ask before cd /home/junc/rikuri/rikurinode\\nX\\n)\"", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "git commit -m \"$(cat <<'X'\nguard: ask before cd /home/junc/rikuri/rikurinode\nX\n)\"", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "gh pr create --title t --body \"never cd /home/junc/rikuri/rikurinode\"", "stable": "allow", "development": "allow"}
 {"tool": "Bash", "text": "rg -n 'cd /home/junc/rikuri/rikurinode' docs", "stable": "allow", "development": "allow"}
 {"tool": "Bash", "text": "git grep -n 'rm -rf ~/rikuri'", "stable": "allow", "development": "allow"}
@@ -559,7 +559,7 @@
 {"tool": "Bash", "text": "cat /home/junc/rikuri/rikurinode/configs/bitcoin.conf", "stable": "deny", "development": "deny"}
 {"tool": "Bash", "text": "git -C /home/junc/rikuri/rikurinode show HEAD:configs/bitcoin.conf", "stable": "ask", "development": "ask"}
 {"tool": "Read", "text": "/home/junc/rikuri/rikurinode/control-plane/src/cookie.rs", "stable": "allow", "development": "allow"}
-{"tool": "Bash", "text": "diff <(git -C /home/junc/rikuri/rikurinode show HEAD:scripts/sync-bitcoin-cookie.sh) scripts/x.sh", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "diff <(git -C /home/junc/rikuri/rikurinode show HEAD:scripts/sync-bitcoin-cookie.sh) scripts/x.sh", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "jq . /home/junc/rikuri/rikurinode/ragdocs/runbooks/RB-SEED-RECOVERY-DRILL-01.json", "stable": "allow", "development": "allow"}
 {"tool": "Bash", "text": "tar -tzf /tmp/x.tgz -C /home/junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "cp x /home/junc/rikuri/rikurinode/f 2> /dev/null", "stable": "ask", "development": "ask"}
@@ -1029,7 +1029,7 @@
 {"tool": "Bash", "text": "exec 3>/home/junc/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": ": > ${HOME}/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "printf x >|\"$HOME/rikuri/rikurinode/f\"", "stable": "ask", "development": "ask"}
-{"tool": "Bash", "text": "cat <<EOF > /home/junc/rikuri/rikurinode/f\\nx\\nEOF", "stable": "ask", "development": "ask"}
+{"tool": "Bash", "text": "cat <<EOF > /home/junc/rikuri/rikurinode/f\nx\nEOF", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "python3 -c 'import os; os.system(\"echo x >| /home/junc/rikuri/rikurinode/f\")'", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "bash -c \"echo x >| ~/rikuri/rikurinode/f\"", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "echo x > /home/*/rikuri/rikurinode/f", "stable": "ask", "development": "ask"}
@@ -1039,7 +1039,7 @@
 {"tool": "Bash", "text": "git rm -r .", "stable": "allow", "development": "allow"}
 {"tool": "Bash", "text": "rsync -a /tmp/x/ scripts/", "stable": "allow", "development": "allow"}
 {"tool": "Bash", "text": "python3 -c \"open('scripts/quality/hooks/pre-commit','w')\"", "stable": "allow", "development": "allow"}
-{"tool": "Bash", "text": "L=lncli; $L sendcoins --addr x --amt 1", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "L=lncli; $L sendcoins --addr x --amt 1", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "git -c $'core.hooksPath=/dev/null' commit -m x", "stable": "allow", "development": "allow"}
 {"tool": "Bash", "text": "cat ~/.docker/config.json", "stable": "allow", "development": "allow"}
 {"tool": "Bash", "text": "echo \"[alias] ci = commit -n\" >> ~/.gitconfig", "stable": "allow", "development": "allow"}
@@ -1070,7 +1070,7 @@
 {"tool": "Bash", "text": "bash -c 'echo x >| /tmp/y'", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "python3 -c \"import os; os.system('echo x >| scripts/quality/hooks/pre-commit')\"", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "perl -e 'system(\"echo x >| .git/config\")'", "stable": "ask", "development": "ask"}
-{"tool": "Bash", "text": "cat <<EOF > /tmp/msg\\nrm -rf scripts/quality/hooks\\nEOF", "stable": "allow", "development": "allow"}
+{"tool": "Bash", "text": "cat <<EOF > /tmp/msg\nrm -rf scripts/quality/hooks\nEOF", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "rm -rf /home//junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "rm -rf /home/./junc/rikuri/rikurinode", "stable": "ask", "development": "ask"}
 {"tool": "Bash", "text": "rm -rf .//scripts/quality/hooks", "stable": "ask", "development": "ask"}

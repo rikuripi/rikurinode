@@ -5,7 +5,11 @@ Round 2's verifier: the gate's wiring step stayed green with
 The check reads the settings as Claude Code does: hooks enabled, the exact
 guard command, before (PreToolUse) every file and shell tool; and (owner,
 2026-10-11) the OS sandbox around every shell command, failing closed, with
-nothing in the settings that widens it.
+nothing in the settings that widens it. Round 10 (verifier round 9: nine
+widenings that Claude Code's settings schema documents passed): the check is
+closed-world — the project file's sandbox is exactly the expected block, the
+local file has none, and no permission rule, environment variable or other
+hook in either file widens or bypasses it.
 Record: docs/build-records/2026-10-10-bootstrap.md
 """
 import copy
@@ -28,7 +32,7 @@ SANDBOX = {"enabled": True, "failIfUnavailable": True, "allowUnsandboxedCommands
            "filesystem": {"denyWrite": ["./scripts/quality/hooks"],
                           "denyRead": ["/home/junc/rikuri/rikurinode/.env", "/home/junc/rikuri/rikurinode/data",
                                        "/run/rikuri"]},
-           "network": {"allowedDomains": ["github.com", "api.github.com"]}}
+           "network": {"allowedDomains": ["github.com", "api.github.com", "*.githubusercontent.com"]}}
 
 
 def settings(**kw):
@@ -37,6 +41,27 @@ def settings(**kw):
          "sandbox": copy.deepcopy(SANDBOX)}
     s.update(kw)
     return s
+
+
+def setin(d, path, value):
+    for k in path[:-1]:
+        d = d.setdefault(k, {})
+    d[path[-1]] = value
+
+
+def main_with(project, local):
+    """The gate's default run: the project file and the local file beside it."""
+    here = os.getcwd()
+    with tempfile.TemporaryDirectory() as d:
+        os.makedirs(os.path.join(d, ".claude"))
+        for name, s in (("settings.json", project), ("settings.local.json", local)):
+            with open(os.path.join(d, ".claude", name), "w") as f:
+                json.dump(s, f)
+        try:
+            os.chdir(d)
+            return w.main(["check_guard_wiring.py"])
+        finally:
+            os.chdir(here)
 
 
 def problems(s):
@@ -79,7 +104,7 @@ class Wiring(unittest.TestCase):
             hook.pop("onFailure")
             if value:
                 hook["onFailure"] = value
-            self.assertTrue(problems(s), value)
+            self.assertTrue(any("onFailure" in p for p in problems(s)), value)
 
     def test_a_command_that_only_mentions_the_guard_fails(self):
         s = settings()
@@ -170,6 +195,100 @@ class Wiring(unittest.TestCase):
                     self.assertEqual(w.main(["check_guard_wiring.py"]), 1, local)
             finally:
                 os.chdir(here)
+
+    def test_documented_widenings_fail_in_either_file(self):
+        # verifier round 9: each passed the check, as the project file and as
+        # the local file (Claude Code 2.1.295's settings schema documents them)
+        widen = [(("sandbox", "network", "allowedDomains"), ["github.com", "api.github.com", "*.githubusercontent.com",
+                                                             "*"]),
+                 (("sandbox", "network", "allowedDomains"), ["github.com", "example.com"]),
+                 (("sandbox", "network", "httpProxyPort"), 3128), (("sandbox", "network", "socksProxyPort"), 1080),
+                 (("sandbox", "filesystem", "allowRead"), ["/home/junc/rikuri/rikurinode/.env"]),
+                 (("sandbox", "filesystem", "allowRead"), ["/home/junc/rikuri/rikurinode/data"]),
+                 (("permissions", "allow"), ["Edit(//home/junc/rikuri/**)"]),
+                 (("permissions", "allow"), ["WebFetch(domain:*)"]), (("sandbox", "ignoreViolations"), {"*": ["/"]})]
+        for path, value in widen:
+            with self.subTest(path=path, value=value):
+                s = settings()
+                setin(s, path, value)
+                self.assertTrue(problems(s), "project file")
+                local = {}
+                setin(local, path, value)
+                self.assertEqual(main_with(settings(), local), 1, "local file")
+
+    def test_any_other_sandbox_key_fails(self):
+        # closed-world: a key the check does not know may widen the sandbox
+        for path in (("sandbox", "newKey"), ("sandbox", "filesystem", "newKey"), ("sandbox", "network", "newKey")):
+            s = settings()
+            setin(s, path, True)
+            self.assertTrue(problems(s), path)
+        s = settings()
+        s["sandbox"]["excludedCommands"] = ["git push *"]
+        self.assertTrue(problems(s), "a different list is a different sandbox")
+        for value in (1, "true"):  # true, not something Claude Code may read as true
+            s = settings()
+            s["sandbox"]["enabled"] = value
+            self.assertTrue(problems(s), value)
+        self.assertTrue(problems(settings(permissions={"newKey": True})), "a permissions key the check does not know")
+
+    def test_a_section_of_the_wrong_type_fails_without_crashing(self):
+        # verifier round 9: "network": "x" crashed the check (AttributeError)
+        for path, value in ((("sandbox", "network"), "x"), (("sandbox", "filesystem"), []), (("sandbox",), "on"),
+                            (("permissions",), "x"), (("permissions", "allow"), "Edit"), (("env",), "x"),
+                            (("hooks",), []), (("hooks", "PreToolUse"), {})):
+            with self.subTest(path=path):
+                s = settings()
+                setin(s, path, value)
+                self.assertTrue(problems(s))
+                local = {}
+                setin(local, path, value)
+                self.assertEqual(main_with(settings(), local), 1)
+
+    def test_the_local_file_may_not_set_the_sandbox_at_all(self):
+        # even to the same values: what it may change is nothing
+        self.assertEqual(main_with(settings(), {"sandbox": copy.deepcopy(SANDBOX)}), 1)
+        self.assertEqual(main_with(settings(), {"permissions": {"deny": ["Bash(rm -rf *)"]}}), 0)
+
+    def test_permission_rules_that_widen_the_sandbox_fail(self):
+        # Edit(…)/Write(…) allow rules are merged into the writable paths,
+        # WebFetch(domain:…) into the allowed domains (settings schema)
+        for rule in ("Edit", "Edit(//home/junc/**)", "Write(/tmp/**)", "MultiEdit(**)", "NotebookEdit(**)",
+                     "WebFetch", "WebFetch(domain:*)", "Read(//home/junc/rikuri/**)"):
+            with self.subTest(rule=rule):
+                self.assertTrue(problems(settings(permissions={"allow": [rule]})))
+                self.assertEqual(main_with(settings(), {"permissions": {"allow": [rule]}}), 1)
+        for ok in ({"allow": ["Bash(cargo test:*)"]}, {"deny": ["Edit(//home/junc/rikuri/rikurinode/**)"]},
+                   {"ask": ["Bash(git push:*)"]}):
+            self.assertEqual(problems(settings(permissions=ok)), [], ok)
+
+    def test_environment_that_names_the_sandbox_or_hooks_fails(self):
+        for env in ({"CLAUDE_CODE_DISABLE_SANDBOX": "1"}, {"SANDBOX_RUNTIME": "x"}, {"CLAUDE_CODE_HOOKS": "0"}):
+            with self.subTest(env=env):
+                self.assertTrue(problems(settings(env=env)))
+                self.assertEqual(main_with(settings(), {"env": env}), 1)
+        self.assertEqual(problems(settings(env={"RUST_LOG": "debug"})), [])
+
+    def test_another_hook_before_tool_calls_or_permissions_fails(self):
+        # a second PreToolUse hook may rewrite the input after the guard read
+        # it (updatedInput); a PermissionRequest hook may answer the guard's ask
+        extra = {"type": "command", "command": "python3 x.py"}
+        s = settings()
+        s["hooks"]["PreToolUse"][0]["hooks"].append(extra)
+        self.assertTrue(problems(s))
+        s = settings()
+        s["hooks"]["PreToolUse"].append({"matcher": "Bash", "hooks": [extra]})
+        self.assertTrue(problems(s))
+        s = settings()
+        s["hooks"]["PermissionRequest"] = [{"matcher": "*", "hooks": [extra]}]
+        self.assertTrue(problems(s))
+        guard_only = {"matcher": "Bash", "hooks": [{"type": "command", "command": CMD}]}
+        for local in ({"hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [extra]}]}},
+                      {"hooks": {"PreToolUse": [guard_only]}},  # the local file configures no hook before a call
+                      {"hooks": {"PermissionRequest": [{"matcher": "*", "hooks": [extra]}]}}):
+            self.assertEqual(main_with(settings(), local), 1, local)
+        s = settings()
+        s["hooks"]["PostToolUse"] = [{"matcher": "*", "hooks": [extra]}]
+        self.assertEqual(problems(s), [], "a hook after the call cannot change what the guard judged")
 
     def test_unreadable_settings_fail(self):
         with tempfile.TemporaryDirectory() as d:

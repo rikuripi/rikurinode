@@ -47,14 +47,23 @@ ported with their tests, not copied wholesale.
   a Unix socket (the Docker socket drives the live node) or a local port,
   reaches the network only through an allow-list (GitHub), and cannot read
   the previous checkout's `.env` and `data/` or `/run/rikuri`. The sandbox
-  itself protects `.git/hooks`, `.git/config` and `.claude`; the settings add
-  `scripts/quality/hooks`. If the sandbox cannot start, Claude Code refuses
-  to run commands (`failIfUnavailable`), and a command never retries outside
-  it (`allowUnsandboxedCommands: false`). Only `git push`, `git fetch` and
+  itself protects `.git/hooks`, `.git/config` and the paths it names under
+  `.claude` (its hooks, the settings files, skills, commands and agents, as
+  the round-9 verifier read Claude Code 2.1.295 — not `.claude/state`); the
+  settings add `scripts/quality/hooks`. If the sandbox cannot start, Claude
+  Code refuses to run commands (`failIfUnavailable`), and a command never
+  retries outside it (`allowUnsandboxedCommands: false`). Only `git push`, `git fetch` and
   `git pull` leave it (SSH cannot use its proxy); they still pass the guard
   and the permission prompt. `scripts/quality/check_guard_wiring.py` (run by
-  the gate) fails if any of this is missing or widened, in
-  `.claude/settings.json` or `.claude/settings.local.json`. **Not yet
+  the gate) is closed-world: it fails unless `.claude/settings.json`'s
+  `sandbox` block is exactly this one, and fails if
+  `.claude/settings.local.json` sets a sandbox at all, or if either file has
+  a permission rule that widens it (an `Edit`, `Write`, `MultiEdit`,
+  `NotebookEdit`, `WebFetch` or `Read` allow rule, `additionalDirectories`,
+  or a permissions key it does not know), an environment variable whose
+  name contains `SANDBOX` or `HOOK`, another `PreToolUse` hook (it could
+  change a call after the guard judged it) or a `PermissionRequest` hook (it
+  could answer the guard's ask). **Not yet
   proven on this machine:** Ubuntu's AppArmor rule for bubblewrap
   (`bwrap-userns-restrict`) stops the sandbox from starting, so every shell
   command fails, closed (drill, 2026-10-11); the owner chose to relax it for
@@ -70,9 +79,26 @@ ported with their tests, not copied wholesale.
   before: money moves and key-exposing commands; container, runtime,
   service, power and package changes on this machine (it runs the live
   node); kills of node daemons; commands that name one of the node's key
-  files; and the forms below. A read command (`grep`, `echo`, `git log`, …)
-  is exempt from those rules only when it runs alone: a lone `&`, a `$(…)`
-  or a backtick in its segment ends the exemption. Its other asks are
+  files; and the forms below. **Node and container tools, closed-world**
+  (owner, 2026-10-11): any command that names `lncli`, `bitcoin-cli`,
+  `tapcli`, `litcli`, `chantools`, `docker`, `podman`, `nerdctl`,
+  `docker-compose` or `podman-compose` as a word — anywhere, called by a
+  path, after `sudo`, `env`, `timeout` or `ssh`, inside quotes or code —
+  asks, unless the command, alone in its segment and whole, is one of the
+  reads listed in `guard_policy.py` (such as `lncli getinfo`,
+  `listchannels`, `walletbalance`; `bitcoin-cli getblockchaininfo`,
+  `getbalances`; `tapcli assets list`; `docker ps`, `logs`, `images`,
+  `inspect` only with a `--format` of fields that hold no secret; their
+  `--help` and `--version`), with plain words after it and only
+  redirections, or only names it (`which`, `type`, `command -v`, `ls`, a
+  checksum, a service's `systemctl status` or `journalctl`). A read command
+  (`grep`, `echo`, `git log`, …) is exempt from these rules only when it
+  runs alone: a lone `&`, a `$(…)`, a process substitution (`<(…)`, `>(…)`,
+  zsh's `=(…)`), or an option with which it runs a program or writes a file
+  (git grep's `-O` or `--open-files-in-pager`, rg's `--pre`, ag's
+  `--pager`, git's `--output`, `--ext-diff`, `--textconv`) ends the
+  exemption. A backtick does not end it; the guard judges a backtick's
+  command, and a `$(…)`'s, itself. Its other asks are
   protected-path writes: they ask in `stable` and are logged in
   `development`. The guard blocks the tool call when it times out or fails
   (`"onFailure": "block"`, Claude Code 2.1.295 or later; checked by the
@@ -80,18 +106,28 @@ ported with their tests, not copied wholesale.
 - **The previous checkout, closed-world: always asks** before any command that
   names it (`/home/junc/rikuri/rikurinode`) or anything else in its parent
   folder (`/home/junc/rikuri`) — spelled from `/home/junc` (also `//`, `/./`),
-  `/home/*`, `~`, `~junc`, `$HOME` or `${HOME}` — unless the command, alone in
-  its segment, is one of these reads: `cat`, `less`, `more`, `head`, `tail`,
-  `wc`, `ls`, `stat`, `file`, `diff`, `cmp`, the checksum tools, `du`,
-  `readlink`, `realpath`, `basename`, `dirname`, `grep`, `jq`, `test`,
-  `strings`, `echo`, `printf`, `sort`, `tree` (not `-o`), `rg` (not `--pre`),
-  `find` (not `-delete`, `-exec`, `-ok` or `-fprint`), `sed -n '<lines>p'`,
-  `git -C <it> log|show|diff|grep|status|blame|ls-files|…` (not `--output` or
-  `-O`), a commit or tag message, a search here, a PR or issue text; or a copy
-  out of it with `cp`, `install`, `rsync` or `scp` (never as a link), which
-  the write forms judge: with it as the destination, `-t`, or `rsync
-  --delete`/`--remove-source-files`, it asks. File-tool edits there are
-  refused by the deny rule in `.claude/settings.json`, not by the guard.
+  `/home/*`, `~`, `~junc`, `$HOME`, `${HOME}` or a parameter expansion such
+  as `${HOME:?}`, `${HOME%/}` — unless the command, alone in its segment, is
+  one of these reads: `cat`, `less`, `more`, `head`, `tail`, `wc`, `ls`,
+  `stat`, `file`, `diff`, `cmp`, the checksum tools, `du`, `readlink`,
+  `realpath`, `basename`, `dirname`, `grep`, `rg`, `ag`, `jq`, `test`, `[`,
+  `strings`, `echo`, `printf`, `sort` (not `-T` or `--compress-program`),
+  `tree` (not `-o`, in any cluster), `find` (not `-delete`, `-exec`, `-ok` or
+  `-fprint`), `sed -n '<lines>p'` followed only by file names, `git -C <it>
+  log|show|diff|grep|status|blame|ls-files|…`, a commit or tag message (not
+  read from a file: `-F`, `--file`, `-t`), a search here, a PR or issue text
+  (not `--body-file` or `-F`: the file would be posted); or a copy out of it
+  with `cp` or `install` (never a link or a strip program: `-l`, `-s`,
+  `--link`, `--symbolic-link`, `--strip-program`, in any cluster or
+  abbreviation), `rsync` (not `-e`, `--rsh`, `--rsync-path`, `-T`,
+  `--log-file`, `--temp-dir`, `--backup-dir`, `--partial-dir`,
+  `--write-batch`, `--link-dest`, `--copy-dest`, `--compare-dest`) or `scp`
+  (not `-S`, `-o`, `-F`, `-J`). The read options that end every read's
+  exemption (above) end these too. **Writes into the parent folder always
+  ask**: anything under `/home/junc/rikuri` as a copy's destination (also as
+  `host:<path>`) or `-t`, `sort -o`, or a redirection's target. File-tool
+  edits there are refused by the deny rule in `.claude/settings.json`, not by
+  the guard.
 - **The pre-commit hook: always asks** before git's options, configuration
   commands and environment that bypass it or move `core.hooksPath` (`-c`,
   `--config-env`, `GIT_CONFIG_COUNT`/`KEY_n`/`PARAMETERS`, `commit -n` or
@@ -103,7 +139,8 @@ ported with their tests, not copied wholesale.
   command that deletes, moves or rewrites; and these on the hook's files
   (`scripts/quality/hooks`, `.git/hooks`, `.git/config`,
   `.git/config.worktree`, under any folder, through git's `:/` or `:(top)`
-  magic, `~`, `~+`, a variable or a `$(…)`):
+  magic, `~`, `~+`, a variable — also a parameter expansion such as
+  `${PWD:?}` or `${PWD%/}` — a `$(…)` or a backtick):
   - `rm`, `rmdir`, `mv`, `rename`, `shred`, `chmod`, `chown`, `chgrp` — also
     on the folders that hold them (`scripts`, `scripts/quality`, `.git`,
     as whole words, with `/*`, `/**` or a brace list);
@@ -125,31 +162,44 @@ ported with their tests, not copied wholesale.
 
   Copying into `scripts/quality` and editing the hook's paths with the file
   tools ask in `stable` and are logged in `development`.
-- **Held by tests:** the worked examples; `test_guard_claims.py` builds
-  1,561 cases from every form and path spelling listed above;
-  `test_guard_baseline.py` replays the 1,089 cases the verifiers wrote
-  (rounds 6 to 8) and fails on any changed verdict until the baseline is
-  regenerated and its diff reviewed; a speed test runs every rule on 162
-  inputs built to make a regular expression backtrack, in a child process,
-  and fails if one is slow or the child does not finish in 60 s (a rule
-  that took 21 s on a 117-character command was found in round 8).
+- **Held by tests:** the 934 worked examples; `test_guard_claims.py` builds
+  2,147 cases from the forms, path spellings, node and container reads
+  listed above; `test_guard_baseline.py` replays 1,089 cases — the
+  verifiers' from rounds 6 to 8 and 100 that round 8 drafted — and fails on
+  any changed verdict until the baseline is regenerated and its diff
+  reviewed; a speed test runs every rule on 162 inputs built to make a
+  regular expression backtrack, in a child process, and fails if one is
+  slow or the child does not finish in 60 s (a rule that took 21 s on a
+  117-character command was found in round 8); `test_guard_wiring.py`
+  checks the closed-world settings check against each widening above.
 - **What gets through the guard.** Not covered: a path relative to a folder
   entered earlier (`cd scripts/quality/hooks && rm pre-commit`); a glob inside
   a name (`hook*`, `scrip*`, `.gi?`, `rm -rf *`) and `git rm -r .`; `find .
   -name pre-commit -delete`; copying a folder's contents into `scripts/`
   (`rsync -a /tmp/x/ scripts/`); for the hook, any writer not listed above,
-  such as a program that opens files from its own code; a command built from
-  variables (`L=lncli; $L …`) or a word the shell assembles
+  such as a program that opens files from its own code or an option that
+  writes a file (`git log --output=<the hook>`), and these the round-9
+  verifier found: git's case-insensitive pathspecs (`git rm -r
+  ':(icase)SCRIPTS/quality/hooks'`, `GIT_ICASE_PATHSPECS=1`), `git worktree
+  add --orphan`, copying a folder named `scripts` into the repository root
+  (`cp -r /tmp/scripts .`), `tar -xf` into the current folder, and a path
+  through `..` (`rm -rf ../rikurinode/scripts`) — for the hook's folder,
+  the sandbox's write protection is meant to stop them, once its drill
+  passes; a node tool named through a variable or a word the shell
+  assembles (`T=lnc; ${T}li …`, `ln""cli`), or run from a script file the
+  guard does not read (`bash /tmp/x.sh`); other words the shell assembles
   (`core.hoo""ksPath`, `$'…'`); a credential file with a generic name
   (`~/.docker/config.json`); git's configuration outside the repository
   (`~/.gitconfig`; `GIT_CONFIG_GLOBAL` and `GIT_CONFIG_SYSTEM` point at other
   files, but git keeps the repository's own `hooksPath`). Some forms ask where
   nothing is at risk (`rm -rf /tmp/x/.git`, `tar -tf a.tar -C scripts`, `mv x
-  scripts/quality/`, `git restore` of the hook, a `curl -w '…\n'`). The shared
-  `guard.py` judges a command continued onto a second line (backslash-newline)
-  one line at a time and splits a command at every `|`, so this policy asks
-  before any guarded command continued that way and before a `>|` outside a
-  quoted code string; it also reads a heredoc's body as commands, so write
+  scripts/quality/`, `git restore` of the hook, a `curl -w '…\n'`, a
+  `docker inspect` of an image (`docker image inspect` is free), a node
+  tool's name in a heredoc's body). The shared `guard.py` judges a command continued onto a second line
+  (backslash-newline) one line at a time and splits a command at every `|`,
+  so this policy asks before any command continued that way — except a read
+  with no redirection — also inside a quoted code string, and before a `>|`
+  outside one; it also reads a heredoc's body as commands, so write
   commit messages and documents with the file tools and `git commit -F
   <file>`. The guard and the deny rule apply only to sessions opened in this
   folder.

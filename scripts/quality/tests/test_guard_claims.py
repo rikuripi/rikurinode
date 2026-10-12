@@ -2,7 +2,7 @@
 against every path spelling it names, asks in both profiles; copying into
 scripts/quality asks in stable only; the lookalikes it leaves free stay free.
 A form added to AGENTS.md is added here, and the other way round.
-Record: docs/build-records/2026-10-10-bootstrap.md (round 8)
+Record: docs/build-records/2026-10-10-bootstrap.md (rounds 8 and 10)
 """
 import os
 import sys
@@ -17,8 +17,10 @@ CFG = guard.load_config()
 
 # --- the path spellings AGENTS.md names ---------------------------------------------
 OLD_FILES = ["/home/junc/rikuri/rikurinode/f", "~/rikuri/rikurinode/f", "~junc/rikuri/rikurinode/f",
-             "$HOME/rikuri/rikurinode/f", "${HOME}/rikuri/rikurinode/f", "/home/*/rikuri/rikurinode/f"]
-OLD_DIRS = ["/home/junc/rikuri/rikurinode", "~/rikuri/rikurinode", "$HOME/rikuri/rikurinode"]
+             "$HOME/rikuri/rikurinode/f", "${HOME}/rikuri/rikurinode/f", "/home/*/rikuri/rikurinode/f",
+             '"${HOME:?}/rikuri/rikurinode/f"', "${HOME%/}/rikuri/rikurinode/f"]
+OLD_DIRS = ["/home/junc/rikuri/rikurinode", "~/rikuri/rikurinode", "$HOME/rikuri/rikurinode",
+            '"${HOME:?}/rikuri/rikurinode"', "${HOME:-/home/junc}/rikuri/rikurinode"]
 OLD_PARENTS = ["/home/junc/rikuri", "~/rikuri", "/home/junc/rikuri/", "/home/junc/rikuri/*",
                "/home/junc/rikuri/**", "/home/junc/rikuri{,.bak}"]
 HOOK_FILES = ["scripts/quality/hooks/pre-commit", "./scripts/quality/hooks/pre-commit", ".git/config",
@@ -28,7 +30,8 @@ HOOK_DIRS = ["scripts/quality/hooks", ".git/hooks", "/home/junc/rikuripi/rikurin
 FOLDERS = ["scripts", "scripts/quality", ".git", "scripts/", "scripts/*", "scripts/**", "scripts{,.off}",
            "/home/junc/rikuripi/rikurinode/scripts", "~/rikuripi/rikurinode/.git", "$PWD/scripts/quality",
            "././scripts", ".//scripts/quality", "~+/scripts", "~+/.git", '"$(git rev-parse --show-toplevel)/scripts"',
-           ":/scripts", "':(top)scripts/quality'"]
+           ":/scripts", "':(top)scripts/quality'", '"${PWD:?}/scripts"', '"${PWD%/}/.git"', "${PWD:?}/scripts/quality",
+           "`pwd`/scripts"]
 
 # --- the forms AGENTS.md lists ----------------------------------------------------------
 FILE_FORMS = ["rm -f {t}", "rmdir {t}", "mv {t} /tmp/x", "rename s/a/b/ {t}", "shred -u {t}", "chmod -x {t}",
@@ -84,12 +87,97 @@ OLD_NOT_READS = ["cp -l /home/junc/rikuri/rikurinode/x ./x", "cp --link /home/ju
 READ_PLUS = ["echo & lncli sendcoins --addr x --amt 1", "grep x f & sudo reboot", "echo & docker stop lnd",
              "echo $(lncli sendcoins --addr x --amt 1)", "echo `lncli sendcoins --addr x --amt 1`",
              "git log -1 & bitcoin-cli stop"]
+# round 10: a read plus process substitution (<(…), >(…), zsh's =(…)) is not a read alone
+READ_PLUS += ["grep x <(lncli sendcoins --addr x --amt 1)", "echo <(lncli sendcoins --addr x --amt 1)",
+              "head -1 <(bitcoin-cli stop)", "tail -n1 <(docker stop lnd)", "grep x <(sudo reboot)",
+              "echo >(lncli closeallchannels)", "echo =(lncli sendcoins --addr x --amt 1)",
+              "less <(rm -rf /home/junc/rikuri/rikurinode)", "git log -1 <(lncli sendcoins --addr x --amt 1)",
+              "printf x <(sudo apt-get install -y foo)", "grep -c x <(pkill lnd)"]
+# a read whose option runs a program or writes a file is not a read
+READ_PLUS += ["git grep -O'lncli sendcoins --addr x --amt 1' x", "git grep --open-files-in-pager='lncli stop' x",
+              "git grep --op='lncli stop' x", "git grep -nO'lncli stop' x", "rg --pre 'lncli sendcoins' x",
+              "ag --pager 'lncli sendcoins' x"]
+# the previous checkout's listed reads: options that link, run a program or write
+OLD_NOT_READS += [c % "/home/junc/rikuri/rikurinode" for c in [
+    "cp -lv %s/x ./x", "cp -sf %s/x ./x", "cp -la %s/x ./x", "cp -al %s/x ./x", "cp -sl %s/x ./x", "cp --lin %s/x ./x",
+    "cp --sym %s/x ./x", "cp -rl %s ./old", "install -lv %s/x ./x", "tree -aCo %s/x /tmp", "tree -o%s/x /tmp",
+    "git -C %s grep -Ovim x", "git -C %s grep -nOvim x", "git -C %s grep --open-files=vim x",
+    "git grep --no-index -O%s/x.sh x /tmp/f", "git -C %s diff --ext-diff", "git -C %s log -p --textconv",
+    "sed -n 1p -e 'w %s/f' /tmp/x", "sed -n 1p -e '1e %s/x.sh' /tmp/x", "sed -n '1p;e %s/x.sh' /tmp/f",
+    "sed -n '1p;w /tmp/x' %s/f", "sed -n 1p -i %s/f", "sort --compress-program=%s/x.sh -S 1K /tmp/f",
+    "sort -T %s /tmp/f", "rsync -e %s/x.sh /tmp/a h:/tmp/b", "rsync --rsh=%s/x.sh /tmp/a h:/tmp/b",
+    "rsync --rsync-path=%s/x.sh /tmp/a h:/tmp/b", "rsync --log-file=%s/x /tmp/a /tmp/b",
+    "scp -S %s/x.sh /tmp/a h:/tmp/b", "scp -o ProxyCommand=%s/x.sh /tmp/a h:/tmp/b",
+    "install --strip --strip-program=%s/x.sh /tmp/a /tmp/b", "git commit -F %s/notes",
+    "gh pr create --title x --body-file %s/notes", "gh issue create --title x -F %s/data/bitcoin/debug.log",
+    "cat $( echo %s/x )", "cp x %s/f >> /tmp/log"]]
+# round 10: the parent folder of the previous checkout, closed-world for writes
+PARENT_FILES = ["/home/junc/rikuri/x", "~/rikuri/x", '"${HOME:?}/rikuri/x"', "/home/junc/rikuri/rikurinode-old/x",
+                "/home/junc/rikuri/x/../rikurinode/f", "/home/junc/rikuri/", "~/rikuri"]
+PARENT_WRITES = ["echo x > {t}", "echo x >> {t}", "printf x > {t}", "cat /tmp/f >> {t}", "ls /tmp > {t}",
+                 "cp /tmp/x {t}", "cp -r /tmp/rikurinode {t}", "rsync -a /tmp/x {t}", "scp /tmp/x localhost:{t}",
+                 "rsync -a /tmp/x localhost:{t}", "install -m 644 /tmp/x {t}", "sort -o {t} /tmp/f",
+                 "sed -n 1p -i {t}", "cp -t {t} /tmp/x"]
+# round 10: a command that names a node or container tool asks unless it is one of the listed reads
+NODE_ASKS = ["lncli updatechanpolicy --base_fee_msat 1000 --fee_rate 0.0001 --time_lock_delta 40",
+             "lncli debuglevel --level debug", "lncli wallet labeltx x y", "lncli newaddress p2tr", "lncli signmessage x",
+             "lncli getdebuginfo", "lncli --no-macaroons getinfo", "bitcoin-cli settxfee 0.0001",
+             "bitcoin-cli createwallet x", "bitcoin-cli -stdinrpcpass getblockcount",
+             "bitcoin-cli -rpcpassword=x getblockcount", "bitcoin-cli logging", "bitcoin-cli listdescriptors true",
+             "tapcli addrs new --asset_id x --amt 1", "litcli sessions add --label x --type admin",
+             "litcli sessions list", "chantools sweepremoteclosed", "cat <(lncli getinfo)",
+             "/usr/local/bin/lncli getinfo", "LNCLI=1 lncli getinfo", "sudo lncli getinfo", "env lncli getinfo",
+             "timeout 5 lncli getinfo", "nohup lncli getinfo", "ssh n150 lncli getinfo",
+             "python3 -c 'import subprocess; subprocess.run([\"lncli\", \"getinfo\"])'",
+             "lncli getinfo && lncli debuglevel --level debug", "lncli getinfo $(echo x)", "lncli getinfo `echo x`",
+             "docker inspect lnd", "docker inspect -f '{{.Config.Env}}' lnd", "docker inspect -f '{{json .}}' lnd",
+             "docker compose config", "docker exec lnd lncli getinfo", "docker cp lnd:/root/.lnd/x /tmp/",
+             "docker pull x", "docker save lnd -o /tmp/x.tar", "docker stats", "podman generate systemd lnd",
+             "podman secret inspect x", "nerdctl ps; nerdctl stop lnd", "docker-compose config",
+             "/usr/bin/docker ps -q | xargs docker inspect", "docker container inspect lnd", "podman inspect lnd",
+             "docker build -t x .", "journalctl --vacuum-time=1s -u docker"]
+NODE_READS = ["lncli getinfo", "lncli --network=mainnet getinfo", "lncli -n mainnet listchannels",
+              "lncli listchannels --active_only", "lncli fwdinghistory --start_time -1w", "lncli walletbalance",
+              "lncli channelbalance", "lncli pendingchannels", "lncli closedchannels", "lncli listpeers",
+              "lncli feereport", "lncli listpayments --max_payments 10", "lncli listinvoices", "lncli describegraph",
+              "lncli getnetworkinfo", "lncli wallet accounts list", "lncli sendcoins --help", "lncli help sendcoins",
+              "lncli --version", "lncli getinfo > /tmp/info.json", "lncli getinfo 2>/dev/null",
+              "lncli getinfo 2>&1", "lncli getinfo | jq .identity_pubkey", "bitcoin-cli getblockchaininfo",
+              "bitcoin-cli -rpcwallet=x getbalances", "bitcoin-cli help sendtoaddress", "bitcoin-cli -getinfo",
+              "bitcoin-cli getblock 0000abc 2", "bitcoin-cli getmempoolinfo", "bitcoin-cli getpeerinfo",
+              "bitcoin-cli estimatesmartfee 6", "tapcli assets list", "tapcli assets transfers", "tapcli getinfo",
+              "litcli getinfo", "which lncli", "command -v bitcoin-cli", "type docker", "ls -l /usr/local/bin/lncli",
+              "echo lncli", "grep -rn 'lncli sendcoins' docs/", "git commit -m 'lncli: read only'", "docker ps",
+              "docker ps -a --format '{{.Names}} {{.Status}}'", "docker logs --tail 50 lnd",
+              "docker logs --since 1h lnd 2>&1", "docker inspect -f '{{.State.StartedAt}}' lnd bitcoin tor",
+              "docker images", "docker version", "docker info", "docker stats --no-stream", "docker network ls",
+              "docker volume ls", "docker compose ps", "docker compose logs lnd", "podman ps", "podman pod ps",
+              "podman logs lnd", "podman inspect --format '{{.State.Status}}' lnd", "docker --version",
+              "docker --help", "cat deploy/docker-compose.yml", "ls deploy/docker", "cat deploy/docker/compose.yml", "systemctl status docker",
+              "journalctl -u docker --since today", "docker events --since 1h --until 1m",
+              "docker image inspect lightninglabs/lnd:v0.18.3-beta", "docker inspect lnd --format '{{json .Mounts}}'",
+              "docker compose -f compose.yml logs -f --tail 50 lnd", "docker compose config --services",
+              "bitcoin-cli listdescriptors", "tapcli assets mint batches"]
+# round 10: a command continued onto the next line asks, unless it is a read that writes nowhere
+CONTINUED = ([f.format(t="\\\n" + "scripts/quality/hooks/pre-commit") for f in FILE_FORMS]
+             + ["rm -rf \\\nscripts", "shred -u \\\n/home/junc/rikuri/rikurinode/f",
+                "sh -c 'git push --force origin x' \\",
+                # inside quotes a backslash-newline stays in one segment (a code string)
+                "python3 -c 'import os; os.system(\"shred -u \\\nscripts/quality/hooks/pre-commit\")'"])
+CONTINUED_FREE = ["echo a \\\nb", "git commit -m x \\\n-m y", "grep -n x \\\ndocs/"]
 # the lookalikes and reads AGENTS.md leaves free
 FREE = ["cp /home/junc/rikuri/rikurinode/README.md docs/", "cat /home/junc/rikuri/rikurinode/README.md",
         "git -C /home/junc/rikuri/rikurinode log -1", "install -m 755 /home/junc/rikuri/rikurinode/x.sh scripts/",
         "rm -rf build/scripts", "rm -rf docs/.git", "rm -f .git/hooks.bak", "mkdir scripts", "touch docs/scripts",
         "cp x.sh scripts/", "tar -tf a.tar", "git sparse-checkout list", "git switch main", "cp .gitignore /tmp/x",
-        "git config core.hooksPath scripts/quality/hooks", "curl -o /tmp/f https://e.x/y", "unzip -o a.zip -d /tmp/x"]
+        "git config core.hooksPath scripts/quality/hooks", "curl -o /tmp/f https://e.x/y", "unzip -o a.zip -d /tmp/x",
+        "sed -n '1,20p' /home/junc/rikuri/rikurinode/README.md", "sudo cat /home/junc/rikuri/rikurinode/README.md",
+        "[ -f /home/junc/rikuri/rikurinode/README.md ]", "sed -n -E '1,5p' /home/junc/rikuri/rikurinode/README.md",
+        "ag x /home/junc/rikuri/rikurinode/README.md", "rg x /home/junc/rikuri/rikurinode/README.md",
+        "git -C /home/junc/rikuri/rikurinode grep -n lncli", "cat /home/junc/rikuri/rikurinode/README.md > /tmp/r.md",
+        "rsync -a /home/junc/rikuri/rikurinode/scripts/ /tmp/old-scripts/", "ls /home/junc/rikuri.bak",
+        "diff <(sort a.txt) <(sort b.txt)", "grep -c x <(git log --oneline)", "git log --oneline -3",
+        "git log --pretty=format:%h -3", "grep --extended-regexp 'a|b' docs/x.md"]
 
 
 def cases():
@@ -104,9 +192,10 @@ def cases():
         out += [(f.format(t=t), "ask", "ask") for t in HOOK_FILES + FOLDERS if "{" not in t]
     for f in GIT_FILE_ONLY:
         out += [(f.format(t=t), "ask", "ask") for t in HOOK_FILES]
-    out += [(c, "ask", "ask") for c in COPY_IN + GIT + OLD_NOT_READS + READ_PLUS]
+    out += [(c, "ask", "ask") for c in COPY_IN + GIT + OLD_NOT_READS + READ_PLUS + NODE_ASKS + CONTINUED]
+    out += [(f.format(t=t), "ask", "ask") for f in PARENT_WRITES for t in PARENT_FILES]
     out += [(c, "ask", "allow") for c in STABLE_ONLY]
-    out += [(c, "allow", "allow") for c in FREE]
+    out += [(c, "allow", "allow") for c in FREE + NODE_READS + CONTINUED_FREE]
     return out
 
 

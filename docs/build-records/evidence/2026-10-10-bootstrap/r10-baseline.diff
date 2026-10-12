@@ -1,0 +1,14 @@
+row 445 Bash stable: allow -> ask | 'cp x /home/junc/rikuri/'
+row 445 Bash development: allow -> ask | 'cp x /home/junc/rikuri/'
+row 497 Bash stable: ask -> allow | 'git commit -m "$(cat <<\'X\'\nfeat: add the node status page\nX\n)"'  (text fixed)
+row 497 Bash development: ask -> allow | 'git commit -m "$(cat <<\'X\'\nfeat: add the node status page\nX\n)"'  (text fixed)
+row 551 Bash stable: ask -> ask | 'git commit -m "$(cat <<\'X\'\nguard: ask before cd /home/junc/rikuri/rikurinode\nX\n)"'  (text fixed)
+row 551 Bash development: ask -> ask | 'git commit -m "$(cat <<\'X\'\nguard: ask before cd /home/junc/rikuri/rikurinode\nX\n)"'  (text fixed)
+row 562 Bash stable: allow -> ask | 'diff <(git -C /home/junc/rikuri/rikurinode show HEAD:scripts/sync-bitcoin-cookie.sh) scripts/x.sh'
+row 562 Bash development: allow -> ask | 'diff <(git -C /home/junc/rikuri/rikurinode show HEAD:scripts/sync-bitcoin-cookie.sh) scripts/x.sh'
+row 1032 Bash stable: ask -> ask | 'cat <<EOF > /home/junc/rikuri/rikurinode/f\nx\nEOF'  (text fixed)
+row 1032 Bash development: ask -> ask | 'cat <<EOF > /home/junc/rikuri/rikurinode/f\nx\nEOF'  (text fixed)
+row 1042 Bash stable: allow -> ask | 'L=lncli; $L sendcoins --addr x --amt 1'
+row 1042 Bash development: allow -> ask | 'L=lncli; $L sendcoins --addr x --amt 1'
+row 1073 Bash stable: allow -> ask | 'cat <<EOF > /tmp/msg\nrm -rf scripts/quality/hooks\nEOF'  (text fixed)
+row 1073 Bash development: allow -> ask | 'cat <<EOF > /tmp/msg\nrm -rf scripts/quality/hooks\nEOF'  (text fixed)

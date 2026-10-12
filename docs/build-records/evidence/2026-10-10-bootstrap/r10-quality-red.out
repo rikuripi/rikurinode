@@ -1,0 +1,36 @@
+2026-10-11 15:45:21
+tree: a443085 + round 10's tests and worked examples (policy and wiring check unchanged)
+ERROR: test_a_section_of_the_wrong_type_fails_without_crashing test_a_section_of_the_wrong_type_fails_without_crashing (path=('sandbox', 'network'))
+ERROR: test_a_section_of_the_wrong_type_fails_without_crashing test_a_section_of_the_wrong_type_fails_without_crashing (path=('permissions',))
+FAIL: test_every_listed_form test_every_listed_form
+FAIL: test_a_section_of_the_wrong_type_fails_without_crashing test_a_section_of_the_wrong_type_fails_without_crashing (path=('sandbox', 'filesystem'))
+FAIL: test_a_section_of_the_wrong_type_fails_without_crashing test_a_section_of_the_wrong_type_fails_without_crashing (path=('permissions', 'allow'))
+FAIL: test_a_section_of_the_wrong_type_fails_without_crashing test_a_section_of_the_wrong_type_fails_without_crashing (path=('env',))
+FAIL: test_a_section_of_the_wrong_type_fails_without_crashing test_a_section_of_the_wrong_type_fails_without_crashing (path=('hooks',))
+FAIL: test_a_section_of_the_wrong_type_fails_without_crashing test_a_section_of_the_wrong_type_fails_without_crashing (path=('hooks', 'PreToolUse'))
+FAIL: test_another_hook_before_tool_calls_or_permissions_fails test_another_hook_before_tool_calls_or_permissions_fails
+FAIL: test_any_other_sandbox_key_fails test_any_other_sandbox_key_fails
+FAIL: test_documented_widenings_fail_in_either_file test_documented_widenings_fail_in_either_file (path=('sandbox', 'network', 'allowedDomains'), value=['github.com', 'api.github.com', '*.githubusercontent.com', '*'])
+FAIL: test_documented_widenings_fail_in_either_file test_documented_widenings_fail_in_either_file (path=('sandbox', 'network', 'allowedDomains'), value=['github.com', 'example.com'])
+FAIL: test_documented_widenings_fail_in_either_file test_documented_widenings_fail_in_either_file (path=('sandbox', 'network', 'httpProxyPort'), value=3128)
+FAIL: test_documented_widenings_fail_in_either_file test_documented_widenings_fail_in_either_file (path=('sandbox', 'network', 'socksProxyPort'), value=1080)
+FAIL: test_documented_widenings_fail_in_either_file test_documented_widenings_fail_in_either_file (path=('sandbox', 'filesystem', 'allowRead'), value=['/home/junc/rikuri/rikurinode/.env'])
+FAIL: test_documented_widenings_fail_in_either_file test_documented_widenings_fail_in_either_file (path=('sandbox', 'filesystem', 'allowRead'), value=['/home/junc/rikuri/rikurinode/data'])
+FAIL: test_documented_widenings_fail_in_either_file test_documented_widenings_fail_in_either_file (path=('permissions', 'allow'), value=['Edit(//home/junc/rikuri/**)'])
+FAIL: test_documented_widenings_fail_in_either_file test_documented_widenings_fail_in_either_file (path=('permissions', 'allow'), value=['WebFetch(domain:*)'])
+FAIL: test_documented_widenings_fail_in_either_file test_documented_widenings_fail_in_either_file (path=('sandbox', 'ignoreViolations'), value={'*': ['/']})
+FAIL: test_environment_that_names_the_sandbox_or_hooks_fails test_environment_that_names_the_sandbox_or_hooks_fails (env={'CLAUDE_CODE_DISABLE_SANDBOX': '1'})
+FAIL: test_environment_that_names_the_sandbox_or_hooks_fails test_environment_that_names_the_sandbox_or_hooks_fails (env={'SANDBOX_RUNTIME': 'x'})
+FAIL: test_environment_that_names_the_sandbox_or_hooks_fails test_environment_that_names_the_sandbox_or_hooks_fails (env={'CLAUDE_CODE_HOOKS': '0'})
+FAIL: test_permission_rules_that_widen_the_sandbox_fail test_permission_rules_that_widen_the_sandbox_fail (rule='Edit')
+FAIL: test_permission_rules_that_widen_the_sandbox_fail test_permission_rules_that_widen_the_sandbox_fail (rule='Edit(//home/junc/**)')
+FAIL: test_permission_rules_that_widen_the_sandbox_fail test_permission_rules_that_widen_the_sandbox_fail (rule='Write(/tmp/**)')
+FAIL: test_permission_rules_that_widen_the_sandbox_fail test_permission_rules_that_widen_the_sandbox_fail (rule='MultiEdit(**)')
+FAIL: test_permission_rules_that_widen_the_sandbox_fail test_permission_rules_that_widen_the_sandbox_fail (rule='NotebookEdit(**)')
+FAIL: test_permission_rules_that_widen_the_sandbox_fail test_permission_rules_that_widen_the_sandbox_fail (rule='WebFetch')
+FAIL: test_permission_rules_that_widen_the_sandbox_fail test_permission_rules_that_widen_the_sandbox_fail (rule='WebFetch(domain:*)')
+FAIL: test_permission_rules_that_widen_the_sandbox_fail test_permission_rules_that_widen_the_sandbox_fail (rule='Read(//home/junc/rikuri/**)')
+    self.assertEqual(wrong, [], "%d of %d claims do not hold:\n" % (len(wrong), len(cases())) + "\n".join(wrong))
+436 of 2135 claims do not hold:
+Ran 68 tests in 14.016s
+FAILED (failures=28, errors=2)

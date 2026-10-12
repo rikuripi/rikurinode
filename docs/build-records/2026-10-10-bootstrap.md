@@ -709,7 +709,199 @@
         tightenings (`r9-baseline-tightened.diff`). Green at 13:15:33: 37
         rules, 807 worked examples, 91 guard tests (`r9-guard.out`); 61
         quality-tool tests (`r9-quality.out`).
-- [ ] Verifier, round 9: pending.
+- [x] **Verifier, round 9: FAIL** (on a443085; its `rn-verify29/`).
+      Passed: the gate 7/7 (91, 61) on a443085 and on the receipt's commit;
+      every count (37 rules, 807 examples, 1,561 claim cases, 162 speed
+      inputs, 1,089 baseline rows) and receipt reproduced; `mut_r9.py` 41 of
+      41; round 8's `&` forms ask; no loosening against round 8; the speed
+      test (no slow rule in 8,321 inputs per rule); the drill correctly Not
+      yet proven. Failed: (1) **a read plus process substitution gets money
+      moves past the guard** in both profiles — `grep x <(lncli sendcoins
+      …)`, `echo >(lncli closeallchannels)`, zsh's `=(…)`, and the same for
+      node stops, reboots, package changes and deleting the previous
+      checkout (older than round 9); (2) forms AGENTS.md says ask do not:
+      the previous checkout under `${HOME:?}`; link copies (`cp -lv`,
+      `--lin`); `git grep -Ovim`, `--open-files=…`; `sed -n 1p -e 'w …'` and
+      `'1e …'`; copies and redirections into the parent folder (`cp -r
+      /tmp/rikurinode /home/junc/rikuri/`); programs run through the listed
+      copies (`rsync -e`, `scp -S`, `install --strip-program`, `sort
+      --compress-program`); the hook's folders under `${PWD:?}`; continued
+      writers (`shred -u \⏎scripts/quality/hooks/pre-commit`); (3) **two
+      unnamed regressions**: the `${PWD:?}`/`${PWD%/}`/backtick folder forms
+      asked in round 6 and have been allowed since round 7; `install
+      --strip-program=<it>/x.sh` asked in rounds 6–7 and has been allowed
+      since round 8; (4) **the wiring check passes nine documented
+      widenings** (`allowedDomains` extended, `httpProxyPort`,
+      `socksProxyPort`, `filesystem.allowRead`, `permissions.allow` with
+      `Edit(…)` or `WebFetch(domain:*)`, `ignoreViolations`), in both files,
+      against "fails if any of this is missing or widened"; and "the sandbox
+      protects `.claude`" is wider than the binary shows (named paths; not
+      `.claude/state`); (5) 13 surviving mutants that let something through
+      (round 8's V2, V12, V16, V20, V27, V28, V37, V42; its own A1, A8, A9,
+      A13, A19) and five that only ask more (A3, A5, A6, A11, A20); (6)
+      claims: "always asks before money moves", the continued-line and
+      wiring claims false; "33 intended loosenings" without a receipt; the
+      baseline stores its four heredoc cases with a literal `\n`, so it
+      replays other commands (two wrong verdicts: rows 1073 and 497); 100
+      of its rows are round 8's own drafted cases and 5 are duplicates;
+      worked examples were flipped, not added, for changed rules; "a
+      backtick ends the read exemption" is not what the policy does.
+- [x] **Round 10 — the owner's choice** (2026-10-11, asked after round 9:
+      "Close money/keys, then sandbox"): close the payment and key forms at
+      the root — a command that names a node tool asks unless the whole
+      command is a known safe read; fix the sandbox settings check; narrow
+      `AGENTS.md` to what the tests show; the remaining file-write tricks on
+      the hook become listed limits, which the sandbox blocks once the
+      owner's AppArmor change lets it run. Writes into, and programs run
+      from, the previous checkout's folder are in scope: overwriting it can
+      destroy the live node's channel state.
+- [x] **Round 10: money and keys closed-world; the sandbox check closed-world.**
+      - **Red first** (policy and wiring check unchanged): 139 worked
+        examples written before the rules, 69 wrong
+        (`r10-examples-red.out`, made by `r10-make-examples.py`, replayed by
+        `r10-run-examples.py`); the claims test grown to 2,135 cases, 436
+        wrong (`r10-claims-red.txt`); 28 new wiring checks failing and 2
+        crashing the check (`r10-quality-red.out`); the guard's tests, 140
+        failures, all from the new examples (`r10-guard-red.out`). Said
+        plainly: the machine crashed at about 15:20 and `/tmp` was wiped
+        with the worktree; the first red run (15:19) was lost and was rerun
+        at 15:31 on the same unchanged tree, rebuilt from the commands kept
+        in the session's transcript — the same 69 of 139.
+      - **Money and keys, closed-world** (the owner's choice): a command
+        that names `lncli`, `bitcoin-cli`, `tapcli`, `litcli`, `chantools`,
+        `docker`, `podman`, `nerdctl`, `docker-compose` or `podman-compose`
+        as a word asks, unless it is, alone in its segment and whole, one of
+        the listed reads, or only names it (`which`, `ls`, a checksum, a
+        service's status or journal). The read exemption also ends at a
+        process substitution (`<(…)`, `>(…)`, zsh's `=(…)`: `guard.py` does
+        not read inside one) and at an option with which a read runs a
+        program or writes a file (`-O`, `--open-files-in-pager`, `--pre`,
+        `--pager`, `--output`, `--ext-diff`, `--textconv`).
+      - **Paths**: `$HOME` as a parameter expansion (`${HOME:?}`,
+        `${HOME%/}`, `${HOME:-…}`). **Two regressions the verifier found,
+        neither named in the record before:** the hook's folders under
+        `${PWD:?}`, `${PWD%/}` or a backtick asked in round 6 and were
+        allowed from round 7 (round 7's rewrite of the folder prefix kept
+        only `$VAR` and `${VAR}`) — they ask again; `install --strip
+        --strip-program=<the previous checkout>/x.sh` asked in rounds 6–7
+        and was allowed from round 8 (the cause was not traced further) — it
+        asks again, because a copy out of the previous checkout no longer
+        counts as a read with a strip program.
+      - **The previous checkout's reads tightened**: link copies in any
+        cluster or abbreviation (`-lv`, `-al`, `--lin`, `--sym`), strip
+        programs, rsync's program and file options, `scp -S/-o/-F/-J`,
+        `sort -T/--compress-program`, `tree -o` in a cluster, `sed -n
+        '<lines>p'` followed only by file names, a commit message or a PR
+        body read from a file. `ag` joins `rg` as a read (their `--pager`
+        and `--pre` end it).
+      - **Writes into the parent folder** ask: a path under
+        `/home/junc/rikuri` as a copy's destination (also `host:<path>`),
+        `-t`, `sort -o`, or a redirection's target.
+      - **Continued lines**: any command continued onto the next line asks,
+        except a read with no redirection (`echo x > \⏎<the hook>` writes
+        the hook); also a backslash-newline inside a quoted code string, and
+        its escaped form in a Python string (the shared tests wrap every
+        asking example in `subprocess.run(%r)`).
+      - **The wiring check, closed-world**: the project file's `sandbox` is
+        exactly the expected block (lists compared as sets, `true` not `1`);
+        the local file sets no sandbox and adds no hook before a call; in
+        either file no `Edit`/`Write`/`MultiEdit`/`NotebookEdit`/`WebFetch`/
+        `Read` allow rule, no `additionalDirectories` or unknown permissions
+        key, no environment variable naming the sandbox or hooks, no other
+        `PreToolUse` hook (it could rewrite a call after the guard judged
+        it), no `PermissionRequest` hook (it could answer the guard's ask);
+        a section of the wrong type is reported, not a crash. The round-9
+        verifier's own probe now refuses all 17 of its variants in both
+        files (`r10-wiring-probe-v29.*`).
+      - **Earlier worked examples changed**, each with its reason. Flipped
+        allow → ask (4): `docker build -t rikuri-node:dev .` (a build runs
+        through the daemon that runs the live node; this repository builds
+        with Podman, D2); `docker container inspect lnd` and `podman inspect
+        lnd` (a container's environment can hold the node's RPC password;
+        `inspect` with a `--format` of fields that hold none stays free);
+        `diff <(git -C <the previous checkout> show …) scripts/x.sh` (a
+        process substitution now ends every read exemption: the guard does
+        not read inside it). Fifteen others asked under the rule's first
+        version and stay free because the read list was widened for them:
+        `docker events`, `image inspect`, `manifest inspect`, `inspect` with
+        its `--format` after the names or of `HostConfig` or `Mounts`,
+        `compose -f … logs`, `compose config --services`/`--images`,
+        `journalctl -u docker`, `systemctl status docker`, `tapcli assets
+        mint batches`, `bitcoin-cli listdescriptors` (the public form), and
+        `sort -o /tmp/… <the previous checkout>/…` (`sort -o` into the parent
+        folder became a write rule instead).
+      - **Test changes after the red run**, each with its reason: (a) the
+        claim `docker stop --help` became `docker --help`: the older
+        container rule asks on `stop` anywhere, and stays so, because
+        `docker run`/`exec` pass a `--help` after the image to the
+        container's own command; (b) five read-option claims (`git grep
+        --op=sh`, `--open-files-in-pager=sh`, `git log --output=<the hook>`,
+        `--ext-diff`, `--textconv`) expected an ask that no rule gives — the
+        options only end the read exemption, and a command that names
+        nothing guarded stays free; they became the same options carrying a
+        payment (`git grep --op='lncli stop'`, …), and `--output` into the
+        hook is a listed limit; (c) `systemctl status docker` moved from the
+        asks to the reads (an earlier worked example holds it free; my claim
+        contradicted it), and `bitcoin-cli listdescriptors` among the asks
+        became `listdescriptors true` (the public form is an earlier free
+        example); (d) claims added after red, all stricter or pinning: the
+        fifteen reads above, `docker container inspect`, `podman inspect`,
+        `docker build`, `journalctl --vacuum-time`, `cat
+        deploy/docker/compose.yml` (pins mutant R27), a continued line inside
+        a code string (no test had one); (e) wiring checks added after red,
+        all stricter: `"enabled": 1` and `"true"`, an unknown permissions
+        key, the fail-open guard's own message (mutant X18), a local
+        guard-only `PreToolUse` entry (mutant X11).
+      - **The baseline** (`r10-baseline.diff`): rows 497, 551, 1032 and 1073
+        stored their heredocs with a literal `\n` (the verifier's finding),
+        so they replayed other commands; their text is fixed. On the real
+        text row 497 (a commit message from a heredoc) is allow, not ask — a
+        wrong row corrected, not a loosening — and row 1073 (`rm -rf
+        scripts/quality/hooks` in a heredoc's body) is ask, not allow; rows
+        551 and 1032 keep ask. Tightened by this round's rules: row 445 (`cp
+        x /home/junc/rikuri/`), row 562 (`diff <(git -C <the previous
+        checkout> show …)`), row 1042 (`L=lncli; $L sendcoins …`: the
+        assignment now names the tool). No row removed: the verifier's "5
+        duplicates" are not reproduced — no two rows share tool and text;
+        the near-duplicates are deliberate variants (a tab, a double space,
+        one path under five tools).
+      - **Corrections to earlier entries**: round 9's "loosenings against
+        rounds 6 to 8: none but the 33 intended ones round 8 named" has no
+        receipt for 33 — the round-9 verifier counted 16 against rounds 6–7,
+        all lookalikes or porting copies, and round 8 named 19; withdrawn.
+        Round 9's replay of round 8's cases (`r9-replay-round8-cases.out`)
+        shows a miss, `e1`, left out of its explained misses: the replay
+        passed `\n` literally and judged another command; the real heredoc
+        asks (baseline row 1073). AGENTS.md said a backtick ends the read
+        exemption — the policy never did that; the guard judges a backtick's
+        command itself (corrected). AGENTS.md's "1,089 cases the verifiers
+        wrote": 100 are round 8's own drafted cases (corrected).
+      - **Mutants** (`mut_r10.py`, in a scratch clone, never the worktree):
+        65 at first, 62 red (`mut-r10-first-run.out`); X11 and X18 got
+        tests and are red (`mut-r10-rerun.out`); R33 (`listdescriptors` with
+        any words counted a read) is equivalent and removed — the older
+        private-key rule still asks for `listdescriptors true` and
+        `private=true`. Final: 64 mutants, 64 red, 16:42:30–17:15:49 (`mut-r10.out`). The round-9
+        verifier's surviving mutants are pinned by worked examples: round
+        8's V2, V12, V16, V20, V27, V28, V37, V42 and its own A1, A8, A9,
+        A13, A19 (groups 4 to 6 of `r10-make-examples.py`); its five that
+        only asked more (A3, A5, A6, A11, A20) by free claims (`sudo cat`,
+        `[ -f …]`, `sed -n -E`, `ag`, `/home/junc/rikuri.bak`), held by
+        mutants R43 to R46.
+      - **Speed**: the 162-input speed test passes; a search aimed at the
+        new rules' shapes (38 inputs of up to 7,000 characters,
+        `r10-redos-find.py`) found no rule slower than 0.183 s
+        (`r10-redos.out`; run while the mutants loaded the machine).
+      - **The round-9 verifier's hook and continued cases**
+        (`r10-v29-hook-cases.out`): every case it expected to ask asks, both
+        regressions' folder forms included; five get through and are listed
+        limits in AGENTS.md, as the owner chose (`:(icase)` pathspecs,
+        `GIT_ICASE_PATHSPECS`, `cp -r /tmp/scripts .`, `tar -xf` into the
+        current folder, `git worktree add --orphan`).
+      - **Green** 17:16:47–17:17:28: 39 rules, 934 worked examples, 91 guard tests
+        (`r10-guard.out`); 68 quality-tool tests, 2,147 claim cases
+        (`r10-quality.out`); the gate (`r10-gate.out`).
+- [ ] Verifier, round 10: pending.
 
 ## 5. Close Out
 
@@ -717,7 +909,8 @@
 - **What the guard still does not catch or decides otherwise** (round 3's
   rerun of both verifiers' probes, `evidence/2026-10-10-bootstrap/verifier*-probes/`):
   - inherent to reading command text: a command built from variables
-    (`L=lncli; $L sendcoins …`); a relative or `..` path into the previous
+    (`T=lnc; ${T}li sendcoins …`; `L=lncli; $L …` asks since round 10, the
+    assignment names the tool); a relative or `..` path into the previous
     checkout; a program that writes files from its own code; credential
     files with generic names (`~/.docker/config.json`, `~/.kube/config`);
     `find / -name '*.macaroon'` (names only);
@@ -750,6 +943,23 @@
   `.claude/settings.json` and its requirement from
   `check_guard_wiring.py` — not recommended, it reopens the hole. Owner:
   Henry.
+- **A default chosen for the owner (round 10): the node and container
+  reads.** Which commands that name `lncli`, `bitcoin-cli`, `tapcli`,
+  `litcli`, `chantools` or a container tool are free is a list in
+  `guard_policy.py` (node and container tools); everything else asks in both
+  profiles. Cost: a read outside the list asks — `sudo lncli getinfo`, a tool
+  called by its path, `docker inspect <container>` without `--format`, `docker
+  build`, a heredoc's body that names a tool; each costs one approval.
+  Reversible: add a read to the list (a protected path; it asks). Owner:
+  Henry.
+- **A default chosen for the owner (round 10): the wiring check is
+  closed-world.** It refuses a sandbox block other than the committed one, a
+  local sandbox, a permissions key it does not know (only `allow`, `deny`,
+  `ask`, `defaultMode`, `disableBypassPermissionsMode`), and an environment
+  variable naming the sandbox or hooks. Cost: a new Claude Code settings key,
+  or a local permission mode outside those keys, fails the gate until the
+  check is updated. Reversible: widen `PERMISSION_KEYS` or `SANDBOX` in
+  `check_guard_wiring.py` (a protected path). Owner: Henry.
 - **The sandbox's drill** (round 9): Not yet proven. It needs the owner's
   AppArmor change on this machine, then a passing drill (writes outside the
   repository, the hook folder, a Unix socket, a local port, an unlisted
@@ -757,12 +967,18 @@
   repository allowed). Until then, sessions in this folder on this machine
   cannot run shell commands. Owner: Henry. Reactivate: the AppArmor script
   has run.
-- **The pre-commit hook is not a boundary** (rounds 3–8): what always asks,
+- **The pre-commit hook is not a boundary** (rounds 3–10): what always asks,
   and what gets through, is listed in `AGENTS.md` and held by
   `test_guard_claims.py`. Not covered: a path relative to a folder entered
   earlier, or through `..`; a glob inside a name and `git rm -r .`; `find
   -name … -delete`; copying a folder's contents into `scripts/`; writers
-  not listed; variables and words the shell assembles; `~/.gitconfig`; and
+  not listed, and options that write a file (`git log --output`); git's
+  case-insensitive pathspecs (`:(icase)`, `GIT_ICASE_PATHSPECS`), `git
+  worktree add --orphan`, `cp -r /tmp/scripts .`, `tar -xf` into the
+  current folder (round 9's verifier; listed, not chased, by the owner's
+  choice in round 10: the sandbox's write protection of the hook's folder
+  is meant to stop them once its drill passes); variables and words the
+  shell assembles; `~/.gitconfig`; and
   in `development`, copying into `scripts/quality` and file-tool edits
   (logged, not asked). The shared `guard.py` splits at every `|` and judges
   a continued line by line — to fix in the shared guard with its other
@@ -795,10 +1011,11 @@
   skipped there (`SAFE_RUN_ALLOW_NO_NAMESPACE=1`; no live node in CI).
 - **The shared `guard.py` and backslash-newline** (round 1's verifier, I3):
   every repository's guard judges a continued command line by line. This
-  policy asks before any continued node command meanwhile. The fix belongs in
-  the shared file, copied to all five repositories in one session — Rikuri-PI
-  has another session's fix-lock engaged now. Owner: Henry. Reactivate: the
-  owner's choice.
+  policy asks before any continued command meanwhile, except a read with no
+  redirection (round 10). The fix is on branch `fix/guard-continuation`
+  (`docs/build-records/2026-10-11-guard-line-continuation.md`), not yet
+  through its verifier; it is copied to all five repositories in one session
+  once it passes. Owner: Henry. Reactivate: that fix passing.
 - The `Edit(…)` deny rule and this repository's guard apply only to sessions
   opened in this folder; neither has been observed in such a session yet:
   Not yet proven. Reactivate: the first session opened here.
@@ -857,6 +1074,13 @@ round 9  sandbox wiring red 10:55:41, green 10:56:10 (r9-wiring-*.out); drills: 
          wrong, speed red (r9-claims-on-r8.out); ReDoS search clean (r9-redos.out); mutants 43 → 31 red,
          2 equivalents removed, final 41/41 (mut-r9*.out); green 13:15:33: 37 rules, 807 examples,
          91 OK; quality tools 61 OK (r9-guard.out, r9-quality.out)
+         verifier: FAIL — a read plus process substitution got money moves past; forms AGENTS.md said ask
+         did not; the wiring check passed nine documented widenings; two unnamed regressions; 13 survivors
+round 10 examples written first: 69 of 139 wrong (r10-examples-red.out, rerun at 15:31 after the crash);
+         claims 436 of 2,135 wrong (r10-claims-red.txt); 30 wiring checks red (r10-quality-red.out);
+         mutants 65 → 62 red, X11 and X18 pinned, R33 equivalent removed (mut-r10-first-run.out,
+         mut-r10-rerun.out); final 64/64 red (mut-r10.out); green 17:16:47–17:17:28: 39 rules, 934 examples,
+         91 OK; quality tools 68 OK, 2,147 claims (r10-guard.out, r10-quality.out)
 ```
 Receipts: `evidence/2026-10-10-bootstrap/` — `gate-round1.out` to
 `gate-round3.out`, `gate-round3b.out` (the "round 3, continued" gate) and
@@ -864,6 +1088,6 @@ Receipts: `evidence/2026-10-10-bootstrap/` — `gate-round1.out` to
 `*.log`), the hygiene, round-3, round-4 and round-5 runs, the mutation
 scripts and their tables, and both verifiers' final probe reruns
 (`verifier1-probes/`, `verifier2-probes/`), rounds 6, 7 and 8's runs
-(`r6-*`, `r7-*`, `r8-*`, `r9-*`, `mut_r6.py` to `mut_r9.py` and their
-tables). Round 1's red and green runs and
+(`r6-*`, `r7-*`, `r8-*`, `r9-*`, `r10-*`, `mut_r6.py` to `mut_r10.py` and
+their tables). Round 1's red and green runs and
 its mutants' list were never saved (said in round 1's verifier entry).

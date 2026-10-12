@@ -1,0 +1,67 @@
+2026-10-11 16:42:30
+R1 no process substitution in MORE             RED   test_every_example, test_every_listed_form, test_no_verdict_changed, test_round3_money_and_secrets_in_heredocs_still_ask
+R2 no RUNS in MORE                             RED   test_every_example, test_every_listed_form, test_no_verdict_changed, test_round3_money_and_secrets_in_heredocs_still_ask
+R3 -O only alone                               RED   test_every_example, test_every_listed_form, test_round3_money_and_secrets_in_heredocs_still_ask
+R4 no --op                                     RED   test_every_example, test_every_listed_form, test_round3_money_and_secrets_in_heredocs_still_ask
+R5 no --pre                                    RED   test_every_listed_form
+R6 no --pager                                  RED   test_every_listed_form
+R7 no ${HOME…} expansions                      RED   test_every_example, test_every_listed_form, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+R8 no ${PWD…} expansions                       RED   test_every_listed_form
+R9 no backtick folder                          RED   test_every_listed_form
+R10 no parent-tree copy destination            RED   test_every_example, test_every_listed_form, test_no_verdict_changed, test_round3_money_and_secrets_in_heredocs_still_ask
+R11 no parent-tree -t                          RED   test_every_listed_form
+R12 no parent-tree sort -o                     RED   test_every_example, test_every_listed_form, test_round3_money_and_secrets_in_heredocs_still_ask
+R13 redirect only into OLD/PARENT              RED   test_every_example, test_every_listed_form, test_round3_money_and_secrets_in_heredocs_still_ask
+R14 host without a quote                       RED   test_every_listed_form
+R15 no host                                    RED   test_every_example, test_every_listed_form, test_round3_money_and_secrets_in_heredocs_still_ask
+R16 sort -T a read                             RED   test_every_example, test_every_listed_form, test_round3_money_and_secrets_in_heredocs_still_ask
+R17 tree -o only alone                         RED   test_every_example, test_every_listed_form, test_round3_money_and_secrets_in_heredocs_still_ask
+R18 sed: round 9's form                        RED   test_every_example, test_every_listed_form, test_round3_money_and_secrets_in_heredocs_still_ask
+R19 sed operands may be options                RED   test_every_example, test_every_listed_form, test_round3_money_and_secrets_in_heredocs_still_ask
+R20 git commit -F a read                       RED   test_every_listed_form
+R21 gh --body-file a read                      RED   test_every_example, test_every_listed_form, test_round3_money_and_secrets_in_heredocs_still_ask
+R22 cp link: round 9's form                    RED   test_every_example, test_every_listed_form, test_round3_money_and_secrets_in_heredocs_still_ask
+R23 rsync -e a read                            RED   test_every_example, test_every_listed_form, test_round3_money_and_secrets_in_heredocs_still_ask
+R24 scp -S a read                              RED   test_every_example, test_every_listed_form, test_round3_money_and_secrets_in_heredocs_still_ask
+R43 ag not a read there                        RED   test_every_example, test_every_listed_form
+R44 [ not a read there                         RED   test_every_example, test_every_listed_form
+R45 sudo read not a read                       RED   test_every_example, test_every_listed_form
+R46 sed -n -E not a read                       RED   test_every_example, test_every_listed_form
+R25 no node rule                               RED   test_each_rule_matches_a_worked_example, test_every_example, test_every_listed_form, test_no_verdict_changed, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+R26 a path-called tool is not named            RED   test_every_listed_form
+R27 a docker/ folder names the tool            RED   test_every_listed_form
+R28 a read's words may run code                RED   test_every_listed_form
+R29 lncli debuglevel a read                    RED   test_every_example, test_every_listed_form, test_round3_money_and_secrets_in_heredocs_still_ask
+R30 inspect any field                          RED   test_every_listed_form
+R31 inspect without a format                   RED   test_every_example, test_every_listed_form, test_round3_money_and_secrets_in_heredocs_still_ask
+R32 compose config a read                      RED   test_every_listed_form
+R34 litcli sessions list a read                RED   test_every_listed_form
+R35 env, sudo, timeout only name it            RED   test_every_listed_form
+R36 journalctl --vacuum only names it          RED   test_every_listed_form
+R37 a read after sudo                          RED   test_every_listed_form
+R47 bitcoin-cli -stdin a global                RED   test_every_example, test_every_listed_form, test_round3_money_and_secrets_in_heredocs_still_ask
+R48 lncli --no-macaroons a global              RED   test_every_listed_form
+R38 a read with a redirection continued        RED   test_every_listed_form
+R39 continued only at the end                  RED   test_every_listed_form
+R40 no escaped continuation                    RED   test_round3_money_and_secrets_in_heredocs_still_ask
+R41 continued reads ask too                    RED   test_every_example, test_every_listed_form
+R49 no continued rule                          RED   test_each_rule_matches_a_worked_example, test_every_example, test_every_listed_form, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+X1 another sandbox key allowed                 RED   test_any_other_sandbox_key_fails, test_documented_widenings_fail_in_either_file, test_nothing_may_widen_the_sandbox
+X2 an added list item allowed                  RED   test_documented_widenings_fail_in_either_file
+X3 1 counts as true                            RED   test_any_other_sandbox_key_fails
+X4 the local file may set the sandbox          RED   test_a_section_of_the_wrong_type_fails_without_crashing, test_documented_widenings_fail_in_either_file, test_local_settings_may_not_loosen_the_sandbox, test_the_local_file_may_not_set_the_sandbox_at_all
+X5 Read(…) does not widen                      RED   test_permission_rules_that_widen_the_sandbox_fail
+X6 WebFetch does not widen                     RED   test_documented_widenings_fail_in_either_file, test_permission_rules_that_widen_the_sandbox_fail
+X7 no env check                                RED   test_environment_that_names_the_sandbox_or_hooks_fails
+X8 env: SANDBOX only, case-sensitive           RED   test_environment_that_names_the_sandbox_or_hooks_fails
+X9 PermissionRequest hooks allowed             RED   test_another_hook_before_tool_calls_or_permissions_fails
+X10 other PreToolUse hooks allowed             RED   test_another_hook_before_tool_calls_or_permissions_fails
+X11 the local file may add PreToolUse          RED   test_another_hook_before_tool_calls_or_permissions_fails
+X12 unknown permission keys allowed            RED   test_any_other_sandbox_key_fails
+X13 rule lists unchecked                       RED   test_a_section_of_the_wrong_type_fails_without_crashing
+X15 hooks of any type                          RED   test_a_section_of_the_wrong_type_fails_without_crashing
+X16 a section of any type                      RED   test_a_section_of_the_wrong_type_fails_without_crashing
+X17 additionalDirectories allowed              RED   test_local_settings_may_not_loosen_the_sandbox, test_nothing_may_widen_the_sandbox
+X18 a guard that fails open counts             RED   test_a_guard_that_lets_calls_through_when_it_fails_fails
+restored, sha256 checked: .claude/hooks/guard-config.json db1524dbfa53, scripts/quality/check_guard_wiring.py df15ee484024, scripts/quality/guard_policy.py 7a0c5e659868
+2026-10-11 17:15:49

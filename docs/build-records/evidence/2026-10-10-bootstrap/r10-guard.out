@@ -1,0 +1,14 @@
+2026-10-11 17:16:47
+....usage: guard.py fix-lock on <build-record> | off [--session <id> | --global] | status
+.fix-lock NOT engaged — cannot read /tmp/tmp__2hfsdn/guard-config.json: guard-config.json: 'fix_lock_preflight' must be a list of argv lists, e.g. [["node", "scripts/quality-ratchet.mjs"]]
+Nothing was changed. Fix it first, then engage.
+.fix-lock NOT engaged — preflight /usr/bin/python3 -c import sys; sys.exit(3) failed (exit 3):
+
+Nothing was changed. Fix it first, then engage.
+................................................................................usage: guard.py profile [stable | development]
+.....
+----------------------------------------------------------------------
+Ran 91 tests in 24.482s
+
+OK
+2026-10-11 17:17:12
