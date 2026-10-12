@@ -1,0 +1,6 @@
+# survey at 23:27:48, read-only, tracked .rs files: Rikuri-PI main 1ea439d
+== Rikuri-PI | mod decls: 25
+  cfg(test)-attributed mod x; : []
+  other mod x; after first marker: []
+  #![cfg(test)] files: []
+  files with #[path]: []

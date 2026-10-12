@@ -26,10 +26,15 @@ code that acts differently under `cfg(test)`) may not change anywhere in the
 file while locked. An Edit/Write is checked by comparing that region before
 and after, and an Edit must match the file exactly (the Edit tool also matches
 loosely, which the guard can't follow). A shell write to a file of that type
-is refused by name, as a test file's is, since it can't be checked. Each repo
-opts in through its own config, so test_guard.py fails while a tracked .rs
-file holds `#[cfg(test)]` tests no rule covers, and `fix-lock on` names such
-files instead of calling them read-only (2026-10-11).
+is refused by name, as a test file's is, since it can't be checked. A test
+module kept in a file of its own (`#[cfg(test)] mod tests;` -> tests.rs) is
+tests as a whole: the guard follows such declarations as rustc does, from the
+folders above the file, with the declaring file's rules, and locks every
+place rustc may read it from; `#![cfg(test)]` at a file's top is a marker
+too, and that file's `mod` declaration is locked in its parent (2026-10-11).
+Each repo opts in through its own config, so test_guard.py fails while a
+tracked .rs file holds Rust tests the lock does not cover, and `fix-lock on`
+names such files instead of calling them read-only (2026-10-11).
 
 A fix-lock belongs to the session that took it (owner, 2026-10-03: "Let's not
 share fix-lock"). `fix-lock on` inside a Claude Code session writes
@@ -309,10 +314,20 @@ def inline_rules(rel: str, cfg: dict) -> list:
 
 
 def inline_edit_hit(tool: str, tin: dict, rel: str, root: str, cfg: dict) -> tuple | None:
-    """Deny when this edit changes the tests inside `rel` (fix-lock engaged)."""
+    """Deny when this edit changes the tests inside `rel`, or `rel` is a test
+    module (fix-lock engaged)."""
     rules = inline_rules(rel, cfg)
     if not rules:
         return None
+    try:
+        parent = test_module_parent(rel, root, cfg, _DEADLINE_ALL)
+    except OSError as e:
+        return ("deny", "fix-lock is engaged and the folders above %s could not be read to check whether it is "
+                        "a test module (%s)" % (rel, e), True)
+    if parent is not None:
+        return ("deny", "fix-lock is engaged: %s is a test module — %s declares it as test code (`mod …;` under "
+                        "cfg(test), or inside another test module), so the whole file is tests. Fix the code, "
+                        "not the test (release with `guard.py fix-lock off`)" % (rel, parent), True)
     try:
         before = read_text(os.path.join(root, rel))
     except (OSError, UnicodeDecodeError) as e:
@@ -323,6 +338,14 @@ def inline_edit_hit(tool: str, tin: dict, rel: str, root: str, cfg: dict) -> tup
         return ("deny", "fix-lock is engaged: an old_string does not match %s exactly. The Edit tool can "
                         "still apply it by a loose match, which the guard cannot check, so under the "
                         "fix-lock this file takes exact edits only (copy the text as it is)" % rel, True)
+    kept = [repr(d) for d in test_file_declarations(rel, before, root, cfg, _DEADLINE_ALL)]
+    for a in after if kept else []:
+        left = [repr(d) for d in test_file_declarations(rel, a, root, cfg, _DEADLINE_ALL)]
+        if any(d not in left for d in kept):
+            return ("deny", "fix-lock is engaged: this removes or changes, in %s, the declaration (`mod …;` "
+                            "with its attributes) of a module whose file is tests as a whole "
+                            "(`#![cfg(test)]`); it switches them on and off. Fix the code, not the test "
+                            "(release with `guard.py fix-lock off`)" % rel, True)
     for r in rules:
         region = inline_region(before, r["starts_at"], r.get("attached_above", ""))
         if any(inline_region(a, r["starts_at"], r.get("attached_above", "")) != region for a in after):
@@ -339,10 +362,222 @@ def inline_edit_hit(tool: str, tin: dict, rel: str, root: str, cfg: dict) -> tup
     return None
 
 
+# ── Rust test modules ───────────────────────────────────────────────────────
+# Verifier, 2026-10-11 (owner's choice 1(a)): tests can live in a file of
+# their own, declared from the parent with `#[cfg(test)] mod tests;`. That file
+# holds no marker, so the lock left it editable. The guard follows such
+# declarations the way rustc finds their files.
+
+# What the module scan steps over: line comments, strings (raw, byte and C
+# strings too) and character literals, whose braces and words are not code; a
+# lifetime (`'a`) is not a character literal. One never closed runs to the end
+# of the file, as rustc reads it, so no opener is read twice (verifier round 1,
+# D1: 40,000 unclosed `/*` took 16 s). Block comments nest, as in rustc
+# (rust_comment_end).
+RUST_SKIP = (r"//[^\n]*"
+             r'|(?<!\w)[bc]?r(?P<hashes>#*)"[\s\S]*?(?:"(?P=hashes)|\Z)'
+             r'|(?<!\w)[bc]?"(?:\\[\s\S]|[^"\\])*(?:"|\Z)'
+             r"|(?<!\w)b?'(?:\\(?:u\{[0-9A-Fa-f_]*\}|x[0-9A-Fa-f]{2}|[^\n])|[^'\\\n])'")
+RUST_SCAN = re.compile(r"(?P<comment>/\*)|" + RUST_SKIP + r"|(?P<attr>#\s*(?P<inner>!)?\s*\[)"
+                       r"|(?P<word>(?:r#)?[^\W\d]\w*)|(?P<open>\{)|(?P<close>\})|(?P<semi>;)")
+RUST_BRACKET = re.compile(r"(?P<comment>/\*)|" + RUST_SKIP + r"|(?P<open>\[)|(?P<close>\])")
+RUST_COMMENT_MARK = re.compile(r"/\*|\*/")
+# Rust's whitespace (Pattern_White_Space); Python's \s lacks U+200E and U+200F.
+RUST_SPACE = re.compile(r"[\t\n\v\f\r \x85\u200e\u200f\u2028\u2029]*")
+RUST_PATH = re.compile(r'#\s*!?\s*\[\s*path\s*=\s*"((?:\\.|[^"\\])*)"\s*\]\Z')
+RUST_MOD_WORD = re.compile(r"(?<!\w)mod(?!\w)")
+
+
+def rust_comment_end(text: str, pos: int) -> int:
+    """Where the block comment opened just before `pos` ends: comments nest,
+    as in rustc, and one never closed runs to the end of the file."""
+    depth = 1
+    for m in RUST_COMMENT_MARK.finditer(text, pos):
+        depth += 1 if m.group() == "/*" else -1
+        if depth == 0:
+            return m.end()
+    return len(text)
+
+
+def rust_file_modules(text: str, deadline: float = float("inf")) -> list:
+    """The file modules a Rust file declares (`mod name;`), in order, each as
+    (name, the inline modules around it — a module's `#[path]`, or the
+    `#![path]` inside it, in place of its name —, its own `#[path]` or None,
+    the attributes that apply to it: the file's inner ones, those of every
+    block around it, its own). A declaration is the word `mod`, a name and
+    `;` (`{` for an inline module) with nothing but comments and Rust's
+    whitespace between them (verifier round 1, D2: `mod /* c */ tests;`).
+    Past `deadline` it raises _TooSlow."""
+    out, pending, frames, top, pos = [], [], [], [], 0
+    state, name = 0, ""  # state 1: after the word `mod`; 2: after the module's name
+    while True:
+        if time.time() > deadline:
+            raise _TooSlow()
+        m = RUST_SCAN.search(text, pos)
+        if m is None:
+            return out
+        if RUST_SPACE.match(text, pos, m.start()).end() != m.start():
+            state = 0  # something rustc does not skip between the words: `mod $n;` in a macro
+        pos = m.end()
+        if m.group("comment"):
+            pos = rust_comment_end(text, pos)
+            continue
+        if m.group("attr"):
+            depth, end = 1, len(text)
+            b = RUST_BRACKET.search(text, pos)
+            while b is not None:
+                after = rust_comment_end(text, b.end()) if b.group("comment") else b.end()
+                depth += 1 if b.group("open") else -1 if b.group("close") else 0
+                if depth == 0:
+                    end = after
+                    break
+                b = RUST_BRACKET.search(text, after)
+            attr, pos, state = text[m.start():end], end, 0
+            if not m.group("inner"):  # `#[…]`: the next item's
+                pending.append(attr)
+            elif not frames:  # `#![…]` at the top: the file's
+                top.append(attr)
+            else:  # `#![…]` in a block: its own; a module's `#![path]` names its folder
+                frames[-1][1].append(attr)
+                inner_path = RUST_PATH.match(attr)
+                if inner_path and frames[-1][0] is not None:
+                    frames[-1][0] = inner_path.group(1)
+            continue
+        word = m.group("word")
+        if word is not None:
+            if state == 1:
+                name, state = (word[2:] if word.startswith("r#") else word), 2
+            else:
+                state = 1 if word == "mod" else 0
+            continue
+        if m.group("open"):
+            path = next((p.group(1) for p in map(RUST_PATH.match, pending) if p), None)
+            frames.append([(path or name) if state == 2 else None, pending])
+        elif m.group("close"):
+            frames = frames[:-1]
+        elif m.group("semi"):
+            if state == 2:
+                path = next((p.group(1) for p in map(RUST_PATH.match, pending) if p), None)
+                out.append((name, [f[0] for f in frames if f[0] is not None], path,
+                            top + [a for f in frames for a in f[1]] + pending))
+        else:  # a line comment keeps a declaration going; a string or a character ends it
+            if not m.group().startswith("//"):
+                state = 0
+            continue
+        pending, state = [], 0
+
+
+def module_files(rel: str, name: str, inline: list, path: str | None) -> list:
+    """Where rustc looks for the file of `mod name;` declared in `rel` inside
+    the inline modules `inline` (Rust reference: "Modules", "The path
+    attribute"), as lists of repository-relative paths, one per folder rustc
+    may use. A `#[path]` at file level is beside `rel`. Otherwise the module's
+    folder is `rel`'s own for `mod.rs`, `lib.rs` and `main.rs`; for another
+    file it is the folder named after it when the file is a module, and its
+    own when it is a crate root (src/bin/tool.rs) or was loaded by `#[path]` —
+    the guard cannot tell which, so both are given. Paths outside the
+    repository are left out."""
+    folder, base = os.path.split(rel)
+    if path is not None and not inline:
+        homes, leaves = [folder], [path]
+    else:
+        homes = ([folder] if base in ("mod.rs", "lib.rs", "main.rs")
+                 else [os.path.join(folder, os.path.splitext(base)[0]), folder])
+        leaves = [path] if path is not None else [name + ".rs", os.path.join(name, "mod.rs")]
+    out = []
+    for home in homes:
+        paths = [os.path.normpath(os.path.join(home, *inline, leaf)) for leaf in leaves]
+        paths = [p for p in paths if not (os.path.isabs(p) or p == ".." or p.startswith("../"))]
+        if paths:
+            out.append(paths)
+    return out
+
+
+def test_modules(root: str, rels: list, is_test, deadline: float = float("inf")) -> dict:
+    """{module file: (the file declaring it, every path that declaration may
+    name)} for every test module the Rust files `rels` declare: a `mod name;`
+    with an attribute `is_test(declaring file, attribute)` accepts, or any
+    `mod name;` inside a test module. Every path module_files gives is a test
+    module, existing or not (owner's choice "Lock both places", verifier round
+    1, D3: choosing the place by which file exists let a decoy in one place
+    unlock the other; a Write there creates a test module). A file that cannot
+    be read as UTF-8 declares nothing: rustc cannot compile it either."""
+    decls = {}
+    for rel in rels:
+        try:
+            text = read_text(os.path.join(root, rel))
+        except (OSError, UnicodeDecodeError):
+            continue
+        if RUST_MOD_WORD.search(text):
+            decls[rel] = rust_file_modules(text, deadline)
+    found, grew = {}, True
+    while grew:
+        grew = False
+        for rel, mods in decls.items():
+            for name, inline, path, attrs in mods:
+                if rel not in found and not any(is_test(rel, a) for a in attrs):
+                    continue
+                places = [p for ps in module_files(rel, name, inline, path) for p in ps]
+                for child in places:
+                    if child not in found:
+                        found[child] = (rel, places)
+                        grew = True
+    return found
+
+
+def test_module_parent(rel: str, root: str, cfg: dict, deadline: float = float("inf")) -> str | None:
+    """The file that makes `rel` a test module, or None. It is looked for in
+    `rel`'s folder and each folder above it up to `root`, where rustc's own
+    lookup comes from (except a `#[path]` that climbs out with `..`: the
+    tripwire names such a module); each declaring file's own `inline_tests`
+    rules say which attributes mark a test. Reads the working tree, untracked
+    files too. Raises OSError when a folder cannot be listed, _TooSlow past
+    `deadline`."""
+    rels, folder = [], os.path.dirname(rel)
+    while True:
+        try:
+            names = sorted(os.listdir(os.path.join(root, folder)))
+        except (FileNotFoundError, NotADirectoryError):
+            names = []  # a new file in a new folder
+        rels += [os.path.join(folder, n) for n in names
+                 if n.endswith(".rs") and os.path.isfile(os.path.join(root, folder, n))]
+        if not folder:
+            break
+        folder = os.path.dirname(folder)
+
+    def is_test(declaring: str, attr: str) -> bool:
+        return any(re.search(r["starts_at"], attr, re.M) for r in inline_rules(declaring, cfg))
+
+    return test_modules(root, rels, is_test, deadline).get(rel, (None,))[0]
+
+
+def test_file_declarations(rel: str, text: str, root: str, cfg: dict, deadline: float = float("inf")) -> list:
+    """The declarations in `text` (the Rust file `rel`) of modules whose file
+    is tests as a whole: a rule naming that file finds its whole text
+    (`#![cfg(test)]` at its top). Verifier round 1, D4: deleting `mod whole;`,
+    or adding `#[cfg(any())]` above it, switched every test in such a file
+    off, though its region was locked."""
+    out = []
+    if not RUST_MOD_WORD.search(text):
+        return out
+    for decl in rust_file_modules(text, deadline):
+        for p in (x for ps in module_files(rel, decl[0], decl[1], decl[2]) for x in ps):
+            try:
+                body = read_text(os.path.join(root, p))
+            except (OSError, UnicodeDecodeError):
+                continue
+            if body and any(inline_region(body, r["starts_at"], r.get("attached_above", "")) == body
+                            for r in inline_rules(p, cfg)):
+                out.append(decl)
+                break
+    return out
+
+
 # Lesson gate (2026-10-11): a repository opts in to inline-test protection
 # through its own config, and nothing checked it again when Rikuri-PI adopted
-# Rust. A tracked .rs file with this marker needs a rule that finds its tests.
-RUST_INLINE_TEST = re.compile(r"^[ \t]*#\s*\[\s*cfg\s*\(\s*test\s*\)\s*\]", re.M)
+# Rust. A tracked .rs file with this marker needs a rule that finds its tests;
+# the inner attribute `#![cfg(test)]` makes a whole file tests (owner, 2(a)).
+RUST_INLINE_TEST = re.compile(r"^[ \t]*#\s*!?\s*\[\s*cfg\s*\(\s*test\s*\)\s*\]", re.M)
 # `git rev-parse --local-env-vars`: a git hook exports some of them (GIT_DIR,
 # GIT_INDEX_FILE), and they would point `git -C <root>` at another repository.
 GIT_LOCAL_ENV = {"GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_CONFIG", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT",
@@ -359,10 +594,13 @@ def git_env() -> dict:
 def uncovered_inline_tests(root: str, cfg: dict) -> list:
     """Tracked .rs files under `root` whose `#[cfg(test)]` tests no
     `inline_tests` rule covers: no rule's glob names the file, or no such
-    rule's starts_at finds a region reaching the file's first marker. Only
-    files git tracks count; one that cannot be read as UTF-8 counts as
-    uncovered (it cannot be checked). Raises OSError when git cannot list the
-    files: an unlisted repository is never "nothing found"."""
+    rule's starts_at finds a region reaching the file's first marker. Then
+    test modules (2026-10-11): one the lock does not protect (no rule's glob
+    names it, so a shell write passes, or test_module_parent does not find
+    it), and a file declaring one whose file exists nowhere. Only files git
+    tracks count; one that cannot be read as UTF-8 counts as uncovered (it
+    cannot be checked). Raises OSError when git cannot list the files: an
+    unlisted repository is never "nothing found"."""
     try:
         proc = subprocess.run(["git", "-C", root, "ls-files", "-z", "--", "*.rs"],
                               capture_output=True, timeout=30, env=git_env())
@@ -370,9 +608,10 @@ def uncovered_inline_tests(root: str, cfg: dict) -> list:
         raise OSError("git ls-files in %s: %s" % (root, e)) from e
     if proc.returncode != 0:
         raise OSError("git ls-files in %s failed: %s" % (root, proc.stderr.decode(errors="replace").strip()))
-    out = []
+    out, tracked = [], []
     for raw in filter(None, proc.stdout.split(b"\0")):
         rel = os.fsdecode(raw)  # raw bytes: a name that is not UTF-8 still opens
+        tracked.append(rel)
         try:
             text = read_text(os.path.join(root, rel))
         except (OSError, UnicodeDecodeError):
@@ -384,6 +623,18 @@ def uncovered_inline_tests(root: str, cfg: dict) -> list:
         regions = [inline_region(text, r["starts_at"], r.get("attached_above", "")) for r in inline_rules(rel, cfg)]
         if not any(reg is not None and len(reg) >= len(text) - m.start() for reg in regions):
             out.append(rel)
+    known = set(tracked)
+    for child, (parent, places) in test_modules(root, tracked,
+                                                lambda _rel, attr: bool(RUST_INLINE_TEST.match(attr))).items():
+        if child in known:
+            try:
+                covered = bool(inline_rules(child, cfg)) and test_module_parent(child, root, cfg) is not None
+            except OSError:
+                covered = False
+            if not covered and child not in out:
+                out.append(child)
+        elif not any(os.path.lexists(os.path.join(root, p)) for p in places) and parent not in out:
+            out.append(parent)  # its test module is nowhere
     return out
 
 
@@ -1873,8 +2124,9 @@ def fix_lock_cli(args: list, root: str = ROOT, config_path: str = CONFIG_PATH, s
             return 0
         if gaps:
             more = " and %d more" % (len(gaps) - 10) if len(gaps) > 10 else ""
-            print("WARNING: the #[cfg(test)] tests inside %d tracked file%s are NOT read-only: no inline_tests "
-                  "rule in guard-config.json covers them: %s%s"
+            print("WARNING: the Rust tests in %d tracked file%s are NOT read-only: no inline_tests rule in "
+                  "guard-config.json covers them, or the guard cannot follow the test module's declaration "
+                  "(a #[path] out of its folder, or no such file): %s%s"
                   % (len(gaps), "" if len(gaps) == 1 else "s", ", ".join(gaps[:10]), more), file=sys.stderr)
         return 0
     if args[:1] == ["off"]:

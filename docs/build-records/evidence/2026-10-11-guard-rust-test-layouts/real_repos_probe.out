@@ -1,0 +1,3 @@
+# real-repos probe at 23:27:48: guard.py 553f5f37…; safe-run; Rikuri-PI main 1ea439d with its own policy, rule widened
+Rikuri-PI: 56 tracked .rs; mod declarations: scanner 25, line regex 25; test modules: none; tripwire: [] (0.05 s); locked Edit decide(): mean 6.1 ms, worst 57.9 ms
+exit 0; lnd 2026-10-12T01:46:20.584320594Z -> 2026-10-12T01:46:20.584320594Z

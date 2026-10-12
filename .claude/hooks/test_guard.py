@@ -106,8 +106,20 @@ class GenericPolicy(unittest.TestCase):
         # opts in through its own config; this checks it again on every run,
         # from the files git tracks here (InlineTestCoverage has the cases).
         gaps = guard.uncovered_inline_tests(guard.ROOT, CFG)
-        self.assertEqual(gaps, [], "tracked .rs files keep #[cfg(test)] tests that no inline_tests rule in "
-                         "guard-config.json covers (rikurinode's and AISecurity's are the model): " + ", ".join(gaps))
+        self.assertEqual(gaps, [], "tracked .rs files keep Rust tests (a #[cfg(test)] or #![cfg(test)] line, or a "
+                         "test module declared under cfg(test)) that the fix-lock does not cover: no inline_tests "
+                         "rule in guard-config.json covers them, or the guard cannot follow the test module's "
+                         "declaration (rikurinode's and AISecurity's rules are the model): " + ", ".join(gaps))
+
+    def test_inline_rules_find_a_tests_only_file(self):
+        # Owner, 2026-10-11 (2(a)): a file can hold nothing but tests, switched
+        # on by the inner attribute `#![cfg(test)]` at its top. Every rule this
+        # repository has for .rs files must find them, with the attributes and
+        # doc comments above (an added `#![cfg(any())]` switches the file off).
+        text = InlineTests.INNER
+        for r in CFG.get("inline_tests", []):
+            if r["glob"].endswith(".rs"):
+                self.assertEqual(guard.inline_region(text, r["starts_at"], r.get("attached_above", "")), text, r)
 
     def test_strictest_wins(self):
         self.assertEqual(verdict("Bash", {"command": "git push origin main; cat .env"}), "deny")
@@ -241,11 +253,15 @@ class InlineTests(unittest.TestCase):
     CR = 'pub fn f() {} // L1\rL2\n\n#[cfg(test)]\nmod tests {\n    const S: &str = "L1\nL2";\n}\n'
     BANNER = "pub fn f() {}\n\n// ====\n// Tests\n// ====\n#[cfg(test)]\nmod tests {}\n"
     CRLF = "pub fn f() {} // Z\r\n#[cfg(test)]\r\nmod tests {\r\n    fn t() { assert!(true); }\r\n}\r\n"
-    # The rule rikurinode and AISecurity configure (test_marker_shapes pins it).
+    # A tests-only file switched on by an inner attribute (2026-10-11).
+    INNER = ("//! Tests only.\n#![allow(unused)]\n#![cfg(test)]\n\nuse super::*;\n\n"
+             "#[test]\nfn adds() {\n    assert_eq!(add(2, 2), 4);\n}\n")
+    # The rule rikurinode, AISecurity and Rikuri-PI configure (test_marker_shapes pins it); since
+    # 2026-10-11 (owner, 2(a)) it takes the inner attribute `#![cfg(test)]` too.
     RUST = dict(CFG, inline_tests=[{"glob": "*.rs", "starts_at":
-                                    r"^[ \t\f\v\r​-‏⁠﻿]*#\s*\[\s*cfg\s*\(\s*(?:test|(?:any|all)\s*\((?:.*[(,]\s*)?(?<!not\()test(?=\s*[,)]).*\))\s*\)\s*\]",
+                                    r"^[ \t\f\v\r​-‏⁠﻿]*#\s*!?\s*\[\s*cfg\s*\(\s*(?:test|(?:any|all)\s*\((?:.*[(,]\s*)?(?<!not\()test(?=\s*[,)]).*\))\s*\)\s*\]",
                                     "guarded_lines": r"cfg(?:_attr)?\s*!?\s*\(.*\btest\b|macro_rules!\s*(?:assert\w*|debug_assert\w*|panic|unreachable|todo)\b",
-                                    "attached_above": r"^[ \t\f\v\r​-‏⁠﻿]*(#\s*\[|//|/\*|\*)"}])
+                                    "attached_above": r"^[ \t\f\v\r​-‏⁠﻿]*(#\s*!?\s*\[|//|/\*|\*)"}])
 
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -254,7 +270,7 @@ class InlineTests(unittest.TestCase):
         for name, text in (("lib.rs", self.SRC), ("plain.rs", self.PLAIN), ("notes.md", self.SRC),
                            ("quoted.rs", self.QUOTED), ("support.rs", self.SUPPORT), ("doc.rs", self.DOC),
                            ("cr.rs", self.CR), ("blank.rs", "\n  \n"), ("bom.rs", "\ufeff\n"),
-                           ("crlf.rs", self.CRLF), ("banner.rs", self.BANNER),
+                           ("crlf.rs", self.CRLF), ("banner.rs", self.BANNER), ("inner.rs", self.INNER),
                            ("lfa.rs", "pub fn f() {} // Z\n#[cfg(test)]\nmod tests {}\n"),
                            ("join.rs", "pub fn f() {}\n// cfg!( Z\ntest) marker\n"),
                            ("allow.rs", "pub fn f() {} // Z\n#[allow(unused)]\n#[cfg(test)]\nmod tests {}\n")):
@@ -348,11 +364,37 @@ class InlineTests(unittest.TestCase):
         for line, marker in (("#[cfg(test)]", True), ('#[cfg(any(test, feature = "test-helpers"))]', True),
                              ("    #[cfg(all(test, unix))]", True), ("#[cfg(all(unix, test))]", True),
                              ("#[cfg(not(test))]", False), ('#[cfg(feature = "x")]', False),
+                             ("#![cfg(test)]", True), ("# ! [ cfg(test) ]", True), ("#![cfg(all(test, unix))]", True),
+                             ("#![cfg(not(test))]", False), ("#!cfg(test)", False), ("#!![cfg(test)]", False),
                              ('#[cfg(any(feature = "test-helpers", unix))]', False),
                              ("#[cfg(any(not(test), unix))]", False), ("#[cfg_attr(test, derive(Debug))]", False),
                              ("# [cfg(test)]", True), ("#[cfg (test)]", True), ("#[ cfg(test) ]", True),
                              ("\u200e#[cfg(test)]", True), ("#[cfg(not (test))]", False)):
             self.assertEqual(guard.inline_region("fn a() {}\n" + line + "\n", rx) is not None, marker, line)
+
+    @classmethod
+    def before_inner(cls) -> dict:
+        """The rule as it stood before 2026-10-11: `#[` only, never `#![`."""
+        return dict(cls.RUST, inline_tests=[{k: v.replace(r"#\s*!?\s*\[", r"#\s*\[") for k, v in r.items()}
+                                            for r in cls.RUST["inline_tests"]])
+
+    def test_a_file_that_starts_cfg_test_is_tests(self):
+        # Verifier, 2026-10-11 (owner's choice 2(a)): `#![cfg(test)]` makes the
+        # whole file test code. The rule knew only `#[`, so an edit inside the
+        # file passed under the lock, and so did an inner attribute added
+        # above it, which switches the whole file off.
+        change = self.edit("(add(2, 2), 4)", "(add(2, 2), 5)", path="src/inner.rs")
+        self.assertEqual(self.v("Edit", change), "deny")
+        self.assertEqual(self.v("Edit", change, lock=False), "allow")
+        self.assertEqual(self.v("Edit", change, cfg=self.before_inner()), "allow")
+        for above in ("#![cfg(any())]\n", "# ! [cfg(any())]\n", "#![cfg_attr(all(), cfg(any()))]\n"):
+            off = self.edit("#![cfg(test)]\n", above + "#![cfg(test)]\n", path="src/inner.rs")
+            self.assertEqual(self.v("Edit", off), "deny", above)
+            self.assertEqual(self.v("Edit", off, lock=False), "allow", above)
+        self.assertEqual(self.v("Edit", self.edit("#![allow(unused)]\n", "", path="src/inner.rs")), "deny")
+        self.assertEqual(self.v("Write", {"file_path": "src/inner.rs", "content": self.INNER.replace(", 4)", ", 5)")}),
+                         "deny")
+        self.assertEqual(self.v("Bash", {"command": "sed -i 's/4/5/' src/inner.rs"}), "deny")
 
     def test_the_edit_tool_is_modelled_exactly(self):
         # Verifier round two, 2026-09-28. (A) Deleting text (new_string "")
@@ -567,6 +609,290 @@ class InlineTests(unittest.TestCase):
             self.assertEqual(guard.load_config(path)["inline_tests"], self.RUST["inline_tests"])
 
 
+class TestModuleFiles(unittest.TestCase):
+    """Verifier, 2026-10-11 (owner's choice 1(a)): a test module can live in a
+    file of its own, declared from its parent with `#[cfg(test)] mod tests;`.
+    That file holds no marker, so the lock left it editable. The guard follows
+    `mod x;` declarations made under cfg(test), the way rustc finds their
+    files; a production `mod x;` stays editable wherever it sits."""
+
+    # In src/outer.rs every brace, quote and `mod x;` inside a comment, string
+    # or character literal would misplace `deep`, `pathy`, `inner_prod` or
+    # `late` if the scanner read it as code.
+    OUTER = ('pub fn f() {}\n\n#[cfg(test)]\nmod tests {\n    // { a brace in a comment\n    /* { } } */\n'
+             '    const S: &str = "{ mod quoted; }}";\n    const R: &str = r#"}" mod raw; {"#;\n'
+             '    const B: &[u8] = b"}";\n    const C: char = \'{\';\n    const Q: char = \'"\';\n'
+             '    const E: char = \'\\\'\';\n    fn life<\'a>(x: &\'a str) -> &\'a str {\n        x\n    }\n'
+             '    struct W<\'a> {\n        s: &\'a str,\n    }\n    const D: &str = "a \\" } b";\n'
+             '    const CS: &CStr = c"}";\n    const CR: &CStr = cr#"} {"#;\n\n'
+             '    mod deep;\n\n    #[path = "x/y.rs"]\n    mod pathy;\n}\n\nmod inner_prod;\n\n#[cfg(test)]\nmod late;\n')
+    FILES = {
+        "src/lib.rs": ('pub mod plain;\npub mod outer;\npub mod fixtures;\nmod whole;\n\n#[cfg(test)]\nmod tests;\n\n'
+                       '#[cfg(test)]\n#[path = "support_tests.rs"]\nmod support;\n\n'
+                       '#[cfg(any(test, feature = "fuzz"))]\npub mod helpers;\n'),
+        "src/plain.rs": "pub fn two() -> u8 {\n    2\n}\n",
+        "src/fixtures.rs": "pub const REAL: u8 = 1;\n",
+        "src/helpers.rs": "pub fn fake() -> u8 {\n    3\n}\n",
+        "src/support_tests.rs": "#[test]\nfn s() {\n    assert!(true);\n}\n\nmod sup_child;\n",
+        "src/sup_child.rs": "pub fn c() {}\n",
+        "src/odd.rs": "pub fn o() {}\n\n#[cfg(test)]\nmod /* a comment */ odd_tests;\n",
+        "src/odd/odd_tests.rs": "#[test]\nfn o() {}\n",
+        "src/tests.rs": "use super::*;\n\nmod fixtures;\n\n#[test]\nfn t() {\n    assert_eq!(plain::two(), 2);\n}\n",
+        "src/tests/fixtures.rs": "pub const X: u8 = 1;\n",
+        "src/outer.rs": OUTER,
+        "src/outer/inner_prod.rs": "pub fn p() {}\n",
+        "src/outer/late.rs": "#[test]\nfn l() {}\n",
+        "src/outer/tests/deep.rs": "#[test]\nfn d() {}\n",
+        "src/outer/tests/x/y.rs": "#[test]\nfn y() {}\n",
+        "src/bin/tool.rs": "fn main() {}\n\n#[cfg(test)]\nmod tool_tests;\n",
+        "src/bin/tool_tests.rs": "#[test]\nfn t() {}\n",
+        "src/kw.rs": "pub fn k() {}\n\n#[cfg(test)]\nmod r#type;\n",
+        "src/kw/type.rs": "#[test]\nfn t() {}\n",
+        "src/whole.rs": "#![cfg(test)]\n\nmod sub;\n\n#[test]\nfn w() {}\n",
+        "src/whole/sub.rs": "pub fn s() {}\n",
+        "src/dirmod/mod.rs": "pub fn d() {}\n\n#[cfg(test)]\nmod t;\n",
+        "src/dirmod/t.rs": "#[test]\nfn t() {}\n",
+        "src/missing.rs": "pub fn m() {}\n\n#[cfg(test)]\nmod gone;\n",
+        "src/visible.rs": "pub(crate) fn v() {}\n\n#[cfg(test)]\npub(crate) mod shared;\n",
+        "src/visible/shared.rs": "pub fn s() {}\n",
+    }
+    TESTS = ("src/tests.rs", "src/tests/fixtures.rs", "src/support_tests.rs", "src/helpers.rs",
+             "src/outer/tests/deep.rs", "src/outer/tests/x/y.rs", "src/outer/late.rs", "src/bin/tool_tests.rs",
+             "src/kw/type.rs", "src/whole/sub.rs", "src/dirmod/t.rs", "src/visible/shared.rs",
+             "src/sup_child.rs", "src/odd/odd_tests.rs")
+    CODE = ("src/plain.rs", "src/outer/inner_prod.rs", "src/lib.rs", "src/outer.rs", "src/bin/tool.rs",
+            "src/kw.rs", "src/dirmod/mod.rs", "src/visible.rs", "src/odd.rs")
+    # No test_globs: each repository's own (`*/tests/*`, `*/fixtures/*`) would
+    # deny some of these paths by name and hide what this class checks.
+    RUST = dict(InlineTests.RUST, test_globs=[])
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = self._tmp.name
+        for name, text in self.FILES.items():
+            os.makedirs(os.path.join(self.root, os.path.dirname(name)), exist_ok=True)
+            with open(os.path.join(self.root, name), "w", newline="") as f:
+                f.write(text)
+        # A file that is not UTF-8 beside them declares nothing rustc could compile.
+        with open(os.path.join(self.root, "src", "bytes.rs"), "wb") as f:
+            f.write(b"// \xff\n#[cfg(test)]\nmod plain;\n")
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def v(self, tool, tin, lock=True, cfg=None):
+        event = {"tool_name": tool, "tool_input": tin, "cwd": self.root}
+        return guard.decide(event, dict(cfg or self.RUST, profile="stable"), self.root,
+                            lock_present=lock, branch_fn=lambda _cwd: "feature/x")[0]
+
+    def changes(self, path):
+        """An Edit, a MultiEdit and a Write that each add a comment at the top
+        of `path`, above its first line: never inside a test region, never
+        attached to a marker, so only a test module refuses them."""
+        first = self.FILES[path].split("\n")[0] + "\n"
+        return (("Edit", {"file_path": path, "old_string": first, "new_string": "// x\n" + first}),
+                ("MultiEdit", {"file_path": path, "edits": [{"old_string": first, "new_string": "// x\n" + first}]}),
+                ("Write", {"file_path": path, "content": "// x\n" + self.FILES[path]}))
+
+    def test_a_test_module_file_is_read_only(self):
+        for path in self.TESTS:
+            for tool, tin in self.changes(path):
+                self.assertEqual(self.v(tool, tin), "deny", (tool, path))
+                self.assertEqual(self.v(tool, tin, lock=False), "allow", (tool, path))
+
+    def test_production_modules_stay_open(self):
+        # src/outer/inner_prod.rs is declared below a test module.
+        for path in self.CODE:
+            for tool, tin in self.changes(path):
+                self.assertEqual(self.v(tool, tin), "allow", (tool, path))
+
+    def test_both_places_of_a_test_module_are_locked(self):
+        # Verifier round 1, D3; owner's choice "Lock both places" (2026-10-11).
+        # rustc reads `mod x;` in src/bin/tool.rs from src/bin/tool/ when the
+        # file is a module and from src/bin/ when it is a crate root (or was
+        # loaded by #[path]); the guard cannot tell which. Choosing by which
+        # file exists let a locked session write a decoy in one place and
+        # unlock the other. Both places are read-only now, existing or not —
+        # and so is a production file there that shares a test module's name
+        # (src/fixtures.rs, beside src/tests.rs's `mod fixtures;`).
+        for path in ("src/bin/tool/tool_tests.rs", "src/bin/tool/tool_tests/mod.rs", "src/fixtures.rs",
+                     "src/support_tests/sup_child.rs"):
+            self.assertEqual(self.v("Write", {"file_path": path, "content": "pub fn d() {}\n"}), "deny", path)
+            self.assertEqual(self.v("Write", {"file_path": path, "content": "pub fn d() {}\n"}, lock=False),
+                             "allow", path)
+        # A decoy already in one place does not unlock the other.
+        os.makedirs(os.path.join(self.root, "src", "bin", "tool"))
+        with open(os.path.join(self.root, "src", "bin", "tool", "tool_tests.rs"), "w") as f:
+            f.write("pub fn d() {}\n")
+        self.assertEqual(self.v("Edit", self.changes("src/bin/tool_tests.rs")[0][1]), "deny")
+
+    def test_the_declaration_of_a_test_file_is_locked_in_its_parent(self):
+        # Verifier round 1, D4: src/whole.rs is tests from its first line
+        # (`#![cfg(test)]`). Deleting `mod whole;` from src/lib.rs, or adding
+        # `#[cfg(any())]` above it, switched every test in it off.
+        for old, new in (("mod whole;\n", ""), ("mod whole;\n", "#[cfg(any())]\nmod whole;\n"),
+                         ("mod whole;\n", "#[cfg(feature = \"never\")]\nmod whole;\n"),
+                         ("mod whole;\n", "mod other;\n")):
+            change = {"file_path": "src/lib.rs", "old_string": old, "new_string": new}
+            self.assertEqual(self.v("Edit", change), "deny", new)
+            self.assertEqual(self.v("Edit", change, lock=False), "allow", new)
+        # The same changes to a production module's declaration are the fix's
+        # business — also for src/outer.rs, which holds tests below its code:
+        # they stay locked inside it, and switching the file off takes its
+        # code with it (a limit the record lists).
+        for old, new in (("pub mod plain;\n", ""), ("pub mod plain;\n", "#[cfg(any())]\npub mod plain;\n"),
+                         ("pub mod outer;\n", "#[cfg(any())]\npub mod outer;\n")):
+            self.assertEqual(self.v("Edit", {"file_path": "src/lib.rs", "old_string": old, "new_string": new}),
+                             "allow", new)
+
+    def test_a_crafted_file_cannot_stall_the_hook(self):
+        # Verifier round 1, D1: an opener never closed (`/*`, `r#"`) made the
+        # scanner re-read the rest of the file for each one; 40,000 of them in
+        # a file above every folder took 16 s, past the hook's 10 s limit. An
+        # unclosed comment or string now runs to the end of the file, as
+        # rustc reads it.
+        import time
+        with open(os.path.join(self.root, "zz.rs"), "w") as f:
+            f.write("mod x;\n" + "/* " * 40000)
+        with open(os.path.join(self.root, "src", "yy.rs"), "w") as f:
+            f.write("mod y;\n" + 'r#" ' * 40000)
+        t0 = time.time()
+        self.assertEqual(self.v("Edit", self.changes("src/tests.rs")[0][1]), "deny")
+        self.assertEqual(self.v("Edit", self.changes("src/plain.rs")[0][1]), "allow")
+        self.assertLess(time.time() - t0, 4.0)
+
+    def test_a_check_that_runs_out_of_time_asks(self):
+        # The lookup keeps to the guard's time budget; past it the owner decides.
+        with mock.patch.object(guard, "CHECK_TIME_BUDGET", -1.0):
+            self.assertEqual(self.v("Edit", self.changes("src/plain.rs")[0][1]), "ask")
+
+    def test_a_test_module_that_does_not_exist_yet(self):
+        # `#[cfg(test)] mod gone;` with no file: writing one creates a test
+        # module, in any place it could be.
+        for path in ("src/missing/gone.rs", "src/missing/gone/mod.rs", "src/gone.rs", "src/gone/mod.rs"):
+            self.assertEqual(self.v("Write", {"file_path": path, "content": "#[test]\nfn g() {}\n"}), "deny", path)
+        self.assertEqual(self.v("Write", {"file_path": "src/missing/other.rs", "content": "pub fn o() {}\n"}), "allow")
+
+    def test_the_deny_names_the_declaring_file(self):
+        event = {"tool_name": "Edit", "tool_input": self.changes("src/tests/fixtures.rs")[0][1], "cwd": self.root}
+        reasons = guard.decide(event, dict(self.RUST, profile="stable"), self.root, lock_present=True,
+                               branch_fn=lambda _cwd: "feature/x")[1]
+        self.assertTrue(any("src/tests/fixtures.rs" in r and "src/tests.rs" in r and "test module" in r
+                            for r in reasons), reasons)
+
+    def test_the_repositorys_rules_decide(self):
+        tests = self.changes("src/tests.rs")[0][1]
+        helpers = self.changes("src/helpers.rs")[0][1]
+        # No rule: the repository has not opted in.
+        plain = {k: v for k, v in self.RUST.items() if k != "inline_tests"}
+        self.assertEqual(self.v("Edit", tests, cfg=plain), "allow")
+        # A rule that knows only `#[cfg(test)]` does not see cfg(any(test, …)).
+        exact = dict(self.RUST, inline_tests=[dict(self.RUST["inline_tests"][0], starts_at=r"^#\[cfg\(test\)\]")])
+        self.assertEqual(self.v("Edit", tests, cfg=exact), "deny")
+        self.assertEqual(self.v("Edit", helpers, cfg=exact), "allow")
+        # Only files the rule's glob names are checked.
+        bins = dict(self.RUST, inline_tests=[dict(self.RUST["inline_tests"][0], glob="src/bin/*.rs")])
+        self.assertEqual(self.v("Edit", self.changes("src/bin/tool_tests.rs")[0][1], cfg=bins), "deny")
+        self.assertEqual(self.v("Edit", tests, cfg=bins), "allow")
+        # The declaring file's rules read its declaration: a rule naming only
+        # the module's file does not.
+        child = dict(self.RUST, inline_tests=[dict(self.RUST["inline_tests"][0], glob="tests.rs")])
+        self.assertEqual(self.v("Edit", tests, cfg=child), "allow")
+
+    def test_a_folder_that_cannot_be_listed_is_refused(self):
+        # Under the lock the guard reads the folders above a file to know
+        # whether it is a test module; when it cannot, it refuses.
+        change = self.changes("src/plain.rs")[0][1]
+        with mock.patch.object(guard.os, "listdir", side_effect=PermissionError(13, "Permission denied")):
+            self.assertEqual(self.v("Edit", change), "deny")
+            self.assertEqual(self.v("Edit", change, lock=False), "allow")
+
+    def test_shell_writes_are_refused_as_before(self):
+        for cmd in ("sed -i 's/1/2/' src/tests/fixtures.rs", "rm src/outer/tests/deep.rs",
+                    "echo '// x' >> src/kw/type.rs"):
+            self.assertEqual(self.v("Bash", {"command": cmd}), "deny", cmd)
+            self.assertEqual(self.v("Bash", {"command": cmd}, lock=False), "allow", cmd)
+
+    def test_the_scanner(self):
+        mods = guard.rust_file_modules(self.OUTER)
+        self.assertEqual([(n, inline, path) for n, inline, path, _attrs in mods],
+                         [("deep", ["tests"], None), ("pathy", ["tests"], "x/y.rs"), ("inner_prod", [], None),
+                          ("late", [], None)])
+        attrs = {n: a for n, _i, _p, a in mods}
+        self.assertEqual(attrs["deep"], ["#[cfg(test)]"])
+        self.assertEqual(attrs["pathy"], ["#[cfg(test)]", '#[path = "x/y.rs"]'])
+        self.assertEqual(attrs["inner_prod"], [])
+        self.assertEqual(attrs["late"], ["#[cfg(test)]"])
+        # Inner attributes apply to their file or module; outer ones to the next item only.
+        text = ('#![cfg(test)]\n#[cfg(test)]\nuse x;\nmod a;\n#[path = "q"]\nmod m {\n    #![allow(x)]\n    mod b;\n}\n'
+                '#[cfg(test)]\nfn f() {\n    mod c;\n}\npub(in crate::x) mod d;\nmod r#e;\nmod \u00e9t\u00e9;\npremod z;\n')
+        self.assertEqual(guard.rust_file_modules(text),
+                         [("a", [], None, ["#![cfg(test)]"]), ("b", ["q"], None, ["#![cfg(test)]", '#[path = "q"]',
+                                                                                    "#![allow(x)]"]),
+                          ("c", [], None, ["#![cfg(test)]", "#[cfg(test)]"]), ("d", [], None, ["#![cfg(test)]"]),
+                          ("e", [], None, ["#![cfg(test)]"]), ("\u00e9t\u00e9", [], None, ["#![cfg(test)]"])])
+
+    def test_a_modules_inner_path_names_its_folder(self):
+        # Corpus probe, 2026-10-11 (cargo-mutants' fixture of the Rust
+        # reference): an inline module can name its folder from inside, with
+        # `#![path]`. Inside a function it names nothing.
+        text = ('mod n {\n    #![path = "r"]\n    mod g;\n    fn h() {\n        #![path = "s"]\n'
+                '        #[path = "q.rs"]\n        mod q;\n    }\n    mod k;\n}\n')
+        self.assertEqual(guard.rust_file_modules(text),
+                         [("g", ["r"], None, ['#![path = "r"]']),
+                          ("q", ["r"], "q.rs", ['#![path = "r"]', '#![path = "s"]', '#[path = "q.rs"]']),
+                          ("k", ["r"], None, ['#![path = "r"]'])])
+        # An attribute runs to its own closing bracket, past brackets inside it.
+        self.assertEqual(guard.rust_file_modules("#[x([1])]\n#[cfg(test)]\nmod y;\n"),
+                         [("y", [], None, ["#[x([1])]", "#[cfg(test)]"])])
+
+    def test_a_declaration_as_rustc_reads_it(self):
+        # Verifier round 1, D2: rustc reads each of these as `mod tests;` —
+        # comments and Rust's own whitespace (U+200E, U+200F, U+2028, U+0085,
+        # which Python's \s does not take) may sit between its words.
+        for text in ("#[cfg(test)]\nmod /* c */ tests;\n", "#[cfg(test)]\nmod tests /* c */;\n",
+                     "#[cfg(test)]\nmod // c\ntests;\n", "#[cfg(test)]\nmod\u200etests\u200f;\n",
+                     "#[cfg(test)]\nmod\u2028tests\x85;\n", "#[cfg(test)] /* c */ mod tests;\n"):
+            self.assertEqual(guard.rust_file_modules(text), [("tests", [], None, ["#[cfg(test)]"])], repr(text))
+        # Not declarations: a macro's pattern (its expansion is unknown here), a
+        # word that starts with `mod`, a space rustc does not skip (U+00A0).
+        for text in ("macro_rules! m {\n    ($n:ident) => {\n        mod $n;\n    };\n}\n", "modtests;\n",
+                     "mod\u00a0tests;\n", "let r#mod = 1;\n"):
+            self.assertEqual(guard.rust_file_modules(text), [], repr(text))
+
+    def test_comments_and_strings_end_where_rustc_ends_them(self):
+        # Verifier round 1, D5 and D7: block comments nest; a comment or a raw
+        # string ends at its own first closer, not the file's last; C strings
+        # are strings; a #[path] may come before or after the cfg.
+        self.assertEqual([m[0] for m in guard.rust_file_modules(
+            "/* outer /* inner */ mod hidden; */\n#[cfg(test)]\nmod shown;\n")], ["shown"])
+        self.assertEqual([m[0] for m in guard.rust_file_modules(
+            "/* a */\n#[cfg(test)]\nmod x;\n/* b */\nconst A: &str = r\"a\";\n#[cfg(test)]\nmod y;\n"
+            "const B: &str = r\"b\";\nconst C: &CStr = c\"mod z; {\";\nconst D: &CStr = cr\"mod w; }\";\n")],
+            ["x", "y"])
+        self.assertEqual(guard.rust_file_modules('#[path = "p.rs"]\n#[cfg(test)]\nmod t;\n'),
+                         [("t", [], "p.rs", ['#[path = "p.rs"]', "#[cfg(test)]"])])
+        # Never closed: the rest of the file is the comment or the string.
+        self.assertEqual(guard.rust_file_modules("mod a;\n/* never closed\nmod b;\n"), [("a", [], None, [])])
+        self.assertEqual(guard.rust_file_modules('mod a;\nconst S: &str = r#"never closed\nmod b;\n'),
+                         [("a", [], None, [])])
+        self.assertEqual(guard.rust_file_modules('mod a;\nconst S: &str = "never closed\nmod b;\n'),
+                         [("a", [], None, [])])
+
+    def test_where_a_module_file_is_looked_for(self):
+        self.assertEqual(guard.module_files("src/lib.rs", "x", [], None), [["src/x.rs", "src/x/mod.rs"]])
+        self.assertEqual(guard.module_files("a/main.rs", "x", [], None), [["a/x.rs", "a/x/mod.rs"]])
+        self.assertEqual(guard.module_files("src/m/mod.rs", "x", ["i"], None), [["src/m/i/x.rs", "src/m/i/x/mod.rs"]])
+        self.assertEqual(guard.module_files("src/foo.rs", "x", [], None),
+                         [["src/foo/x.rs", "src/foo/x/mod.rs"], ["src/x.rs", "src/x/mod.rs"]])
+        self.assertEqual(guard.module_files("src/foo.rs", "x", [], "t.rs"), [["src/t.rs"]])
+        self.assertEqual(guard.module_files("src/foo.rs", "x", ["a", "b"], "t.rs"), [["src/foo/a/b/t.rs"], ["src/a/b/t.rs"]])
+        self.assertEqual(guard.module_files("src/a/foo.rs", "x", [], "../b/t.rs"), [["src/b/t.rs"]])
+        # Outside the repository: nothing the lock could protect.
+        self.assertEqual(guard.module_files("lib.rs", "x", [], "../out.rs"), [])
+        self.assertEqual(guard.module_files("lib.rs", "x", [], "/etc/x.rs"), [])
+
+
 class InlineTestCoverage(unittest.TestCase):
     """The class tripwire behind GenericPolicy.test_tracked_inline_tests_have_a_rule
     (2026-10-11), in scratch git repositories. A tracked .rs file holding
@@ -750,6 +1076,70 @@ class InlineTestCoverage(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(root, guard.LOCK_REL)))
         self.assertIn("could not check", err)
         self.assertIn("git is missing", err)
+
+    # The two layouts of 2026-10-11 (owner's choices 1(a) and 2(a)).
+    DECLARES = "pub fn f() {}\n\n#[cfg(test)]\nmod tests;\n"
+    TESTS_ONLY = "use super::*;\n\n#[test]\nfn t() {\n    f();\n}\n"
+
+    def test_a_file_that_starts_cfg_test_needs_a_rule(self):
+        root = self.repo({"src/inner.rs": InlineTests.INNER,
+                          "src/not.rs": "#![cfg(not(test))]\npub fn f() {}\n"})
+        self.assertEqual(self.gaps(root, None), ["src/inner.rs"])
+        self.assertEqual(self.gaps(root, InlineTests.before_inner()["inline_tests"]), ["src/inner.rs"])
+        self.assertEqual(self.gaps(root, self.RULES), [])
+
+    def test_a_test_module_file_needs_a_rule(self):
+        root = self.repo({"src/lib.rs": self.DECLARES, "src/tests.rs": self.TESTS_ONLY})
+        self.assertEqual(self.gaps(root, None), ["src/lib.rs", "src/tests.rs"])
+        self.assertEqual(self.gaps(root, self.RULES), [])
+        # A rule that names the parent only: a shell write to the module would pass.
+        self.assertEqual(self.gaps(root, [dict(self.RULES[0], glob="lib.rs")]), ["src/tests.rs"])
+        # A rule that does not recognise the declaration.
+        self.assertEqual(self.gaps(root, [dict(self.RULES[0], starts_at=r"^#\[cfg\(test\)\]\nmod tests \{")]),
+                         ["src/lib.rs", "src/tests.rs"])
+
+    def test_a_test_module_inside_a_test_module(self):
+        root = self.repo({"src/lib.rs": self.DECLARES, "src/tests.rs": "mod fixtures;\n",
+                          "src/tests/fixtures.rs": "pub const X: u8 = 1;\n"})
+        self.assertEqual(self.gaps(root, None), ["src/lib.rs", "src/tests.rs", "src/tests/fixtures.rs"])
+        self.assertEqual(self.gaps(root, self.RULES), [])
+        self.assertEqual(self.gaps(root, [dict(self.RULES[0], glob="[lt]*.rs")]), ["src/tests/fixtures.rs"])
+
+    def test_a_test_module_the_lock_cannot_follow_is_named(self):
+        # rustc follows a #[path] out of the declaring file's folder; the lock
+        # looks only in the module's own folder and those above it.
+        root = self.repo({"src/a/foo.rs": 'pub fn f() {}\n\n#[cfg(test)]\n#[path = "../b/t.rs"]\nmod t;\n',
+                          "src/b/t.rs": self.TESTS_ONLY})
+        self.assertEqual(self.gaps(root, self.RULES), ["src/b/t.rs"])
+
+    def test_a_test_module_with_no_file_is_named(self):
+        root = self.repo({"src/lib.rs": self.DECLARES})
+        self.assertEqual(self.gaps(root, self.RULES), ["src/lib.rs"])
+
+    def test_a_production_module_is_not_named(self):
+        root = self.repo({"src/lib.rs": "#[cfg(not(test))]\npub mod plain;\n\n#[cfg(test)]\nmod tests;\n",
+                          "src/plain.rs": self.PLAIN, "src/tests.rs": self.TESTS_ONLY})
+        self.assertEqual(self.gaps(root, self.RULES), [])
+        self.assertEqual(self.gaps(root, None), ["src/lib.rs", "src/tests.rs"])
+
+    def test_a_test_module_the_check_cannot_read_is_named(self):
+        root = self.repo({"src/lib.rs": self.DECLARES, "src/tests.rs": self.TESTS_ONLY})
+        with mock.patch.object(guard, "test_module_parent", side_effect=OSError("a folder cannot be listed")):
+            self.assertEqual(self.gaps(root, self.RULES), ["src/tests.rs"])
+
+    def test_an_untracked_test_module_does_not_count(self):
+        root = self.repo({"src/lib.rs": self.DECLARES}, untracked={"src/tests.rs": self.TESTS_ONLY})
+        self.assertEqual(self.gaps(root, self.RULES), [])
+        self.assertEqual(self.gaps(root, None), ["src/lib.rs"])
+
+    def test_fix_lock_on_names_a_test_module_it_does_not_cover(self):
+        root = self.repo({"src/lib.rs": self.DECLARES, "src/tests.rs": self.TESTS_ONLY})
+        rc, out, err = self.on(root, [dict(self.RULES[0], glob="lib.rs")])
+        self.assertEqual(rc, 0)
+        self.assertIn("NOT read-only", err)
+        self.assertIn("test module", err)
+        self.assertIn("src/tests.rs", err)
+        self.assertNotIn("src/lib.rs", err)
 
 
 class FailureModes(unittest.TestCase):

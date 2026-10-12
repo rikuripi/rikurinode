@@ -1,0 +1,9 @@
+# gap probe at 17:10:46 on the committed tripwire aa51a24 (guard.py c1d54b73…); safe-run
+-- rule as configured today
+fix-lock held, Edit src/tests.rs  'add(2, 2), 5'                     -> allow
+fix-lock held, Edit src/inner.rs  'assert_eq!(1, 2)'                 -> allow
+fix-lock held, Edit src/inner.rs  '#![cfg(any())]\n#![cfg(test)]'    -> allow
+fix-lock held, Edit src/lib.rs    '    b + a\n'                      -> allow
+tripwire, uncovered_inline_tests: []
+tripwire marker finds #![cfg(test)]: False
+exit 0; lnd 2026-10-11T22:24:44.152905894Z -> 2026-10-11T22:24:44.152905894Z

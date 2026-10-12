@@ -1,0 +1,17 @@
+# round 4 red 2 (the timing test's missing import added; guard.py as verified) at 21:58:14: Python 3.14.4; guard.py 27f9a272…, test_guard.py 00ebeae3…, guard_base.py 1ef6f5cc…; safe-run; exit 1; lnd 2026-10-12T01:46:20.584320594Z -> 2026-10-12T01:46:20.584320594Z
+FAIL: test_a_check_that_runs_out_of_time_asks (test_guard.TestModuleFiles.test_a_check_that_runs_out_of_time_asks)
+AssertionError: 'allow' != 'ask'
+FAIL: test_a_crafted_file_cannot_stall_the_hook (test_guard.TestModuleFiles.test_a_crafted_file_cannot_stall_the_hook)
+AssertionError: 54.83480978012085 not less than 4.0
+FAIL: test_a_declaration_as_rustc_reads_it (test_guard.TestModuleFiles.test_a_declaration_as_rustc_reads_it)
+AssertionError: Lists differ: [] != [('tests', [], None, ['#[cfg(test)]'])]
+FAIL: test_a_test_module_file_is_read_only (test_guard.TestModuleFiles.test_a_test_module_file_is_read_only)
+AssertionError: 'allow' != 'deny'
+FAIL: test_both_places_of_a_test_module_are_locked (test_guard.TestModuleFiles.test_both_places_of_a_test_module_are_locked)
+AssertionError: 'allow' != 'deny'
+FAIL: test_comments_and_strings_end_where_rustc_ends_them (test_guard.TestModuleFiles.test_comments_and_strings_end_where_rustc_ends_them)
+AssertionError: Lists differ: ['hidden', 'shown'] != ['shown']
+FAIL: test_the_declaration_of_a_test_file_is_locked_in_its_parent (test_guard.TestModuleFiles.test_the_declaration_of_a_test_file_is_locked_in_its_parent)
+AssertionError: 'allow' != 'deny'
+Ran 134 tests in 75.797s
+FAILED (failures=7)

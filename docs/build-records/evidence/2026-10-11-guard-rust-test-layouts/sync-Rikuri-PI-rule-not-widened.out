@@ -1,0 +1,5 @@
+# Rikuri-PI main 1ea439d with the shared files but its rule NOT widened (the 2(a) config change left out) at 23:27:20: Python 3.14.4; guard.py 553f5f37…, test_guard.py ccd5cb4b…, guard_base.py 1ef6f5cc…; safe-run; exit 1; lnd 2026-10-12T01:46:20.584320594Z -> 2026-10-12T01:46:20.584320594Z
+FAIL: test_inline_rules_find_a_tests_only_file (test_guard.GenericPolicy.test_inline_rules_find_a_tests_only_file)
+AssertionError: None != '//! Tests only.\n#![allow(unused)]\n#![c[82 chars]n}\n' : {'glob': '*.rs', 'starts_at': '^[ \\t\\f\\v\\r\u200b-\u200f\u2060\ufeff]*#\\s*\\[\\s*cfg\\s*\\(\\s*(?:test|(?:any|all)\\s*\\((?:.*[(,]\\s*)?(?<!not\\()test(?=\\s*[,)]).*\\))\\s*\\)\\s*\\]', 'attached_above': '^[ \\t\\f\\v\\r\u200b-\u200f\u2060\ufeff]*(#\\s*\\[|//|/\\*|\\*)', 'guarded_lines': 'cfg(?:_attr)?\\s*!?\\s*\\(.*\\btest\\b|macro_rules!\\s*(?:assert\\w*|debug_assert\\w*|panic|unreachable|todo)\\b'}
+Ran 134 tests in 9.342s
+FAILED (failures=1)

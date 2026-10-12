@@ -1,0 +1,102 @@
+# corpus probe at 23:27:58: guard.py 553f5f37…; safe-run; the Rust standard library source (toolchain 1.98.1-x86_64-unknown-linux-gnu), read as text
+files 1919, declarations 1845, resolved 1844 (99.95%), not found 1; 4.7 s
+vs a line-anchored regex: only the regex 0, only the scanner 0
+not found, by the attributes on them: {'path inside cfg_attr': 1}
+not found, no attribute:
+
+exit 0
+# the same over the crates.io sources in ~/.cargo/registry/src, read as text
+files 38084, declarations 32081, resolved 31943 (99.57%), not found 138; 152.6 s
+vs a line-anchored regex: only the regex 0, only the scanner 432
+not found, by the attributes on them: {'path inside cfg_attr': 33, 'cfg(test): a test file left out of the published crate': 10, 'another cfg: a platform or feature file left out': 6, 'no attribute': 89}
+not found, no attribute:
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.134.3/isle_examples/link/borrows_main.rs: mod borrows; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.134.3/isle_examples/link/iflets_main.rs: mod iflets; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.134.3/isle_examples/link/multi_constructor_main.rs: mod multi_constructor; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.134.3/isle_examples/link/multi_extractor_main.rs: mod multi_extractor; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.134.3/isle_examples/link/test_main.rs: mod test; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.134.3/isle_examples/run/iconst_main.rs: mod iconst; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.134.3/isle_examples/run/let_shadowing_main.rs: mod let_shadowing; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.134.3/isle_examples/run/struct_test_main.rs: mod struct_test; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.134.3/isle_examples/run/tuple_variants_main.rs: mod tuple_variants; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.134.4/isle_examples/link/borrows_main.rs: mod borrows; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.134.4/isle_examples/link/iflets_main.rs: mod iflets; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.134.4/isle_examples/link/multi_constructor_main.rs: mod multi_constructor; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.134.4/isle_examples/link/multi_extractor_main.rs: mod multi_extractor; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.134.4/isle_examples/link/test_main.rs: mod test; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.134.4/isle_examples/run/iconst_main.rs: mod iconst; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.134.4/isle_examples/run/let_shadowing_main.rs: mod let_shadowing; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.134.4/isle_examples/run/struct_test_main.rs: mod struct_test; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.134.4/isle_examples/run/tuple_variants_main.rs: mod tuple_variants; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.135.3/isle_examples/link/borrows_main.rs: mod borrows; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.135.3/isle_examples/link/convert_partial_borrows_main.rs: mod convert_partial_borrows; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.135.3/isle_examples/link/iflets_main.rs: mod iflets; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.135.3/isle_examples/link/multi_constructor_main.rs: mod multi_constructor; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.135.3/isle_examples/link/multi_extractor_main.rs: mod multi_extractor; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.135.3/isle_examples/link/test_main.rs: mod test; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.135.3/isle_examples/run/iconst_main.rs: mod iconst; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.135.3/isle_examples/run/let_shadowing_main.rs: mod let_shadowing; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.135.3/isle_examples/run/struct_test_main.rs: mod struct_test; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cranelift-isle-0.135.3/isle_examples/run/tuple_variants_main.rs: mod tuple_variants; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/jiff-0.1.29/tests/lib.rs: mod tc39_262; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/jiff-0.2.23/tests/lib.rs: mod init; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/jiff-0.2.23/tests/lib.rs: mod procmacro; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/jiff-0.2.23/tests/lib.rs: mod tc39_262; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/jiff-0.2.24/tests/lib.rs: mod init; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/jiff-0.2.24/tests/lib.rs: mod procmacro; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/jiff-0.2.24/tests/lib.rs: mod tc39_262; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/jiff-0.2.37/tests/lib.rs: mod init; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/jiff-0.2.37/tests/lib.rs: mod procmacro; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/jiff-0.2.37/tests/lib.rs: mod tc39_262; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/objc2-0.6.4/src/ffi/mod.rs: mod test_linkable; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/objc2-0.6.4/src/ffi/mod.rs: mod test_linkable_unwind; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/benches/perftest_data/mod.rs: mod perftest_data; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_proto.rs: mod packed_primitives; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod basic; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod issue118; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod issue118_2; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod issue_170_a; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod issue_170_b; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod issue_170_c; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod issue_170_common; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod issue_170_d; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod issue_170_e; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod nonunique_1; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod nonunique_2; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod shared0; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod special; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod struct_pb; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_default_values; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_deprecated_lifetime_can_compile; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_enum_values_pb; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_ident_pb; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_import_nested_imported_pb; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_import_nested_pb; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_import_nonunique_pb; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_import_root_imported_pb; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_import_root_pb; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_lite_runtime; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_name_resolution_p2; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_name_resolution_p3; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_name_resolution_p4; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_nested_package_dir; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_nested_package_dir_alt; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_nonunique_enum_pb; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_oneof_pb; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_owned_pb; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_required; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_sanitize_file_name_pb; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/mod.rs: mod test_text_format_pb; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/test_deprecated_lifetime_must_compile_error.rs: mod proto; inline=[] path=./test_deprecated_lifetime_pb.rs
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v2/test_owned_must_compile_error.rs: mod proto; inline=[] path=./test_owned_pb.rs
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v3/mod.rs: mod basic; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v3/mod.rs: mod test_map_pb; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v3/mod.rs: mod test_ident_pb; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v3/mod.rs: mod test_deprecated_lifetime_can_compile; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v3/mod.rs: mod test_deprecated_lifetime_pb; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v3/mod.rs: mod test_oneof_pb; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v3/mod.rs: mod test_owned_pb; inline=[] path=None
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v3/test_deprecated_lifetime_must_compile_error.rs: mod proto; inline=[] path=./test_deprecated_lifetime_pb.rs
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/quick-protobuf-0.8.1/tests/rust_protobuf/v3/test_owned_must_compile_error.rs: mod proto; inline=[] path=./test_owned_pb.rs
+~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.3/tests/lib.rs: mod fuzz; inline=[] path=None
+exit 0; lnd 2026-10-12T01:46:20.584320594Z -> 2026-10-12T01:46:20.584320594Z

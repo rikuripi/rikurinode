@@ -1,0 +1,35 @@
+# red: these tests on the committed tripwire aa51a24's guard.py at 17:11:08: Python 3.14.4; guard.py c1d54b73…, test_guard.py e3893aca…, guard_base.py 1ef6f5cc…; safe-run; exit 1; lnd 2026-10-11T22:24:44.152905894Z -> 2026-10-11T22:24:44.152905894Z
+ERROR: test_a_test_module_the_check_cannot_read_is_named (test_guard.InlineTestCoverage.test_a_test_module_the_check_cannot_read_is_named)
+AttributeError: <module 'guard' from '/home/junc/claude-wip/guard-rust-test-layouts/aa51/.claude/hooks/guard.py'> does not have the attribute 'test_module_parent'
+ERROR: test_a_modules_inner_path_names_its_folder (test_guard.TestModuleFiles.test_a_modules_inner_path_names_its_folder)
+AttributeError: module 'guard' has no attribute 'rust_file_modules'
+ERROR: test_the_scanner (test_guard.TestModuleFiles.test_the_scanner)
+AttributeError: module 'guard' has no attribute 'rust_file_modules'
+ERROR: test_where_a_module_file_is_looked_for (test_guard.TestModuleFiles.test_where_a_module_file_is_looked_for)
+AttributeError: module 'guard' has no attribute 'module_files'
+FAIL: test_a_file_that_starts_cfg_test_needs_a_rule (test_guard.InlineTestCoverage.test_a_file_that_starts_cfg_test_needs_a_rule)
+AssertionError: Lists differ: [] != ['src/inner.rs']
+FAIL: test_a_production_module_is_not_named (test_guard.InlineTestCoverage.test_a_production_module_is_not_named)
+AssertionError: Lists differ: ['src/lib.rs'] != ['src/lib.rs', 'src/tests.rs']
+FAIL: test_a_test_module_file_needs_a_rule (test_guard.InlineTestCoverage.test_a_test_module_file_needs_a_rule)
+AssertionError: Lists differ: ['src/lib.rs'] != ['src/lib.rs', 'src/tests.rs']
+FAIL: test_a_test_module_inside_a_test_module (test_guard.InlineTestCoverage.test_a_test_module_inside_a_test_module)
+AssertionError: Lists differ: ['src/lib.rs'] != ['src/lib.rs', 'src/tests.rs', 'src/tests/fixtures.rs']
+FAIL: test_a_test_module_the_lock_cannot_follow_is_named (test_guard.InlineTestCoverage.test_a_test_module_the_lock_cannot_follow_is_named)
+AssertionError: Lists differ: [] != ['src/b/t.rs']
+FAIL: test_a_test_module_with_no_file_is_named (test_guard.InlineTestCoverage.test_a_test_module_with_no_file_is_named)
+AssertionError: Lists differ: [] != ['src/lib.rs']
+FAIL: test_fix_lock_on_names_a_test_module_it_does_not_cover (test_guard.InlineTestCoverage.test_fix_lock_on_names_a_test_module_it_does_not_cover)
+AssertionError: 'NOT read-only' not found in ''
+FAIL: test_a_folder_that_cannot_be_listed_is_refused (test_guard.TestModuleFiles.test_a_folder_that_cannot_be_listed_is_refused)
+AssertionError: 'allow' != 'deny'
+FAIL: test_a_test_module_file_is_read_only (test_guard.TestModuleFiles.test_a_test_module_file_is_read_only)
+AssertionError: 'allow' != 'deny'
+FAIL: test_a_test_module_that_does_not_exist_yet (test_guard.TestModuleFiles.test_a_test_module_that_does_not_exist_yet)
+AssertionError: 'allow' != 'deny'
+FAIL: test_the_deny_names_the_declaring_file (test_guard.TestModuleFiles.test_the_deny_names_the_declaring_file)
+AssertionError: False is not true : []
+FAIL: test_the_repositorys_rules_decide (test_guard.TestModuleFiles.test_the_repositorys_rules_decide)
+AssertionError: 'allow' != 'deny'
+Ran 128 tests in 20.927s
+FAILED (failures=12, errors=4)
