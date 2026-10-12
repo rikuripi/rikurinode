@@ -5,7 +5,7 @@
 | **Date** | 2026-10-10 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | main |
-| **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (its gate receipt), 737bb47 and 87e2249 (the record only), db4a3ac (round 11), 3540614 (its gate receipt), 26d6862 (round 12), 383a6dc (its gate receipt), 0dd2660 (round 13), 439d295 (its gate receipt), and round 14: the commit that adds this line |
+| **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (its gate receipt), 737bb47 and 87e2249 (the record only), db4a3ac (round 11), 3540614 (its gate receipt), 26d6862 (round 12), 383a6dc (its gate receipt), 0dd2660 (round 13), 439d295 (its gate receipt), 8117fc4 (round 14), 5628ac1 (its gate receipt), and round 15: the commit that adds this line |
 | **Status** | Rounds 1–13 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings, claims wider than the tests or the code); round 14 committed, its verifier (review only) pending; the sandbox's drill Not yet proven |
 | **Change type** | bootstrap (process, security gates) |
 
@@ -1109,7 +1109,51 @@
       names a last round. The gate on 8117fc4, all 7 steps (91, 72;
       `r14-gate.out`, in the next commit, which changes only it and this
       line).
-- [ ] Verifier, round 14: pending (review only).
+- [x] **Verifier, round 14 (review only): FAIL** (its `rn-verify43/`;
+      not stopped). Passed: the gate on 5628ac1 and on 8117fc4 (91, 72, no
+      leaks); `git diff --check`; 8117fc4 changes only text, two messages
+      and two test cases (the check's syntax tree, docstrings removed,
+      differs from 439d295's only in the two messages); every round-13
+      finding. Failed: round 14's "found it in that version's settings and
+      README" — round 4's entry cites Claude Code's hooks reference, the
+      README it names is this repository's own, and the settings finding
+      is round 4's verifier's; the costed default's "a protected path, so
+      it asks" and "; it asks" — in `development` such an edit is logged
+      and allowed; AGENTS.md's "the network only through an allow-list" —
+      the schema prompts for other hosts, and ignores `strictAllowlist` in
+      project settings; the allow-rule message's "merged into … readable
+      paths", which the schema shows only for `Edit` (writable paths) and
+      `WebFetch` (domains). Smaller, all older than round 14: the
+      docstring's "every file and shell tool" (the schema's file tools
+      include `Glob` and `LSP`, which the matcher does not); the
+      `additionalDirectories` and hook-event messages; the comment that the
+      allowed variables "change no command"; AGENTS.md crediting round 9's
+      verifier with a list of `.claude` paths; the test name "skips the
+      prompts"; no test of the timeout at 1 or 11 (its mutants C and D
+      passed). Also seen: a list-valued `permissions.defaultMode` crashed
+      the check (`TypeError`; exit 1, so the gate failed closed, with a
+      traceback).
+- [x] **Round 15** (2026-10-11): the crash fixed, and each statement
+      narrowed to what the code, the guard profile or the schema shows.
+      A `defaultMode` that is not a string fails with a message, not a
+      traceback (tests: a list and an object; red first, 2 errors,
+      `r15-wiring-red.out`); the timeout is tested at 1 and 10 (allowed)
+      and 11 (refused); the mode test is named "outside the list".
+      AGENTS.md: GitHub's domains need no prompt and other hosts get one
+      (`strictAllowlist` is ignored in project settings); the `.claude`
+      sentence keeps only "not `.claude/state`", from Claude Code's binary;
+      AGENTS.md, the check's docstring and its allow-rule message say which
+      allow rules the schema merges into the sandbox (`Edit`, `WebFetch`)
+      and that the other four are refused as a precaution; "2.1.295 or
+      later" cites the hooks reference round 4 read and round 4's
+      verifier's schema finding; the guard runs before the seven tools in
+      its matcher, named. The check's `additionalDirectories`, hook-event
+      and environment messages and its comment say only what the schema
+      or the list says. The costed default's two "it asks" now say it asks
+      in `stable` and is logged in `development`. Round 14's entry above
+      stays as written; this entry corrects its citation. The gate: below.
+- [ ] Verifier, round 15: not run — whether the review-only loop
+      continues is the owner's to decide (asked 2026-10-11).
 
 ## 5. Close Out
 
@@ -1158,8 +1202,8 @@
   profiles. Cost: a read outside the list asks — `sudo lncli getinfo`, a tool
   called by its path, `docker inspect <container>` without `--format`, `docker
   build`, a heredoc's body that names a tool; each costs one approval.
-  Reversible: add a read to the list (a protected path; it asks). Owner:
-  Henry.
+  Reversible: add a read to the list (a protected path: it asks in
+  `stable` and is logged in `development`). Owner: Henry.
 - **A default chosen for the owner (rounds 10–12): the wiring check is
   closed-world.** In `.claude/settings.json` and `.claude/settings.local.json`
   it allows only: the committed sandbox block (and none in the local file);
@@ -1182,8 +1226,8 @@
   which Claude Code itself may write, `disableAutoMode`,
   `disableSkillShellExecution`, `disabledMcpjsonServers`) (round 11's
   verifier). Reversible: add the key or name to the list in
-  `check_guard_wiring.py` (a protected path, so it asks), with a test.
-  Owner: Henry.
+  `check_guard_wiring.py` (a protected path: it asks in `stable` and is
+  logged in `development`), with a test. Owner: Henry.
 - **The sandbox's drill** (round 9): Not yet proven. The owner's AppArmor
   change ran on 2026-10-11 at 11:43, and bubblewrap now starts a user
   namespace (`r12-bwrap-check.out`); whether Claude Code's sandbox starts —
@@ -1323,6 +1367,9 @@ round 12 wiring tests red 22:01:44 (r12-wiring-red.out): 2; r12-bwrap-check.out;
 round 13 text only: the costed default, the check's docstring, AGENTS.md's modes; r13-gate.out (91, 72)
          verifier (review only): FAIL — mode behaviour claimed beyond the schema; the Receipts range
 round 14 text, two messages and two test cases (timeouts 0 and 2.5); the gate: r14-gate.out
+         verifier (review only): FAIL — the "2.1.295" citation; "it asks" where development logs; the
+         network "only through an allow-list"; "readable paths"; a list-valued defaultMode crashed the check
+round 15 wiring tests red 22:39:16 (r15-wiring-red.out): 2 errors; green: 27 OK; the gate: r15-gate.out
 ```
 Receipts: `evidence/2026-10-10-bootstrap/` — `gate-round1.out` to
 `gate-round3.out`, `gate-round3b.out` (the "round 3, continued" gate) and

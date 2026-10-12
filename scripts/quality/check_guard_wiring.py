@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check that the AI-session guard really runs before every file and shell tool.
+"""Check that the AI-session guard really runs before the tools in TOOLS.
 
 Reads the Claude Code settings as Claude Code does: hooks not disabled, the
 exact guard command, on PreToolUse, covering every tool the guard judges, and
@@ -13,9 +13,10 @@ the settings hold only the top-level keys in TOP_KEYS (others may run a
 command, load a plugin that brings hooks, or start MCP servers); the only hook
 is the guard's own PreToolUse entry, with exactly its keys (`if`, `once`,
 `async`, … change when it runs or whether its failure blocks) and a timeout,
-required, a whole number of seconds from 1 to 10; no permission rule widens the
-sandbox (Edit/Write rules are merged into its writable paths, WebFetch into its
-domains, Read may re-open what it hides) and the permission mode is one of
+required, a whole number of seconds from 1 to 10; no allow rule for a tool in
+WIDENING_TOOLS (Claude Code's settings schema merges Edit allow rules into the
+sandbox's writable paths and WebFetch ones into its domains; the other four are
+refused as a precaution), no additionalDirectories, and the permission mode is one of
 MODES (the schema's other modes — bypassPermissions, dontAsk, auto — are
 refused); and the environment
 holds only the names in ENV_NAMES (PATH, LD_PRELOAD, BASH_ENV, … would change
@@ -61,9 +62,8 @@ ENV_WORDS = re.compile(r"SANDBOX|HOOK", re.IGNORECASE)
 # plugin that brings hooks, or start MCP servers whose tools the guard does not
 # see; the guard's hook entry, exactly (`if`, `once`, `async`, … change when
 # it runs or whether its failure blocks); the permission modes in MODES (the
-# schema's others are refused); the environment variables that change
-# no command (PATH, LD_PRELOAD,
-# BASH_ENV, … would).
+# schema's others are refused); the environment variables that do not change
+# which program a command runs (PATH, LD_PRELOAD, BASH_ENV, … would).
 TOP_KEYS = {"$schema", "hooks", "permissions", "sandbox", "env", "disableAllHooks"}
 HOOK_EVENTS = {"PreToolUse"}
 ENTRY_KEYS = {"matcher", "hooks"}
@@ -121,13 +121,14 @@ def permission_problems(path: str, settings: dict) -> list:
         return ["%s: permissions must be an object" % path]
     found = []
     if "additionalDirectories" in perms:
-        found.append("%s: permissions.additionalDirectories gives sandboxed commands write access outside the "
-                     "repository" % path)
+        found.append("%s: permissions.additionalDirectories adds directories to the permission scope (only the "
+                     "repository is in it here)" % path)
     for key in sorted(set(perms) - PERMISSION_KEYS - {"additionalDirectories"}):
         found.append("%s: permissions.%s is not one this check knows to leave the sandbox alone" % (path, key))
-    if "defaultMode" in perms and perms["defaultMode"] not in MODES:
+    mode = perms.get("defaultMode")
+    if "defaultMode" in perms and not (isinstance(mode, str) and mode in MODES):  # a list crashed (round 14)
         found.append("%s: permissions.defaultMode %s is not one this check allows (allowed: %s)"
-                     % (path, json.dumps(perms["defaultMode"]), ", ".join(sorted(MODES))))
+                     % (path, json.dumps(mode), ", ".join(sorted(MODES))))
     for key in ("allow", "deny", "ask"):
         rules = perms.get(key, [])
         if not isinstance(rules, list) or not all(isinstance(r, str) for r in rules):
@@ -136,8 +137,10 @@ def permission_problems(path: str, settings: dict) -> list:
         if key == "allow":
             for r in rules:
                 if r.split("(", 1)[0].strip() in WIDENING_TOOLS:
-                    found.append("%s: permissions.allow %s widens the sandbox (merged into its writable paths, "
-                                 "readable paths or domains)" % (path, r))
+                    found.append("%s: permissions.allow %s: no allow rule for %s here (the settings schema "
+                                 "merges Edit allow rules into the sandbox's writable paths and WebFetch ones into "
+                                 "its domains; the others are refused as a precaution)"
+                                 % (path, r, ", ".join(sorted(WIDENING_TOOLS))))
     return found
 
 
@@ -148,7 +151,7 @@ def env_problems(path: str, settings: dict) -> list:
     if not isinstance(env, dict):
         return ["%s: env must be an object" % path]
     return (["%s: env.%s names the sandbox or hooks" % (path, k) for k in sorted(env) if ENV_WORDS.search(k)]
-            + ["%s: env.%s is not one this check knows to change no command (allowed: %s)"
+            + ["%s: env.%s is not on this check's list (allowed: %s)"
                % (path, k, ", ".join(sorted(ENV_NAMES))) for k in sorted(env)
                if k not in ENV_NAMES and not ENV_WORDS.search(k)])
 
@@ -164,8 +167,8 @@ def hook_problems(path: str, settings: dict, full: bool) -> tuple:
     if hooks.get("PermissionRequest"):
         found.append("%s: a PermissionRequest hook could answer the guard's ask" % path)
     for event in sorted(set(hooks) - HOOK_EVENTS - {"PermissionRequest"}):
-        found.append("%s: a %s hook runs a command outside the guard and the sandbox: only the guard's PreToolUse "
-                     "hook is wired here" % (path, event))
+        found.append("%s: a %s hook is refused: only the guard's PreToolUse hook is wired here (a hook may run "
+                     "a command, a prompt, an agent, an HTTP request or an MCP tool)" % (path, event))
     entries = hooks.get("PreToolUse")
     if entries is None:
         return found, covered, open_on_failure

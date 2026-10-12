@@ -45,12 +45,14 @@ ported with their tests, not copied wholesale.
   shell command in a session opened here runs inside bubblewrap: it can
   write only inside this repository and the temporary folder, cannot reach
   a Unix socket (the Docker socket drives the live node) or a local port,
-  reaches the network only through an allow-list (GitHub), and cannot read
+  reaches GitHub's domains without a prompt and any other host only after
+  a prompt (`strictAllowlist`, which would refuse them, is ignored in
+  project settings, per Claude Code's settings schema), and cannot read
   the previous checkout's `.env` and `data/` or `/run/rikuri`. The sandbox
   itself protects `.git/hooks`, `.git/config` and the paths it names under
-  `.claude` (its hooks, the settings files, skills, commands and agents, as
-  the round-9 verifier read Claude Code 2.1.295 — not `.claude/state`); the
-  settings add `scripts/quality/hooks`. If the sandbox cannot start, Claude
+  `.claude` (not `.claude/state`, as round 9's verifier read Claude Code's
+  binary); the settings add `scripts/quality/hooks`. If the sandbox cannot
+  start, Claude
   Code refuses to run commands (`failIfUnavailable`), and a command never
   retries outside it (`allowUnsandboxedCommands: false`). Only `git push`, `git fetch` and
   `git pull` leave it (SSH cannot use its proxy); they still pass the guard
@@ -65,9 +67,11 @@ ported with their tests, not copied wholesale.
   `async` would change when it runs or whether its failure blocks — and a
   timeout, a whole number of seconds from 1 to 10; no other hook event, and
   none in the local file),
-  only permission rules that do not widen the sandbox (no `Edit`, `Write`,
-  `MultiEdit`, `NotebookEdit`, `WebFetch` or `Read` allow rule, no
-  `additionalDirectories`, no permissions key it does not know), a
+  no allow rule for `Edit`, `Write`, `MultiEdit`, `NotebookEdit`,
+  `WebFetch` or `Read` (the settings schema merges `Edit` allow rules into
+  the sandbox's writable paths and `WebFetch` ones into its domains; the
+  other four are refused as a precaution), no `additionalDirectories`, no
+  permissions key it does not know, a
   permission mode from its list (`default`, its alias `manual`,
   `acceptEdits`, `plan`; the other modes the settings schema names,
   `bypassPermissions`, `dontAsk` and `auto`, are refused),
@@ -78,16 +82,19 @@ ported with their tests, not copied wholesale.
   guard's matcher; and agents, skills or commands under `.claude/`, which
   may declare MCP servers or run shell commands (only `.claude/agents/
   verifier.md` is tracked, and it declares neither). The settings need
-  Claude Code 2.1.295 or later (`onFailure`: round 4 of the bootstrap found
-  it in that version's settings and README). **Not yet proven on this
+  Claude Code 2.1.295 or later (`onFailure`: the version Claude Code's
+  hooks reference gave when round 4 of the bootstrap read it; round 4's
+  verifier found the setting in the installed 2.1.295 settings schema,
+  absent from 2.1.289, 2.1.292 and the 2.1.221 binary). **Not yet proven on this
   machine:** the sandbox's drill. Ubuntu's AppArmor rule for bubblewrap
   (`bwrap-userns-restrict`) stopped the sandbox from starting (drill,
   2026-10-11); the owner relaxed it for bubblewrap the same day, and
   bubblewrap now starts a user namespace (`r12-bwrap-check.out`); whether
   Claude Code's sandbox starts, and what it refuses, is the drill's to show.
 - `.claude/hooks/guard.py` (with `guard_base.py` and `test_guard.py`,
-  identical in every Full-tier repository) runs before every tool call,
-  wired in `.claude/settings.json`; this repository's policy is
+  identical in every Full-tier repository) runs before each `Bash`,
+  `Read`, `Edit`, `Write`, `MultiEdit`, `NotebookEdit` and `Grep` call
+  (its matcher in `.claude/settings.json`); this repository's policy is
   `.claude/hooks/guard-config.json`, profile `development`, written by
   `scripts/quality/guard_policy.py` (change a rule there and add a worked
   example; the gate refuses a policy edited by hand). It is an early

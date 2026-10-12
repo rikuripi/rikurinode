@@ -239,7 +239,10 @@ class Wiring(unittest.TestCase):
         # verifier round 9: "network": "x" crashed the check (AttributeError)
         for path, value in ((("sandbox", "network"), "x"), (("sandbox", "filesystem"), []), (("sandbox",), "on"),
                             (("permissions",), "x"), (("permissions", "allow"), "Edit"), (("env",), "x"),
-                            (("hooks",), []), (("hooks", "PreToolUse"), {})):
+                            (("hooks",), []), (("hooks", "PreToolUse"), {}),
+                            # round 14's verifier: a list crashed the check (unhashable)
+                            (("permissions", "defaultMode"), ["default"]),
+                            (("permissions", "defaultMode"), {"default": True})):
             with self.subTest(path=path):
                 s = settings()
                 setin(s, path, value)
@@ -316,10 +319,15 @@ class Wiring(unittest.TestCase):
         s = settings()
         s["hooks"]["PreToolUse"][0]["newKey"] = True
         self.assertTrue(problems(s), "an entry key the check does not know")
-        for timeout in (60, "10", True, 0, 2.5):  # 0 and 2.5: round 13's verifier (no test held them)
+        # 0 and 2.5: round 13's verifier; 11 and 1: round 14's (no test held either bound's edge)
+        for timeout in (60, "10", True, 0, 2.5, 11):
             s = settings()
             s["hooks"]["PreToolUse"][0]["hooks"][0]["timeout"] = timeout
             self.assertTrue(problems(s), timeout)
+        for timeout in (1, 10):
+            s = settings()
+            s["hooks"]["PreToolUse"][0]["hooks"][0]["timeout"] = timeout
+            self.assertEqual(problems(s), [], timeout)
         # round 11's verifier: a guard hook without a timeout passed (Claude
         # Code's default then applies, which nothing shows is 10 s or less)
         s = settings()
@@ -339,7 +347,7 @@ class Wiring(unittest.TestCase):
         self.assertEqual(problems(settings(**{"$schema": "https://json.schemastore.org/claude-code-settings.json"})),
                          [])
 
-    def test_a_permission_mode_that_skips_the_prompts_fails(self):
+    def test_a_permission_mode_outside_the_list_fails(self):
         for mode in ("bypassPermissions", "dontAsk", "auto"):
             with self.subTest(mode=mode):
                 self.assertTrue(problems(settings(permissions={"defaultMode": mode})))
