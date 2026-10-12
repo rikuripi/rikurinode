@@ -175,7 +175,7 @@ ported with their tests, not copied wholesale.
 
   Copying into `scripts/quality` and editing the hook's paths with the file
   tools ask in `stable` and are logged in `development`.
-- **Held by tests:** the 934 worked examples; `test_guard_claims.py` builds
+- **Held by tests:** the 959 worked examples; `test_guard_claims.py` builds
   2,168 cases from the forms, path spellings, node and container reads
   listed above; `test_guard_baseline.py` replays 1,089 cases — the
   verifiers' from rounds 6 to 8 and 100 that round 8 drafted — and fails on

@@ -5,8 +5,8 @@
 | **Date** | 2026-10-11 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | fix/guard-continuation, rebased onto `main` 0f407f3 in round 4 (rounds 1 and 2 were on fix/guard-line-continuation, 1aaa8bd on the bootstrap's round 5, which `main` replaced; that branch is superseded) |
-| **Commits** | round 3: 7c77ce4 (was 92c39a2 before the rebase); round 4: 944fe55, 517e385, 7390125 (receipt); round 5: 6b9be19, the merge of `main` 7ecc958, and the commit that adds this line (rounds 1-2: 1aaa8bd, superseded); the four sync commits follow the verifier |
-| **Status** | IN PROGRESS — rounds 1 to 4 FAIL (round 4's verifier: review only, the owner's choice); round 5 committed, verifier pending; then the sync, which waits on the owner (Rikuri-PI carries a newer shared guard) |
+| **Commits** | round 3: 7c77ce4 (was 92c39a2 before the rebase); round 4: 944fe55, 517e385, 7390125 (receipt); round 5: 6b9be19, the merge of `main` 7ecc958, 0d50bb4 (receipt); round 6: the commit that adds this line (rounds 1-2: 1aaa8bd, superseded); the four sync commits follow the verifier |
+| **Status** | IN PROGRESS — rounds 1 to 5 FAIL (rounds 4 and 5: review only, the owner's choice); round 6 committed, its final check pending (the owner's stop rule, 2026-10-11); then the sync, after the other session's shared-guard change lands (the owner's choice, 2026-10-11: that one first, this one on top) |
 | **Change type** | fix (security gate, shared by five repositories) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -43,8 +43,11 @@
         every repository's own worked examples still pass. Amended in round
         5 (round 4's verifier): except, by the owner's choice (R10), the
         previous guard's asks on the separate lines of a continued command;
-        its denies there stand. Not yet proven that no deny is lost (round
-        4's "Final run").
+        its denies there stand. And (round 5's verifier; amended in round 6)
+        its asks on a backslash that ends the command, which it is no longer
+        given (R9; since round 5 a comment's too, since round 6 a comment's
+        whole last run). Not yet proven that no deny is lost (round 4's
+        "Final run"; Skipped items).
       - R7 (this repository's policy; a sibling found while narrowing the
         stopgap rule) A rule reads every line of a segment: a command on the
         second line of a quoted script is judged like one on the first.
@@ -61,7 +64,10 @@
         keeps it as a character, which changes no command here): `sh -c 'git
         push --force origin x' \` is judged as the force push it runs. Round
         4 (round 3's verifier): an escaped blank at the end stays a word,
-        and a backslash that ends a comment is the comment's text.
+        and a backslash that ends a comment is the comment's text. Rounds 5
+        and 6: at the command's end that text is dropped, a comment's whole
+        last run of backslashes (none is an escape there), so no reading
+        sees a line end (round 4's verifier, V16; round 5's, a run of two).
       - R10 (round 4; the owner, 2026-10-11: "Judge as one line") A command
         continued over lines is judged as the same command on one line, by
         the new checks and by the previous guard, which is given the joined
@@ -122,15 +128,15 @@
 
 ## 2. Build
 - [x] New code meets the bar: one function changed (`split_segments`, 26 →
-      39 lines in round 1; 54 after round 3; 78 after round 5) and one named
+      39 lines in round 1; 54 after round 3; 78 after round 5; 85 after round 6) and one named
       constant (`WORD_BREAK`); the header names the fifth repository and
       continued lines. `guard_base.py` unchanged (sha256 `1ef6f5cc…`, as in
       all five repositories). Rounds 2 and 3 add the length limit and the
-      time bound (`decide` 67 lines after round 5, `_alarm` 21, `_timed`
+      time bound (`decide` 70 lines after round 6, `_alarm` 21, `_timed`
       13; round 3's `_base_in_child` was removed in that round); round 4
-      adds `_end_segment` (13), `_joined` (16) and `_all_segments` (15), and
-      grows `_balanced` (28) and `_substitutions` (15). `guard.py` is 2,136
-      lines (round 4's verifier found this paragraph's numbers stale: they
+      adds `_end_segment` (13), `_joined` (17 after round 6) and `_all_segments` (15), and
+      grows `_balanced` (28) and `_substitutions` (15). `guard.py` is 2,147
+      lines after round 6 (round 4's verifier found this paragraph's numbers stale: they
       were measured before round 4's last changes), past the 1,200 to
       justify: it is one file on purpose, copied unchanged to five
       repositories and run as one script by the hook, and splitting it is
@@ -584,8 +590,10 @@
         backtick inside double quotes not tracked) was removed as equivalent
         by my reading only; it is not shown either.
       - **The four other repositories** (clean clones; `guard.py` and
-        `test_guard.py` copied in; `guard_base.py` byte-identical): 130
-        tests OK in each, against each repository's own policy
+        `test_guard.py` copied in; `guard_base.py` byte-identical): the
+        suite OK in each, against each repository's own policy — 126 tests
+        in the committed receipts, copied before round 4's last tests
+        (round 4's verifier; the number corrected in round 6)
         (`sync4-*.out`; Rikuri-PI at its `origin/main` 1ea439d, Iceman
         21eac0b, AISecurity 12ff2e8, the previous rikurinode 3bbbe392).
       - **Corrections to earlier entries.** §2's numbers are brought up to
@@ -643,12 +651,57 @@
       record-only commits) was merged in (7ecc958; no conflict); on the
       merged tree the full gate passed, all 7 steps (`gate6.out`: 130 guard
       tests, 72 quality-tool tests).
-- [ ] Independent verification, round 5: pending (review only).
+- [x] **Verifier, round 5: FAIL** (review only; its `rn-verify40/`; not
+      stopped). Passed: the gate on 0d50bb4 (130, 72, no leaks); `git diff
+      --check`; the receipt commit; §2's numbers; V16 pinned (the test is
+      red on 7390125 and green on 0d50bb4, its verdict too); the docstrings
+      of `decide` and `base_decide`, AGENTS.md's timer sentence and Close
+      Out's citations; the merge 7ecc958 (redone in a scratch clone: no
+      conflict, the same tree); the test changes (no line lost against
+      `main`; the one changed expectation's reason holds); `mut_cont11.py`
+      replayed twice, row for row as committed; the shared suite in all four
+      other repositories (130 each). Failed: V16 did more than stated — of a
+      comment's run of two backslashes at the command's end, one was left
+      for the previous guard, unstated and untested; R6 and `decide`'s
+      docstring scoped the previous guard's dropped asks narrower than the
+      code (its asks on a backslash that ends the command, R9, too); stale:
+      round 4's `sync4` numbers ("130"; the receipts show 126), the
+      Evidence log's "V16 equivalent; J4 stricter only", AGENTS.md's "934
+      worked examples" (959), `_alarm`'s "Linux and macOS", a test
+      comment's "the new code only adds"; J4 and "no deny lost" without a
+      Skipped-items entry. Not yet proven: the five copies `cmp`-identical
+      — the sync waits on the owner, as Rikuri-PI has diverged.
+- [x] **The owner's choices after round 5** (2026-10-11). The stop rule:
+      findings in code or tests are fixed with a test and checked again,
+      findings only in wording are fixed without another check round, and
+      each branch gets one final check. The sync order: the other session's
+      shared-guard change (`fix/guard-rust-test-layouts`) lands first; this
+      change then goes on top, and one combined guard is copied to all five.
+- [x] **Round 6** (2026-10-11). Tests first: a comment's run of two, three
+      and four backslashes at the command's end — the previous guard is
+      given none of them (`_joined`), the new checks' segment ends at the
+      comment's text, and the verdict under a rule that asks on a line end
+      is allow; the denies stand with runs of two and four; outside a
+      comment an escaped backslash that ends the command stays. Red at
+      23:20:34 (`r6-red.out`: 1 failure, of a run of two one was left; both
+      files' hashes at red), then the fix: `split_segments` drops a
+      comment's whole last run, and `_joined` removes one character for each
+      index, two where a newline follows (130 OK, `r6-green.out`). R6, R9,
+      `decide`'s and `_alarm`'s docstrings, the test comment, §2's numbers,
+      AGENTS.md's count, round 4's `sync4` numbers and the Evidence log
+      corrected; J4 and "no deny lost" given Skipped-items entries. Mutants
+      not rerun: the red run on round 5's code is this change's mutant. The
+      shared suite in clean clones of the four other repositories on round
+      6's guard: 130 OK each, the copies `cmp`-identical (`sync6-*.out`;
+      the node's container start times the same before and after). The
+      full gate: below.
+- [ ] Final check, round 6 (review only; the owner's stop rule): pending.
 - [ ] Diff matches the plan: pending the verifier.
 
 ## 5. Close Out
 - [x] Full gate green: round 3's `gate3.out`/`gate4.out` (115, 61); round
-      4's `gate5.out` (130, 68); round 5's `gate6.out` (below).
+      4's `gate5.out` (130, 68); round 5's `gate6.out` (130, 72); round 6's
+      `gate7.out` (below).
 - [x] Scrap Sweep: the probe copies, clones and working files live in the
       session's scratch folder, not the repository; the receipts and scripts
       kept here are listed in the Evidence log. Code removed in the same
@@ -726,6 +779,17 @@
   its own checks, on any line; this repository's policy rules read every
   line of such code, so its money, node, container and system rules still
   ask. Owner: Henry. Reactivate: with the holes above.
+- **J4, an untested survivor** (round 4's mutants): the two overrides
+  read the command as written, not as joined; that this can only make an
+  override rarer is not shown (the secret-file override re-splits the raw
+  text). Owner: Henry. Reactivate: the next change to the overrides or to
+  `_joined`.
+- **"No deny the previous guard gave is lost": Not yet proven** (R6; round
+  4's "Final run"). The previous guard is given the joined command and each
+  of its lines, and only its asks are dropped; no differential run against
+  `main`'s guard was made (the owner chose review-only checks after Claude's
+  safety classifier stopped the generated tests). Owner: Henry. Reactivate:
+  a deny seen lost in practice, or the next guard change.
 - **Commands longer than 16,000 characters ask** (R8): a long script run
   inline needs the owner's approval; writing it to a file first does not.
   Reversible: one constant. Owner: Henry.
@@ -788,13 +852,19 @@ round 4  rebased onto main 0f407f3 (round 3 = 7c77ce4); red 17:12:03 (r4-red.out
          round 4's fuzzer and shell oracle (not committed; kept in the working folder): line-by-line deny,
          shell escapes, both readings — red on the checkpoint before (fuzz4-red.out)
          the lone &: LoneAmpersand red 19:40:07 (amp-red.out); baseline row 757 ask -> deny (r4-baseline.diff)
-         mutants: mut_cont10.py → mut-cont10-first-run.out 20/22 → final mut-cont10.out 29/32 (A2, V16
-         equivalent; J4 stricter only)
-         sync4-{Rikuri-PI,Iceman,AISecurity,old-rikurinode}.out: 130 OK each, own policy
+         mutants: mut_cont10.py → mut-cont10-first-run.out 20/22 → final mut-cont10.out 29/32 (A2
+         equivalent; V16 not equivalent, adopted in round 5; J4 an untested survivor — corrected in round 6)
+         sync4-{Rikuri-PI,Iceman,AISecurity,old-rikurinode}.out: 126 OK each, own policy (copied before
+         round 4's last tests; corrected in round 6)
          gate5.out: full gate 7/7 on 517e385 (guard 130 OK, quality 68 OK), added in the next commit
          verifier round 4 (review only): FAIL — stale receipts and counts, V16 not equivalent, wider claims;
          Rikuri-PI carries a newer shared guard
 round 5  V16 pinned: r5-red.out (red 21:20:51); mut_cont11.py → mut-cont11.out 30/32 (A2, J4 as recorded);
          sync5-{Rikuri-PI,Iceman,AISecurity,old-rikurinode}.out: 130 OK each, own policy
          main merged in (7ecc958); gate6.out: full gate 7/7 on it (guard 130 OK, quality 72 OK)
+         verifier round 5 (review only): FAIL — V16 also cut a comment's run of two to one, unstated, untested;
+         R6 and decide's docstring narrower than the code; stale numbers and comments
+round 6  a comment's whole last run dropped: r6-red.out (red 23:20:34, 1 failure), r6-green.out (130 OK);
+         sync6-{Rikuri-PI,Iceman,AISecurity,old-rikurinode}.out: 130 OK each, own policy, cmp-identical;
+         gate7.out: the full gate on the round-6 commit, added in the next commit
 ```

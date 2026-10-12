@@ -178,7 +178,7 @@ class _OutOfTime(BaseException):
 def _alarm(seconds: float):
     """Raise _OutOfTime in this process after `seconds`; returns the function
     that disarms it. Where there is no timer (no setitimer, or not the main
-    thread; the hook always runs in the main thread on Linux and macOS) it
+    thread; the hook runs in the main thread, as observed on Linux) it
     does nothing: only the new checks' own budget checks then bound them,
     nothing bounds the previous guard, and the hook's time-out is the last
     line."""
@@ -431,7 +431,8 @@ def split_segments(cmd: str, notes: list | None = None, joins: list | None = Non
     the shell does (2026-10-11: each line of `lncli \\⏎ sendcoins …` used to be
     judged alone). Outside single quotes a backslash-newline continues the
     command — both characters vanish — except at the end of a comment, which
-    the newline ends. An escaped character is never a separator, and `\\"`
+    the newline ends; a comment that ends the command loses its last run of
+    backslashes (none is an escape there), so no reading sees a line end. An escaped character is never a separator, and `\\"`
     does not end a double quote. A comment starts only where a word starts —
     never after an escaped character, a quote or a `$(…)`, which stay part of
     the word — and quotes inside it are just text. A backslash that ends the
@@ -451,10 +452,16 @@ def split_segments(cmd: str, notes: list | None = None, joins: list | None = Non
         c = cmd[i]
         if c == "\\" and quote != "'" and i + 1 == len(cmd):
             # a backslash that ends the command continues onto nothing: zsh
-            # drops it, bash keeps it as text — and in a comment it is the
-            # comment's text, dropped too (round 4's verifier, mutant V16)
+            # drops it, bash keeps it as text. In a comment no backslash is
+            # an escape: the whole run that ends the command is the comment's
+            # text, dropped too (round 4's verifier, mutant V16; round 5's: of
+            # a run of two, one was left)
+            first = i
+            while comment and cur and cur[-1] == "\\":
+                cur.pop()
+                first -= 1
             if joins is not None:
-                joins.append(i)
+                joins.extend(range(first, i + 1))
             i += 1
             continue
         if c == "\\" and quote != "'" and not comment and i + 1 < len(cmd):
@@ -507,8 +514,9 @@ def split_segments(cmd: str, notes: list | None = None, joins: list | None = Non
 
 def _joined(cmd: str) -> str:
     """The command with its line continuations joined, as the shell joins them
-    (the backslash-newlines split_segments removes, and a backslash that ends
-    the command). The previous guard is given this text: a command continued
+    (the backslash-newlines split_segments removes, and a backslash, or a
+    comment's run of them, that ends the command). The previous guard is
+    given this text: a command continued
     over lines is judged as the same command on one line (owner, 2026-10-11:
     "Judge as one line")."""
     joins = []
@@ -518,7 +526,7 @@ def _joined(cmd: str) -> str:
     out, k = [], 0
     for j in joins:
         out.append(cmd[k:j])
-        k = j + (1 if j + 1 == len(cmd) else 2)
+        k = j + (2 if cmd[j + 1:j + 2] == "\n" else 1)
     out.append(cmd[k:])
     return "".join(out)
 
@@ -1663,8 +1671,11 @@ def decide(event: dict, cfg: dict, root: str = ROOT, lock_present: bool | None =
     two owner-approved overrides (_overridable). The previous guard judges a
     continued command joined, as the shell runs it (_joined), and line by
     line, where only a deny counts: its line-by-line asks are dropped by the
-    owner's choice (2026-10-11), so this is not "only adds" for a continued
-    command. Out of time, the answer is ask, unless the new checks found a
+    owner's choice (2026-10-11). The joined text also lacks the backslashes
+    that end the command — one outside a comment, a comment's whole run — so
+    an ask of the previous guard's on such a line end is gone too: this is
+    not "only adds" for a continued command, nor for one that ends in a
+    backslash. Out of time, the answer is ask, unless the new checks found a
     deny."""
     global _DEADLINE, _DEADLINE_ALL
     cmd = (event.get("tool_input") or {}).get("command") if event.get("tool_name") == "Bash" else None

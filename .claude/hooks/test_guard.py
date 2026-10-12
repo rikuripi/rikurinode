@@ -1051,7 +1051,9 @@ class GuardRound2(SecretSearches):
     # Verifier round 5. Structural answer: the previous guard ships unchanged as
     # guard_base.py and its decision always counts; the new code only adds,
     # except two narrow, proven overrides (harmless inline code; a search
-    # filter's value).
+    # filter's value) and, by the owner's choice of 2026-10-11, the previous
+    # guard's asks on a continued command's separate lines and on a
+    # backslash that ends the command (decide's docstring).
     def test_round5_the_previous_guard_always_counts(self):
         import guard_base  # noqa: F401  (must exist beside guard.py)
         real = guard.base_decide
@@ -1469,7 +1471,8 @@ class LineContinuationRound4(unittest.TestCase):
 
     def test_a_comment_ending_in_a_backslash(self):
         for cmd in ('eval "cat .env" # note \\', "sh -c 'git push --force origin x' # c \\",
-                    "bash -c 'cat .env' #\\", "sh -c 'git push --force origin x' # c \\\\\\"):
+                    "bash -c 'cat .env' #\\", "sh -c 'git push --force origin x' # c \\\\\\",
+                    'eval "cat .env" # note \\\\', "sh -c 'git push --force origin x' # c \\\\\\\\"):
             for profile in ("stable", "development"):
                 self.assertEqual({"cmd": cmd, "p": profile, "v": self.v(cmd, profile)},
                                  {"cmd": cmd, "p": profile, "v": "deny"})
@@ -1556,6 +1559,7 @@ class JudgedAsOneLine(unittest.TestCase):
         self.assertEqual(j("# note \\\ngit status"), "# note \\\ngit status")  # a comment ends at the newline
         self.assertEqual(j("echo a\\\\\nb"), "echo a\\\\\nb")                  # an escaped backslash
         self.assertEqual(j("ls \\"), "ls ")                                    # a backslash that ends it
+        self.assertEqual(j("ls \\\\"), "ls \\\\")                              # an escaped one that ends it stays
 
     def test_the_previous_guard_is_given_the_joined_command(self):
         seen, real = [], guard.base_decide
@@ -1579,6 +1583,14 @@ class JudgedAsOneLine(unittest.TestCase):
         # verifier: mutant V16 changed this verdict, untested)
         self.assertEqual(guard._joined("ls -la # note \\"), "ls -la # note ")
         self.assertEqual(verdict("Bash", {"command": "ls -la # note \\"}, cfg=cfg), "allow")
+        # nor the run of backslashes it ends: in a comment none is an escape
+        # (round 5's verifier: from a run of two, one was left, a line end
+        # this rule read as a continued command)
+        for run in (2, 3, 4):
+            cmd = "ls -la # note " + "\\" * run
+            self.assertEqual(guard._joined(cmd), "ls -la # note ", run)
+            self.assertEqual(guard.split_segments(cmd), ["ls -la # note"], run)
+            self.assertEqual(verdict("Bash", {"command": cmd}, cfg=cfg), "allow", run)
 
     def test_a_deny_the_previous_guard_finds_line_by_line_stands(self):
         # round 4's fuzzer and shell oracle: on one line a lone & hides the

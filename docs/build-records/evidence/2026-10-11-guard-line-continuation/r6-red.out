@@ -1,0 +1,54 @@
+(trailing blanks removed after the run: the whitespace check refuses them; one line of unittest's diff, '+ ls -la # note ', ended in a blank)
+red at 2026-10-11T23:20:34-0700
+0d50bb4
+f53a5a05426ffbf3f48d46f2eab9cfaeef3f4d80b2e4c07d6295dd9fde37082b  .claude/hooks/guard.py
+b7f7c7deb9fc207c2c2f134d22530fef58b3b94953d2f0fe2883da219cfc8d5b  .claude/hooks/test_guard.py
+....usage: guard.py fix-lock on <build-record> | off [--session <id> | --global] | status
+.fix-lock NOT engaged — cannot read /tmp/tmpmustu6yu/guard-config.json: guard-config.json: 'fix_lock_preflight' must be a list of argv lists, e.g. [["node", "scripts/quality-ratchet.mjs"]]
+Nothing was changed. Fix it first, then engage.
+.fix-lock NOT engaged — preflight /usr/bin/python3 -c import sys; sys.exit(3) failed (exit 3):
+
+Nothing was changed. Fix it first, then engage.
+.................................................................F.......................................usage: guard.py profile [stable | development]
+...................
+======================================================================
+FAIL: test_a_rule_on_a_line_end_no_longer_asks_for_a_continued_command (test_guard.JudgedAsOneLine.test_a_rule_on_a_line_end_no_longer_asks_for_a_continued_command)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/guard-continuation/wt-fix/.claude/hooks/test_guard.py", line 1589, in test_a_rule_on_a_line_end_no_longer_asks_for_a_continued_command
+    self.assertEqual(guard._joined(cmd), "ls -la # note ", run)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'ls -la # note \\' != 'ls -la # note '
+- ls -la # note \
+?               -
++ ls -la # note
+ : 2
+
+----------------------------------------------------------------------
+Ran 130 tests in 59.373s
+
+FAILED (failures=1)
+fix-lock ENGAGED for docs/build-records/a.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/b.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/x.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock released (docs/build-records/a.md)
+fix-lock released (docs/build-records/owner.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+profile: stable
+profile: stable -> development
+profile: development -> stable
+exit 1
