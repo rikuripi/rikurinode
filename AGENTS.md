@@ -63,13 +63,14 @@ ported with their tests, not copied wholesale.
   plugin that brings hooks, or start MCP servers), only the guard's own
   `PreToolUse` hook (with exactly its committed keys — `if`, `once` or
   `async` would change when it runs or whether its failure blocks — and a
-  timeout, of at most 10 s; no other hook event, and none in the local file),
+  timeout, a whole number of seconds from 1 to 10; no other hook event, and
+  none in the local file),
   only permission rules that do not widen the sandbox (no `Edit`, `Write`,
   `MultiEdit`, `NotebookEdit`, `WebFetch` or `Read` allow rule, no
   `additionalDirectories`, no permissions key it does not know), a
-  permission mode other than those that skip the permission prompts
-  (`bypassPermissions`, `dontAsk`, `auto`): `default` or its alias `manual`,
-  `acceptEdits` (file edits without asking), `plan`,
+  permission mode from its list (`default`, its alias `manual`,
+  `acceptEdits`, `plan`; the other modes the settings schema names,
+  `bypassPermissions`, `dontAsk` and `auto`, are refused),
   and only the environment variables it lists (`RUST_LOG`, `NO_COLOR` and a
   few more: `PATH`, `LD_PRELOAD` or `BASH_ENV` would change what a command
   runs). Not checked: the owner's own user settings (`~/.claude/`); MCP
@@ -77,7 +78,8 @@ ported with their tests, not copied wholesale.
   guard's matcher; and agents, skills or commands under `.claude/`, which
   may declare MCP servers or run shell commands (only `.claude/agents/
   verifier.md` is tracked, and it declares neither). The settings need
-  Claude Code 2.1.295 or later (`onFailure`). **Not yet proven on this
+  Claude Code 2.1.295 or later (`onFailure`: round 4 of the bootstrap found
+  it in that version's settings and README). **Not yet proven on this
   machine:** the sandbox's drill. Ubuntu's AppArmor rule for bubblewrap
   (`bwrap-userns-restrict`) stopped the sandbox from starting (drill,
   2026-10-11); the owner relaxed it for bubblewrap the same day, and

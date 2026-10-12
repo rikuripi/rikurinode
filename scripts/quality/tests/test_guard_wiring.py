@@ -316,7 +316,7 @@ class Wiring(unittest.TestCase):
         s = settings()
         s["hooks"]["PreToolUse"][0]["newKey"] = True
         self.assertTrue(problems(s), "an entry key the check does not know")
-        for timeout in (60, "10", True):
+        for timeout in (60, "10", True, 0, 2.5):  # 0 and 2.5: round 13's verifier (no test held them)
             s = settings()
             s["hooks"]["PreToolUse"][0]["hooks"][0]["timeout"] = timeout
             self.assertTrue(problems(s), timeout)

@@ -13,10 +13,11 @@ the settings hold only the top-level keys in TOP_KEYS (others may run a
 command, load a plugin that brings hooks, or start MCP servers); the only hook
 is the guard's own PreToolUse entry, with exactly its keys (`if`, `once`,
 `async`, … change when it runs or whether its failure blocks) and a timeout,
-required, of 1 to 10 s; no permission rule widens the sandbox (Edit/Write rules
-are merged into its writable paths, WebFetch into its domains, Read may re-open
-what it hides) and the permission mode is one of MODES (not bypassPermissions,
-dontAsk or auto, which skip the permission prompts); and the environment
+required, a whole number of seconds from 1 to 10; no permission rule widens the
+sandbox (Edit/Write rules are merged into its writable paths, WebFetch into its
+domains, Read may re-open what it hides) and the permission mode is one of
+MODES (the schema's other modes — bypassPermissions, dontAsk, auto — are
+refused); and the environment
 holds only the names in ENV_NAMES (PATH, LD_PRELOAD, BASH_ENV, … would change
 what a command runs). Round 2's verifier: a text search for "guard.py" stayed
 green with "disableAllHooks": true or a command that merely mentioned the
@@ -59,8 +60,8 @@ ENV_WORDS = re.compile(r"SANDBOX|HOOK", re.IGNORECASE)
 # may hold — any other may run a command (apiKeyHelper, statusLine, …), load a
 # plugin that brings hooks, or start MCP servers whose tools the guard does not
 # see; the guard's hook entry, exactly (`if`, `once`, `async`, … change when
-# it runs or whether its failure blocks); the permission modes in MODES (not
-# bypassPermissions, dontAsk or auto); the environment variables that change
+# it runs or whether its failure blocks); the permission modes in MODES (the
+# schema's others are refused); the environment variables that change
 # no command (PATH, LD_PRELOAD,
 # BASH_ENV, … would).
 TOP_KEYS = {"$schema", "hooks", "permissions", "sandbox", "env", "disableAllHooks"}
@@ -125,7 +126,7 @@ def permission_problems(path: str, settings: dict) -> list:
     for key in sorted(set(perms) - PERMISSION_KEYS - {"additionalDirectories"}):
         found.append("%s: permissions.%s is not one this check knows to leave the sandbox alone" % (path, key))
     if "defaultMode" in perms and perms["defaultMode"] not in MODES:
-        found.append("%s: permissions.defaultMode %s skips the permission prompts (allowed: %s)"
+        found.append("%s: permissions.defaultMode %s is not one this check allows (allowed: %s)"
                      % (path, json.dumps(perms["defaultMode"]), ", ".join(sorted(MODES))))
     for key in ("allow", "deny", "ask"):
         rules = perms.get(key, [])
@@ -194,7 +195,7 @@ def hook_problems(path: str, settings: dict, full: bool) -> tuple:
                 found.append("%s: the guard's hook has keys the check does not know: %s" % (path, ", ".join(extra)))
             timeout = h.get("timeout")  # missing: Claude Code's own default, not shown to be 10 s or less
             if isinstance(timeout, bool) or not isinstance(timeout, int) or not 1 <= timeout <= 10:
-                found.append("%s: the guard's timeout must be a whole number of seconds, at most 10 (it is %s)"
+                found.append("%s: the guard's timeout must be a whole number of seconds from 1 to 10 (it is %s)"
                              % (path, json.dumps(timeout)))
         if any(h.get("onFailure") != "block" for h in guards):
             open_on_failure = True  # counts for nothing: a slow or broken guard would allow

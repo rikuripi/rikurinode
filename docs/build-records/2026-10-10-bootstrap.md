@@ -5,8 +5,8 @@
 | **Date** | 2026-10-10 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | main |
-| **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (its gate receipt), 737bb47 and 87e2249 (the record only), db4a3ac (round 11), 3540614 (its gate receipt), 26d6862 (round 12), 383a6dc (its gate receipt), and round 13: the commit that adds this line |
-| **Status** | Rounds 1–12 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings, claims wider than the tests or the code); round 13 committed, its verifier (review only) pending; the sandbox's drill Not yet proven |
+| **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (its gate receipt), 737bb47 and 87e2249 (the record only), db4a3ac (round 11), 3540614 (its gate receipt), 26d6862 (round 12), 383a6dc (its gate receipt), 0dd2660 (round 13), 439d295 (its gate receipt), and round 14: the commit that adds this line |
+| **Status** | Rounds 1–13 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings, claims wider than the tests or the code); round 14 committed, its verifier (review only) pending; the sandbox's drill Not yet proven |
 | **Change type** | bootstrap (process, security gates) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -1079,7 +1079,35 @@
       Receipts paragraph corrected. The gate on 0dd2660, all 7 steps (91,
       72; `r13-gate.out`, in the next commit, which changes only it and
       this line).
-- [ ] Verifier, round 13: pending (review only).
+- [x] **Verifier, round 13 (review only): FAIL** (its `rn-verify42/`;
+      not stopped). Passed: the gate on 439d295 (91, 72, no leaks); `git
+      diff --check`; 0dd2660 changes no behaviour (the check's code, apart
+      from its docstring and comments, identical by syntax tree); the
+      costed default lists every refusal the check makes, each listed cost
+      a setting the schema has and the check refuses. Failed: AGENTS.md
+      and the check's docstring said what `dontAsk`, `auto` and
+      `acceptEdits` do, which the settings schema does not say (it even
+      shows a prompt `auto` raises), and round 13's entry and commit
+      message credited that wording to the schema — true only of the mode
+      names; the Receipts paragraph's range (`r6-*` to `r12-*`) left out
+      `r13-gate.out`, and the Evidence log had no round-13 line. Not yet
+      proven: the cost "such reads and fetches then ask" for an
+      `allow` rule like `Read(./docs/**)`. Smaller: no test held the
+      timeout's lower bound or a fractional timeout; two of the check's
+      messages said "skips the permission prompts" for any value outside
+      the list and "at most 10".
+- [x] **Round 14** (2026-10-11): what the check does, and nothing about
+      what Claude Code's modes do. AGENTS.md, the check's docstring, a
+      comment and a message name the modes it allows and those it refuses,
+      as the schema lists them, and claim nothing of their behaviour; the
+      timeout is "a whole number of seconds from 1 to 10", in AGENTS.md and
+      the message, and tests now hold 0 and 2.5 (refused, as the code
+      already did); the costed default drops the unshown cost and adds "a
+      permission mode outside the list, stricter or not"; AGENTS.md's
+      "2.1.295 or later" cites round 4, which found `onFailure` in that
+      version's settings and README; the Receipts paragraph no longer
+      names a last round. The gate: below.
+- [ ] Verifier, round 14: pending (review only).
 
 ## 5. Close Out
 
@@ -1136,8 +1164,8 @@
   the top-level keys in `TOP_KEYS` (`$schema`, `hooks`, `permissions`,
   `sandbox`, `env`, `disableAllHooks`); the guard's own `PreToolUse` hook
   with exactly the keys in `GUARD_HOOK_KEYS` and a timeout of 1 to 10 s, and
-  no other hook event (`HOOK_EVENTS`, `ENTRY_KEYS`), and no `PreToolUse`
-  hook at all in the local file; the permission keys in `PERMISSION_KEYS`,
+  no other hook event (`HOOK_EVENTS`) or key on a `PreToolUse` entry
+  (`ENTRY_KEYS`), and no `PreToolUse` hook at all in the local file; the permission keys in `PERMISSION_KEYS`,
   with no `allow` rule for `Edit`, `Write`, `MultiEdit`, `NotebookEdit`,
   `WebFetch` or `Read` and no `additionalDirectories`, and modes in `MODES`
   (`default`, `manual`, `acceptEdits`, `plan`); the environment names in
@@ -1146,8 +1174,9 @@
   `model`, `attribution`, a status line, a plugin, the guard's
   `statusMessage`, a fractional timeout, an environment name outside the
   eight, an `allow` rule for one of those six tools even when it is narrow
-  (`WebFetch(domain:docs.rs)`, `Read(./docs/**)`) — such reads and fetches
-  then ask, and settings that only tighten (`permissions.blockReadsOutsideWorkingDirectories`,
+  (`WebFetch(domain:docs.rs)`, `Read(./docs/**)`; what Claude Code then
+  does with such a read or fetch is not shown here), a permission mode
+  outside the list, stricter or not, and settings that only tighten (`permissions.blockReadsOutsideWorkingDirectories`,
   which Claude Code itself may write, `disableAutoMode`,
   `disableSkillShellExecution`, `disabledMcpjsonServers`) (round 11's
   verifier). Reversible: add the key or name to the list in
@@ -1288,6 +1317,10 @@ round 11 wiring tests red 21:28:37 (r11-wiring-red.out): 32; claims 2,147 -> 2,1
          timeout passed; the costed default not updated
 round 12 wiring tests red 22:01:44 (r12-wiring-red.out): 2; r12-bwrap-check.out; mutants 2/2 red (mut-r12.out);
          green: 91 OK, quality tools 72 OK (r12-green.out)
+         verifier (review only): FAIL — the costed default left out two refusals; "keeps the prompts" in the check
+round 13 text only: the costed default, the check's docstring, AGENTS.md's modes; r13-gate.out (91, 72)
+         verifier (review only): FAIL — mode behaviour claimed beyond the schema; the Receipts range
+round 14 text, two messages and two test cases (timeouts 0 and 2.5); the gate: r14-gate.out
 ```
 Receipts: `evidence/2026-10-10-bootstrap/` — `gate-round1.out` to
 `gate-round3.out`, `gate-round3b.out` (the "round 3, continued" gate) and
@@ -1295,5 +1328,6 @@ Receipts: `evidence/2026-10-10-bootstrap/` — `gate-round1.out` to
 `*.log`), the hygiene, round-3, round-4 and round-5 runs, the mutation
 scripts and their tables, and both verifiers' final probe reruns
 (`verifier1-probes/`, `verifier2-probes/`), the later rounds' runs
-(`r6-*` to `r12-*`, `mut_r6.py` to `mut_r12.py` and their tables). Round 1's red and green runs and
+(`r6-*` and every later round's `r<N>-*`, `mut_r6.py` and every later
+`mut_r<N>.py`, and their tables). Round 1's red and green runs and
 its mutants' list were never saved (said in round 1's verifier entry).
