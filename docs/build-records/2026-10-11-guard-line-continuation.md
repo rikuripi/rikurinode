@@ -5,7 +5,7 @@
 | **Date** | 2026-10-11 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | fix/guard-continuation, rebased onto `main` 0f407f3 in round 4 (rounds 1 and 2 were on fix/guard-line-continuation, 1aaa8bd on the bootstrap's round 5, which `main` replaced; that branch is superseded) |
-| **Commits** | round 3: 7c77ce4 (was 92c39a2 before the rebase); round 4: 944fe55, 517e385, 7390125 (receipt); round 5: the commit that adds this line (rounds 1-2: 1aaa8bd, superseded); the four sync commits follow the verifier |
+| **Commits** | round 3: 7c77ce4 (was 92c39a2 before the rebase); round 4: 944fe55, 517e385, 7390125 (receipt); round 5: 6b9be19, the merge of `main` 7ecc958, and the commit that adds this line (rounds 1-2: 1aaa8bd, superseded); the four sync commits follow the verifier |
 | **Status** | IN PROGRESS — rounds 1 to 4 FAIL (round 4's verifier: review only, the owner's choice); round 5 committed, verifier pending; then the sync, which waits on the owner (Rikuri-PI carries a newer shared guard) |
 | **Change type** | fix (security gate, shared by five repositories) |
 
@@ -639,7 +639,10 @@
       round): 32, 30 red (`mut-cont11.out`) — V16b (round 4's behaviour
       restored) red; A2 and J4 green as recorded. The shared suite in the
       four other repositories on round 5's guard: 130 OK each
-      (`sync5-*.out`). The gate: after the rebase below.
+      (`sync5-*.out`). Then `main` (bootstrap round 11, and round 10's
+      record-only commits) was merged in (7ecc958; no conflict); on the
+      merged tree the full gate passed, all 7 steps (`gate6.out`: 130 guard
+      tests, 72 quality-tool tests).
 - [ ] Independent verification, round 5: pending (review only).
 - [ ] Diff matches the plan: pending the verifier.
 
@@ -793,4 +796,5 @@ round 4  rebased onto main 0f407f3 (round 3 = 7c77ce4); red 17:12:03 (r4-red.out
          Rikuri-PI carries a newer shared guard
 round 5  V16 pinned: r5-red.out (red 21:20:51); mut_cont11.py → mut-cont11.out 30/32 (A2, J4 as recorded);
          sync5-{Rikuri-PI,Iceman,AISecurity,old-rikurinode}.out: 130 OK each, own policy
+         main merged in (7ecc958); gate6.out: full gate 7/7 on it (guard 130 OK, quality 72 OK)
 ```
