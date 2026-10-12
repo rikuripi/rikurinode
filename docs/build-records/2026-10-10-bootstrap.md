@@ -1180,8 +1180,10 @@
       directories to the permission scope; the comment says "what a command
       runs"; the test file's docstring, the CI step and the gate's step line
       name the tools in the matcher, not every tool; the Status row. Round
-      15's entry above stays as written; this entry corrects it. The gate:
-      below. No check round follows (the owner's stop rule).
+      15's entry above stays as written; this entry corrects it. The gate
+      on bccf79d, all 7 steps (91, 72; `r16-gate.out`, in the next commit,
+      which changes only it and this line). No check round follows (the
+      owner's stop rule).
 
 ## 5. Close Out
 
