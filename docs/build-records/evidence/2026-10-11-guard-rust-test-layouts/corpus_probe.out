@@ -1,12 +1,12 @@
-# corpus probe at 23:27:58: guard.py 553f5f37…; safe-run; the Rust standard library source (toolchain 1.98.1-x86_64-unknown-linux-gnu), read as text
-files 1919, declarations 1845, resolved 1844 (99.95%), not found 1; 4.7 s
+# corpus probe at 14:18:37: guard.py 6531423f…; safe-run; the Rust standard library source (toolchain 1.98.1-x86_64-unknown-linux-gnu), read as text
+files 1919, declarations 1845, resolved 1844 (99.95%), not found 1; 4.5 s
 vs a line-anchored regex: only the regex 0, only the scanner 0
 not found, by the attributes on them: {'path inside cfg_attr': 1}
 not found, no attribute:
 
 exit 0
 # the same over the crates.io sources in ~/.cargo/registry/src, read as text
-files 38084, declarations 32081, resolved 31943 (99.57%), not found 138; 152.6 s
+files 38084, declarations 32081, resolved 31943 (99.57%), not found 138; 134.9 s
 vs a line-anchored regex: only the regex 0, only the scanner 432
 not found, by the attributes on them: {'path inside cfg_attr': 33, 'cfg(test): a test file left out of the published crate': 10, 'another cfg: a platform or feature file left out': 6, 'no attribute': 89}
 not found, no attribute:

@@ -1,4 +1,4 @@
-# gap probe at 23:27:04 on aa51a24 + this change (guard.py 553f5f37…); safe-run
+# gap probe at 14:18:26 on the round-5 guard (guard.py 6531423f…), run from Rikuri-PI's clone; safe-run
 -- rule as configured today
 fix-lock held, Edit src/tests.rs  'add(2, 2), 5'                     -> deny
 fix-lock held, Edit src/inner.rs  'assert_eq!(1, 2)'                 -> allow

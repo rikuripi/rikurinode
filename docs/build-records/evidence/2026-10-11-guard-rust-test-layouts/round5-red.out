@@ -1,0 +1,11 @@
+# round 5 red (tests for verifier round 2's F1, F2, M2, M9; guard.py as committed in 6410bb4) at 14:02:49: Python 3.14.4; guard.py 553f5f37…, test_guard.py c975020c…, guard_base.py 1ef6f5cc…; safe-run; exit 1; lnd 2026-10-12T01:46:20.584320594Z -> 2026-10-12T01:46:20.584320594Z
+FAIL: test_a_crafted_file_cannot_stall_the_tripwire (test_guard.InlineTestCoverage.test_a_crafted_file_cannot_stall_the_tripwire)
+AssertionError: 61.74769854545593 not less than 4.0
+FAIL: test_a_crafted_attribute_cannot_stall_the_hook (test_guard.TestModuleFiles.test_a_crafted_attribute_cannot_stall_the_hook)
+AssertionError: 36.74251914024353 not less than 4.0
+FAIL: test_the_declaration_of_a_test_file_is_locked_in_its_parent (test_guard.TestModuleFiles.test_the_declaration_of_a_test_file_is_locked_in_its_parent)
+AssertionError: 'allow' != 'deny'
+FAIL: test_the_scanner_takes_linear_time (test_guard.TestModuleFiles.test_the_scanner_takes_linear_time)
+AssertionError: 3.117283821105957 not less than 0.5 : #
+Ran 138 tests in 121.905s
+FAILED (failures=4)

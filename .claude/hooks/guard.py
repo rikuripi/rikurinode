@@ -378,13 +378,16 @@ RUST_SKIP = (r"//[^\n]*"
              r'|(?<!\w)[bc]?r(?P<hashes>#*)"[\s\S]*?(?:"(?P=hashes)|\Z)'
              r'|(?<!\w)[bc]?"(?:\\[\s\S]|[^"\\])*(?:"|\Z)'
              r"|(?<!\w)b?'(?:\\(?:u\{[0-9A-Fa-f_]*\}|x[0-9A-Fa-f]{2}|[^\n])|[^'\\\n])'")
-RUST_SCAN = re.compile(r"(?P<comment>/\*)|" + RUST_SKIP + r"|(?P<attr>#\s*(?P<inner>!)?\s*\[)"
+RUST_SCAN = re.compile(r"(?P<comment>/\*)|" + RUST_SKIP + r"|(?P<attr>#\s*(?:(?P<inner>!)\s*)?\[)"
                        r"|(?P<word>(?:r#)?[^\W\d]\w*)|(?P<open>\{)|(?P<close>\})|(?P<semi>;)")
 RUST_BRACKET = re.compile(r"(?P<comment>/\*)|" + RUST_SKIP + r"|(?P<open>\[)|(?P<close>\])")
 RUST_COMMENT_MARK = re.compile(r"/\*|\*/")
 # Rust's whitespace (Pattern_White_Space); Python's \s lacks U+200E and U+200F.
+# `#\s*(?:!\s*)?\[`, never `#\s*!?\s*\[`: two `\s*` side by side take time growing with
+# the square of a run of spaces, inside one regex call no deadline can stop (verifier
+# round 2, F1: a crafted file held a locked edit 13 s, a crafted edit 27 s).
 RUST_SPACE = re.compile(r"[\t\n\v\f\r \x85\u200e\u200f\u2028\u2029]*")
-RUST_PATH = re.compile(r'#\s*!?\s*\[\s*path\s*=\s*"((?:\\.|[^"\\])*)"\s*\]\Z')
+RUST_PATH = re.compile(r'#\s*(?:!\s*)?\[\s*path\s*=\s*"((?:\\.|[^"\\])*)"\s*\]\Z')
 RUST_MOD_WORD = re.compile(r"(?<!\w)mod(?!\w)")
 
 
@@ -397,6 +400,40 @@ def rust_comment_end(text: str, pos: int) -> int:
         if depth == 0:
             return m.end()
     return len(text)
+
+
+def rust_attr_end(text: str, pos: int) -> int:
+    """Where the attribute whose `[` ends just before `pos` ends: at its own
+    `]`, past brackets, comments and strings inside it; at the end of the
+    file when it is never closed."""
+    depth, b = 1, RUST_BRACKET.search(text, pos)
+    while b is not None:
+        after = rust_comment_end(text, b.end()) if b.group("comment") else b.end()
+        depth += 1 if b.group("open") else -1 if b.group("close") else 0
+        if depth == 0:
+            return after
+        b = RUST_BRACKET.search(text, after)
+    return len(text)
+
+
+def rust_file_attrs(text: str) -> list:
+    """A Rust file's own inner attributes (`#![…]`): those before its first
+    item, with comments and Rust's whitespace (and a byte-order mark) between
+    them skipped, as rustc reads them."""
+    out, pos = [], 1 if text.startswith("\ufeff") else 0
+    while True:
+        m = RUST_SCAN.search(text, pos)
+        if m is None or RUST_SPACE.match(text, pos, m.start()).end() != m.start():
+            return out
+        if m.group("comment"):
+            pos = rust_comment_end(text, m.end())
+        elif m.group().startswith("//"):
+            pos = m.end()
+        elif m.group("attr") and m.group("inner"):
+            pos = rust_attr_end(text, m.end())
+            out.append(text[m.start():pos])
+        else:
+            return out  # the first item
 
 
 def rust_file_modules(text: str, deadline: float = float("inf")) -> list:
@@ -423,15 +460,7 @@ def rust_file_modules(text: str, deadline: float = float("inf")) -> list:
             pos = rust_comment_end(text, pos)
             continue
         if m.group("attr"):
-            depth, end = 1, len(text)
-            b = RUST_BRACKET.search(text, pos)
-            while b is not None:
-                after = rust_comment_end(text, b.end()) if b.group("comment") else b.end()
-                depth += 1 if b.group("open") else -1 if b.group("close") else 0
-                if depth == 0:
-                    end = after
-                    break
-                b = RUST_BRACKET.search(text, after)
+            end = rust_attr_end(text, pos)
             attr, pos, state = text[m.start():end], end, 0
             if not m.group("inner"):  # `#[…]`: the next item's
                 pending.append(attr)
@@ -553,21 +582,26 @@ def test_module_parent(rel: str, root: str, cfg: dict, deadline: float = float("
 
 def test_file_declarations(rel: str, text: str, root: str, cfg: dict, deadline: float = float("inf")) -> list:
     """The declarations in `text` (the Rust file `rel`) of modules whose file
-    is tests as a whole: a rule naming that file finds its whole text
-    (`#![cfg(test)]` at its top). Verifier round 1, D4: deleting `mod whole;`,
-    or adding `#[cfg(any())]` above it, switched every test in such a file
-    off, though its region was locked."""
+    is tests as a whole: one of its own inner attributes (`#![cfg(test)]`,
+    before its first item) matches the starts_at of a rule naming that file.
+    Verifier round 1, D4: deleting `mod whole;`, or adding `#[cfg(any())]`
+    above it, switched every test in such a file off, though its region was
+    locked. Round 2, F2: the file's attributes decide, not its text — a blank
+    line above them used to make the file look partly production code. Past
+    `deadline` it raises _TooSlow."""
     out = []
     if not RUST_MOD_WORD.search(text):
         return out
     for decl in rust_file_modules(text, deadline):
         for p in (x for ps in module_files(rel, decl[0], decl[1], decl[2]) for x in ps):
+            if time.time() > deadline:
+                raise _TooSlow()
+            rules = inline_rules(p, cfg)
             try:
-                body = read_text(os.path.join(root, p))
+                attrs = rust_file_attrs(read_text(os.path.join(root, p))) if rules else []
             except (OSError, UnicodeDecodeError):
                 continue
-            if body and any(inline_region(body, r["starts_at"], r.get("attached_above", "")) == body
-                            for r in inline_rules(p, cfg)):
+            if any(re.search(r["starts_at"], a, re.M) for a in attrs for r in rules):
                 out.append(decl)
                 break
     return out
@@ -577,7 +611,7 @@ def test_file_declarations(rel: str, text: str, root: str, cfg: dict, deadline: 
 # through its own config, and nothing checked it again when Rikuri-PI adopted
 # Rust. A tracked .rs file with this marker needs a rule that finds its tests;
 # the inner attribute `#![cfg(test)]` makes a whole file tests (owner, 2(a)).
-RUST_INLINE_TEST = re.compile(r"^[ \t]*#\s*!?\s*\[\s*cfg\s*\(\s*test\s*\)\s*\]", re.M)
+RUST_INLINE_TEST = re.compile(r"^[ \t]*#\s*(?:!\s*)?\[\s*cfg\s*\(\s*test\s*\)\s*\]", re.M)
 # `git rev-parse --local-env-vars`: a git hook exports some of them (GIT_DIR,
 # GIT_INDEX_FILE), and they would point `git -C <root>` at another repository.
 GIT_LOCAL_ENV = {"GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_CONFIG", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT",

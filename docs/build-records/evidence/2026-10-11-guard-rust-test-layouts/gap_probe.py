@@ -9,7 +9,8 @@ RULE = {"glob": "*.rs",
         "starts_at": r"^[ \t\f\v\r\u200b-\u200f\u2060\ufeff]*#\s*\[\s*cfg\s*\(\s*(?:test|(?:any|all)\s*\((?:.*[(,]\s*)?(?<!not\()test(?=\s*[,)]).*\))\s*\)\s*\]",
         "attached_above": r"^[ \t\f\v\r\u200b-\u200f\u2060\ufeff]*(#\s*\[|//|/\*|\*)",
         "guarded_lines": r"cfg(?:_attr)?\s*!?\s*\(.*\btest\b|macro_rules!\s*(?:assert\w*|debug_assert\w*|panic|unreachable|todo)\b"}
-WIDE = {k: v.replace(r"#\s*\[", r"#\s*!?\s*\[") for k, v in RULE.items()}
+WIDE = {k: v.replace(r"#\s*\[", r"#\s*(?:!\s*)?\[").replace(r"cfg(?:_attr)?\s*!?\s*\(", r"cfg(?:_attr)?\s*(?:!\s*)?\(")
+        for k, v in RULE.items()}  # the rule as widened, in its linear form (verifier round 2, F1)
 FILES = {"src/lib.rs": "pub fn add(a: u8, b: u8) -> u8 {\n    a + b\n}\n\n#[cfg(test)]\nmod tests;\n",
          "src/tests.rs": "use super::*;\n\n#[test]\nfn adds() {\n    assert_eq!(add(2, 2), 4);\n}\n",
          "src/inner.rs": "//! Tests only.\n#![cfg(test)]\n\n#[test]\nfn holds() {\n    assert_eq!(1, 1);\n}\n"}

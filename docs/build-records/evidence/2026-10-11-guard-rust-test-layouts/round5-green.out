@@ -1,0 +1,3 @@
+# round 5 green (guard.py: the byte-order mark written as escape text, not the character) at 14:16:47: Python 3.14.4; guard.py 6531423f…, test_guard.py 0825965e…, guard_base.py 1ef6f5cc…; safe-run; exit 0; lnd 2026-10-12T01:46:20.584320594Z -> 2026-10-12T01:46:20.584320594Z
+Ran 138 tests in 20.210s
+OK

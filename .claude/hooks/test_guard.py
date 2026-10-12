@@ -121,6 +121,23 @@ class GenericPolicy(unittest.TestCase):
             if r["glob"].endswith(".rs"):
                 self.assertEqual(guard.inline_region(text, r["starts_at"], r.get("attached_above", "")), text, r)
 
+    def test_inline_rules_take_linear_time(self):
+        # Verifier round 2, F1: `#\s*!?\s*\[` (and guarded_lines' `\s*!?\s*\(`)
+        # took time growing with the square of a run of spaces — 1.3 s for
+        # 40,000 inside one regex call, where no deadline can stop it — so a
+        # crafted file or edit held the hook past its 10 s limit. Every pattern
+        # of this repository's rules must stay fast on such text.
+        import re
+        import time
+        texts = ("#" + " " * 40000, "# !" + " " * 40000, "cfg" + " " * 40000, "cfg_attr !" + " " * 40000,
+                 "#[cfg(any(" + ", " * 20000, "//" + " " * 40000)
+        for r in CFG.get("inline_tests", []):
+            for key in ("starts_at", "attached_above", "guarded_lines"):
+                for text in texts:
+                    t0 = time.time()
+                    re.search(r.get(key, ""), text, re.M)
+                    self.assertLess(time.time() - t0, 0.25, (key, text[:12]))
+
     def test_strictest_wins(self):
         self.assertEqual(verdict("Bash", {"command": "git push origin main; cat .env"}), "deny")
 
@@ -256,12 +273,14 @@ class InlineTests(unittest.TestCase):
     # A tests-only file switched on by an inner attribute (2026-10-11).
     INNER = ("//! Tests only.\n#![allow(unused)]\n#![cfg(test)]\n\nuse super::*;\n\n"
              "#[test]\nfn adds() {\n    assert_eq!(add(2, 2), 4);\n}\n")
-    # The rule rikurinode, AISecurity and Rikuri-PI configure (test_marker_shapes pins it); since
-    # 2026-10-11 (owner, 2(a)) it takes the inner attribute `#![cfg(test)]` too.
+    # The rule Rikuri-PI configures (test_marker_shapes pins it): rikurinode's and AISecurity's,
+    # which since 2026-10-11 (owner, 2(a)) takes the inner attribute `#![cfg(test)]` too, written
+    # `#\s*(?:!\s*)?\[`: `#\s*!?\s*\[` took time growing with the square of a run of
+    # spaces (verifier round 2, F1), as did guarded_lines' `\s*!?\s*\(`.
     RUST = dict(CFG, inline_tests=[{"glob": "*.rs", "starts_at":
-                                    r"^[ \t\f\v\r​-‏⁠﻿]*#\s*!?\s*\[\s*cfg\s*\(\s*(?:test|(?:any|all)\s*\((?:.*[(,]\s*)?(?<!not\()test(?=\s*[,)]).*\))\s*\)\s*\]",
-                                    "guarded_lines": r"cfg(?:_attr)?\s*!?\s*\(.*\btest\b|macro_rules!\s*(?:assert\w*|debug_assert\w*|panic|unreachable|todo)\b",
-                                    "attached_above": r"^[ \t\f\v\r​-‏⁠﻿]*(#\s*!?\s*\[|//|/\*|\*)"}])
+                                    r"^[ \t\f\v\r​-‏⁠﻿]*#\s*(?:!\s*)?\[\s*cfg\s*\(\s*(?:test|(?:any|all)\s*\((?:.*[(,]\s*)?(?<!not\()test(?=\s*[,)]).*\))\s*\)\s*\]",
+                                    "guarded_lines": r"cfg(?:_attr)?\s*(?:!\s*)?\(.*\btest\b|macro_rules!\s*(?:assert\w*|debug_assert\w*|panic|unreachable|todo)\b",
+                                    "attached_above": r"^[ \t\f\v\r​-‏⁠﻿]*(#\s*(?:!\s*)?\[|//|/\*|\*)"}])
 
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -375,7 +394,7 @@ class InlineTests(unittest.TestCase):
     @classmethod
     def before_inner(cls) -> dict:
         """The rule as it stood before 2026-10-11: `#[` only, never `#![`."""
-        return dict(cls.RUST, inline_tests=[{k: v.replace(r"#\s*!?\s*\[", r"#\s*\[") for k, v in r.items()}
+        return dict(cls.RUST, inline_tests=[{k: v.replace(r"#\s*(?:!\s*)?\[", r"#\s*\[") for k, v in r.items()}
                                             for r in cls.RUST["inline_tests"]])
 
     def test_a_file_that_starts_cfg_test_is_tests(self):
@@ -629,7 +648,7 @@ class TestModuleFiles(unittest.TestCase):
     FILES = {
         "src/lib.rs": ('pub mod plain;\npub mod outer;\npub mod fixtures;\nmod whole;\n\n#[cfg(test)]\nmod tests;\n\n'
                        '#[cfg(test)]\n#[path = "support_tests.rs"]\nmod support;\n\n'
-                       '#[cfg(any(test, feature = "fuzz"))]\npub mod helpers;\n'),
+                       '#[cfg(any(test, feature = "fuzz"))]\npub mod helpers;\n\n#[cfg(test)]\nmod checks;\n'),
         "src/plain.rs": "pub fn two() -> u8 {\n    2\n}\n",
         "src/fixtures.rs": "pub const REAL: u8 = 1;\n",
         "src/helpers.rs": "pub fn fake() -> u8 {\n    3\n}\n",
@@ -655,11 +674,15 @@ class TestModuleFiles(unittest.TestCase):
         "src/missing.rs": "pub fn m() {}\n\n#[cfg(test)]\nmod gone;\n",
         "src/visible.rs": "pub(crate) fn v() {}\n\n#[cfg(test)]\npub(crate) mod shared;\n",
         "src/visible/shared.rs": "pub fn s() {}\n",
+        # Listed before src/lib.rs, which declares it: one pass over the files
+        # would miss src/checks/helpers2.rs (verifier round 2, its mutant O6).
+        "src/checks.rs": "mod helpers2;\n\n#[test]\nfn c() {}\n",
+        "src/checks/helpers2.rs": "pub fn h() {}\n",
     }
     TESTS = ("src/tests.rs", "src/tests/fixtures.rs", "src/support_tests.rs", "src/helpers.rs",
              "src/outer/tests/deep.rs", "src/outer/tests/x/y.rs", "src/outer/late.rs", "src/bin/tool_tests.rs",
              "src/kw/type.rs", "src/whole/sub.rs", "src/dirmod/t.rs", "src/visible/shared.rs",
-             "src/sup_child.rs", "src/odd/odd_tests.rs")
+             "src/sup_child.rs", "src/odd/odd_tests.rs", "src/checks.rs", "src/checks/helpers2.rs")
     CODE = ("src/plain.rs", "src/outer/inner_prod.rs", "src/lib.rs", "src/outer.rs", "src/bin/tool.rs",
             "src/kw.rs", "src/dirmod/mod.rs", "src/visible.rs", "src/odd.rs")
     # No test_globs: each repository's own (`*/tests/*`, `*/fixtures/*`) would
@@ -744,6 +767,52 @@ class TestModuleFiles(unittest.TestCase):
                          ("pub mod outer;\n", "#[cfg(any())]\npub mod outer;\n")):
             self.assertEqual(self.v("Edit", {"file_path": "src/lib.rs", "old_string": old, "new_string": new}),
                              "allow", new)
+        # Verifier round 2, F2: a blank line, a comment or another inner
+        # attribute above `#![cfg(test)]` leaves the tests' region as it was,
+        # so it may be written — and must not unlock the declaration.
+        drop = {"file_path": "src/lib.rs", "old_string": "mod whole;\n", "new_string": ""}
+        for top in ("\n", " \t\n", "/* a\n plain line\n*/\n", "#![allow(unused)]\n", "// a note\n", "\ufeff"):
+            with open(os.path.join(self.root, "src", "whole.rs"), "w") as f:
+                f.write(top + self.FILES["src/whole.rs"])
+            self.assertEqual(self.v("Edit", drop), "deny", repr(top))
+        # The module file's own rules say whether it is all tests: a rule that
+        # names only src/lib.rs leaves src/whole.rs unlocked (the tripwire
+        # names it), and its declaration with it.
+        lib_only = dict(self.RUST, inline_tests=[dict(self.RUST["inline_tests"][0], glob="lib.rs")])
+        self.assertEqual(self.v("Edit", drop, cfg=lib_only), "allow")
+        # An outer `#[cfg(test)]` on a file's first item is that item's, not the
+        # file's: src/plain.rs stays production code, its declaration open.
+        with open(os.path.join(self.root, "src", "plain.rs"), "w") as f:
+            f.write("#[cfg(test)]\nfn t() {}\n" + self.FILES["src/plain.rs"])
+        self.assertEqual(self.v("Edit", {"file_path": "src/lib.rs", "old_string": "pub mod plain;\n",
+                                         "new_string": ""}), "allow")
+
+    def test_a_crafted_attribute_cannot_stall_the_hook(self):
+        # Verifier round 2, F1: `#` and 120,000 spaces in a file above every
+        # folder made a locked edit take 13.6 s; one MultiEdit adding such a
+        # comment above the tests took 27 s — inside single regex calls.
+        import time
+        with open(os.path.join(self.root, "zz.rs"), "w") as f:
+            f.write("mod x; #" + " " * 120000)
+        crafted = {"file_path": "src/outer.rs", "edits": [
+            {"old_string": "pub fn f() {}\n", "new_string": "/*\n#" + " " * 120000 + "\n*/\npub fn f() {}\n"},
+            {"old_string": "#[cfg(test)]\nmod late;\n", "new_string": "mod late;\n"}]}
+        t0 = time.time()
+        self.assertEqual(self.v("Edit", self.changes("src/tests.rs")[0][1]), "deny")
+        self.assertEqual(self.v("Edit", self.changes("src/plain.rs")[0][1]), "allow")
+        self.assertEqual(self.v("MultiEdit", crafted), "deny")
+        self.assertLess(time.time() - t0, 4.0)
+
+    def test_the_scanner_takes_linear_time(self):
+        import time
+        for text in ("#" + " " * 60000, "#!" + " " * 60000, "mod" + " " * 60000, "mod x" + " " * 60000):
+            t0 = time.time()
+            guard.rust_file_modules(text)
+            self.assertLess(time.time() - t0, 0.5, text[:6])
+        t0 = time.time()
+        guard.RUST_INLINE_TEST.search("#" + " " * 60000)
+        guard.RUST_PATH.match("#" + " " * 60000)
+        self.assertLess(time.time() - t0, 0.5)
 
     def test_a_crafted_file_cannot_stall_the_hook(self):
         # Verifier round 1, D1: an opener never closed (`/*`, `r#"`) made the
@@ -842,6 +911,13 @@ class TestModuleFiles(unittest.TestCase):
                          [("g", ["r"], None, ['#![path = "r"]']),
                           ("q", ["r"], "q.rs", ['#![path = "r"]', '#![path = "s"]', '#[path = "q.rs"]']),
                           ("k", ["r"], None, ['#![path = "r"]'])])
+        # Verifier round 2 (its mutants O5, OM9a): `# [ path = "…" ]` is a path
+        # too, and an inline module's #[path] counts wherever it sits among its
+        # attributes.
+        self.assertEqual(guard.rust_file_modules('# [ path = "p.rs" ]\n#[cfg(test)]\nmod t;\n'),
+                         [("t", [], "p.rs", ['# [ path = "p.rs" ]', "#[cfg(test)]"])])
+        self.assertEqual([m[:2] for m in guard.rust_file_modules('#[path = "q2"]\n#[allow(x)]\nmod m2 {\n    mod b2;\n}\n')],
+                         [("b2", ["q2"])])
         # An attribute runs to its own closing bracket, past brackets inside it.
         self.assertEqual(guard.rust_file_modules("#[x([1])]\n#[cfg(test)]\nmod y;\n"),
                          [("y", [], None, ["#[x([1])]", "#[cfg(test)]"])])
@@ -1115,6 +1191,17 @@ class InlineTestCoverage(unittest.TestCase):
     def test_a_test_module_with_no_file_is_named(self):
         root = self.repo({"src/lib.rs": self.DECLARES})
         self.assertEqual(self.gaps(root, self.RULES), ["src/lib.rs"])
+
+    def test_a_crafted_file_cannot_stall_the_tripwire(self):
+        # Verifier round 2, M9: one tracked file of `#` and spaces made the
+        # tripwire take 9 s (its marker took time growing with the square of
+        # a run of spaces).
+        import time
+        root = self.repo({"src/lib.rs": self.DECLARES, "src/tests.rs": self.TESTS_ONLY,
+                          "zz.rs": "mod x; #" + " " * 120000 + "\n#" + " " * 120000 + "\n"})
+        t0 = time.time()
+        self.assertEqual(self.gaps(root, self.RULES), [])
+        self.assertLess(time.time() - t0, 4.0)
 
     def test_a_production_module_is_not_named(self):
         root = self.repo({"src/lib.rs": "#[cfg(not(test))]\npub mod plain;\n\n#[cfg(test)]\nmod tests;\n",

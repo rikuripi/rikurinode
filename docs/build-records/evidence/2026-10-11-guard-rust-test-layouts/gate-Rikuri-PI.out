@@ -1,4 +1,4 @@
-# Rikuri-PI full gate at 23:33:24 on a private clone of main 1ea439d + the shared files + its widened rule, committed (never pushed); safe-run (no network), CARGO_NET_OFFLINE=true; exit 1
+# Rikuri-PI full gate at 14:49:00 on a private clone of 7103ec5 + round 5, committed (never pushed); safe-run (no network), CARGO_NET_OFFLINE=true; the gate script exits 1 at its dependency step
 ── GATE tools: PASS
 ── GATE gate-selftests: PASS
 ── GATE guard: PASS
@@ -13,7 +13,7 @@ fatal: unable to access 'https://github.com/RustSec/advisory-db/': Could not res
 RESULT: FAIL (dependencies)
 # the steps after 'dependencies', run one by one in the same copy (safe-run, offline); the advisory database as cached 2026-10-09 10:12:02 +0200 (CI fetches a fresh one)
 [cargo deny --locked --offline check] exit 0: advisories ok, bans ok, licenses ok, sources ok
-[scripts/quality/secret-scan.sh] exit 0: 11:33PM INF no leaks found
+[scripts/quality/secret-scan.sh] exit 0: 2:49PM INF no leaks found
 [scripts/quality/ratchet.sh] exit 0: RATCHET todo_markers: 0 (baseline 0)
 [scripts/quality/module-contracts.sh] exit 0: CONTRACT checked 7 crate(s)
 [scripts/quality/crate-policy.sh] exit 0: POLICY checked 7 crate(s)
