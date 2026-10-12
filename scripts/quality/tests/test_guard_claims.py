@@ -161,10 +161,12 @@ NODE_READS = ["lncli getinfo", "lncli --network=mainnet getinfo", "lncli -n main
 # round 10: a command continued onto the next line asks, unless it is a read that writes nowhere
 CONTINUED = ([f.format(t="\\\n" + "scripts/quality/hooks/pre-commit") for f in FILE_FORMS]
              + ["rm -rf \\\nscripts", "shred -u \\\n/home/junc/rikuri/rikurinode/f",
-                "sh -c 'git push --force origin x' \\",
                 # inside quotes a backslash-newline stays in one segment (a code string)
                 "python3 -c 'import os; os.system(\"shred -u \\\nscripts/quality/hooks/pre-commit\")'"])
 CONTINUED_FREE = ["echo a \\\nb", "git commit -m x \\\n-m y", "grep -n x \\\ndocs/"]
+# the continuation fix: the shared guard reads a command whose last character is
+# a backslash as the command it runs — here a force push, which it denies
+CONTINUED_DENY = ["sh -c 'git push --force origin x' \\"]
 # the lookalikes and reads AGENTS.md leaves free
 FREE = ["cp /home/junc/rikuri/rikurinode/README.md docs/", "cat /home/junc/rikuri/rikurinode/README.md",
         "git -C /home/junc/rikuri/rikurinode log -1", "install -m 755 /home/junc/rikuri/rikurinode/x.sh scripts/",
@@ -196,6 +198,7 @@ def cases():
     out += [(f.format(t=t), "ask", "ask") for f in PARENT_WRITES for t in PARENT_FILES]
     out += [(c, "ask", "allow") for c in STABLE_ONLY]
     out += [(c, "allow", "allow") for c in FREE + NODE_READS + CONTINUED_FREE]
+    out += [(c, "deny", "deny") for c in CONTINUED_DENY]
     return out
 
 

@@ -1,0 +1,4 @@
+1073c1073
+< {"development": "allow", "stable": "allow", "text": "cat <<EOF > /tmp/msg\\nrm -rf scripts/quality/hooks\\nEOF", "tool": "Bash"}
+---
+> {"development": "ask", "stable": "ask", "text": "cat <<EOF > /tmp/msg\\nrm -rf scripts/quality/hooks\\nEOF", "tool": "Bash"}

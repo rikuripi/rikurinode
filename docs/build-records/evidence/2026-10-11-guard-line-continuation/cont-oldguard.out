@@ -1,0 +1,119 @@
+test_a_comment_starts_a_word_and_ends_at_the_newline (test_guard.LineContinuation.test_a_comment_starts_a_word_and_ends_at_the_newline) ... FAIL
+test_a_continued_command_is_judged_whole (test_guard.LineContinuation.test_a_continued_command_is_judged_whole) ... FAIL
+test_siblings (test_guard.LineContinuation.test_siblings)
+Found sweeping for siblings: an apostrophe in a comment opened a ... FAIL
+test_the_lines_are_joined (test_guard.LineContinuation.test_the_lines_are_joined) ... FAIL
+test_through_the_hook (test_guard.LineContinuation.test_through_the_hook) ... ERROR
+test_what_the_shell_does_not_join (test_guard.LineContinuation.test_what_the_shell_does_not_join) ... FAIL
+
+======================================================================
+ERROR: test_through_the_hook (test_guard.LineContinuation.test_through_the_hook)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/cont-oldguard/.claude/hooks/test_guard.py", line 1214, in test_through_the_hook
+    self.assertEqual(json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
+                     ~~~~~~~~~~^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/usr/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/json/decoder.py", line 363, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+======================================================================
+FAIL: test_a_comment_starts_a_word_and_ends_at_the_newline (test_guard.LineContinuation.test_a_comment_starts_a_word_and_ends_at_the_newline)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/cont-oldguard/.claude/hooks/test_guard.py", line 1207, in test_a_comment_starts_a_word_and_ends_at_the_newline
+    self.assertEqual({"cmd": cmd, "v": self.v(cmd)}, {"cmd": cmd, "v": "ask"})
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'cmd': '# note\nmovemoney \\\n --amt 5', 'v': 'allow'} != {'cmd': '# note\nmovemoney \\\n --amt 5', 'v': 'ask'}
+- {'cmd': '# note\nmovemoney \\\n --amt 5', 'v': 'allow'}
+?                                                  ^^^^
+
++ {'cmd': '# note\nmovemoney \\\n --amt 5', 'v': 'ask'}
+?                                                  ^^
+
+
+======================================================================
+FAIL: test_a_continued_command_is_judged_whole (test_guard.LineContinuation.test_a_continued_command_is_judged_whole)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/cont-oldguard/.claude/hooks/test_guard.py", line 1191, in test_a_continued_command_is_judged_whole
+    self.assertEqual({"cmd": cmd, "v": self.v(cmd, lock)}, {"cmd": cmd, "v": want})
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'cmd': 'movemoney \\\n --amt 5', 'v': 'allow'} != {'cmd': 'movemoney \\\n --amt 5', 'v': 'ask'}
+- {'cmd': 'movemoney \\\n --amt 5', 'v': 'allow'}
+?                                          ^^^^
+
++ {'cmd': 'movemoney \\\n --amt 5', 'v': 'ask'}
+?                                          ^^
+
+
+======================================================================
+FAIL: test_siblings (test_guard.LineContinuation.test_siblings)
+Found sweeping for siblings: an apostrophe in a comment opened a
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/cont-oldguard/.claude/hooks/test_guard.py", line 1201, in test_siblings
+    self.assertEqual({"cmd": cmd, "v": self.v(cmd, lock)}, {"cmd": cmd, "v": want})
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'cmd': "x=1 # it's fine\ngit push --force origin x", 'v': 'allow'} != {'cmd': "x=1 # it's fine\ngit push --force origin x", 'v': 'deny'}
+- {'cmd': "x=1 # it's fine\ngit push --force origin x", 'v': 'allow'}
+?                                                             ^^^^^
+
++ {'cmd': "x=1 # it's fine\ngit push --force origin x", 'v': 'deny'}
+?                                                             ^^^^
+
+
+======================================================================
+FAIL: test_the_lines_are_joined (test_guard.LineContinuation.test_the_lines_are_joined)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/cont-oldguard/.claude/hooks/test_guard.py", line 1168, in test_the_lines_are_joined
+    self.assertEqual(seg("movemoney \\\n --amt 5"), ["movemoney  --amt 5"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['movemoney \\', '--amt 5'] != ['movemoney  --amt 5']
+
+First differing element 0:
+'movemoney \\'
+'movemoney  --amt 5'
+
+First list contains 1 additional elements.
+First extra element 1:
+'--amt 5'
+
+- ['movemoney \\', '--amt 5']
+?             ^^^^^^
+
++ ['movemoney  --amt 5']
+?             ^
+
+
+======================================================================
+FAIL: test_what_the_shell_does_not_join (test_guard.LineContinuation.test_what_the_shell_does_not_join)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-junc-Rikuri-PI/a9a3c3c8-1aaa-42d0-ba54-21f1946de07e/scratchpad/cont-oldguard/.claude/hooks/test_guard.py", line 1177, in test_what_the_shell_does_not_join
+    self.assertEqual(seg('echo "a\\"; b"; c'), ['echo "a\\"; b"', "c"])       # \" does not end the quote
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['echo "a\\"', 'b"; c'] != ['echo "a\\"; b"', 'c']
+
+First differing element 0:
+'echo "a\\"'
+'echo "a\\"; b"'
+
+- ['echo "a\\"', 'b"; c']
+?                 ----
+
++ ['echo "a\\"; b"', 'c']
+?             ++++
+
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.079s
+
+FAILED (failures=5, errors=1)

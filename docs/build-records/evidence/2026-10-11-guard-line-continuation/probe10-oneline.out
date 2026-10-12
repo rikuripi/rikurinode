@@ -1,0 +1,16 @@
+### A1-1 docker'' restart lnd (one line)
+    cmd="docker'' restart lnd"
+    want=ask
+    p9-dev=allow  old-dev=allow  p9-stab=allow  old-stab=allow
+### A2-1 git $( true ) push --force (one line)
+    cmd='git $( true ) push --force origin x'
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=allow  old-stab=allow
+### A3-1 env git|&git push --force (one line)
+    cmd='env git|&git push --force origin x'
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=allow  old-stab=allow
+### A4-1 git"" push --force (one line)
+    cmd='git"" push --force origin x'
+    want=deny
+    p9-dev=deny  old-dev=deny  p9-stab=deny  old-stab=deny

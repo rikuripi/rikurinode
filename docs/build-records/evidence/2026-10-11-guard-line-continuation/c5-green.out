@@ -1,0 +1,12 @@
+2026-10-11 14:01:47
+test_a_command_too_long_to_check_asks_at_once (test_guard.TimeBound.test_a_command_too_long_to_check_asks_at_once) ... ok
+test_a_long_harmless_command_below_the_limit_is_free (test_guard.TimeBound.test_a_long_harmless_command_below_the_limit_is_free) ... ok
+test_a_stopped_previous_guard_gives_ask_when_the_new_checks_allow_late (test_guard.TimeBound.test_a_stopped_previous_guard_gives_ask_when_the_new_checks_allow_late) ... ok
+test_crafted_slow_commands_are_answered_in_time (test_guard.TimeBound.test_crafted_slow_commands_are_answered_in_time) ... ok
+test_out_of_time_the_previous_guard_is_stopped_and_the_answer_is_ask (test_guard.TimeBound.test_out_of_time_the_previous_guard_is_stopped_and_the_answer_is_ask) ... ok
+test_the_slowest_command_below_the_limit_is_judged_in_time (test_guard.TimeBound.test_the_slowest_command_below_the_limit_is_judged_in_time) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 24.576s
+
+OK

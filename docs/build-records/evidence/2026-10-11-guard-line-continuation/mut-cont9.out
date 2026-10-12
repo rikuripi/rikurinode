@@ -1,0 +1,16 @@
+start 2026-10-11 14:34:15
+C1 a trailing backslash kept             RED   test_a_command_ending_in_a_backslash_is_judged, test_a_trailing_backslash_is_dropped_as_the_shell_does
+C4 a looser overall budget               RED   test_crafted_slow_commands_are_answered_in_time
+C5 the previous guard's time-out gives the new checks' answer RED   test_a_stopped_previous_guard_gives_ask_when_the_new_checks_allow_late, test_one_slow_search_is_stopped_at_the_budget
+C6 the previous guard's answer ignored   RED   test_a_stopped_previous_guard_gives_ask_when_the_new_checks_allow_late, test_one_slow_search_is_stopped_at_the_budget, test_regressions_reading_a_secret, test_round5_inline_arguments_aliases_and_second_calls, test_round5_the_previous_guard_always_counts, test_round6_include_filters_name_the_file_read, test_round6_inline_override_only_for_pure_interpreter_commands, test_round7_no_override_after_a_timeout
+N1 out-of-time new checks allow          RED   test_new_checks_out_of_time_never_allow
+P1 \\n with no indentation               RED   test_round5_cd_segment_itself_is_checked
+T1 no timer on the new checks            RED   test_crafted_slow_commands_are_answered_in_time, test_one_slow_search_is_stopped_at_the_budget
+T2 no timer on the previous guard        RED   test_a_stopped_previous_guard_gives_ask_when_the_new_checks_allow_late, test_crafted_slow_commands_are_answered_in_time, test_one_slow_search_is_stopped_at_the_budget, test_out_of_time_the_previous_guard_is_stopped_and_the_answer_is_ask
+T3 the timer's exception an Exception    RED   test_the_timer_is_not_an_exception_a_handler_could_swallow
+T4 a timer firing in its disarm escapes  RED   test_a_stopped_previous_guard_gives_ask_when_the_new_checks_allow_late, test_crafted_slow_commands_are_answered_in_time, test_one_slow_search_is_stopped_at_the_budget, test_out_of_time_the_previous_guard_is_stopped_and_the_answer_is_ask, test_round6_deep_nesting_stays_inside_the_hook_timeout, test_the_timer_firing_as_it_is_disarmed_is_out_of_time
+T5 no backstop in run_hook               RED   test_a_timer_that_escapes_still_asks
+T6 the new checks' timer ten times later RED   test_crafted_slow_commands_are_answered_in_time, test_one_slow_search_is_stopped_at_the_budget
+restored, sha256 checked
+exit 0
+end 2026-10-11 14:45:48

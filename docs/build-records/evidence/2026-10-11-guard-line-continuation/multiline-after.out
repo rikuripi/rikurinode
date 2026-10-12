@@ -1,0 +1,6 @@
+ask    0.005s 'python3 -c \'import os\nos.system("lncli sendcoins --addr x --amt 1")\''
+ask    0.000s 'python3 -c \'import os\nos.system("docker restart lnd")\''
+ask    0.000s 'node -e \'\nrequire("child_process").execSync("bitcoin-cli sendtoaddress bc1q 1")\''
+allow  0.108s 20KB script, nothing (29002 bytes)
+ask    0.112s 20KB script, lncli at the end (29039 bytes)
+allow  0.060s one 20KB line

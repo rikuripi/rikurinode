@@ -1,0 +1,14 @@
+[
+{"label":"16,001 chars lncli getinfo (over limit)", "py":"('lncli getinfo ' * L)[:L + 1]"},
+{"label":"16,001 chars, lncli sendcoins at the end", "py":"('echo a ' * L)[:L + 1 - 33] + ';lncli sendcoins --addr x --amt 1'"},
+{"label":"200,000 chars (over limit)", "py":"'a' * 200000"},
+{"label":"16,000 chars echo a... (at limit)", "py":"'echo ' + 'a' * (L - 5)"},
+{"label":"record worst: lncli getinfo to 16,000", "py":"('lncli getinfo ' * L)[:L]"},
+{"label":"'git ' to 16,000", "py":"('git ' * L)[:L]"},
+{"label":"'~/' to 16,000", "py":"('~/' * L)[:L]"},
+{"label":"'lncli ' to 16,000", "py":"('lncli ' * L)[:L]"},
+{"label":"cd x5 then 'git ' to 16,000", "py":"('cd a; cd b; cd c; cd d; cd e; ' + 'git ' * L)[:L]"},
+{"label":"cd x5 then $( 'git ' ) to 16,000", "py":"('cd a; cd b; cd c; cd d; cd e; $(' + 'git ' * L)[:L - 1] + ')'"},
+{"label":"$( 'git ' ) to 16,000", "py":"('$(' + 'git ' * L)[:L - 1] + ')'"},
+{"label":"eval x3 'git ' to 16,000", "py":"('eval eval eval ' + 'git ' * L)[:L]"}
+]

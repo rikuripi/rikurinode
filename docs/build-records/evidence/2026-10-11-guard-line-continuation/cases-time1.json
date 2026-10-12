@@ -1,0 +1,6 @@
+[
+{"label":"git + ' -a' x34", "py":"'git' + ' -a' * 34"},
+{"label":"git + ' -a' x36", "py":"'git' + ' -a' * 36"},
+{"label":"git + ' -a' x38", "py":"'git' + ' -a' * 38"},
+{"label":"git + ' -a' x40; then lncli sendcoins", "py":"'git' + ' -a' * 40 + '; lncli sendcoins --addr x --amt 1'", "cap": 120}
+]

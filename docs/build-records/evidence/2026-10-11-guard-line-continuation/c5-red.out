@@ -1,0 +1,3 @@
+2026-10-11 14:02:12
+C5 a stopped child counts as allow       RED   test_a_stopped_previous_guard_gives_ask_when_the_new_checks_allow_late
+restored, sha256 checked

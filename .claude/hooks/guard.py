@@ -3,8 +3,9 @@
 
 CLAUDE.md, skills, and the procedure are advisory: an AI session can skip
 them. This file is not. It is IDENTICAL in every full-tier repo (rikurinode,
-Iceman, AISecurity, Rikuri-PI); each repo's policy lives beside it in guard-config.json,
-including worked examples that test_guard.py replays.
+its rebuild rikuripi/rikurinode, Iceman, AISecurity, Rikuri-PI); each repo's policy
+lives beside it in guard-config.json, including worked examples that test_guard.py
+replays.
 
 Decisions: "deny" (refused; the reason goes to the agent), "ask" (the owner
 must approve in the UI), or silent allow. Any internal failure (bad config,
@@ -37,8 +38,9 @@ session. `off` releases only your own; `off --session <id>` / `off --global`
 release someone else's and always ask the owner.
 
 Bash matching is a tripwire, not a wall: it reads the command segment by
-segment (split on ; && || | and newlines, recursing into sh -c), so routine
-commands stay silent. While your lock is held, inline interpreter code
+segment (split on ; && || | and newlines, recursing into sh -c; a line that ends
+in a backslash continues onto the next, as in the shell), so routine commands stay
+silent. While your lock is held, inline interpreter code
 (python/node/... with -c/-e/stdin/heredoc) that writes and names a test path
 is refused (the 2026-10-03 heredoc hole); a determined workaround still gets
 past it. That is what code review and the owner are for.
@@ -143,10 +145,72 @@ _DEADLINE = float("inf")
 CHECK_TIME_BUDGET = 4.0
 _DEADLINE_ALL = float("inf")
 MAX_FOLDERS = 6  # folders one command may be judged from (cd targets + the start)
+# Claude Code lets a tool call through when its hook times out (hooks reference,
+# 2026-10-11; the hook has 10 s), and the policies' regular expressions take
+# time that grows with the square of a command's length: 16,000 characters
+# took about 1.3 s with the node rebuild's policy, 69,000 took 14 s. A longer
+# command is not judged: it asks, in every profile.
+MAX_COMMAND_CHARS = 16000
+
+
+# Wall-clock cap for one decision as a whole (the hook has 10 s): round 2 of the
+# continuation fix's verifier timed eval chains at 15-23 s, because the previous
+# guard (guard_base.py) has no budget of its own. A timer (_alarm) stops the new
+# checks at CHECK_TIME_BUDGET and the previous guard at this, even inside one
+# slow search (round 3: one rule took 9.8 s on one command); the answer is then
+# ask.
+OVERALL_TIME_BUDGET = 7.0
+
+
+TOO_SLOW = ("ask", ["this command is too complex for the guard to check within its time — owner approves"])
 
 
 class _TooSlow(Exception):
     pass
+
+
+class _OutOfTime(BaseException):
+    """Raised by the timer (_alarm) wherever the code is, even inside a regular
+    expression search: Python's re checks for signals as it runs. A
+    BaseException, so that no `except Exception` on the way can swallow it."""
+
+
+def _alarm(seconds: float):
+    """Raise _OutOfTime in this process after `seconds`; returns the function
+    that disarms it. Where there is no timer (no setitimer, or not the main
+    thread; the hook always runs in the main thread on Linux and macOS) it
+    does nothing: only the new checks' own budget checks then bound them,
+    nothing bounds the previous guard, and the hook's time-out is the last
+    line."""
+    import signal
+    import threading
+    if not hasattr(signal, "setitimer") or threading.current_thread() is not threading.main_thread():
+        return lambda: None
+
+    def fire(_signum, _frame):
+        raise _OutOfTime()
+    old = signal.signal(signal.SIGALRM, fire)
+    signal.setitimer(signal.ITIMER_REAL, max(seconds, 0.001))
+
+    def disarm():
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, old)
+    return disarm
+
+
+def _timed(seconds: float, fn):
+    """fn() under the timer: its result, or None if the time ran out. The timer
+    fires once; when it fires just as it is disarmed (the checks' own deadline
+    is the same moment), that is out of time too, not an escape."""
+    disarm = _alarm(seconds)
+    try:
+        try:
+            return fn()
+        finally:
+            disarm()
+    except _OutOfTime:
+        disarm()
+        return None
 
 
 def _tick() -> None:
@@ -357,28 +421,60 @@ def shell_names(target: str, cwd: str) -> list:
 
 # ── bash parsing ────────────────────────────────────────────────────────────
 
+# Unquoted, unescaped characters that end a word: a `#` after one starts a comment.
+WORD_BREAK = " \t\n;&|()<>"
+
+
 def split_segments(cmd: str) -> list:
-    """Split on ; && || | and newlines, outside quotes."""
-    segs, cur, quote, i = [], [], None, 0
+    """Split on ; && || | and newlines, outside quotes, reading backslashes as
+    the shell does (2026-10-11: each line of `lncli \\⏎ sendcoins …` used to be
+    judged alone). Outside single quotes a backslash-newline continues the
+    command — both characters vanish — except at the end of a comment, which
+    the newline ends. An escaped character is never a separator, and `\\"`
+    does not end a double quote. A comment starts only where a word starts —
+    never after an escaped character, a quote or a `$(…)`, which stay part of
+    the word — and quotes inside it are just text. A backslash that ends the
+    command is dropped (round 2's verifier: `sh -c '…' \\` hid a force push)."""
+    segs, cur, quote, comment, i = [], [], None, False, 0
+    word_start, subst = True, 0  # a `#` here opens a comment; open `$(` (their `)` ends no word)
     while i < len(cmd):
         c = cmd[i]
+        if c == "\\" and quote != "'" and not comment and i + 1 == len(cmd):
+            i += 1  # a backslash that ends the command continues onto nothing: zsh and bash drop it
+            continue
+        if c == "\\" and quote != "'" and not comment and i + 1 < len(cmd):
+            if cmd[i + 1] == "\n":  # a line continuation: the shell joins the two lines
+                i += 2
+                continue
+            if quote is None or cmd[i + 1] in "\"\\$`":
+                cur.append(cmd[i:i + 2])  # an escaped char (`\;`, `\"`) is not a separator or a quote
+                word_start = False
+                i += 2
+                continue
         if quote:
             if c == quote:
                 quote = None
             cur.append(c)
-        elif c == "\\" and i + 1 < len(cmd) and cmd[i + 1] != "\n":
-            cur.append(cmd[i:i + 2])  # an escaped char (`\;`) is not a separator
-            i += 2
-            continue
-        elif c in "'\"":
-            quote = c
+        elif c in "'\"" and not comment:
+            quote, word_start = c, False
             cur.append(c)
         elif c in ";|\n" or cmd.startswith("&&", i):
             segs.append("".join(cur))
-            cur = []
+            cur, word_start = [], True
+            if c == "\n":
+                comment = False
             if cmd.startswith("&&", i) or cmd.startswith("||", i):
                 i += 1
         else:
+            if c == "#" and word_start:
+                comment = True
+            if not comment:
+                if c == "(" and cur and cur[-1] == "$":
+                    subst, word_start = subst + 1, False
+                elif c == ")" and subst:
+                    subst, word_start = subst - 1, False
+                else:
+                    word_start = c in WORD_BREAK
             cur.append(c)
         i += 1
     segs.append("".join(cur))
@@ -1500,19 +1596,24 @@ def decide(event: dict, cfg: dict, root: str = ROOT, lock_present: bool | None =
     A stricter previous decision is set aside only when every one of its
     reasons is one of the two owner-approved overrides (_overridable)."""
     global _DEADLINE, _DEADLINE_ALL
+    cmd = (event.get("tool_input") or {}).get("command") if event.get("tool_name") == "Bash" else None
+    if isinstance(cmd, str) and len(cmd) > MAX_COMMAND_CHARS:
+        return "ask", ["this command is %d characters long, more than the guard can check within its time "
+                       "limit (%d) — owner approves; a long script belongs in a file" % (len(cmd), MAX_COMMAND_CHARS)]
     _DEADLINE = time.time() + SEARCH_TIME_BUDGET
     _DEADLINE_ALL = time.time() + CHECK_TIME_BUDGET
     if lock_present is None:
         lock_present = lock_held(root, event.get("session_id"))
     new_relaxed, base_relaxed = [], []
     timed_out = False
-    try:
-        new = _decide_new(event, cfg, root, lock_present=lock_present, branch_fn=branch_fn, relaxed=new_relaxed)
+    try:  # the timer stops even a single slow search
+        new = _timed(_DEADLINE_ALL - time.time(), lambda: _decide_new(
+            event, cfg, root, lock_present=lock_present, branch_fn=branch_fn, relaxed=new_relaxed))
     except _TooSlow:
+        new = None
+    if new is None:
         timed_out = True
-        new, new_relaxed = ("ask", ["this command is too complex for the guard to check within its time "
-                                    "— owner approves"]), []
-    base = base_decide(event, cfg, root, lock_present=lock_present, branch_fn=branch_fn, relaxed=base_relaxed)
+        new, new_relaxed = TOO_SLOW, []
 
     def overridable(r: str) -> bool:
         if timed_out:  # unchecked: nothing may lift the previous guard (verifier round 7)
@@ -1522,10 +1623,18 @@ def decide(event: dict, cfg: dict, root: str = ROOT, lock_present: bool | None =
         except _TooSlow:
             return False
 
-    if RANK[base[0]] > RANK[new[0]] and not all(overridable(r) for r in base[1]):
-        chosen, chosen_relaxed = base, base_relaxed
-    else:
-        chosen, chosen_relaxed = new, new_relaxed
+    def finish() -> tuple:
+        # under the timer too: the previous guard (a deny it finds in time
+        # stands) and the checks that may set its answer aside
+        base = base_decide(event, cfg, root, lock_present=lock_present, branch_fn=branch_fn, relaxed=base_relaxed)
+        if RANK[base[0]] > RANK[new[0]] and not all(overridable(r) for r in base[1]):
+            return base, base_relaxed
+        return new, new_relaxed
+
+    got = _timed(_DEADLINE_ALL - CHECK_TIME_BUDGET + OVERALL_TIME_BUDGET - time.time(), finish)
+    if got is None:
+        return TOO_SLOW
+    chosen, chosen_relaxed = got
     if relaxed is not None:
         relaxed.extend(chosen_relaxed)
     return chosen
@@ -1750,6 +1859,8 @@ def run_hook(stdin_text: str, config_path: str = CONFIG_PATH, root: str = ROOT) 
     try:
         event = json.loads(stdin_text)
         decision, reasons = decide(event, load_config(config_path), root, relaxed=relaxed)
+    except _OutOfTime:  # decide() catches its timer (_timed); were it ever to escape, still not open
+        decision, reasons = TOO_SLOW
     except Exception as e:  # noqa: BLE001 — a broken guard must be loud, not open
         decision, reasons = "ask", ["guard.py failed (%s: %s) — gates are NOT being checked; "
                                     "fix .claude/hooks before continuing" % (type(e).__name__, e)]

@@ -1,0 +1,4 @@
+[{"label": "A1-1 docker'' restart lnd (one line)", "cmd": "docker@Q@@Q@ restart lnd", "want": "ask"},
+ {"label": "A2-1 git $( true ) push --force (one line)", "cmd": "git $( true ) push --force origin x", "want": "deny"},
+ {"label": "A3-1 env git|&git push --force (one line)", "cmd": "env git|&git push --force origin x", "want": "deny"},
+ {"label": "A4-1 git\"\" push --force (one line)", "cmd": "git@D@@D@ push --force origin x", "want": "deny"}]

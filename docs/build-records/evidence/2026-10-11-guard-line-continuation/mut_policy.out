@@ -1,0 +1,7 @@
+P1 rules read only the first line                  RED   FAILED (failures=10)
+P2 the read exemption on every line                RED   FAILED (failures=5)
+P3 no multi-line mode                              RED   FAILED (failures=4)
+P4 code-escape rule: backslash at a segment's end  RED   FAILED (failures=5)
+P5 lncli money: first line only                    RED   FAILED (failures=4)
+P6 bitcoin-cli money: help anywhere exempts        RED   FAILED (failures=1)
+restored 1c1cfc495421 07fc5ccf91df

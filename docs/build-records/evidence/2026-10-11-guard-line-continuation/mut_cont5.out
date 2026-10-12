@@ -1,0 +1,24 @@
+M1 no join                                     RED   test_a_comment_starts_a_word_and_ends_at_the_newline, test_a_continued_command_is_judged_whole, test_a_hash_inside_a_word_is_not_a_comment, test_every
+M2 join inside single quotes                   RED   test_what_the_shell_does_not_join
+M3 join inside a comment                       RED   test_what_the_shell_does_not_join
+M4 no comments                                 RED   test_a_doubled_backslash_a_tab_and_a_comment_past_a_semicolon, test_siblings, test_what_the_shell_does_not_join
+M5 quotes open in comments                     RED   test_a_doubled_backslash_a_tab_and_a_comment_past_a_semicolon, test_siblings
+M6 \" ends a double quote                      RED   test_what_the_shell_does_not_join
+M7 a comment never ends                        RED   test_a_comment_starts_a_word_and_ends_at_the_newline
+M8 # anywhere starts a comment                 RED   test_a_comment_starts_a_word_and_ends_at_the_newline, test_a_hash_inside_a_word_is_not_a_comment, test_every_example, test_round3_money_and_secrets_in
+S1 no \\ escape in double quotes               RED   test_a_doubled_backslash_a_tab_and_a_comment_past_a_semicolon
+S2 TAB is not a word break                     RED   test_a_doubled_backslash_a_tab_and_a_comment_past_a_semicolon
+S3 a comment ends at any separator             RED   test_a_doubled_backslash_a_tab_and_a_comment_past_a_semicolon
+W1 an escaped char starts a word               RED   test_a_hash_inside_a_word_is_not_a_comment, test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_
+W2 $(...) not tracked                          RED   test_a_hash_inside_a_word_is_not_a_comment, test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_
+T1 no length bound                             RED   test_a_command_too_long_to_check_asks_at_once
+P1 rules read only the first line              RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+P2 the read exemption on every line            RED   test_every_example
+P3 no multi-line mode                          RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+P4 code rule: a backslash at a segment's end   RED   test_every_example
+P5 lncli money: first line only                RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+P6 a help word anywhere exempts                RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+P7 a \n escape is not a line start             RED   test_round3_money_and_secrets_in_heredocs_still_ask
+P8 no command after a \n escape                RED   test_every_example, test_round3_money_and_secrets_in_heredocs_still_ask, test_round5_cd_segment_itself_is_checked
+P9 echo is not a read                          RED   test_every_example
+restored, sha256 checked: .claude/hooks/guard.py 4a04d2885dea, scripts/quality/guard_policy.py c7cddee30d0b, .claude/hooks/guard-config.json 9feaa2eec038

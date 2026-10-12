@@ -1,0 +1,50 @@
+
+== 1/7 pinned tools
+
+== 2/7 AI-session guard: wired to every tool, hooks on; policy as generated; every example and failure mode
+....usage: guard.py fix-lock on <build-record> | off [--session <id> | --global] | status
+.fix-lock NOT engaged — cannot read /tmp/tmpes37991v/guard-config.json: guard-config.json: 'fix_lock_preflight' must be a list of argv lists, e.g. [["node", "scripts/quality-ratchet.mjs"]]
+Nothing was changed. Fix it first, then engage.
+.fix-lock NOT engaged — preflight /usr/bin/python3 -c import sys; sys.exit(3) failed (exit 3):
+
+Nothing was changed. Fix it first, then engage.
+.......................F..............................................................usage: guard.py profile [stable | development]
+.....
+======================================================================
+FAIL: test_round3_money_and_secrets_in_heredocs_still_ask (test_guard.GuardRound2.test_round3_money_and_secrets_in_heredocs_still_ask)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/.claude/hooks/test_guard.py", line 997, in test_round3_money_and_secrets_in_heredocs_still_ask
+    self.assertNotEqual({"cmd": wrapped, "p": profile, "v": v},
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        {"cmd": wrapped, "p": profile, "v": "allow"})
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'cmd': 'python3 - <<\'EOF\'\nimport subprocess\nsubprocess.run("ssh localhost \'\\n/home/junc/rikuri/rikurinode/scripts/restart.sh\\n\'", shell=True)\nEOF', 'p': 'stable', 'v': 'allow'} == {'cmd': 'python3 - <<\'EOF\'\nimport subprocess\nsubprocess.run("ssh localhost \'\\n/home/junc/rikuri/rikurinode/scripts/restart.sh\\n\'", shell=True)\nEOF', 'p': 'stable', 'v': 'allow'}
+
+----------------------------------------------------------------------
+Ran 97 tests in 14.319s
+
+FAILED (failures=1)
+fix-lock ENGAGED for docs/build-records/a.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/b.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/x.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock released (docs/build-records/a.md)
+fix-lock released (docs/build-records/owner.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+profile: stable
+profile: stable -> development
+profile: development -> stable

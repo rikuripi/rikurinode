@@ -1,0 +1,102 @@
+### T1 eval force push, trailing <bs>
+    cmd='eval "git push --force origin x" \\'
+    want=deny (zsh drops the trailing backslash)
+    p9-dev=deny  old-dev=ask  p9-stab=deny  old-stab=ask
+    reason(p9-dev): git push --force rewrites or deletes remote history — the owner runs that by hand
+### T1c control: eval force push
+    cmd='eval "git push --force origin x"'
+    want=deny
+    p9-dev=deny  old-dev=deny  p9-stab=deny  old-stab=deny
+### T2 eval force push, glued trailing <bs>
+    cmd='eval "git push --force origin x"\\'
+    want=deny
+    p9-dev=deny  old-dev=ask  p9-stab=deny  old-stab=ask
+### T3 git push origin main<bs>
+    cmd='git push origin main\\'
+    want=ask(stable)
+    p9-dev=allow  old-dev=ask  p9-stab=ask  old-stab=ask
+### T3c control: git push origin main
+    cmd='git push origin main'
+    want=ask(stable)
+    p9-dev=allow  old-dev=allow  p9-stab=ask  old-stab=ask
+### T4 sh -c force push, trailing <bs>
+    cmd="sh -c 'git push --force origin x' \\"
+    want=deny
+    p9-dev=deny  old-dev=ask  p9-stab=deny  old-stab=ask
+    reason(p9-dev): git push --force rewrites or deletes remote history — the owner runs that by hand
+### T4c control: sh -c force push
+    cmd="sh -c 'git push --force origin x'"
+    want=deny
+    p9-dev=deny  old-dev=deny  p9-stab=deny  old-stab=deny
+### T5 bash -c cat x.sekrit, trailing <bs>
+    cmd='bash -c "cat x.sekrit" \\'
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=deny  old-stab=allow
+### T6 cat x.sekrit<bs>
+    cmd='cat x.sekrit\\'
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=deny  old-stab=allow
+### T7 git push --force origin x<bs>
+    cmd='git push --force origin x\\'
+    want=deny
+    p9-dev=deny  old-dev=deny  p9-stab=deny  old-stab=deny
+### T8 lncli sendcoins<bs>
+    cmd='lncli sendcoins --addr x --amt 1\\'
+    want=ask
+    p9-dev=ask  old-dev=ask  p9-stab=ask  old-stab=ask
+### T9 docker restart lnd<bs>
+    cmd='docker restart lnd\\'
+    want=ask
+    p9-dev=ask  old-dev=ask  p9-stab=ask  old-stab=ask
+### T10 guard.py fix-lock off<bs>
+    cmd='python3 .claude/hooks/guard.py fix-lock off\\'
+    want=ask(stable)
+    p9-dev=allow  old-dev=allow  p9-stab=ask  old-stab=allow
+### T11 locked test write, trailing <bs> [lock via decide(lock_present=True)]
+    cmd='echo x >> tests/test_a.py\\'
+    want=deny
+    p9-dev=deny  old-dev=deny  p9-stab=deny  old-stab=deny
+### T12 locked test write via sh -c, trailing <bs> [lock via decide(lock_present=True)]
+    cmd="sh -c 'echo x >> tests/test_a.py' \\"
+    want=deny
+    p9-dev=deny  old-dev=deny  p9-stab=deny  old-stab=deny
+### T13 eval git push origin main, trailing <bs>
+    cmd='eval "git push origin main" \\'
+    want=ask(stable)
+    p9-dev=allow  old-dev=ask  p9-stab=ask  old-stab=ask
+### T14 git -C . push origin HEAD:main<bs>
+    cmd='git -C . push origin HEAD:main\\'
+    want=ask(stable)
+    p9-dev=allow  old-dev=ask  p9-stab=ask  old-stab=ask
+### A1 assembled + continuation: docker@Q@@Q@ <bs-nl> restart
+    cmd="docker'' \\\nrestart lnd"
+    want=ask
+    p9-dev=allow  old-dev=ask  p9-stab=allow  old-stab=ask
+### A1c flat: docker@Q@@Q@ restart
+    cmd="docker'' restart lnd"
+    want=ask
+    p9-dev=allow  old-dev=allow  p9-stab=allow  old-stab=allow
+### A2 git $( true ) <bs-nl> push --force
+    cmd='git $( true ) \\\npush --force origin x'
+    want=deny
+    p9-dev=allow  old-dev=ask  p9-stab=allow  old-stab=ask
+### A2c flat: git $( true ) push --force
+    cmd='git $( true ) push --force origin x'
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=allow  old-stab=allow
+### A3 env git|&git <bs-nl> push --force
+    cmd='env git|&git \\\npush --force origin x'
+    want=deny
+    p9-dev=allow  old-dev=ask  p9-stab=allow  old-stab=ask
+### A3c flat: true |& git push --force
+    cmd='true |& git push --force origin x'
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=allow  old-stab=allow
+### A4 lncli <bs-nl> $(true) <bs-nl> sendcoins
+    cmd='lncli \\\n$(true) \\\nsendcoins --addr x --amt 1'
+    want=ask
+    p9-dev=ask  old-dev=ask  p9-stab=ask  old-stab=ask
+### A4c flat: lncli $(true) sendcoins
+    cmd='lncli $(true) sendcoins --addr x --amt 1'
+    want=ask
+    p9-dev=ask  old-dev=ask  p9-stab=ask  old-stab=ask

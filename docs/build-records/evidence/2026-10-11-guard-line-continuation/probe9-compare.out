@@ -1,0 +1,52 @@
+== probe9-trail.out: 25 cases; looser than 2075218: 9; tighter: 9
+   looser  T3 git push origin main<bs> [dev] new=allow old=ask want=ask(stable)
+   looser  T13 eval git push origin main, trailing <bs> [dev] new=allow old=ask want=ask(stable)
+   looser  T14 git -C . push origin HEAD:main<bs> [dev] new=allow old=ask want=ask(stable)
+   looser  A1 assembled + continuation: docker@Q@@Q@ <bs-nl> restart [dev] new=allow old=ask want=ask
+   looser  A1 assembled + continuation: docker@Q@@Q@ <bs-nl> restart [stab] new=allow old=ask want=ask
+   looser  A2 git $( true ) <bs-nl> push --force [dev] new=allow old=ask want=deny
+   looser  A2 git $( true ) <bs-nl> push --force [stab] new=allow old=ask want=deny
+   looser  A3 env git|&git <bs-nl> push --force [dev] new=allow old=ask want=deny
+   looser  A3 env git|&git <bs-nl> push --force [stab] new=allow old=ask want=deny
+   tighter T1 eval force push, trailing <bs> [dev] new=deny old=ask
+   tighter T1 eval force push, trailing <bs> [stab] new=deny old=ask
+   tighter T2 eval force push, glued trailing <bs> [dev] new=deny old=ask
+   tighter T2 eval force push, glued trailing <bs> [stab] new=deny old=ask
+   tighter T4 sh -c force push, trailing <bs> [dev] new=deny old=ask
+   tighter T4 sh -c force push, trailing <bs> [stab] new=deny old=ask
+   tighter T5 bash -c cat x.sekrit, trailing <bs> [stab] new=deny old=allow
+   tighter T6 cat x.sekrit<bs> [stab] new=deny old=allow
+   tighter T10 guard.py fix-lock off<bs> [stab] new=ask old=allow
+== probe9-break2.out: 35 cases; looser than 2075218: 5; tighter: 15
+   looser  B2m git -c user.name=a<bs-space>#b <bs-nl> push origin main [dev] new=allow old=ask want=ask(stable)
+   looser  B2s git -c user.name=a<bs-space>#b <bs-nl> status (harmless) [dev] new=allow old=ask want=allow
+   looser  B2s git -c user.name=a<bs-space>#b <bs-nl> status (harmless) [stab] new=allow old=ask want=allow
+   looser  E1 lncli <bs> CR LF sendcoins (no join in bash) [dev] new=allow old=ask want=allow ok
+   looser  E1 lncli <bs> CR LF sendcoins (no join in bash) [stab] new=allow old=ask want=allow ok
+   tighter B1s cat a<bs-space>#b <bs-nl> x.sekrit [stab] new=deny old=allow
+   tighter B1t cat a<bs-tab>#b <bs-nl> x.sekrit [stab] new=deny old=allow
+   tighter B1c control: cat a <bs-nl> x.sekrit (no #) [stab] new=deny old=allow
+   tighter B6 cat $(true)#x <bs-nl> x.sekrit [stab] new=deny old=allow
+   tighter C2 true $<q><bs><q><q> nl lncli sendcoins #<q> [dev] new=ask old=allow
+   tighter C2 true $<q><bs><q><q> nl lncli sendcoins #<q> [stab] new=ask old=allow
+   tighter D1 cat a<bs><bs><bs-nl> x.sekrit (odd run joins) [stab] new=deny old=allow
+   tighter F1 echo $(cat <bs-nl> x.sekrit) [stab] new=deny old=allow
+   tighter F2 echo <bt>cat <bs-nl> x.sekrit<bt> [stab] new=deny old=allow
+   tighter G2 sh heredoc quoted tag, continued cat x.sekrit [stab] new=deny old=allow
+   tighter G5 heredoc body apostrophe, then lncli sendcoins [dev] new=ask old=allow
+   tighter G5 heredoc body apostrophe, then lncli sendcoins [stab] new=ask old=allow
+   tighter H1 apostrophe in comment in $(), then cat x.sekrit [stab] new=deny old=ask
+   tighter H2 echo dq-sq-$()-dq nl lncli sendcoins #<q> [dev] new=ask old=allow
+   tighter H2 echo dq-sq-$()-dq nl lncli sendcoins #<q> [stab] new=ask old=allow
+== probe9-accept.out: 12 cases; looser than 2075218: 5; tighter: 6
+   looser  AC4 git push origin <bs-nl> main [dev] new=allow old=ask want=ask (stable)
+   looser  OK1 lncli <bs-nl> getinfo (legit) [dev] new=allow old=ask want=allow
+   looser  OK1 lncli <bs-nl> getinfo (legit) [stab] new=allow old=ask want=allow
+   looser  OK2 docker <bs-nl> ps (legit) [dev] new=allow old=ask want=allow
+   looser  OK2 docker <bs-nl> ps (legit) [stab] new=allow old=ask want=allow
+   tighter AC2 cat <bs-nl> x.sekrit [stab] new=deny old=allow
+   tighter AC3 git push <bs-nl> --force origin x [dev] new=deny old=ask
+   tighter AC3 git push <bs-nl> --force origin x [stab] new=deny old=ask
+   tighter AC5 echo x >> <bs-nl> tests/test_something.py (lock) [lock via decide(lock_present=True)] [dev] new=deny old=allow
+   tighter AC5 echo x >> <bs-nl> tests/test_something.py (lock) [lock via decide(lock_present=True)] [stab] new=deny old=allow
+   tighter AC6 guard.py fix-lock <bs-nl> off [stab] new=ask old=allow

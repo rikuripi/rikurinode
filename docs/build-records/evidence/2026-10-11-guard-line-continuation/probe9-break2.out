@@ -1,0 +1,140 @@
+### B1s cat a<bs-space>#b <bs-nl> x.sekrit
+    cmd='cat a\\ #b \\\nx.sekrit'
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=deny  old-stab=allow
+### B1t cat a<bs-tab>#b <bs-nl> x.sekrit
+    cmd='cat a\\\t#b \\\nx.sekrit'
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=deny  old-stab=allow
+### B1c control: cat a <bs-nl> x.sekrit (no #)
+    cmd='cat a \\\nx.sekrit'
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=deny  old-stab=allow
+### B2m git -c user.name=a<bs-space>#b <bs-nl> push origin main
+    cmd='git -c user.name=a\\ #b \\\npush origin main'
+    want=ask(stable)
+    p9-dev=allow  old-dev=ask  p9-stab=ask  old-stab=ask
+### B2s git -c user.name=a<bs-space>#b <bs-nl> status (harmless)
+    cmd='git -c user.name=a\\ #b \\\nstatus'
+    want=allow
+    p9-dev=allow  old-dev=ask  p9-stab=allow  old-stab=ask
+### B3 lncli --metadata=k:a<bs-space>#b <bs-nl> sendcoins
+    cmd='lncli --metadata=k:a\\ #b \\\nsendcoins --addr x --amt 1'
+    want=ask
+    p9-dev=ask  old-dev=ask  p9-stab=ask  old-stab=ask
+### B4 lncli --metadata=k:a<bs-;>#b <bs-nl> sendcoins
+    cmd='lncli --metadata=k:a\\;#b \\\nsendcoins --addr x --amt 1'
+    want=ask
+    p9-dev=ask  old-dev=ask  p9-stab=ask  old-stab=ask
+### B5 lncli --metadata=k:$(true)#x <bs-nl> sendcoins
+    cmd='lncli --metadata=k:$(true)#x \\\nsendcoins --addr x --amt 1'
+    want=ask
+    p9-dev=ask  old-dev=ask  p9-stab=ask  old-stab=ask
+### B6 cat $(true)#x <bs-nl> x.sekrit
+    cmd='cat $(true)#x \\\nx.sekrit'
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=deny  old-stab=allow
+### B7 lncli --metadata=k:a<bs-(>#b <bs-nl> sendcoins
+    cmd='lncli --metadata=k:a\\(#b \\\nsendcoins --addr x --amt 1'
+    want=ask
+    p9-dev=ask  old-dev=ask  p9-stab=ask  old-stab=ask
+### C1 echo $<q><bs><q><q> nl lncli sendcoins #<q>
+    cmd="echo $'\\''\nlncli sendcoins --addr x --amt 1 #'"
+    want=ask
+    p9-dev=allow  old-dev=allow  p9-stab=allow  old-stab=allow
+### C2 true $<q><bs><q><q> nl lncli sendcoins #<q>
+    cmd="true $'\\''\nlncli sendcoins --addr x --amt 1 #'"
+    want=ask
+    p9-dev=ask  old-dev=allow  p9-stab=ask  old-stab=allow
+### C3 true $<q><bs><q><q> nl cat x.sekrit #<q>
+    cmd="true $'\\''\ncat x.sekrit #'"
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=allow  old-stab=allow
+### C4 true $<q><bs><q><q> nl git push origin main #<q>
+    cmd="true $'\\''\ngit push origin main #'"
+    want=ask(stable)
+    p9-dev=allow  old-dev=allow  p9-stab=allow  old-stab=allow
+### D1 cat a<bs><bs><bs-nl> x.sekrit (odd run joins)
+    cmd='cat a\\\\\\\nx.sekrit'
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=deny  old-stab=allow
+### D2 lncli ..x<bs><bs><bs-nl> sendcoins (odd run joins)
+    cmd='lncli --metadata=k:x\\\\\\\nsendcoins --addr x --amt 1'
+    want=ask
+    p9-dev=ask  old-dev=ask  p9-stab=ask  old-stab=ask
+### D3 cat a<bs><bs> nl x.sekrit (even: no join)
+    cmd='cat a\\\\\nx.sekrit'
+    want=allow ok
+    p9-dev=allow  old-dev=allow  p9-stab=allow  old-stab=allow
+### E1 lncli <bs> CR LF sendcoins (no join in bash)
+    cmd='lncli \\\r\nsendcoins --addr x --amt 1'
+    want=allow ok
+    p9-dev=allow  old-dev=ask  p9-stab=allow  old-stab=ask
+### F1 echo $(cat <bs-nl> x.sekrit)
+    cmd='echo $(cat \\\nx.sekrit)'
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=deny  old-stab=allow
+### F2 echo <bt>cat <bs-nl> x.sekrit<bt>
+    cmd='echo `cat \\\nx.sekrit`'
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=deny  old-stab=allow
+### F3 x=$(lncli <bs-nl> sendcoins)
+    cmd='x=$(lncli \\\nsendcoins --addr x --amt 1)'
+    want=ask
+    p9-dev=ask  old-dev=ask  p9-stab=ask  old-stab=ask
+### F4 echo dq-backtick lncli <bs-nl> sendcoins
+    cmd='echo "`lncli \\\nsendcoins --addr x --amt 1`"'
+    want=ask
+    p9-dev=ask  old-dev=ask  p9-stab=ask  old-stab=ask
+### G1 sh heredoc unquoted tag, continued lncli
+    cmd='sh <<EOF\nlncli \\\nsendcoins --addr x --amt 1\nEOF'
+    want=ask
+    p9-dev=ask  old-dev=ask  p9-stab=ask  old-stab=ask
+### G2 sh heredoc quoted tag, continued cat x.sekrit
+    cmd="sh <<'EOF'\ncat \\\nx.sekrit\nEOF"
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=deny  old-stab=allow
+### G3 heredoc body apostrophe, then git push origin main
+    cmd="cat <<EOF\ndon't\nEOF\ngit push origin main"
+    want=ask(stable)
+    p9-dev=allow  old-dev=allow  p9-stab=allow  old-stab=allow
+### G4 heredoc body apostrophe, then cat x.sekrit
+    cmd="cat <<EOF\ndon't\nEOF\ncat x.sekrit"
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=ask  old-stab=ask
+### G5 heredoc body apostrophe, then lncli sendcoins
+    cmd="cat <<EOF\ndon't\nEOF\nlncli sendcoins --addr x --amt 1"
+    want=ask
+    p9-dev=ask  old-dev=allow  p9-stab=ask  old-stab=allow
+### H1 apostrophe in comment in $(), then cat x.sekrit
+    cmd="echo $(true # it's\n)\ncat x.sekrit"
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=deny  old-stab=ask
+### H2 echo dq-sq-$()-dq nl lncli sendcoins #<q>
+    cmd='echo "$(echo \'"\')"\nlncli sendcoins --addr x --amt 1 #\''
+    want=ask
+    p9-dev=ask  old-dev=allow  p9-stab=ask  old-stab=allow
+### H2b true dq-sq-$()-dq nl cat x.sekrit #<q>
+    cmd='true "$(echo \'"\')"\ncat x.sekrit #\''
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=allow  old-stab=allow
+### H5 comment ending in <bs>, then cat x.sekrit
+    cmd='# note \\\ncat x.sekrit'
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=deny  old-stab=deny
+### I1 <bs><dq> inside single quotes; cat x.sekrit
+    cmd='echo \'\\"\'; cat x.sekrit'
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=deny  old-stab=deny
+### I3 true & git push origin main
+    cmd='true & git push origin main'
+    want=ask(stable)
+    p9-dev=allow  old-dev=allow  p9-stab=allow  old-stab=allow
+### I4 true & cat x.sekrit
+    cmd='true & cat x.sekrit'
+    want=deny
+    p9-dev=allow  old-dev=allow  p9-stab=ask  old-stab=ask
+### I6 sh -c ANSI-C string with <bs>n escape
+    cmd="sh -c $'lncli \\\\\\nsendcoins --addr x --amt 1'"
+    want=ask
+    p9-dev=ask  old-dev=ask  p9-stab=ask  old-stab=ask

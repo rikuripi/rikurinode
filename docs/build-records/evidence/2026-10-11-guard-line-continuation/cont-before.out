@@ -1,0 +1,11 @@
+synthetic policy (stable):
+  allow  lock=False 'movemoney \\\n --amt 5'
+  allow  lock=False 'cat \\\n .env'
+  allow  lock=False 'git push \\\n --force origin x'
+  allow  lock=False 'git push origin \\\n main'
+  allow  lock=True  'echo x >> \\\n tests/test_something.py'
+  allow  lock=False 'python3 .claude/hooks/guard.py fix-lock \\\n off'
+  allow  lock=False "sh -c 'movemoney \\\n --amt 5'"
+  deny   lock=False 'echo hi # note \\\ngit push --force origin x'
+split_segments: ['movemoney \\', '--amt 5']
+this repo's policy (development), lncli continued: ask

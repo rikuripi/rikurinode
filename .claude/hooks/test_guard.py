@@ -13,6 +13,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -1150,6 +1151,289 @@ class GuardRound2(SecretSearches):
                     "rg foo",                                      # rg skips hidden files (.env)
                     "rg foo app"):
             self.assertEqual({"cmd": cmd, "v": self._v(cmd)}, {"cmd": cmd, "v": "allow"})
+
+
+class LineContinuation(unittest.TestCase):
+    """A backslash before a newline continues the command: the shell reads one
+    command, and so must the guard. Each line used to be judged alone, so
+    `lncli \\⏎ sendcoins …` and `cat \\⏎ .env` got through (rikuripi/rikurinode,
+    docs/build-records/2026-10-11-guard-line-continuation.md)."""
+
+    SYN = dict(CFG, funds_patterns=[{"regex": r"\bmovemoney\s+--amt\b", "reason": "moves money", "always_ask": True},
+                                    {"regex": r"\bpaynow\b.*--amt\b", "reason": "moves money", "always_ask": True}])
+
+    def v(self, cmd: str, lock: bool = False) -> str:
+        return verdict("Bash", {"command": cmd}, lock=lock, cfg=self.SYN)
+
+    def test_the_lines_are_joined(self):
+        seg = guard.split_segments
+        self.assertEqual(seg("movemoney \\\n --amt 5"), ["movemoney  --amt 5"])
+        self.assertEqual(seg("a \\\n b; c"), ["a  b", "c"])
+        self.assertEqual(seg('echo "x \\\n y"; z'), ['echo "x  y"', "z"])  # inside double quotes too
+
+    def test_what_the_shell_does_not_join(self):
+        seg = guard.split_segments
+        self.assertEqual(seg("echo 'x \\\n y'; z"), ["echo 'x \\\n y'", "z"])    # single quotes keep it
+        self.assertEqual(seg("echo a\\\\\nb"), ["echo a\\\\", "b"])              # an escaped backslash
+        self.assertEqual(seg("echo hi # note \\\nb"), ["echo hi # note \\", "b"])  # a comment ends at the newline
+        self.assertEqual(seg('echo "a\\"; b"; c'), ['echo "a\\"; b"', "c"])       # \" does not end the quote
+
+    def test_a_continued_command_is_judged_whole(self):
+        release = "ask" if CFG.get("fix_lock_release_needs_owner", True) else "allow"
+        for cmd, want, lock in (("movemoney \\\n --amt 5", "ask", False),
+                                ("cat \\\n .env", "deny", False),
+                                ("git push \\\n --force origin x", "deny", False),
+                                ("git \\\n push --force origin x", "deny", False),
+                                ("git push origin \\\n main", "ask", False),
+                                ("python3 .claude/hooks/guard.py fix-lock \\\n off", release, False),
+                                ("echo x >> \\\n tests/test_something.py", "deny", True),
+                                ("sh -c 'movemoney \\\n --amt 5'", "ask", False),
+                                ('bash -c "movemoney \\\n --amt 5"', "ask", False),
+                                ("echo hi # note \\\ngit push --force origin x", "deny", False)):
+            self.assertEqual({"cmd": cmd, "v": self.v(cmd, lock)}, {"cmd": cmd, "v": want})
+
+    def test_siblings(self):
+        """Found sweeping for siblings: an apostrophe in a comment opened a
+        "quote" that hid the next line; a continued command in a heredoc fed to
+        a shell; a heredoc started on a continued line, under the fix-lock."""
+        for cmd, want, lock in (("x=1 # it's fine\ngit push --force origin x", "deny", False),
+                                ("# don't\ncat .env", "deny", False),
+                                ("cat <<'EOF' | sh\ncat \\\n .env\nEOF", "deny", False),
+                                ("python3 - \\\n <<'EOF'\nopen('tests/test_something.py','w')\nEOF", "deny", True)):
+            self.assertEqual({"cmd": cmd, "v": self.v(cmd, lock)}, {"cmd": cmd, "v": want})
+
+    def test_a_comment_starts_a_word_and_ends_at_the_newline(self):
+        # Mutants that survived the tests above: a comment that never ended,
+        # and a `#` inside a word (`a#b`, `$#`) read as a comment.
+        for cmd in ("# note\nmovemoney \\\n --amt 5", "echo a#b; movemoney \\\n --amt 5"):
+            self.assertEqual({"cmd": cmd, "v": self.v(cmd)}, {"cmd": cmd, "v": "ask"})
+
+    def test_a_hash_inside_a_word_is_not_a_comment(self):
+        # Verifier round 1 of this change: after an escaped character, a
+        # command substitution or a quote, `#` is part of the word in bash and
+        # zsh, so the backslash-newline after it still continues the command.
+        for cmd, want in (("paynow --memo=a\\ #b \\\n --amt 5", "ask"),
+                          ("paynow --memo=a\\;#b \\\n --amt 5", "ask"),
+                          ("paynow --memo=a\\(#b \\\n --amt 5", "ask"),
+                          ("paynow --memo=$(true)#b \\\n --amt 5", "ask"),
+                          ("paynow --memo=`true`#b \\\n --amt 5", "ask"),
+                          ('paynow --memo="a"#b \\\n --amt 5', "ask"),
+                          ("cat a\\ #b \\\n .env", "deny"),
+                          ("git -c user.name=a\\ #b \\\n push --force origin x", "deny")):
+            self.assertEqual({"cmd": cmd, "v": self.v(cmd)}, {"cmd": cmd, "v": want})
+
+    def test_a_doubled_backslash_a_tab_and_a_comment_past_a_semicolon(self):
+        # Mutants that survived verifier round 1: `\\` inside double quotes is
+        # one escaped backslash (the quote then ends); a TAB ends a word; a
+        # comment runs to the newline, past a `;`.
+        for cmd, want in (('echo "a\\\\"; cat \\\n .env', "deny"),
+                          ("echo hi\t# it's\ncat .env", "deny"),
+                          ("x=1 # a; it's\ncat .env", "deny")):
+            self.assertEqual({"cmd": cmd, "v": self.v(cmd)}, {"cmd": cmd, "v": want})
+
+    def test_through_the_hook(self):
+        event = {"tool_name": "Bash", "tool_input": {"command": "cat \\\n .env"}, "cwd": guard.ROOT}
+        proc = subprocess.run([sys.executable, guard.__file__], input=json.dumps(event),
+                              capture_output=True, text=True, timeout=20)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
+
+
+class LineContinuationRound3(unittest.TestCase):
+    """The continuation fix's verifier, round 2: a backslash at the very end of
+    a command (zsh drops it, and so does Claude Code's Bash tool) made shlex
+    fail, so `sh -c '…' \\`, `eval "…" \\` and the push check no longer saw the
+    command — a force push got through. And mutants of the word-start
+    tracking that no test caught (rikuripi/rikurinode,
+    docs/build-records/2026-10-11-guard-line-continuation.md, round 3)."""
+
+    SYN = LineContinuation.SYN
+
+    def v(self, cmd: str, profile: str = "stable") -> str:
+        return verdict("Bash", {"command": cmd}, cfg=self.SYN, profile=profile)
+
+    def test_a_trailing_backslash_is_dropped_as_the_shell_does(self):
+        seg = guard.split_segments
+        self.assertEqual(seg("git push origin main\\"), ["git push origin main"])
+        self.assertEqual(seg("git push origin main \\"), ["git push origin main"])
+        self.assertEqual(seg("echo a\\\\"), ["echo a\\\\"])          # an escaped backslash stays
+        self.assertEqual(seg("echo 'a\\'"), ["echo 'a\\'"])           # inside single quotes it is text
+
+    def test_a_command_ending_in_a_backslash_is_judged(self):
+        for cmd, want in (("sh -c 'git push --force origin x' \\", "deny"),
+                          ('eval "git push --force origin x" \\', "deny"),
+                          ("git push --force origin x\\", "deny"),
+                          ("git push origin main\\", "ask"),
+                          ("git -C . push origin HEAD:main\\", "ask"),
+                          ("movemoney --amt 5 \\", "ask")):
+            self.assertEqual({"cmd": cmd, "v": self.v(cmd)}, {"cmd": cmd, "v": want})
+
+    def test_a_comment_after_a_redirection_or_a_lone_ampersand(self):
+        # `#` after `>`, `<` or `&` starts a word, so a comment: the apostrophe in
+        # it is text, and the next line is a command of its own (mutants G1, G2).
+        for cmd in ("true >#'\ncat .env", "true <#'\ncat .env", "true &# it's\ncat .env"):
+            self.assertEqual({"cmd": cmd, "v": self.v(cmd)}, {"cmd": cmd, "v": "deny"})
+
+    def test_nested_substitutions_are_counted(self):
+        # after `$(echo $(true))` the outer substitution has closed, so the `#`
+        # that follows is part of the word, and the backslash-newline continues
+        # the command (mutant G7: a flag instead of a counter)
+        cmd = "paynow --memo=$(echo $(true))#b \\\n --amt 5"
+        self.assertEqual({"cmd": cmd, "v": self.v(cmd)}, {"cmd": cmd, "v": "ask"})
+
+    def test_the_length_limit_counts_the_whole_command(self):
+        # 16,000 characters is the limit (mutant G4 raised it), over every line
+        # (mutant G9 checked the first line only)
+        self.assertEqual(verdict("Bash", {"command": "echo " + "a" * 15996}), "ask")
+        self.assertEqual(verdict("Bash", {"command": "echo " + "a" * 15995}), "allow")
+        self.assertEqual(verdict("Bash", {"command": "echo hi\necho " + "a" * 16100}), "ask")
+
+
+class TimeBound(unittest.TestCase):
+    """Claude Code lets a tool call through when its hook times out (hooks
+    reference, 2026-10-11: "A timed-out command … hook doesn't block the tool
+    call"). A command the guard could not judge within its time therefore
+    asks, in every profile (verifier of the continuation fix: a 69 KB command
+    took 14 s against a 10 s hook timeout)."""
+
+    def test_a_command_too_long_to_check_asks_at_once(self):
+        cmd = "lncli getinfo " * (guard.MAX_COMMAND_CHARS // 14 + 1)
+        start = time.time()
+        for profile in ("stable", "development"):
+            self.assertEqual(verdict("Bash", {"command": cmd}, profile=profile), "ask", profile)
+        self.assertLess(time.time() - start, 1.0)
+
+    def test_the_slowest_command_below_the_limit_is_judged_in_time(self):
+        cmd = ("lncli getinfo " * guard.MAX_COMMAND_CHARS)[:guard.MAX_COMMAND_CHARS]
+        start = time.time()
+        verdict("Bash", {"command": cmd})
+        self.assertLess(time.time() - start, 5.0)  # the hook allows 10 s
+
+    def test_out_of_time_the_previous_guard_is_stopped_and_the_answer_is_ask(self):
+        # Round 2's verifier: eval chains took 15–23 s through the hook, past
+        # its 10 s, because guard_base.py has no time budget. When the new
+        # checks are out of time, the previous guard still runs, under the
+        # timer: a deny it finds in time stands (round 7's test above); one it
+        # cannot finish gives ask, within the overall budget.
+        saved, real = guard.CHECK_TIME_BUDGET, guard.base_decide
+        guard.CHECK_TIME_BUDGET = 0.0
+        guard.base_decide = lambda *a, **k: time.sleep(30) or ("deny", ["never reached"])
+        try:
+            start = time.time()
+            self.assertEqual(verdict("Bash", {"command": "eval eval git status"}), "ask")
+            self.assertLess(time.time() - start, guard.OVERALL_TIME_BUDGET + 1.0)
+        finally:
+            guard.CHECK_TIME_BUDGET, guard.base_decide = saved, real
+
+    def test_new_checks_out_of_time_never_allow(self):
+        # even when the previous guard, finished in time, allows
+        saved, real = guard.CHECK_TIME_BUDGET, guard.base_decide
+        guard.CHECK_TIME_BUDGET = 0.0
+        guard.base_decide = lambda *a, **k: ("allow", [])
+        try:
+            self.assertEqual(verdict("Bash", {"command": "ls"}), "ask")
+        finally:
+            guard.CHECK_TIME_BUDGET, guard.base_decide = saved, real
+
+    def test_a_stopped_previous_guard_gives_ask_when_the_new_checks_allow_late(self):
+        # The new checks finish, with allow, but late, and the previous guard
+        # is stopped at the overall budget. Its answer is unknown, so the
+        # result is ask, never the new checks' allow (round 3's mutant C5
+        # survived the test above, where the new checks' own time-out already
+        # gave ask).
+        saved = guard.CHECK_TIME_BUDGET, guard.OVERALL_TIME_BUDGET, guard._decide_new, guard.base_decide
+        guard.CHECK_TIME_BUDGET, guard.OVERALL_TIME_BUDGET = 1.0, 2.0
+        guard._decide_new = lambda *a, **k: time.sleep(0.7) or ("allow", [])
+        guard.base_decide = lambda *a, **k: time.sleep(30) or ("deny", ["never reached"])
+        try:
+            start = time.time()
+            self.assertEqual(verdict("Bash", {"command": "git status"}), "ask")
+            self.assertLess(time.time() - start, 4.0)
+        finally:
+            guard.CHECK_TIME_BUDGET, guard.OVERALL_TIME_BUDGET, guard._decide_new, guard.base_decide = saved
+
+    SLOW_SEARCH = r'''
+import json, re, sys, time
+sys.path.insert(0, sys.argv[1])
+import guard
+guard.CHECK_TIME_BUDGET, guard.OVERALL_TIME_BUDGET = 1.0, 2.0
+cfg = dict(guard.load_config(), profile="stable")
+if sys.argv[2] == "new":   # one rule whose single search never ends
+    cfg["funds_patterns"] = [{"regex": r"(a+)+$", "reason": "slow", "always_ask": True}]
+else:                      # the new checks are quick; the previous guard's search never ends
+    guard._decide_new = lambda *a, **k: ("allow", [])
+    guard.base_decide = lambda *a, **k: re.search(r"(a+)+$", "a" * 40 + "b") or ("allow", [])
+start = time.time()
+d = guard.decide({"tool_name": "Bash", "tool_input": {"command": "echo " + "a" * 40 + "b"}, "cwd": guard.ROOT},
+                 cfg, guard.ROOT, lock_present=False, branch_fn=lambda _c: "feature/x")
+print(json.dumps([d[0], time.time() - start]))
+'''
+
+    def test_one_slow_search_is_stopped_at_the_budget(self):
+        # Round 3's own probe: one policy rule took 9.8 s on a 16,000-character
+        # command, and the budget was only checked between rules, so the guard
+        # answered after 8.9 s (the hook has 10). A timer now stops a search
+        # wherever it is: in the new checks, and in the previous guard when it
+        # runs in this process. Run in a child process, so that a guard without
+        # the timer fails this test instead of hanging it.
+        for where in ("new", "previous"):
+            try:
+                proc = subprocess.run([sys.executable, "-B", "-c", self.SLOW_SEARCH, os.path.dirname(guard.__file__),
+                                       where], capture_output=True, text=True, timeout=15)
+            except subprocess.TimeoutExpired:
+                self.fail("%s: no answer within 15 s" % where)
+            got, took = json.loads(proc.stdout)
+            self.assertEqual((where, got), (where, "ask"))
+            self.assertLess(took, 3.0, where)
+
+    def test_the_timer_firing_as_it_is_disarmed_is_out_of_time(self):
+        # Seen once in this suite while building the timer: the timer and the
+        # checks' own deadline are the same moment, it fired inside its disarm,
+        # and the exception escaped decide(). Here it fires there every time.
+        real, calls = guard._alarm, []
+
+        def alarm(_seconds):
+            def disarm():
+                calls.append(1)
+                if len(calls) == 1:
+                    raise guard._OutOfTime()
+            return disarm
+        guard._alarm = alarm
+        try:
+            self.assertIsNone(guard._timed(5.0, lambda: ("allow", [])))
+            self.assertEqual(len(calls), 2)  # disarmed again
+        finally:
+            guard._alarm = real
+
+    def test_the_timer_is_not_an_exception_a_handler_could_swallow(self):
+        # an `except Exception` between the timer and decide() would otherwise
+        # end the check early and carry on as if it had finished
+        self.assertTrue(issubclass(guard._OutOfTime, BaseException))
+        self.assertFalse(issubclass(guard._OutOfTime, Exception))
+
+    def test_a_timer_that_escapes_still_asks(self):
+        real = guard.decide
+
+        def escaping(*a, **k):
+            raise guard._OutOfTime()
+        guard.decide = escaping
+        try:
+            out = guard.run_hook(json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls"}}))
+        finally:
+            guard.decide = real
+        self.assertEqual(out["hookSpecificOutput"]["permissionDecision"], "ask")
+
+    def test_crafted_slow_commands_are_answered_in_time(self):
+        # the shapes round 2's verifier timed at 6 to 23 s
+        for cmd in (("git " * 4000)[:16000], ("eval eval eval " + "git " * 4000)[:16000],
+                    ("eval " * 6 + "git " * 3980)[:15960] + "; lncli sendcoins --addr x --amt 1"):
+            start = time.time()
+            got = verdict("Bash", {"command": cmd})
+            self.assertLess(time.time() - start, 8.0, cmd[:30])
+            self.assertIn(got, ("ask", "allow"), cmd[:30])
+
+    def test_a_long_harmless_command_below_the_limit_is_free(self):
+        self.assertEqual(verdict("Bash", {"command": "echo " + "a" * (guard.MAX_COMMAND_CHARS - 5)}), "allow")
 
 
 if __name__ == "__main__":

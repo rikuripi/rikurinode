@@ -1,0 +1,11 @@
+start 2026-10-11 13:54:43
+C1 a trailing backslash kept             RED   test_a_command_ending_in_a_backslash_is_judged, test_a_trailing_backslash_is_dropped_as_the_shell_does
+C2 no budget check between rules         RED   test_crafted_slow_commands_are_answered_in_time
+C3 the previous guard always inline      RED   test_crafted_slow_commands_are_answered_in_time, test_out_of_time_the_previous_guard_is_stopped_and_the_answer_is_ask
+C4 a looser overall budget               RED   test_crafted_slow_commands_are_answered_in_time
+C5 a stopped child counts as allow       GREEN
+C6 the child's answer ignored            RED   test_round7_no_override_after_a_timeout
+P1 \\n with no indentation               RED   test_round5_cd_segment_itself_is_checked
+restored, sha256 checked
+exit 0
+end 2026-10-11 14:00:41

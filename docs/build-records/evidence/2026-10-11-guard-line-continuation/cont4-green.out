@@ -1,0 +1,59 @@
+2026-10-11 14:12:11
+811a7bd8e0b5282cceb2a27b48c341ed61eec7dc0c4c249184ab9360e7a41e0e  test_guard.py
+56804be5b48e858a7d42676ef879d9263de92481fa52046f425f8ab99e4567ba  guard.py
+....usage: guard.py fix-lock on <build-record> | off [--session <id> | --global] | status
+.fix-lock NOT engaged — cannot read /tmp/tmpog9wqa6j/guard-config.json: guard-config.json: 'fix_lock_preflight' must be a list of argv lists, e.g. [["node", "scripts/quality-ratchet.mjs"]]
+Nothing was changed. Fix it first, then engage.
+.fix-lock NOT engaged — preflight /usr/bin/python3 -c import sys; sys.exit(3) failed (exit 3):
+
+Nothing was changed. Fix it first, then engage.
+...............................E.............................................................usage: guard.py profile [stable | development]
+............
+======================================================================
+ERROR: test_round6_deep_nesting_stays_inside_the_hook_timeout (test_guard.GuardRound2.test_round6_deep_nesting_stays_inside_the_hook_timeout)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<scratch>/wt-fix/.claude/hooks/test_guard.py", line 1131, in test_round6_deep_nesting_stays_inside_the_hook_timeout
+    v = self._v(c)
+  File "<scratch>/wt-fix/.claude/hooks/test_guard.py", line 844, in _v
+    return guard.decide(event, dict(CFG, profile=profile), self.root, lock_present=False,
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        branch_fn=lambda _c: "feature/x")[0]
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<scratch>/wt-fix/.claude/hooks/guard.py", line 1641, in decide
+    disarm()
+    ~~~~~~^^
+  File "<scratch>/wt-fix/.claude/hooks/guard.py", line 195, in disarm
+    def disarm():
+
+  File "<scratch>/wt-fix/.claude/hooks/guard.py", line 191, in fire
+    raise _OutOfTime()
+guard._OutOfTime
+
+----------------------------------------------------------------------
+Ran 111 tests in 45.622s
+
+FAILED (errors=1)
+fix-lock ENGAGED for docs/build-records/a.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/b.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/x.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock released (docs/build-records/a.md)
+fix-lock released (docs/build-records/owner.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+profile: stable
+profile: stable -> development
+profile: development -> stable

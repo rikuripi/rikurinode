@@ -1,0 +1,17 @@
+start 2026-10-11 14:19:26
+C1 a trailing backslash kept             RED   test_a_command_ending_in_a_backslash_is_judged, test_a_trailing_backslash_is_dropped_as_the_shell_does
+C2 no budget check between rules         GREEN
+C3 the previous guard always inline      GREEN
+C4 a looser overall budget               RED   test_crafted_slow_commands_are_answered_in_time
+C5 a stopped child counts as allow       RED   test_a_stopped_previous_guard_gives_ask_when_the_new_checks_allow_late
+C6 the child's answer ignored            RED   test_round7_no_override_after_a_timeout
+P1 \\n with no indentation               RED   test_round5_cd_segment_itself_is_checked
+T1 no timer on the new checks            RED   test_one_slow_search_is_stopped_at_the_budget
+T2 no timer on the previous guard in this process RED   test_one_slow_search_is_stopped_at_the_budget
+T3 the timer's exception an Exception    GREEN
+T4 a timer firing in its disarm escapes  RED   test_crafted_slow_commands_are_answered_in_time, test_one_slow_search_is_stopped_at_the_budget, test_round6_deep_nesting_stays_inside_the_hook_timeout, test_the_timer_firing_as_it_is_disarmed_is_out_of_time
+T5 no backstop in run_hook               RED   test_a_timer_that_escapes_still_asks
+T6 the new checks' timer ten times later RED   test_one_slow_search_is_stopped_at_the_budget
+restored, sha256 checked
+exit 0
+end 2026-10-11 14:30:02

@@ -100,7 +100,11 @@ ported with their tests, not copied wholesale.
   exemption. A backtick does not end it; the guard judges a backtick's
   command, and a `$(…)`'s, itself. Its other asks are
   protected-path writes: they ask in `stable` and are logged in
-  `development`. The guard blocks the tool call when it times out or fails
+  `development`. A command longer than 16,000 characters asks before any
+  check, and a decision that runs out of its 7 s asks — unless the guard has
+  already found a deny, which stands (a timer stops even a single slow search
+  where Python allows it: the hook's main thread on Linux and macOS). The
+  guard blocks the tool call when it times out or fails
   (`"onFailure": "block"`, Claude Code 2.1.295 or later; checked by the
   gate). A deny is not an obstacle to route around: stop and ask.
 - **The previous checkout, closed-world: always asks** before any command that
@@ -188,21 +192,34 @@ ported with their tests, not copied wholesale.
   passes; a node tool named through a variable or a word the shell
   assembles (`T=lnc; ${T}li …`, `ln""cli`), or run from a script file the
   guard does not read (`bash /tmp/x.sh`); other words the shell assembles
-  (`core.hoo""ksPath`, `$'…'`); a credential file with a generic name
+  (`core.hoo""ksPath`, `$'…'`, `docker'' restart lnd`, `git $(true) push
+  --force`); a credential file with a generic name
   (`~/.docker/config.json`); git's configuration outside the repository
   (`~/.gitconfig`; `GIT_CONFIG_GLOBAL` and `GIT_CONFIG_SYSTEM` point at other
   files, but git keeps the repository's own `hooksPath`). Some forms ask where
   nothing is at risk (`rm -rf /tmp/x/.git`, `tar -tf a.tar -C scripts`, `mv x
   scripts/quality/`, `git restore` of the hook, a `curl -w '…\n'`, a
   `docker inspect` of an image (`docker image inspect` is free), a node
-  tool's name in a heredoc's body). The shared `guard.py` judges a command continued onto a second line
-  (backslash-newline) one line at a time and splits a command at every `|`,
-  so this policy asks before any command continued that way — except a read
-  with no redirection — also inside a quoted code string, and before a `>|`
-  outside one; it also reads a heredoc's body as commands, so write
-  commit messages and documents with the file tools and `git commit -F
-  <file>`. The guard and the deny rule apply only to sessions opened in this
-  folder.
+  tool's name in a heredoc's body). The shared `guard.py` reads a command
+  continued with a backslash-newline as one command, as the shell does (a
+  backslash that ends a command continues onto nothing; zsh drops it, bash
+  keeps it as a character); the previous guard, which runs beside it
+  unchanged, still judges each line on its own, and this policy makes it ask
+  before any command continued that way — except a read with no
+  redirection — also inside a quoted code string (whether continued commands
+  may instead be judged as their one-line forms is an owner's choice, in the
+  continuation fix's record). It splits a command at every `|`, so this
+  policy asks before a `>|` outside a quoted code string. In program code (a
+  quoted script, or the escapes `\\` and `\n` in a code string) this policy
+  reads every line, and asks before a node, container or system command
+  broken across lines or started on a new line there; the shared guard's own
+  checks (secret reads, pushes, protected paths) do not read program code, on
+  any line (`python3 -c 'subprocess.run("cat .env", shell=True)'` gets
+  through them). A `#` that starts a word inside a `$(…)` or a backtick asks:
+  bash may read a comment there, which the guard does not model. The guard
+  also reads a heredoc's body as commands, so write commit messages and
+  documents with the file tools and `git commit -F <file>`. The guard and
+  the deny rule apply only to sessions opened in this folder.
 - Fixing a defect: write the failing test, see it fail, then
   `python3 .claude/hooks/guard.py fix-lock on <build-record>`; tests are
   read-only until the lock is released as its own step.

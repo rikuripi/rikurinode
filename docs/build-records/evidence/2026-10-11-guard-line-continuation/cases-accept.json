@@ -1,0 +1,14 @@
+[
+{"label":"AC1 lncli <bs-nl> sendcoins","cmd":"lncli @B@@N@ sendcoins --addr x --amt 1","want":"ask"},
+{"label":"AC2 cat <bs-nl> x.sekrit","cmd":"cat @B@@N@ x.sekrit","want":"deny (stable syn)"},
+{"label":"AC3 git push <bs-nl> --force origin x","cmd":"git push @B@@N@ --force origin x","want":"deny"},
+{"label":"AC4 git push origin <bs-nl> main","cmd":"git push origin @B@@N@ main","want":"ask (stable)"},
+{"label":"AC5 echo x >> <bs-nl> tests/test_something.py (lock)","cmd":"echo x >> @B@@N@ tests/test_something.py","want":"deny","lock":true},
+{"label":"AC6 guard.py fix-lock <bs-nl> off","cmd":"python3 .claude/hooks/guard.py fix-lock @B@@N@ off","want":"ask (stable)"},
+{"label":"AC7 sh -c 'lncli <bs-nl> sendcoins'","cmd":"sh -c @Q@lncli @B@@N@ sendcoins --addr x --amt 1@Q@","want":"ask"},
+{"label":"AC8 echo hi # note <bs-nl> git push --force","cmd":"echo hi # note @B@@N@git push --force origin x","want":"deny"},
+{"label":"OK1 lncli <bs-nl> getinfo (legit)","cmd":"lncli @B@@N@  getinfo","want":"allow"},
+{"label":"OK2 docker <bs-nl> ps (legit)","cmd":"docker @B@@N@  ps","want":"allow"},
+{"label":"OK3 git status (legit)","cmd":"git status","want":"allow"},
+{"label":"OK4 ls -la <bs-nl> docs (legit)","cmd":"ls -la @B@@N@ docs","want":"allow"}
+]

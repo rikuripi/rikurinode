@@ -1,0 +1,38 @@
+2026-10-11 14:10:35
+811a7bd8e0b5282cceb2a27b48c341ed61eec7dc0c4c249184ab9360e7a41e0e  test_guard.py
+91bf2dd2faa56111485750e9667c72f2b500ad3a83b28a27a00366c56a1a398e  guard.py
+....F..
+======================================================================
+FAIL: test_one_slow_search_is_stopped_at_the_budget (test_guard.TimeBound.test_one_slow_search_is_stopped_at_the_budget)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<scratch>/wt-fix/.claude/hooks/test_guard.py", line 1371, in test_one_slow_search_is_stopped_at_the_budget
+    proc = subprocess.run([sys.executable, "-B", "-c", self.SLOW_SEARCH, os.path.dirname(guard.__file__),
+                           where], capture_output=True, text=True, timeout=15)
+  File "/usr/lib/python3.14/subprocess.py", line 557, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 1221, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 2154, in _communicate
+    self._check_timeout(endtime, orig_timeout, stdout, stderr)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 1268, in _check_timeout
+    raise TimeoutExpired(
+    ...<2 lines>...
+            stderr=b''.join(stderr_seq) if stderr_seq else None)
+subprocess.TimeoutExpired: Command '['/usr/bin/python3', '-B', '-c', '\nimport json, re, sys, time\nsys.path.insert(0, sys.argv[1])\nimport guard\nguard.CHECK_TIME_BUDGET, guard.OVERALL_TIME_BUDGET = 1.0, 2.0\ncfg = dict(guard.load_config(), profile="stable")\nif sys.argv[2] == "new":   # one rule whose single search never ends\n    cfg["funds_patterns"] = [{"regex": r"(a+)+$", "reason": "slow", "always_ask": True}]\nelse:                      # the new checks are quick; the previous guard\'s search never ends\n    guard._decide_new = lambda *a, **k: ("allow", [])\n    guard.base_decide = lambda *a, **k: re.search(r"(a+)+$", "a" * 40 + "b") or ("allow", [])\nstart = time.time()\nd = guard.decide({"tool_name": "Bash", "tool_input": {"command": "echo " + "a" * 40 + "b"}, "cwd": guard.ROOT},\n                 cfg, guard.ROOT, lock_present=False, branch_fn=lambda _c: "feature/x")\nprint(json.dumps([d[0], time.time() - start]))\n', '<scratch>/wt-fix/.claude/hooks', 'new']' timed out after 15 seconds
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<scratch>/wt-fix/.claude/hooks/test_guard.py", line 1374, in test_one_slow_search_is_stopped_at_the_budget
+    self.fail("%s: no answer within 15 s" % where)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: new: no answer within 15 s
+
+----------------------------------------------------------------------
+Ran 7 tests in 39.498s
+
+FAILED (failures=1)

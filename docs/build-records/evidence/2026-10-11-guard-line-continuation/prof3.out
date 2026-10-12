@@ -1,0 +1,13 @@
+2026-10-11 14:51:50
+e57ac78820e337c7503329d4afa5621ae42cb09f8608282633684556929d7fb4  .claude/hooks/guard-config.json
+new finished
+new under its deadline 24.08s (budget 4.0)
+10.454s turns off or rewrites the pre-commit gate (the secret scan and the hyg
+6.548s writes, edits, moves or deletes files in the previous rikurinode check
+3.620s a node, container or system command broken across lines inside program
+2.061s runs a program in or from the previous rikurinode checkout, where the
+1.153s copies into scripts/quality, the folder that holds the pre-commit hook
+0.002s kills node daemons, the container runtime, or processes found by name
+0.002s changes a service or the machine's power state (systemctl, loginctl, r
+0.001s drives the container runtime directly (its socket, ctr, runc, nsenter)
+all 37 rules once: 23.86s

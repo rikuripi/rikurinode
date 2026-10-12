@@ -1,0 +1,44 @@
+2026-10-11 14:46:07
+ 14:46:07 up 5 days, 22:00,  1 user,  load average: 4.51, 4.95, 4.78
+9271baeec541ae98377a877990394edeaef368efcb002778d069a38ccb5b0914  .claude/hooks/guard.py
+git + ' -a' x34                                  p9-dev    len=  105    0.09s  allow
+git + ' -a' x34                                  p9-stab   len=  105    0.09s  allow
+git + ' -a' x36                                  p9-dev    len=  111    0.09s  allow
+git + ' -a' x36                                  p9-stab   len=  111    0.08s  allow
+git + ' -a' x38                                  p9-dev    len=  117    0.09s  allow
+git + ' -a' x38                                  p9-stab   len=  117    0.09s  allow
+git + ' -a' x40; then lncli sendcoins            p9-dev    len=  157    0.09s  ask
+git + ' -a' x40; then lncli sendcoins            p9-stab   len=  157    0.09s  ask
+16,001 chars lncli getinfo (over limit)          p9-dev    len=16001    0.08s  ask
+16,001 chars lncli getinfo (over limit)          p9-stab   len=16001    0.08s  ask
+16,001 chars, lncli sendcoins at the end         p9-dev    len=16001    0.08s  ask
+16,001 chars, lncli sendcoins at the end         p9-stab   len=16001    0.08s  ask
+200,000 chars (over limit)                       p9-dev    len=200000    0.08s  ask
+200,000 chars (over limit)                       p9-stab   len=200000    0.07s  ask
+16,000 chars echo a... (at limit)                p9-dev    len=16000    0.16s  allow
+16,000 chars echo a... (at limit)                p9-stab   len=16000    0.15s  allow
+record worst: lncli getinfo to 16,000            p9-dev    len=16000    1.45s  allow
+record worst: lncli getinfo to 16,000            p9-stab   len=16000    1.45s  allow
+'git ' to 16,000                                 p9-dev    len=16000    7.08s  ask
+'git ' to 16,000                                 p9-stab   len=16000    7.08s  ask
+'~/' to 16,000                                   p9-dev    len=16000    7.08s  ask
+'~/' to 16,000                                   p9-stab   len=16000    7.08s  ask
+'lncli ' to 16,000                               p9-dev    len=16000    2.92s  allow
+'lncli ' to 16,000                               p9-stab   len=16000    2.99s  allow
+cd x5 then 'git ' to 16,000                      p9-dev    len=16000    7.09s  ask
+cd x5 then 'git ' to 16,000                      p9-stab   len=16000    7.09s  ask
+cd x5 then $( 'git ' ) to 16,000                 p9-dev    len=16000    7.09s  ask
+cd x5 then $( 'git ' ) to 16,000                 p9-stab   len=16000    7.09s  ask
+$( 'git ' ) to 16,000                            p9-dev    len=16000    7.10s  ask
+$( 'git ' ) to 16,000                            p9-stab   len=16000    7.09s  ask
+eval x3 'git ' to 16,000                         p9-dev    len=16000    7.10s  ask
+eval x3 'git ' to 16,000                         p9-stab   len=16000    7.09s  ask
+eval x3 'git ' to 16,000 (old guard too)         p9-dev    len=16000    7.10s  ask
+eval x3 'git ' to 16,000 (old guard too)         p9-stab   len=16000    7.08s  ask
+eval x6 'git ', then ; lncli sendcoins           p9-dev    len=16000    7.09s  ask
+eval x6 'git ', then ; lncli sendcoins           p9-stab   len=16000    7.09s  ask
+eval x2 'lncli ' to 16,000                       p9-dev    len=16000    5.58s  ask
+eval x2 'lncli ' to 16,000                       p9-stab   len=16000    5.63s  ask
+bash -c 'eval git ...' to 16,000                 p9-dev    len=16000    7.09s  ask
+bash -c 'eval git ...' to 16,000                 p9-stab   len=16000    7.09s  ask
+2026-10-11 14:48:37

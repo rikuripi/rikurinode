@@ -1,0 +1,10 @@
+old=deny  new=deny  lock=True  'python3 -c "open(\'tests/\' \\\n \'test_x.py\',\'w\')"'
+old=deny  new=deny  lock=True  "python3 - <<'EOF'\np = \\\n'tests/test_x.py'\nopen(p,'w')\nEOF"
+old=allow new=deny  lock=True  "python3 - \\\n <<'EOF'\nopen('tests/test_x.py','w')\nEOF"
+old=deny  new=deny  lock=True  "python3 - <<'EOF'\nopen('tests/test_x.py', \\\n 'w')\nEOF"
+old=ask   new=ask   lock=False "bash <<'EOF'\nlncli \\\n sendcoins --addr x --amt 1\nEOF"
+old=allow new=deny  lock=False "cat <<'EOF' | sh\ncat \\\n .env\nEOF"
+old=ask   new=deny  lock=False "# don't\ncat .env"
+old=allow new=deny  lock=False "x=1 # it's fine\ngit push --force origin x"
+old=deny  new=deny  lock=False 'echo $# \\\n; cat .env'
+old=allow new=ask   lock=False 'echo a#b \\\n .env'

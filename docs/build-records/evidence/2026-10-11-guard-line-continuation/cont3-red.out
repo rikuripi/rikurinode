@@ -1,0 +1,66 @@
+2026-10-11 13:43:40
+F.F....FF.
+======================================================================
+FAIL: test_a_command_ending_in_a_backslash_is_judged (test_guard.LineContinuationRound3.test_a_command_ending_in_a_backslash_is_judged)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<scratch>/wt-fix/.claude/hooks/test_guard.py", line 1269, in test_a_command_ending_in_a_backslash_is_judged
+    self.assertEqual({"cmd": cmd, "v": self.v(cmd)}, {"cmd": cmd, "v": want})
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'cmd': "sh -c 'git push --force origin x' \\", 'v': 'allow'} != {'cmd': "sh -c 'git push --force origin x' \\", 'v': 'deny'}
+- {'cmd': "sh -c 'git push --force origin x' \\", 'v': 'allow'}
+?                                                       ^^^^^
+
++ {'cmd': "sh -c 'git push --force origin x' \\", 'v': 'deny'}
+?                                                       ^^^^
+
+
+======================================================================
+FAIL: test_a_trailing_backslash_is_dropped_as_the_shell_does (test_guard.LineContinuationRound3.test_a_trailing_backslash_is_dropped_as_the_shell_does)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<scratch>/wt-fix/.claude/hooks/test_guard.py", line 1257, in test_a_trailing_backslash_is_dropped_as_the_shell_does
+    self.assertEqual(seg("git push origin main\\"), ["git push origin main"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['git push origin main\\'] != ['git push origin main']
+
+First differing element 0:
+'git push origin main\\'
+'git push origin main'
+
+- ['git push origin main\\']
+?                       --
+
++ ['git push origin main']
+
+======================================================================
+FAIL: test_crafted_slow_commands_are_answered_in_time (test_guard.TimeBound.test_crafted_slow_commands_are_answered_in_time)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<scratch>/wt-fix/.claude/hooks/test_guard.py", line 1332, in test_crafted_slow_commands_are_answered_in_time
+    self.assertLess(time.time() - start, 8.0, cmd[:30])
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 11.552113056182861 not less than 8.0 : git git git git git git git gi
+
+======================================================================
+FAIL: test_out_of_time_the_previous_guard_is_skipped_and_the_answer_is_ask (test_guard.TimeBound.test_out_of_time_the_previous_guard_is_skipped_and_the_answer_is_ask)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<scratch>/wt-fix/.claude/hooks/test_guard.py", line 1324, in test_out_of_time_the_previous_guard_is_skipped_and_the_answer_is_ask
+    self.assertEqual(called, [])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+AssertionError: Lists differ: [1] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+1
+
+- [1]
+?  -
+
++ []
+
+----------------------------------------------------------------------
+Ran 10 tests in 13.131s
+
+FAILED (failures=4)

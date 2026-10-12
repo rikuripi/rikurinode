@@ -1,0 +1,129 @@
+FFFFFF...usage: guard.py fix-lock on <build-record> | off [--session <id> | --global] | status
+.fix-lock NOT engaged — cannot read /tmp/tmplb4hvqfo/guard-config.json: guard-config.json: 'fix_lock_preflight' must be a list of argv lists, e.g. [["node", "scripts/quality-ratchet.mjs"]]
+Nothing was changed. Fix it first, then engage.
+.fix-lock NOT engaged — preflight /usr/bin/python3 -c import sys; sys.exit(3) failed (exit 3):
+
+Nothing was changed. Fix it first, then engage.
+.......................F...F............................................................usage: guard.py profile [stable | development]
+........
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'python3 -c \'import subprocess; subprocess.run("ls\\nlncli sendcoins --addr x --amt 1", shell=True)\''}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='stable')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/.claude/hooks/test_guard.py", line 42, in test_every_example
+    self.assertEqual(verdict(*args, profile="stable"), ex["expect"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'python3 -c \'import subprocess; subprocess.run("ls\\nlncli sendcoins --addr x --amt 1", shell=True)\''}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='development')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/.claude/hooks/test_guard.py", line 47, in test_every_example
+    self.assertEqual(verdict(*args, profile="development"), want_dev)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'python3 -c \'import os; os.system("true\\ndocker restart lnd")\''}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='stable')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/.claude/hooks/test_guard.py", line 42, in test_every_example
+    self.assertEqual(verdict(*args, profile="stable"), ex["expect"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'python3 -c \'import os; os.system("true\\ndocker restart lnd")\''}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='development')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/.claude/hooks/test_guard.py", line 47, in test_every_example
+    self.assertEqual(verdict(*args, profile="development"), want_dev)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'node -e \'require("child_process").execSync("ls\\nbitcoin-cli sendtoaddress bc1q 1")\''}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='stable')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/.claude/hooks/test_guard.py", line 42, in test_every_example
+    self.assertEqual(verdict(*args, profile="stable"), ex["expect"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_every_example (test_guard.ConfigExamples.test_every_example) (ex={'tool': 'Bash', 'input': {'command': 'node -e \'require("child_process").execSync("ls\\nbitcoin-cli sendtoaddress bc1q 1")\''}, 'expect': 'ask', 'expect_dev': 'ask'}, profile='development')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/.claude/hooks/test_guard.py", line 47, in test_every_example
+    self.assertEqual(verdict(*args, profile="development"), want_dev)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'allow' != 'ask'
+- allow
++ ask
+
+
+======================================================================
+FAIL: test_round3_money_and_secrets_in_heredocs_still_ask (test_guard.GuardRound2.test_round3_money_and_secrets_in_heredocs_still_ask)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/.claude/hooks/test_guard.py", line 998, in test_round3_money_and_secrets_in_heredocs_still_ask
+    self.assertNotEqual({"cmd": wrapped, "p": profile, "v": v},
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        {"cmd": wrapped, "p": profile, "v": "allow"})
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'cmd': 'ssh node2 <<\'EOF\'\npython3 -c \'import subprocess; subprocess.run("ls\\nlncli sendcoins --addr x --amt 1", shell=True)\'\nEOF', 'p': 'stable', 'v': 'allow'} == {'cmd': 'ssh node2 <<\'EOF\'\npython3 -c \'import subprocess; subprocess.run("ls\\nlncli sendcoins --addr x --amt 1", shell=True)\'\nEOF', 'p': 'stable', 'v': 'allow'}
+
+======================================================================
+FAIL: test_round5_cd_segment_itself_is_checked (test_guard.GuardRound2.test_round5_cd_segment_itself_is_checked)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/.claude/hooks/test_guard.py", line 1071, in test_round5_cd_segment_itself_is_checked
+    self.assertNotEqual({"cmd": cmd, "v": verdict("Bash", {"command": cmd}, profile=profile)},
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        {"cmd": cmd, "v": "allow"})
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'cmd': 'cd "$(python3 -c \'import subprocess; subprocess.run("ls\\nlncli sendcoins --addr x --amt 1", shell=True)\')"', 'v': 'allow'} == {'cmd': 'cd "$(python3 -c \'import subprocess; subprocess.run("ls\\nlncli sendcoins --addr x --amt 1", shell=True)\')"', 'v': 'allow'}
+
+----------------------------------------------------------------------
+Ran 102 tests in 11.107s
+
+FAILED (failures=8)
+fix-lock ENGAGED for docs/build-records/a.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/b.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/x.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock released (docs/build-records/a.md)
+fix-lock released (docs/build-records/owner.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+profile: stable
+profile: stable -> development
+profile: development -> stable

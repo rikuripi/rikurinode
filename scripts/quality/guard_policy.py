@@ -34,7 +34,10 @@ SEP = r"/+(?:\./)*"
 WHOLE = r"/?(?:\*\*?|\{[^}\s]*\})?(?=[\s\"';|&)<>]|$)"
 OLD = HOME + SEP + r"rikuri" + SEP + r"rikurinod(?:e(?![\w.-])|\*)"
 PARENT = HOME + SEP + r"rikuri" + WHOLE
-W = r"(?:^|[^\w./-])"                       # a word's start
+# A word's start: a line's start, a non-word character, or the escape \n that
+# breaks a line inside a code string (`subprocess.run("ls\ncd …")`).
+LINE = r"(?:^|\\n)"
+W = r"(?:" + LINE + r"|[^\w./-])"
 SUDO = r"(?:sudo\s+(?:-\S+\s+)*)?"           # an optional sudo with its options
 CMD = W + SUDO + r"(?:[\w.~/-]*/)?"           # a command, maybe called by its path (/bin/rm)
 START = r"(?<![^\s\"'=(])"                    # a path's start: after a space, a quote, = or (
@@ -64,13 +67,16 @@ RUNS = r"\s(?:-[A-Za-z]*O|--(?:op|pre\b|pager\b|ou|ext(?:-d\w*|-)?(?![\w-])|text
 # >(…) or zsh's =(…), which guard.py does not read (verifier round 9: `grep x
 # <(lncli sendcoins …)`) — or an option in RUNS. (guard.py reads a backtick's
 # command itself, and a $(…)'s.)
-MORE = r"(?=.*(?:(?<![&>])&(?![&>])|\$\(|[<>=]\(|" + RUNS + r"))"
+MORE = r"(?=[\s\S]*(?:(?<![&>])&(?![&>])|\$\(|[<>=]\(|" + RUNS + r"))"
 # A leading lookahead that exempts segments which only read or describe:
 # searches, logs, commit and tag messages, PR and issue text, echo, printf —
 # unless the segment runs more than that (verifier round 8: `echo & lncli …`).
 READS = (r"(?:git\s+(?:-C\s+\S+\s+)?(?:grep|log|show|diff)|git\s+(?:commit|tag)\b"
          r"|gh\s+(?:pr|issue)\s+(?:create|edit|comment)|grep|egrep|fgrep|rg|ag|less|head|tail|echo|printf)\b")
-NR = r"^(?:(?!\s*" + READS + r")|" + MORE + ")"
+# (?m): every other ^ and $ in a rule is a line's start and end, so a rule
+# reads each line of a multi-line segment such as a quoted script (the
+# continuation fix, R7).
+NR = r"(?m)\A(?:(?!\s*" + READS + r")|" + MORE + ")"
 # A command started from code: system(), subprocess.run(), exec…() with a string.
 CALL = r"(?:system|popen|run|call|Popen|check_output|check_call|exec[lv]p?e?|spawn\w*)\s*\(\s*\[?\s*\\?[\"']"
 GITREADS = (r"(?:log|show|diff|grep|status|blame|ls-files|ls-tree|cat-file|rev-parse|describe|shortlog|reflog"
@@ -137,8 +143,8 @@ def writes(target: str, parent: str = "", attached: str = "", attached_parent: s
 
 
 def rx(*alternatives: str) -> str:
-    """Any of the alternatives, anywhere in a segment that is not a read."""
-    return NR + r".*?(?:" + "|".join(alternatives) + ")"
+    """Any of the alternatives, on any line of a segment that is not a read."""
+    return NR + r"[\s\S]*?(?:" + "|".join(alternatives) + ")"
 
 
 RULES = []
@@ -152,7 +158,7 @@ def rule(regex: str, reason: str, always_ask: bool = True) -> None:
 rule(rx(W + r"(?:pushd|cd)(?:\s+-\S*)*(?:\s|\\n?)+[\"']?" + OLD),
      "enters the previous rikurinode checkout, where the LIVE node runs — this repository only reads it by "
      "absolute path or git -C … log/show/diff/grep. The owner decides")
-rule(rx(r"(?:^\s*[\"']?|[;&|`]\s*[\"']?|\(\s*|" + CALL + r")" + SUDO
+rule(rx(r"(?:" + LINE + r"\s*[\"']?|[;&|`]\s*[\"']?|\(\s*|" + CALL + r")" + SUDO
         + r"(?:(?:nohup|exec|source|\.|env(?:\s+\w+=\S*)*)\s+)*" + OLD + r"/",
         W + SUDO + r"(?:\S*/)?(?:bash|sh|zsh|dash|python3?|perl|ruby|node|nohup|source|env|xargs|watch|timeout)"
         r"(?:\s+-\S+)*\s+[\"']?" + OLD,
@@ -207,7 +213,7 @@ OLD_READS = (r"(?:(?:cat|less|more|head|tail|wc|ls|stat|file|diff|cmp|sha\d*sum|
              r"|rsync\b(?![^|;&]*\s(?:-[A-Za-z]*[eT]|--(?:rs|link-d|log-f|te|backup-d|partial-d|write-b|only-w"
              r"|copy-d|compare-d)\w*))"
              r"|scp\b(?![^|;&]*\s-[A-Za-z]*[SoFJ]))")
-rule(r"^(?:(?!\s*(?:sudo\s+)?" + OLD_READS + r")|" + MORE + r")(?=.*" + PARENT_TREE + r")",
+rule(r"^(?:(?!\s*(?:sudo\s+)?" + OLD_READS + r")|" + MORE + r")(?=[\s\S]*" + PARENT_TREE + r")",
      "names the previous rikurinode checkout, or anything in its parent folder, where the LIVE node runs, in a command "
      "that is not one of the reads "
      "this repository allows there (cat, less, head, tail, grep, ls, diff, find without -delete or -exec, sed -n, "
@@ -232,8 +238,8 @@ rule(rx(r"\bsystemctl\b(?:\s+-[\w-]+(?:=\S+)?)*\s+(?:start|stop|restart|reload|t
         r"|enable|disable|mask|unmask|isolate|reboot|poweroff|halt|kexec|suspend|hibernate|rescue|emergency"
         r"|daemon-reload|set-property|edit|revert|link|preset)\b",
         r"\bloginctl\s+(?:reboot|poweroff|halt|suspend|hibernate|terminate-\w+|kill-\w+)\b",
-        r"(?:^|[;&|(`\"']\s*)" + SUDO + r"(?:reboot|shutdown|poweroff|halt)\b",
-        r"(?:^|[;&|(`\"']\s*)" + SUDO + r"(?:init|telinit)\s+[0-6sSqQ]\b"),
+        r"(?:" + LINE + r"|[;&|(`\"']\s*)" + SUDO + r"(?:reboot|shutdown|poweroff|halt)\b",
+        r"(?:" + LINE + r"|[;&|(`\"']\s*)" + SUDO + r"(?:init|telinit)\s+[0-6sSqQ]\b"),
      "changes a service or the machine's power state (systemctl, loginctl, reboot, init)" + LIVE)
 rule(rx(W + SUDO + r"(?:apt|apt-get|aptitude|dpkg|snap|rpm-ostree|dnf|yum|zypper|pacman)\s+(?:-\S+\s+)*"
         r"(?:install|upgrade|dist-upgrade|full-upgrade|remove|purge|autoremove|reinstall|refresh|rebase|rollback"
@@ -253,7 +259,7 @@ LNCLI_MONEY = ["sendcoins", "sendmany", "sendpayment", "payinvoice", "sendtorout
                "bumpforceclosefee", "leaseoutput", "releaseoutput", "restorechanbackup", "deletepayments",
                "createwatchonly", "exportchanbackup", "bakemacaroon", "deletemacaroonid", "settleinvoice",
                "cancelinvoice"]
-rule(NR + r"(?!.*\s(?:--help|-h)\b)(?!.*\blncli\s+help\b).*?\blncli\b.*\b(" + "|".join(LNCLI_MONEY) + r")\b",
+rule(NR + r"[\s\S]*?\blncli\b(?!.*\s(?:--help|-h)\b)(?!\s+help\b).*\b(" + "|".join(LNCLI_MONEY) + r")\b",
      "lncli command that moves funds, changes channels or credentials, or stops LND — owner approves")
 rule(rx(r"\blncli\b.*\b(?:psbt\s+(?:fund|finalize|publish)|updatechanstatus|accounts\s+import|importpubkey)\b"),
      "lncli command that funds, signs or broadcasts a transaction, or changes a channel — owner approves")
@@ -262,7 +268,7 @@ BTC_MONEY = [r"send\w*", r"walletpassphrase\w*", "dumpprivkey", "dumpwallet", "i
              "restorewallet", "bumpfee", "psbtbumpfee", "abandontransaction", "lockunspent", "walletprocesspsbt",
              "pruneblockchain", "invalidateblock", "setnetworkactive", "rescanblockchain", "setban", "disconnectnode",
              "reconsiderblock", "preciousblock", "importmulti", "importaddress", "importpubkey", "migratewallet"]
-rule(NR + r"(?!.*\bbitcoin-cli\s+(?:-\S+\s+)*help\b).*?\bbitcoin-cli\b.*\b(" + "|".join(BTC_MONEY) + r")\b",
+rule(NR + r"[\s\S]*?\bbitcoin-cli\b(?!(?:\s+-\S+)*\s+help\b).*\b(" + "|".join(BTC_MONEY) + r")\b",
      "bitcoin-cli command that spends, exposes keys, or changes the node's chain or network state — owner approves")
 rule(rx(r"\bbitcoin-cli\b.*\b(?:listdescriptors\b.*\b(?:true|private=true)\b|gethdkeys\b.*\bprivate=true\b)",
         r"\bbitcoin-cli\b(?:\s+-\S+)*\s+-stdin\b"),
@@ -299,14 +305,15 @@ rule(rx(r"\b(?:tar|zip|7z|rsync|scp|cp)\b.*(?:\.lnd|\.bitcoin|\.tapd|lnd[-_]?dat
 # The rules above list what moves money; each review found a form they missed
 # (round 9: `grep x <(lncli sendcoins …)`). So a command that names a node or
 # container tool asks unless it is, alone in its segment and whole, one of the
-# reads below: named as a word anywhere — called by a path, after sudo, env,
-# timeout or ssh, inside quotes or code, in a process substitution — but not
-# inside a longer name (lncli.md, docker-compose.yml, ~/.docker, docker/).
+# reads below: named as a word anywhere, on any line — called by a path, after
+# sudo, env, timeout or ssh, inside quotes or code, in a process substitution —
+# but not inside a longer name (lncli.md, docker-compose.yml, ~/.docker,
+# docker/).
 NODE_TOOLS = (r"(?<![\w.-])(?:docker-compose|podman-compose|docker|podman|nerdctl|lncli|bitcoin-cli|tapcli|litcli"
               r"|chantools)(?![\w./-])")
 ARG = r"(?:[\w./:=,@%+~-]+|'[^'$`\\]*'|\"[^\"$`\\]*\")"   # a plain word, or quoted text with no $, ` or \
-TAIL = (r"(?:\s+" + ARG + r")*(?:\s+(?:[0-9]*|&)>{1,2}(?:&\d|\s*[\w./~-]+))*\s*$")  # its words, then redirections
-HELP = r"(?:\s+[a-z]+)*\s+(?:--help|-h)\s*$|\s+(?:help(?:\s+[a-z]+)*|--version|-v|version)\s*$"
+TAIL = (r"(?:\s+" + ARG + r")*(?:\s+(?:[0-9]*|&)>{1,2}(?:&\d|\s*[\w./~-]+))*\s*\Z")  # its words, then redirections
+HELP = r"(?:\s+[a-z]+)*\s+(?:--help|-h)\s*\Z|\s+(?:help(?:\s+[a-z]+)*|--version|-v|version)\s*\Z"
 LNCLI_READS = (r"getinfo|getrecoveryinfo|getnetworkinfo|getnodeinfo|getchaninfo|getnodemetrics|describegraph"
                r"|listchannels|closedchannels|pendingchannels|listpeers|listinvoices|lookupinvoice|listpayments"
                r"|walletbalance|channelbalance|feereport|fwdinghistory|queryroutes|decodepayreq|listunspent"
@@ -328,7 +335,7 @@ INSPECT_FIELDS = (r"(?:State|Name|Id|Created|RestartCount|Image|Platform|Driver|
                   r"|Config\.(?:Image|Labels|Hostname))")
 TEMPLATE = r"(?:[^'\"{}$`\\]|\{\{\s*(?:json\s+)?\." + INSPECT_FIELDS + r"(?:\.\w+)*\s*\}\})*"
 COMPOSE = (r"(?:\s+(?:-f|--file|-p|--project-name|--project-directory)(?:=|\s+)[\w./-]+)*\s+"
-           r"(?:(?:ps|logs|ls|images|top|version)" + TAIL + r"|config\s+--(?:services|images|volumes)\s*$)")
+           r"(?:(?:ps|logs|ls|images|top|version)" + TAIL + r"|config\s+--(?:services|images|volumes)\s*\Z)")
 DOCKER_READS = (r"(?:ps|images|version|info|logs|top|port|history|diff|events|stats\s+--no-stream"
                 r"|(?:container|image|network|volume|pod)\s+(?:ls|list|ps)|container\s+(?:logs|top|port|diff)"
                 r"|image\s+(?:history|inspect)|manifest\s+inspect|(?:network|volume)\s+inspect|system\s+df"
@@ -336,13 +343,13 @@ DOCKER_READS = (r"(?:ps|images|version|info|logs|top|port|history|diff|events|st
                 + r"|compose" + COMPOSE
                 # a container's inspect: only with a --format of the fields above, before or after its names
                 + r"|(?:container\s+)?inspect(?=[^|;&]*\s(?:-f|--format)[=\s])(?:\s+(?:[\w.-]+|(?:-f|--format)"
-                r"(?:=|\s+)(?:'" + TEMPLATE + r"'|\"" + TEMPLATE + r"\")))+\s*$")
+                r"(?:=|\s+)(?:'" + TEMPLATE + r"'|\"" + TEMPLATE + r"\")))+\s*\Z")
 NODE_READ = (r"(?:lncli(?:\s+(?:-n\s+\w+|--network[= ]\w+|--rpcserver[= ][\w.:-]+|--chain[= ]\w+"
              r"|--lnddir[= ][\w./~-]+|--tlscertpath[= ][\w./~-]+))*(?:\s+(?:" + LNCLI_READS + r")" + TAIL + "|" + HELP
              + r")|bitcoin-cli(?:\s+-(?:rpcwallet=[\w.-]+|chain=\w+|testnet|regtest|signet|rpcport=\d+"
              r"|rpcconnect=[\w.:-]+|datadir=[\w./~-]+|named|rpcclienttimeout=\d+))*(?:\s+(?:" + BTC_READS + r")" + TAIL
-             + r"|\s+listdescriptors(?:\s+false)?\s*$"   # its public descriptors; `true` prints the private keys
-             r"|\s+-(?:getinfo|netinfo(?:=\d)?|version|help|\?)\s*$|\s+help(?:\s+\w+)?\s*$)"
+             + r"|\s+listdescriptors(?:\s+false)?\s*\Z"   # its public descriptors; `true` prints the private keys
+             r"|\s+-(?:getinfo|netinfo(?:=\d)?|version|help|\?)\s*\Z|\s+help(?:\s+\w+)?\s*\Z)"
              r"|tapcli(?:\s+(?:-n\s+\w+|--network[= ]\w+|--rpcserver[= ][\w.:-]+))*(?:\s+(?:getinfo"
              r"|assets\s+(?:list|balance|transfers|utxos|groups|meta|mint\s+batches)|addrs\s+(?:query|receives|decode)"
              r"|universe\s+(?:roots|stats|leaves|keys|info|federation\s+list))" + TAIL + "|" + HELP + r")"
@@ -355,33 +362,41 @@ NODE_READ = (r"(?:lncli(?:\s+(?:-n\s+\w+|--network[= ]\w+|--rpcserver[= ][\w.:-]
 NAMES_ONLY = (r"(?:which|type|whereis|command\s+-[vV]|ls|stat|file|readlink|realpath|basename|dirname|sha\d*sum"
               r"|md5sum|b2sum|du|wc|test|\[|systemctl\s+(?:--user\s+)?(?:status|is-active|is-enabled|is-failed|show|cat"
               r"|list-units|list-unit-files)|journalctl(?![^|;&]*\s--(?:vac|rot|flu|rel|set|syn|upd|cur)))"
-              r"(?:\s+[\w./~=\]-]+)*\s*$")
-rule(NR + r"(?!\s*(?:" + NODE_READ + "|" + NAMES_ONLY + r"))(?=.*" + NODE_TOOLS + ")",
+              r"(?:\s+[\w./~=\]-]+)*\s*\Z")
+rule(NR + r"(?!\s*(?:" + NODE_READ + "|" + NAMES_ONLY + r"))(?=[\s\S]*" + NODE_TOOLS + ")",
      "names a node or container tool (lncli, bitcoin-cli, tapcli, litcli, chantools, docker, podman, nerdctl, "
      "docker-compose, podman-compose) in a command that is not one of the reads this repository allows" + LIVE)
 
-# --- a command the guard cannot see whole ---------------------------------------------
-# every command family a rule here guards (verifier round 8 found nerdctl, the
-# package managers, grpcurl, wget and http missing)
+# --- a command written inside program code, or continued -------------------------------
+# guard.py joins a shell line continued with a backslash. It cannot read program
+# code: inside single quotes, or as the escapes \\ and \n in a code string, a
+# command can still be broken across lines, or start a new line, in the program
+# that runs it. The commands: every family a rule here guards (verifier round 8
+# found nerdctl, the package managers, grpcurl, wget and http missing).
 CONTINUED = (r"(?:lncli|bitcoin-cli|tapcli|loop|pool|docker|docker-compose|podman|nerdctl|ctr|runc|crun|nsenter"
              r"|systemctl|loginctl|reboot|shutdown|poweroff|halt|init|telinit|apt|apt-get|aptitude|dpkg|snap"
              r"|rpm-ostree|dnf|yum|zypper|pacman|curl|wget|https?|grpcurl|kill|pkill|killall|rm|rmdir|mv|cp|install"
              r"|rsync|scp|ln|tar|gtar|bsdtar|unzip|7z\w*|cpio|sed|perl|g?awk|find|chmod|chown|git|gh|cd|pushd|xargs"
              r"|sudo|sh|bash|zsh|eval|python3?)")
-rule(rx(W + SUDO + r"(?:\S*/)?" + CONTINUED + r"\b.*?\\(?:\\|n(?![A-Za-z]))"),
-     "a command continued onto the next line inside a code string (a doubled backslash or \\n): the shared guard.py "
-     "judges each line on its own, so it cannot see this command whole (verifier, 2026-10-10). Join it onto one line")
+rule(rx(W + SUDO + r"(?:\S*/)?" + CONTINUED + r"\b.*?\\(?:[ \t]*\n|\\|n(?![A-Za-z]))",
+        r"\\n[ \t]*" + SUDO + r"(?:\S*/)?" + CONTINUED + r"\b"),
+     "a node, container or system command broken across lines inside program code (a backslash at a quoted line's "
+     "end, or the escapes \\\\ and \\n), or started on a new line there by a \\n escape: the program, not the "
+     "shell, reads it, so the guard cannot judge it whole. Write it on one line of its own")
 # Any command continued onto the next line (backslash-newline) asks, whatever
-# it is (verifier round 9: `shred -u \⏎scripts/quality/hooks/pre-commit`, and
+# it is. guard.py now reads such a command whole, but the previous guard
+# (guard_base.py), which runs beside it unchanged, still judges each line on
+# its own, and this rule is what makes it ask; whether continued commands may
+# then be judged as their one-line forms is the owner's choice (the
+# continuation fix's record). Verifier round 9: `shred -u \⏎scripts/quality/hooks/pre-commit`, and
 # tee, truncate, dd, unlink, vim, …) — except a read that writes nowhere: a
 # read with a redirection asks too (`echo x > \⏎<the hook>` writes the hook).
 # A backslash-newline inside quotes (a code string) is not split by guard.py:
 # it asks wherever it is in the segment, also written as Python writes it in
 # a string (`'rm \\\nx'`: an escaped backslash, then \n).
 rule(r"^(?:(?!\s*" + READS + r")|" + MORE + r"|(?=[\s\S]*>))[\s\S]*?(?:\\(?:\n|$)|\\\\\\n)",
-     "a command continued onto the next line (backslash-newline): the shared guard.py judges each line on its own, "
-     "so it cannot see this command whole (verifier, 2026-10-10; the fix to guard.py is in review). Join it onto one "
-     "line")
+     "a command continued onto the next line (backslash-newline): the previous guard, which runs beside guard.py, "
+     "judges each line on its own (verifier, 2026-10-10). Join it onto one line")
 
 rule(r">\s*$",
      "a `>|` redirection (it overwrites even under noclobber): the shared guard.py splits a command at every `|`, "

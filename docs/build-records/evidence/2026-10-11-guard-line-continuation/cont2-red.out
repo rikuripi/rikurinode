@@ -1,0 +1,77 @@
+....usage: guard.py fix-lock on <build-record> | off [--session <id> | --global] | status
+.fix-lock NOT engaged — cannot read /tmp/tmpz24_7dye/guard-config.json: guard-config.json: 'fix_lock_preflight' must be a list of argv lists, e.g. [["node", "scripts/quality-ratchet.mjs"]]
+Nothing was changed. Fix it first, then engage.
+.fix-lock NOT engaged — preflight /usr/bin/python3 -c import sys; sys.exit(3) failed (exit 3):
+
+Nothing was changed. Fix it first, then engage.
+...................................................................F....................usage: guard.py profile [stable | development]
+.....EEE
+======================================================================
+ERROR: test_a_command_too_long_to_check_asks_at_once (test_guard.TimeBound.test_a_command_too_long_to_check_asks_at_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/.claude/hooks/test_guard.py", line 1250, in test_a_command_too_long_to_check_asks_at_once
+    cmd = "lncli getinfo " * (guard.MAX_COMMAND_CHARS // 14 + 1)
+                              ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'MAX_COMMAND_CHARS'
+
+======================================================================
+ERROR: test_a_long_harmless_command_below_the_limit_is_free (test_guard.TimeBound.test_a_long_harmless_command_below_the_limit_is_free)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/.claude/hooks/test_guard.py", line 1263, in test_a_long_harmless_command_below_the_limit_is_free
+    self.assertEqual(verdict("Bash", {"command": "echo " + "a" * (guard.MAX_COMMAND_CHARS - 5)}), "allow")
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'MAX_COMMAND_CHARS'
+
+======================================================================
+ERROR: test_the_slowest_command_below_the_limit_is_judged_in_time (test_guard.TimeBound.test_the_slowest_command_below_the_limit_is_judged_in_time)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/.claude/hooks/test_guard.py", line 1257, in test_the_slowest_command_below_the_limit_is_judged_in_time
+    cmd = ("lncli getinfo " * guard.MAX_COMMAND_CHARS)[:guard.MAX_COMMAND_CHARS]
+                              ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'guard' has no attribute 'MAX_COMMAND_CHARS'
+
+======================================================================
+FAIL: test_a_hash_inside_a_word_is_not_a_comment (test_guard.LineContinuation.test_a_hash_inside_a_word_is_not_a_comment)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/rikuripi/rikurinode/.claude/hooks/test_guard.py", line 1223, in test_a_hash_inside_a_word_is_not_a_comment
+    self.assertEqual({"cmd": cmd, "v": self.v(cmd)}, {"cmd": cmd, "v": want})
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'cmd': 'paynow --memo=a\\ #b \\\n --amt 5', 'v': 'allow'} != {'cmd': 'paynow --memo=a\\ #b \\\n --amt 5', 'v': 'ask'}
+- {'cmd': 'paynow --memo=a\\ #b \\\n --amt 5', 'v': 'allow'}
+?                                                     ^^^^
+
++ {'cmd': 'paynow --memo=a\\ #b \\\n --amt 5', 'v': 'ask'}
+?                                                     ^^
+
+
+----------------------------------------------------------------------
+Ran 102 tests in 14.424s
+
+FAILED (failures=1, errors=3)
+fix-lock ENGAGED for docs/build-records/a.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/b.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/x.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock released (docs/build-records/a.md)
+fix-lock released (docs/build-records/owner.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+profile: stable
+profile: stable -> development
+profile: development -> stable

@@ -1,0 +1,6 @@
+[
+{"label":"eval x3 'git ' to 16,000 (old guard too)", "py":"('eval eval eval ' + 'git ' * L)[:L]", "cap": 120},
+{"label":"eval x6 'git ', then ; lncli sendcoins", "py":"('eval eval eval eval eval eval ' + 'git ' * L)[:L - 34] + '; lncli sendcoins --addr x --amt 1'", "cap": 120},
+{"label":"eval x2 'lncli ' to 16,000", "py":"('eval eval ' + 'lncli ' * L)[:L]", "cap": 120},
+{"label":"bash -c 'eval git ...' to 16,000", "py":"('bash -c ' + Q + 'eval eval ' + 'git ' * L)[:L - 1] + Q", "cap": 120}
+]

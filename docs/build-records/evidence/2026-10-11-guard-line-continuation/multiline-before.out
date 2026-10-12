@@ -1,0 +1,5 @@
+allow  'python3 -c \'import os\nos.system("lncli sendcoins --addr x --amt 1")\''
+ask    'python3 -c \'import os; os.system("lncli sendcoins --addr x --amt 1")\''
+allow  'python3 -c \'import os\nos.system("docker restart lnd")\''
+allow  'python3 -c \'import subprocess\nsubprocess.run(["cd", "/home/junc/rikuri/rikurinode"])\''
+allow  'node -e \'\nrequire("child_process").execSync("bitcoin-cli sendtoaddress bc1q 1")\''

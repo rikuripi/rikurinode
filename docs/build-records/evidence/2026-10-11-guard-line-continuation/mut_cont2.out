@@ -1,0 +1,9 @@
+M1 no join                       RED   FAILED (failures=4) test_a_comment_starts_a_word_and_ends_at_the_newline,test_a_continued_command_is_judged_whole,test_round5_cd_segment_itself_is_checked,test_the_lines_are_joined
+M2 join inside single quotes     RED   FAILED (failures=1) test_what_the_shell_does_not_join
+M3 join inside a comment         RED   FAILED (failures=1) test_what_the_shell_does_not_join
+M4 no comments                   RED   FAILED (failures=2) test_siblings,test_what_the_shell_does_not_join
+M5 quotes open in comments       RED   FAILED (failures=1) test_siblings
+M6 \" ends a double quote        RED   FAILED (failures=1) test_what_the_shell_does_not_join
+M7 comment never ends            RED   FAILED (failures=1) test_a_comment_starts_a_word_and_ends_at_the_newline
+M8 # mid-word starts a comment   RED   FAILED (failures=1) test_a_comment_starts_a_word_and_ends_at_the_newline
+restored, sha256 dc6385212511
