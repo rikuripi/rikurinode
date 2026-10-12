@@ -432,8 +432,9 @@ def split_segments(cmd: str, notes: list | None = None, joins: list | None = Non
     judged alone). Outside single quotes a backslash-newline continues the
     command — both characters vanish — except at the end of a comment, which
     the newline ends; a comment that ends the command loses its last run of
-    backslashes (none is an escape there), so no reading sees a line end. An escaped character is never a separator, and `\\"`
-    does not end a double quote. A comment starts only where a word starts —
+    backslashes (none is an escape there), so neither these segments nor the
+    joined text (_joined) end in one. An escaped character is never a
+    separator, and `\\"` does not end a double quote. A comment starts only where a word starts —
     never after an escaped character, a quote or a `$(…)`, which stay part of
     the word — and quotes inside it are just text. A backslash that ends the
     command is dropped (round 2's verifier: `sh -c '…' \\` hid a force push).
@@ -516,8 +517,7 @@ def _joined(cmd: str) -> str:
     """The command with its line continuations joined, as the shell joins them
     (the backslash-newlines split_segments removes, and a backslash, or a
     comment's run of them, that ends the command). The previous guard is
-    given this text: a command continued
-    over lines is judged as the same command on one line (owner, 2026-10-11:
+    given this text: a command continued over lines is judged as the same command on one line (owner, 2026-10-11:
     "Judge as one line")."""
     joins = []
     split_segments(cmd, joins=joins)

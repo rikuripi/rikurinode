@@ -5,8 +5,8 @@
 | **Date** | 2026-10-11 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | fix/guard-continuation, rebased onto `main` 0f407f3 in round 4 (rounds 1 and 2 were on fix/guard-line-continuation, 1aaa8bd on the bootstrap's round 5, which `main` replaced; that branch is superseded) |
-| **Commits** | round 3: 7c77ce4 (was 92c39a2 before the rebase); round 4: 944fe55, 517e385, 7390125 (receipt); round 5: 6b9be19, the merge of `main` 7ecc958, 0d50bb4 (receipt); round 6: 5d4999d, and the commit that adds this line (receipt) (rounds 1-2: 1aaa8bd, superseded); the four sync commits follow the verifier |
-| **Status** | IN PROGRESS — rounds 1 to 5 FAIL (rounds 4 and 5: review only, the owner's choice); round 6 committed, its final check pending (the owner's stop rule, 2026-10-11); then the sync, after the other session's shared-guard change lands (the owner's choice, 2026-10-11: that one first, this one on top) |
+| **Commits** | round 3: 7c77ce4 (was 92c39a2 before the rebase); round 4: 944fe55, 517e385, 7390125 (receipt); round 5: 6b9be19, the merge of `main` 7ecc958, 0d50bb4 (receipt); round 6: 5d4999d, eaa8333 (receipt); round 7: the commit that adds this line (rounds 1-2: 1aaa8bd, superseded); the four sync commits follow the verifier |
+| **Status** | IN PROGRESS — rounds 1 to 5 FAIL (rounds 4 and 5: review only, the owner's choice); round 6's final check FAIL on wording only (the owner's stop rule, 2026-10-11), fixed in round 7 with no check round after it; then the sync, after the other session's shared-guard change lands (the owner's choice, 2026-10-11: that one first, this one on top), with `main` merged in and the gate rerun on the merged tree; known, before the sync: round 4's "Final run" found a few denies of `main`'s guard this one does not give (Skipped items) |
 | **Change type** | fix (security gate, shared by five repositories) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -43,11 +43,13 @@
         every repository's own worked examples still pass. Amended in round
         5 (round 4's verifier): except, by the owner's choice (R10), the
         previous guard's asks on the separate lines of a continued command;
-        its denies there stand. And (round 5's verifier; amended in round 6)
-        its asks on a backslash that ends the command, which it is no longer
-        given (R9; since round 5 a comment's too, since round 6 a comment's
-        whole last run). Not yet proven that no deny is lost (round 4's
-        "Final run"; Skipped items).
+        its denies there stand. And (round 5's verifier; amended in rounds 6
+        and 7) its asks on a backslash that ends the command (R9; since round
+        5 a comment's too, since round 6 a comment's whole last run): the
+        joined text it is given has none, and on its line-by-line reading,
+        which still has it, only a deny counts. That no deny is lost is not
+        shown, and round 4's "Final run" found a few lost, not analysed
+        (Skipped items).
       - R7 (this repository's policy; a sibling found while narrowing the
         stopgap rule) A rule reads every line of a segment: a command on the
         second line of a quoted script is judged like one on the first.
@@ -66,8 +68,10 @@
         4 (round 3's verifier): an escaped blank at the end stays a word,
         and a backslash that ends a comment is the comment's text. Rounds 5
         and 6: at the command's end that text is dropped, a comment's whole
-        last run of backslashes (none is an escape there), so no reading
-        sees a line end (round 4's verifier, V16; round 5's, a run of two).
+        last run of backslashes (none is an escape there), so neither the
+        new checks' segments nor the joined text end in one (round 4's
+        verifier, V16; round 5's, a run of two); the previous guard's
+        line-by-line reading still sees it, where only a deny counts.
       - R10 (round 4; the owner, 2026-10-11: "Judge as one line") A command
         continued over lines is judged as the same command on one line, by
         the new checks and by the previous guard, which is given the joined
@@ -368,7 +372,8 @@
         `BaseException`, so no `except Exception` on the way swallows it; a
         timer that fires as it is disarmed counts as out of time (`_timed`);
         `run_hook` asks if it ever escaped. Without a timer (not the main
-        thread; the hook always runs in it on Linux and macOS) only the new
+        thread; the hook runs in it, as observed on Linux — "and macOS"
+        corrected in round 7) only the new
         checks' own budget checks bound them. Test first: one search that
         never ends gave no answer within 15 s (`cont4-red.out`); with the
         timer, ask within 3 s, in the new checks and in the previous guard.
@@ -693,10 +698,49 @@
       not rerun: the red run on round 5's code is this change's mutant. The
       shared suite in clean clones of the four other repositories on round
       6's guard: 130 OK each, the copies `cmp`-identical (`sync6-*.out`;
-      the node's container start times the same before and after). The
+      the node's container start times, read before and after in the
+      session, were the same — not saved in a receipt). The
       full gate on 5d4999d, all 7 steps (130, 72; `gate7.out`, in the next
       commit, which changes only it and three record lines).
-- [ ] Final check, round 6 (review only; the owner's stop rule): pending.
+- [x] **Final check, round 6 (review only; the owner's stop rule): FAIL,
+      wording only** (its `rn-verify45/`; not stopped). No code or test
+      finding. Passed: the gate on eaa8333 (130, 72, no leaks); `git diff
+      --check`; the receipt commit; §2's numbers; the red run rebuilt (1
+      failure) and green; on 4,957 distinct committed inputs (test-file
+      strings, 884 worked examples, 1,070 baseline rows, 2,168 claims cases)
+      only 6 outputs differ between 0d50bb4 and 5d4999d, every one a comment
+      that ends the command in a run of 2 to 4 backslashes, and no worked
+      example, baseline row, claims case or backslash-newline join changed;
+      `_joined`'s new step changes no output by itself; the denies with
+      runs of 2 to 4 stand; every finding of round 5's review answered; no
+      test loosened; the four other repositories replayed (130 each).
+      Failed (wording): the "no deny lost" Skipped item said no differential
+      run was made — round 4's "Final run" was one, and it found a few
+      denies lost, not analysed; "so no reading sees a line end" (R9, the
+      docstring) and R6's "no longer given" — the previous guard's
+      line-by-line reading still gets the raw text and asks there (only its
+      denies count); the round-6 entry's node start times have no receipt,
+      and the `sync6` receipts do not show `safe-run.sh`; Close Out cited
+      `sync5`; the J4 item described the mutant, not the code. Minor: a
+      126-character docstring line, `_joined`'s docstring broken mid-line,
+      no word on the fix-lock, round 3's "Linux and macOS". Also: `main` has
+      moved on (bootstrap rounds 12–16) past this branch's merge base.
+- [x] **Round 7** (2026-10-11): wording only, no behaviour changed
+      (`guard.py`: two docstrings). The "no deny lost" item now says what
+      round 4's run found; R6, R9 and `split_segments`' docstring say which
+      readings lose the line end and that the line-by-line one keeps it;
+      Close Out cites `sync6`; the J4 item describes the code; the round-6
+      entry's node times are marked unsaved, and the script that made the
+      `sync6` receipts is committed (`sync6.sh`: clean clones, `cmp`, the
+      suite inside `safe-run.sh`); round 3's macOS. The fix-lock was not
+      engaged in rounds 6 and 7, for round 1's reason (this session runs
+      under Rikuri-PI's hook, which reads neither this repository's lock nor
+      its paths); the hashes at red and the diff since red stand in for it.
+      `mut_cont11.py`'s J2 no longer applies to round 6's code (its target
+      line changed); the set was not rerun. `sync6` was run on 5d4999d's
+      `guard.py`, which round 7 changes only in docstrings; the sync reruns
+      the suite anyway. The gate: below. No check round follows (the
+      owner's stop rule).
 - [ ] Diff matches the plan: pending the verifier.
 
 ## 5. Close Out
@@ -725,8 +769,8 @@
       `guard-config.json`, `scripts/quality/guard_policy.py`, the baseline
       and `AGENTS.md`. The guard is shared by five repositories: a wrong
       verdict here is a wrong verdict in all of them. Held by: the shared
-      suite and each repository's own examples in all five (round 5's
-      `sync5-*.out`),
+      suite and each repository's own examples in all five (round 6's
+      `sync6-*.out`, made by `sync6.sh`),
       `guard_base.py` unchanged beside it, the mutant sets, and the verifier.
       **Defaults chosen for the owner** (each asks, never allows; each one
       constant): a command over 16,000 characters asks; a decision over 7 s
@@ -781,16 +825,25 @@
   line of such code, so its money, node, container and system rules still
   ask. Owner: Henry. Reactivate: with the holes above.
 - **J4, an untested survivor** (round 4's mutants): the two overrides
-  read the command as written, not as joined; that this can only make an
-  override rarer is not shown (the secret-file override re-splits the raw
-  text). Owner: Henry. Reactivate: the next change to the overrides or to
-  `_joined`.
-- **"No deny the previous guard gave is lost": Not yet proven** (R6; round
-  4's "Final run"). The previous guard is given the joined command and each
-  of its lines, and only its asks are dropped; no differential run against
-  `main`'s guard was made (the owner chose review-only checks after Claude's
-  safety classifier stopped the generated tests). Owner: Henry. Reactivate:
-  a deny seen lost in practice, or the next guard change.
+  are given the joined command (`_overridable(r, base_event, …)`); the
+  mutant that gives them the command as written instead turns no test red,
+  so which of the two they read is held by no test (the secret-file
+  override also re-splits the raw text). Owner: Henry. Reactivate: the next
+  change to the overrides or to `_joined`.
+- **A few denies of `main`'s guard are lost, not analysed** (R6; round 4's
+  "Final run"). The previous guard is given the joined command and each of
+  its lines, and only its asks are dropped there; but round 4's last run
+  against `main`'s guard, on generated commands, found under each policy a
+  few that `main`'s guard denied and this one does not. They were not
+  analysed: Claude's safety classifier stopped that analysis twice, and the
+  owner then chose (2026-10-11) to stop searching for ways past the guard —
+  the guard is an early warning; the boundary is the OS sandbox (its drill
+  still Not yet proven) and CI on a protected `main`. No such run since; the
+  generated commands are kept outside the repository
+  (`/home/junc/claude-wip/guard-continuation/scratch/fz/`). Owner: Henry.
+  Reactivate: before the sync to the five repositories — the owner's
+  decision, with the sandbox drill's result (recommended: the drill passes
+  first); or a deny seen lost in practice.
 - **Commands longer than 16,000 characters ask** (R8): a long script run
   inline needs the owner's approval; writing it to a file first does not.
   Reversible: one constant. Owner: Henry.
@@ -868,4 +921,7 @@ round 5  V16 pinned: r5-red.out (red 21:20:51); mut_cont11.py → mut-cont11.out
 round 6  a comment's whole last run dropped: r6-red.out (red 23:20:34, 1 failure), r6-green.out (130 OK);
          sync6-{Rikuri-PI,Iceman,AISecurity,old-rikurinode}.out: 130 OK each, own policy, cmp-identical;
          gate7.out: full gate 7/7 on 5d4999d (guard 130 OK, quality 72 OK), added in the next commit
+         final check (review only): FAIL, wording only — "no differential run" (round 4's was one, a few
+         denies lost); "no reading sees a line end"; unsaved node times; sync5 cited; J4 described as mutated
+round 7  wording only; sync6.sh committed; gate8.out; no check round (the owner's stop rule)
 ```
