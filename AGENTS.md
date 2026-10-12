@@ -103,7 +103,7 @@ ported with their tests, not copied wholesale.
   `development`. A command longer than 16,000 characters asks before any
   check, and a decision that runs out of its 7 s asks — unless the guard has
   already found a deny, which stands (a timer stops even a single slow search
-  where Python allows it: the hook's main thread on Linux and macOS). The
+  where Python allows it: the hook's main thread, tested on Linux). The
   guard blocks the tool call when it times out or fails
   (`"onFailure": "block"`, Claude Code 2.1.295 or later; checked by the
   gate). A deny is not an obstacle to route around: stop and ask.

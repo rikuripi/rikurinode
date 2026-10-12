@@ -1,0 +1,6 @@
+2026-10-11 21:20:51
+tree: 7390125 + the V16 test (guard.py 2ba2d42969c6…)
+test_a_rule_on_a_line_end_no_longer_asks_for_a_continued_command (test_guard.JudgedAsOneLine.test_a_rule_on_a_line_end_no_longer_asks_for_a_continued_command) ... FAIL
+AssertionError: 'ls -la # note \\' != 'ls -la # note '
+Ran 1 test in 0.006s
+FAILED (failures=1)

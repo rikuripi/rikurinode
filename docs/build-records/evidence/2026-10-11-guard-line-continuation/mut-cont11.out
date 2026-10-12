@@ -1,0 +1,35 @@
+2026-10-11 21:23:43
+D1 a comment inside a substitution                   RED   test_a_hash_inside_a_substitution_is_not_a_comment
+D2 a backtick not tracked                            RED   test_a_hash_inside_a_substitution_is_not_a_comment
+D4 no note of a comment in a substitution            RED   test_a_hash_inside_a_substitution_is_not_a_comment
+D5 the note only at a substitution's start           RED   test_a_hash_inside_a_substitution_is_not_a_comment
+D6 a note does not ask                               RED   test_a_hash_inside_a_substitution_is_not_a_comment
+E1 an escaped blank stripped                         RED   test_an_escaped_blank_at_the_end_is_a_word
+E2 a comment's backslash kept                        RED   test_what_the_shell_does_not_join
+E3 any run of backslashes                            RED   test_an_escaped_blank_at_the_end_is_a_word
+S1 an unclosed substitution loses its last character RED   test_a_hash_inside_a_substitution_is_not_a_comment
+H1 the command without its heredoc bodies not judged RED   test_a_quote_in_a_heredoc_body_does_not_hide_what_follows
+H2 a heredoc body's lines not judged on their own    RED   test_a_quote_in_a_heredoc_body_does_not_hide_what_follows
+J1 a continuation not recorded                       RED   test_a_rule_on_a_line_end_no_longer_asks_for_a_continued_command, test_every_example, test_the_lines_are_joined_as_the_shell_joins_them, test_the_previous_guard_is_given_the_joined_command
+J2 a final backslash not recorded                    RED   test_a_rule_on_a_line_end_no_longer_asks_for_a_continued_command, test_the_lines_are_joined_as_the_shell_joins_them
+J3 the previous guard given the command as written   RED   test_a_rule_on_a_line_end_no_longer_asks_for_a_continued_command, test_every_example, test_the_previous_guard_is_given_the_joined_command
+J4 the overrides read the command as written         GREEN
+A1 a lone & not a separator                          RED   test_a_lone_ampersand_ends_a_command, test_what_follows_a_lone_ampersand_is_judged
+A2 |& keeps its &                                    GREEN
+A3 >& and <& split                                   RED   test_a_lone_ampersand_ends_a_command, test_every_example, test_what_follows_a_lone_ampersand_is_judged
+A4 &> split                                          RED   test_a_lone_ampersand_ends_a_command
+L1 a line-by-line deny dropped                       RED   test_a_deny_the_previous_guard_finds_line_by_line_stands
+L2 line-by-line asks kept                            RED   test_a_rule_on_a_line_end_no_longer_asks_for_a_continued_command, test_every_example
+B1 no shell escapes in _balanced                     RED   test_an_escaped_quote_inside_a_substitution_opens_no_quote
+B2 escapes inside single quotes                      RED   test_an_escaped_quote_inside_a_substitution_opens_no_quote
+B3 only the shell's reading                          RED   test_an_escaped_quote_inside_a_substitution_opens_no_quote, test_round5_cd_segment_itself_is_checked
+B4 only the plain reading                            RED   test_an_escaped_quote_inside_a_substitution_opens_no_quote
+T1 a deny found in time lost                         RED   test_a_deny_found_in_time_stands_when_the_previous_guard_is_stopped
+V2 disarm leaves the timer running                   RED   test_the_timer_is_off_once_the_guard_has_answered
+V10 the new checks' timer at the overall budget      RED   test_the_new_checks_have_their_own_budget
+V16b a comment's final backslash kept for the previous guard (round 4's code) RED   test_a_rule_on_a_line_end_no_longer_asks_for_a_continued_command
+V18 no word start after a separator                  RED   test_a_comment_after_a_redirection_or_a_lone_ampersand, test_a_comment_starts_after_a_separator_or_a_parenthesis
+V20 ( not a word break                               RED   test_a_comment_starts_after_a_separator_or_a_parenthesis
+V21 ) not a word break                               RED   test_a_comment_starts_after_a_separator_or_a_parenthesis
+restored, sha256 checked: .claude/hooks/guard.py f53a5a05426f
+2026-10-11 21:54:31

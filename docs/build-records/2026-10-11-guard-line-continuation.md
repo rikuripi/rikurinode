@@ -5,8 +5,8 @@
 | **Date** | 2026-10-11 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | fix/guard-continuation, rebased onto `main` 0f407f3 in round 4 (rounds 1 and 2 were on fix/guard-line-continuation, 1aaa8bd on the bootstrap's round 5, which `main` replaced; that branch is superseded) |
-| **Commits** | round 3: 7c77ce4 (was 92c39a2 before the rebase); round 4: 944fe55 and the commit that adds this line (rounds 1-2: 1aaa8bd, superseded); the four sync commits follow the verifier |
-| **Status** | IN PROGRESS — rounds 1, 2 and 3 FAIL; round 4 committed, verifier pending; then the four sync commits |
+| **Commits** | round 3: 7c77ce4 (was 92c39a2 before the rebase); round 4: 944fe55, 517e385, 7390125 (receipt); round 5: the commit that adds this line (rounds 1-2: 1aaa8bd, superseded); the four sync commits follow the verifier |
+| **Status** | IN PROGRESS — rounds 1 to 4 FAIL (round 4's verifier: review only, the owner's choice); round 5 committed, verifier pending; then the sync, which waits on the owner (Rikuri-PI carries a newer shared guard) |
 | **Change type** | fix (security gate, shared by five repositories) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -40,7 +40,11 @@
         and R3 there: the parser must know which backslashes are escaped).
       - R6 Nothing the guard caught before is lost: `guard_base.py` (the
         previous guard, run unchanged beside the new code) stays as is, and
-        every repository's own worked examples still pass.
+        every repository's own worked examples still pass. Amended in round
+        5 (round 4's verifier): except, by the owner's choice (R10), the
+        previous guard's asks on the separate lines of a continued command;
+        its denies there stand. Not yet proven that no deny is lost (round
+        4's "Final run").
       - R7 (this repository's policy; a sibling found while narrowing the
         stopgap rule) A rule reads every line of a segment: a command on the
         second line of a quoted script is judged like one on the first.
@@ -118,16 +122,19 @@
 
 ## 2. Build
 - [x] New code meets the bar: one function changed (`split_segments`, 26 →
-      39 lines in round 1; 54 after round 3; 71 after round 4) and one named
+      39 lines in round 1; 54 after round 3; 78 after round 5) and one named
       constant (`WORD_BREAK`); the header names the fifth repository and
       continued lines. `guard_base.py` unchanged (sha256 `1ef6f5cc…`, as in
       all five repositories). Rounds 2 and 3 add the length limit and the
-      time bound (`decide` 56 lines after round 4, `_alarm` 21, `_timed`
+      time bound (`decide` 67 lines after round 5, `_alarm` 21, `_timed`
       13; round 3's `_base_in_child` was removed in that round); round 4
-      adds `_end_segment` (13), `_joined` (16) and `_all_segments` (15).
-      `guard.py` is 2,104 lines, past the 1,200 to justify: it is one file
-      on purpose, copied unchanged to five repositories and run as one
-      script by the hook, and splitting it is its own change.
+      adds `_end_segment` (13), `_joined` (16) and `_all_segments` (15), and
+      grows `_balanced` (28) and `_substitutions` (15). `guard.py` is 2,136
+      lines (round 4's verifier found this paragraph's numbers stale: they
+      were measured before round 4's last changes), past the 1,200 to
+      justify: it is one file on purpose, copied unchanged to five
+      repositories and run as one script by the hook, and splitting it is
+      its own change.
 - [x] Clean as you go: the stopgap rule's reason said the shared guard
       "judges each line on its own" — rewritten for what it still covers;
       `AGENTS.md`'s limits paragraph rewritten the same way.
@@ -135,8 +142,8 @@
       Proven by `LineContinuation` (6 tests) and this repository's worked
       examples (611) in round 1; after round 4, by `LineContinuation` (8),
       `LineContinuationRound3` (5), `LineContinuationRound4` (5),
-      `TimeBound` (11), `TimeBoundRound4` (3) and `JudgedAsOneLine` (3), and
-      959 examples.
+      `TimeBound` (11), `TimeBoundRound4` (3), `JudgedAsOneLine` (5) and
+      `LoneAmpersand` (2), and 959 examples.
 - [x] This repository's policy. The stopgap rule now asks only for a node,
       container or system command broken inside program code: a backslash
       before a newline *inside* the text (only quoted text keeps one), or the
@@ -566,11 +573,16 @@
         red (`mut-cont10-first-run.out`); the final set on the final code, 32
         — with mutants of the line-by-line deny, the substitution's two
         readings and the lone `&` — 29 red (`mut-cont10.out`). The three
-        green: A2 (`|&` keeps its `&`) and V16 (the end-of-command rule also
-        in a comment) are equivalent — the `&` left after a `|` ends an empty
-        command, and `_end_segment` drops a comment's last backslash anyway;
-        J4 (the overrides read the command as written) can only make an
-        override rarer, so stricter. Kept as code and recorded.
+        green: A2 (`|&` keeps its `&`) is equivalent — the `&` left after a
+        `|` ends an empty command (round 4's verifier agreed, by reading);
+        V16 (the end-of-command rule also in a comment) is **not**
+        equivalent, as I had written — round 4's verifier showed it changes
+        the text the previous guard is given; round 5 adopts it and pins it;
+        J4 (the overrides read the command as written) — I wrote "can only
+        make an override rarer"; that is not shown (the secret-file override
+        re-splits the raw text), so it stays an untested survivor. D3 (a
+        backtick inside double quotes not tracked) was removed as equivalent
+        by my reading only; it is not shown either.
       - **The four other repositories** (clean clones; `guard.py` and
         `test_guard.py` copied in; `guard_base.py` byte-identical): 130
         tests OK in each, against each repository's own policy
@@ -586,13 +598,54 @@
         repository's lock nor its paths — and the recorded hash and the diff
         since red stand in for it, here too. The claims the verifier found
         false are narrowed in Close Out and Skipped items.
-- [ ] Independent verification, round 4: pending (by generated tests, the
-      owner's choice for round 10's verification, 2026-10-11).
+- [x] **Verifier, round 4: FAIL** (review only, the owner's choice after
+      the safety classifier stopped the generated-test verifiers; its
+      `rn-verify38/`, persistent). Passed: the gate on 7390125 (130, 68, no
+      leaks); `git diff --check`; the receipt commit; the hashes (it rebuilt
+      the red test file at `e17fe565…`); AGENTS.md's numbers; each of the
+      round-3 verifier's findings answered by code and a test; no test
+      loosened (test_guard.py loses no line against `main`; the one changed
+      expectation's reason holds); the rebased policy keeps `main`'s 39
+      rules; `mut_cont10.py` 29 of 32 red as recorded; the shared suite
+      passes in all four other repositories on the final code (130 each).
+      Failed: §2's numbers stale; the committed `sync4-*.out` and Close Out's
+      citations were not of the final code (126 tests: copied before the last
+      sync, which did show 130); V16 is not equivalent; J4's and D3's
+      equivalence claims are not shown; R6 ticked as "nothing lost" against
+      R10; the shared `guard.py`'s docstrings still said "the new code can
+      only add" and "nothing it caught can be lost"; AGENTS.md named macOS,
+      which no test runs on; `r4-tests-since-red.diff` stopped before the
+      last test changes. **And Rikuri-PI's `main` carries a newer shared
+      guard** (another session's "notice Rust inline tests that no fix-lock
+      rule covers", synced there as c72ad91 from this repository's
+      unmerged branch `fix/guard-inline-tests-tripwire`): copying this
+      change there would remove that work (`uncovered_inline_tests`, 16
+      tests). The five copies already differ: Iceman, AISecurity, the
+      previous rikurinode and this repository's `main` hold the older
+      guard. Also seen: **the live node's tor container restarted** during
+      its mutant run (20:49:25; lnd and bitcoin did not); `safe-run.sh`
+      caught it and failed that run. The node's own `control-plane` logged
+      at that second that it saw tor start; the tests run with no path to
+      Docker. Cause not proven; reported to the owner.
+- [x] **Round 5** (2026-10-11). Tests first: V16's behaviour pinned (a
+      backslash that ends a comment at the command's end is not given to the
+      previous guard either), red at 21:20:51 (`r5-red.out`), then adopted
+      (`split_segments`: the end-of-command backslash is dropped in a
+      comment too). The docstrings of `decide` and `base_decide`, R6,
+      AGENTS.md's macOS, §2's numbers, Close Out's citations and the mutant
+      claims corrected (above and below); `r4-tests-since-red.diff` replaced
+      by a diff from red to round 5's test file; the final sync's receipts
+      committed. Mutants (`mut_cont11.py`, round 4's set with V16 turned
+      round): 32, 30 red (`mut-cont11.out`) — V16b (round 4's behaviour
+      restored) red; A2 and J4 green as recorded. The shared suite in the
+      four other repositories on round 5's guard: 130 OK each
+      (`sync5-*.out`). The gate: after the rebase below.
+- [ ] Independent verification, round 5: pending (review only).
 - [ ] Diff matches the plan: pending the verifier.
 
 ## 5. Close Out
-- [x] Full gate green: `gate3.out`, 7/7 on the final code (guard 115 OK,
-      quality 61 OK); rerun after this record's last edit (`gate4.out`).
+- [x] Full gate green: round 3's `gate3.out`/`gate4.out` (115, 61); round
+      4's `gate5.out` (130, 68); round 5's `gate6.out` (below).
 - [x] Scrap Sweep: the probe copies, clones and working files live in the
       session's scratch folder, not the repository; the receipts and scripts
       kept here are listed in the Evidence log. Code removed in the same
@@ -615,7 +668,8 @@
       `guard-config.json`, `scripts/quality/guard_policy.py`, the baseline
       and `AGENTS.md`. The guard is shared by five repositories: a wrong
       verdict here is a wrong verdict in all of them. Held by: the shared
-      suite and each repository's own examples in all five (`sync3-*.out`),
+      suite and each repository's own examples in all five (round 5's
+      `sync5-*.out`),
       `guard_base.py` unchanged beside it, the mutant sets, and the verifier.
       **Defaults chosen for the owner** (each asks, never allows; each one
       constant): a command over 16,000 characters asks; a decision over 7 s
@@ -735,4 +789,8 @@ round 4  rebased onto main 0f407f3 (round 3 = 7c77ce4); red 17:12:03 (r4-red.out
          equivalent; J4 stricter only)
          sync4-{Rikuri-PI,Iceman,AISecurity,old-rikurinode}.out: 130 OK each, own policy
          gate5.out: full gate 7/7 on 517e385 (guard 130 OK, quality 68 OK), added in the next commit
+         verifier round 4 (review only): FAIL — stale receipts and counts, V16 not equivalent, wider claims;
+         Rikuri-PI carries a newer shared guard
+round 5  V16 pinned: r5-red.out (red 21:20:51); mut_cont11.py → mut-cont11.out 30/32 (A2, J4 as recorded);
+         sync5-{Rikuri-PI,Iceman,AISecurity,old-rikurinode}.out: 130 OK each, own policy
 ```

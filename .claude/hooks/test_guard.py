@@ -1574,6 +1574,11 @@ class JudgedAsOneLine(unittest.TestCase):
         # previous guard read every line of a continued command
         cfg = dict(LineContinuation.SYN, funds_patterns=[{"regex": r"\\$", "reason": "continued", "always_ask": True}])
         self.assertEqual(verdict("Bash", {"command": "ls \\\n -la"}, cfg=cfg), "allow")
+        # a backslash that ends a comment at the command's end continues
+        # nothing: the previous guard is not given it either (round 4's
+        # verifier: mutant V16 changed this verdict, untested)
+        self.assertEqual(guard._joined("ls -la # note \\"), "ls -la # note ")
+        self.assertEqual(verdict("Bash", {"command": "ls -la # note \\"}, cfg=cfg), "allow")
 
     def test_a_deny_the_previous_guard_finds_line_by_line_stands(self):
         # round 4's fuzzer and shell oracle: on one line a lone & hides the

@@ -1,5 +1,5 @@
---- test_guard.py at red (rebuilt: 92c39a2's file + round 4's tests as first written; sha256 e17fe565…)	2026-10-11 19:01:27.665557734 -0700
-+++ .claude/hooks/test_guard.py	2026-10-11 18:57:20.448431562 -0700
+--- test_guard.py at red (rebuilt: 92c39a2's file + round 4's tests as first written; sha256 e17fe565…)
++++ .claude/hooks/test_guard.py at round 5
 @@ -1175,7 +1175,8 @@
          seg = guard.split_segments
          self.assertEqual(seg("echo 'x \\\n y'; z"), ["echo 'x \\\n y'", "z"])    # single quotes keep it
@@ -29,7 +29,7 @@
              for profile in ("stable", "development"):
                  self.assertEqual({"cmd": cmd, "p": profile, "v": self.v(cmd, profile)},
                                   {"cmd": cmd, "p": profile, "v": "deny"})
-@@ -1541,5 +1543,36 @@
+@@ -1541,5 +1543,90 @@
              guard.CHECK_TIME_BUDGET, guard.OVERALL_TIME_BUDGET, guard._decide_new, guard.base_decide = saved
 
 
@@ -55,13 +55,67 @@
 +            verdict("Bash", {"command": "git status"})
 +        finally:
 +            guard.base_decide = real
-+        self.assertEqual(seen, ["lncli   getinfo", "git status"])
++        # joined first; then, as it allowed, line by line too (only a deny
++        # found there would count: the next test)
++        self.assertEqual(seen, ["lncli   getinfo", "lncli \\\n  getinfo", "git status"])
 +
 +    def test_a_rule_on_a_line_end_no_longer_asks_for_a_continued_command(self):
 +        # a policy rule that asks when a line ends in a backslash, as the
 +        # previous guard read every line of a continued command
 +        cfg = dict(LineContinuation.SYN, funds_patterns=[{"regex": r"\\$", "reason": "continued", "always_ask": True}])
 +        self.assertEqual(verdict("Bash", {"command": "ls \\\n -la"}, cfg=cfg), "allow")
++        # a backslash that ends a comment at the command's end continues
++        # nothing: the previous guard is not given it either (round 4's
++        # verifier: mutant V16 changed this verdict, untested)
++        self.assertEqual(guard._joined("ls -la # note \\"), "ls -la # note ")
++        self.assertEqual(verdict("Bash", {"command": "ls -la # note \\"}, cfg=cfg), "allow")
++
++    def test_a_deny_the_previous_guard_finds_line_by_line_stands(self):
++        # round 4's fuzzer and shell oracle: on one line a lone & hides the
++        # push (an older hole); line by line it was denied, and still is.
++        # zsh runs `{\⏎git …}` as a group.
++        for cmd in ("true & \\\ngit push -f origin x", "true & \\\n git push --force origin x #",
++                    "{\\\ngit push --force \\\n\torigin x; }"):
++            for profile in ("stable", "development"):
++                self.assertEqual({"cmd": cmd, "p": profile, "v": verdict("Bash", {"command": cmd}, profile=profile)},
++                                 {"cmd": cmd, "p": profile, "v": "deny"})
++
++    def test_an_escaped_quote_inside_a_substitution_opens_no_quote(self):
++        # round 4's fuzzer: `\"` (and `'\'`) made `$(…)` look unclosed, and its
++        # text kept the `)`, so the secret file's name no longer matched
++        for cmd in ('echo $(head -\\"c 99 .env)', "echo $(head -'\\'c 99 .env)", 'x=$(cat \\"x .env)'):
++            self.assertEqual({"cmd": cmd, "v": verdict("Bash", {"command": cmd})}, {"cmd": cmd, "v": "deny"})
++        # the shell's reading comes first; the plain one, where it differs, is judged too (only adds)
++        self.assertEqual(guard._substitutions('echo $(head -\\"c 99 .env)')[0], 'head -\\"c 99 .env')
++        self.assertEqual(guard._substitutions("echo $(printf '%s' \")\")"), ["printf '%s' \")\""])
++        cmd = "cd \"$(sh -c 'git push --force origin x' \\)\""  # an escaped `)`: the plain reading sees the push
++        self.assertNotEqual(verdict("Bash", {"command": cmd}), "allow")
++
++
++class LoneAmpersand(unittest.TestCase):
++    """A lone `&` runs what is before it in the background and ends that
++    command, as `;` does; the guard read it as part of the command, which hid
++    the rest of the line (an older hole; round 4's fuzzer found it hiding force
++    pushes once a continued command was judged as one line)."""
++
++    def test_a_lone_ampersand_ends_a_command(self):
++        seg = guard.split_segments
++        self.assertEqual(seg("true & git status"), ["true", "git status"])
++        self.assertEqual(seg("a & b & c"), ["a", "b", "c"])
++        self.assertEqual(seg("true |& git status"), ["true", "git status"])        # |& is a pipe
++        self.assertEqual(seg("make 2>&1 | tail"), ["make 2>&1", "tail"])           # a redirection, not a separator
++        self.assertEqual(seg("make &>/dev/null; ls >&2"), ["make &>/dev/null", "ls >&2"])
++        self.assertEqual(seg("cat <&3"), ["cat <&3"])
++        self.assertEqual(seg("a && b"), ["a", "b"])
++        self.assertEqual(seg("echo 'a & b' \"c & d\" e\\&f"), ["echo 'a & b' \"c & d\" e\\&f"])
++
++    def test_what_follows_a_lone_ampersand_is_judged(self):
++        for cmd in ("true & git push -f origin x", "sleep 1 & cat .env", "true |& git push --force origin x",
++                    "true & \\\ngit push -f origin x"):
++            for profile in ("stable", "development"):
++                self.assertEqual({"cmd": cmd, "p": profile, "v": verdict("Bash", {"command": cmd}, profile=profile)},
++                                 {"cmd": cmd, "p": profile, "v": "deny"})
++        self.assertEqual(verdict("Bash", {"command": "make 2>&1 | tail -3"}), "allow")
 +
 +
  if __name__ == "__main__":

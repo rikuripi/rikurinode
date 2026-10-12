@@ -449,10 +449,13 @@ def split_segments(cmd: str, notes: list | None = None, joins: list | None = Non
     tick = False  # inside a backtick
     while i < len(cmd):
         c = cmd[i]
-        if c == "\\" and quote != "'" and not comment and i + 1 == len(cmd):
+        if c == "\\" and quote != "'" and i + 1 == len(cmd):
+            # a backslash that ends the command continues onto nothing: zsh
+            # drops it, bash keeps it as text — and in a comment it is the
+            # comment's text, dropped too (round 4's verifier, mutant V16)
             if joins is not None:
                 joins.append(i)
-            i += 1  # a backslash that ends the command continues onto nothing: zsh drops it, bash keeps it as text
+            i += 1
             continue
         if c == "\\" and quote != "'" and not comment and i + 1 < len(cmd):
             if cmd[i + 1] == "\n":  # a line continuation: the shell joins the two lines
@@ -1542,8 +1545,9 @@ _BASE = None
 def base_decide(event: dict, cfg: dict, root: str = ROOT, lock_present: bool | None = None,
                 branch_fn=current_branch, relaxed: list | None = None) -> tuple:
     """The previous guard's decision. guard_base.py is a byte-for-byte copy of
-    the last committed guard.py, run unchanged, so nothing it caught can be lost
-    (verifier rounds 1–5 kept finding checks a rewrite had dropped)."""
+    an earlier committed guard.py, run unchanged, so that its checks stay
+    (verifier rounds 1–5 kept finding checks a rewrite had dropped); what
+    `decide` does with its answer is said there."""
     return _base_module().decide(event, cfg, root, lock_present=lock_present, branch_fn=branch_fn,
                                  relaxed=relaxed)
 
@@ -1654,11 +1658,14 @@ def _overridable(reason: str, event: dict, cfg: dict, root: str, new_reasons: li
 def decide(event: dict, cfg: dict, root: str = ROOT, lock_present: bool | None = None,
            branch_fn=current_branch, relaxed: list | None = None) -> tuple:
     """Return (decision, [reasons]): the STRICTER of the previous guard
-    (guard_base.py, unchanged) and the new checks — the new code can only add.
-    A stricter previous decision is set aside only when every one of its
-    reasons is one of the two owner-approved overrides (_overridable). The
-    previous guard judges a continued command joined, as the shell runs it
-    (_joined)."""
+    (guard_base.py, unchanged) and the new checks. A stricter previous
+    decision is set aside only when every one of its reasons is one of the
+    two owner-approved overrides (_overridable). The previous guard judges a
+    continued command joined, as the shell runs it (_joined), and line by
+    line, where only a deny counts: its line-by-line asks are dropped by the
+    owner's choice (2026-10-11), so this is not "only adds" for a continued
+    command. Out of time, the answer is ask, unless the new checks found a
+    deny."""
     global _DEADLINE, _DEADLINE_ALL
     cmd = (event.get("tool_input") or {}).get("command") if event.get("tool_name") == "Bash" else None
     if isinstance(cmd, str) and len(cmd) > MAX_COMMAND_CHARS:
