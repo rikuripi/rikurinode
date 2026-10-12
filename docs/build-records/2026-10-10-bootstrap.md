@@ -1011,8 +1011,9 @@
       stands in for it. Mutants (`mut_r11.py`): 16, all red — each removed
       form, and each part of the closed-world check undone, turns a test red
       (`mut-r11.out`). Green 21:38:21–21:38:58: 91 guard tests, 72 quality-tool tests
-      (`r11-guard.out`, `r11-quality.out`); the gate (`r11-gate.out`, in the
-      next commit).
+      (`r11-guard.out`, `r11-quality.out`); the gate on db4a3ac, all 7 steps
+      (`r11-gate.out`, in the next commit, which changes only it and this
+      line).
 - [ ] Verifier, round 11: pending (review only).
 
 ## 5. Close Out
