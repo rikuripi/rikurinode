@@ -6,7 +6,7 @@
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | main |
 | **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (its gate receipt), 737bb47 and 87e2249 (the record only), db4a3ac (round 11), 3540614 (its gate receipt), 26d6862 (round 12), 383a6dc (its gate receipt), 0dd2660 (round 13), 439d295 (its gate receipt), 8117fc4 (round 14), 5628ac1 (its gate receipt), ddc759b (round 15), 91ca836 (its gate receipt), bccf79d (round 16), 69e52a6 (its gate receipt; the first commit on GitHub), and round 17: the commits of the pull request that adds this line |
-| **Status** | Rounds 1–13 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings, claims wider than the tests or the code); rounds 14 and 15 FAIL on wording (round 14's verifier also found a crash that failed closed, fixed in round 15); round 16 (wording) committed, with no check round after it by the owner's stop rule (2026-10-11); on GitHub since 2026-10-12, CI green on `main`, `main` protected by the owner's ruleset (round 17); the sandbox's drill Not yet proven |
+| **Status** | Rounds 1–13 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings, claims wider than the tests or the code); rounds 14 and 15 FAIL on wording (round 14's verifier also found a crash that failed closed, fixed in round 15); round 16 (wording) committed, with no check round after it by the owner's stop rule (2026-10-11); on GitHub since 2026-10-12, CI green on `main`, `main` protected by the owner's ruleset — a direct push refused and a planted failing test blocked (round 17); the sandbox's drill Not yet proven |
 | **Change type** | bootstrap (process, security gates) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -1200,7 +1200,18 @@
       default branch, no deletion, no force push, a pull request, "Full
       gate (Ubuntu)" required on an up-to-date branch, no bypass), imported
       from a copy of Rikuri-PI's, read with `gh api` (the import file:
-      `/home/junc/rikuripi/protect-main-ruleset.json`). Drills: below.
+      `/home/junc/rikuripi/protect-main-ruleset.json`). Drills, the same
+      day: a direct push of this round's first commit to `main` was refused
+      — "GH013: Repository rule violations", "Changes must be made through
+      a pull request", "Required status check "Full gate (Ubuntu)" is
+      expected" — and `main` stayed at 69e52a6 (`r17-direct-push.out`). A
+      pull request with a planted failing test (#1, `test_drill_red.py`,
+      titled as a drill): "Full gate (Ubuntu)" and both guard-test jobs
+      failed, on that test alone ("AssertionError: 1 != 2 : planted by the
+      red-test drill"), and GitHub reported it `BLOCKED`
+      (`r17-red-drill.out`); it was closed unmerged and its branch deleted.
+      The pull request that adds this entry is the first change to reach
+      `main` through the gate.
 
 ## 5. Close Out
 
@@ -1305,8 +1316,8 @@
   (logged, not asked). The shared `guard.py` splits at every `|` and judges
   a continued line by line — to fix in the shared guard with its other
   parsing holes. The boundary is CI's full gate on every pull
-  request to a protected `main` — Not yet proven until the repository is on
-  GitHub and `main` is protected. Owner: Henry. Reactivate: a skip seen in
+  request to a protected `main` — in place since 2026-10-12 (round 17's
+  drills: a direct push refused, a planted failing test blocked). Owner: Henry. Reactivate: a skip seen in
   practice; the next change to the shared guard.
 - **An owner choice for later:** whether hook writes should ask in
   `development` too, for every form — that needs the shared guard to treat
@@ -1426,6 +1437,8 @@ round 15 wiring tests red 22:39:16 (r15-wiring-red.out): 2 errors; green: 27 OK;
 round 16 wording only; the gate: r16-gate.out; no check round (the owner's stop rule)
 round 17 pushed (69e52a6); CI green on main: runs 38215946599 and 38215946566 (r17-ci-main.out);
          the owner's ruleset "Protect main" (r17-ruleset.json)
+         drills: direct push to main refused, GH013 (r17-direct-push.out); pull request #1 with a planted
+         failing test: Full gate (Ubuntu) red on that test, BLOCKED, closed unmerged (r17-red-drill.out)
 ```
 Receipts: `evidence/2026-10-10-bootstrap/` — `gate-round1.out` to
 `gate-round3.out`, `gate-round3b.out` (the "round 3, continued" gate) and

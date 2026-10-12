@@ -1,0 +1,14 @@
+direct push drill at 2026-10-12T13:55:56-0700
+$ git push origin docs/on-github:main   (docs/on-github at 1e8d1ec, main on GitHub at 69e52a6)
+remote: error: GH013: Repository rule violations found for refs/heads/main.
+remote: Review all repository rules at https://github.com/rikuripi/rikurinode/rules?ref=refs%2Fheads%2Fmain
+remote:
+remote: - Changes must be made through a pull request.
+remote:
+remote: - Required status check "Full gate (Ubuntu)" is expected.
+remote:
+To https://github.com/rikuripi/rikurinode.git
+ ! [remote rejected] docs/on-github -> main (push declined due to repository rule violations)
+error: failed to push some refs to 'https://github.com/rikuripi/rikurinode.git'
+exit 1
+main on GitHub after: 69e52a6
