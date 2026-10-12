@@ -5,8 +5,8 @@
 | **Date** | 2026-10-11 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | fix/guard-continuation, rebased onto `main` 0f407f3 in round 4 (rounds 1 and 2 were on fix/guard-line-continuation, 1aaa8bd on the bootstrap's round 5, which `main` replaced; that branch is superseded) |
-| **Commits** | round 3: 7c77ce4 (was 92c39a2 before the rebase); round 4: 944fe55, 517e385, 7390125 (receipt); round 5: 6b9be19, the merge of `main` 7ecc958, 0d50bb4 (receipt); round 6: 5d4999d, eaa8333 (receipt); round 7: 8404ed0, and the commit that adds this line (receipt) (rounds 1-2: 1aaa8bd, superseded); the four sync commits follow the verifier |
-| **Status** | IN PROGRESS — rounds 1 to 5 FAIL (rounds 4 and 5: review only, the owner's choice); round 6's final check FAIL on wording only (the owner's stop rule, 2026-10-11), fixed in round 7 with no check round after it; then the sync, after the other session's shared-guard change lands (the owner's choice, 2026-10-11: that one first, this one on top), with `main` merged in and the gate rerun on the merged tree; known, before the sync: round 4's "Final run" found a few denies of `main`'s guard this one does not give (Skipped items) |
+| **Commits** | round 3: 7c77ce4 (was 92c39a2 before the rebase); round 4: 944fe55, 517e385, 7390125 (receipt); round 5: 6b9be19, the merge of `main` 7ecc958, 0d50bb4 (receipt); round 6: 5d4999d, eaa8333 (receipt); round 7: 8404ed0, and the commit that adds this line (receipt) (rounds 1-2: 1aaa8bd, superseded); the owner's decisions after round 7: the commit that adds this line; the sync commits follow the sandbox drill |
+| **Status** | IN PROGRESS — rounds 1 to 5 FAIL (rounds 4 and 5: review only, the owner's choice); round 6's final check FAIL on wording only (the owner's stop rule, 2026-10-11), fixed in round 7 with no check round after it; then the sync, after the other session's shared-guard change lands (the owner's choice, 2026-10-11: that one first, this one on top), with `main` merged in and the gate rerun on the merged tree, to Rikuri-PI and this repository only, and only once the sandbox drill passes (the owner, 2026-10-11 and 2026-10-12; round 4's "Final run" found a few denies of `main`'s guard this one does not give, Skipped items) |
 | **Change type** | fix (security gate, shared by five repositories) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -742,6 +742,16 @@
       the suite anyway. The gate on 8404ed0, all 7 steps (130, 72;
       `gate8.out`, in the next commit, which changes only it and three
       record lines). No check round follows (the owner's stop rule).
+- [x] **The owner's decisions after round 7.** The sync's scope (2026-10-11,
+      given in another session: "Just those 2 repo for shared code"): the
+      shared guard files go to Rikuri-PI and this repository only. Iceman,
+      AISecurity and the previous rikurinode stay one change behind, and
+      `guard.py`'s header ("identical in every Full-tier repository") is
+      then untrue for them; the Plan's "all five" and its acceptance line's
+      "the five copies are `cmp`-identical" now mean these two. The sync's
+      timing (2026-10-12, asked after round 7): it waits until the sandbox
+      drill passes — the guard is the early warning, the sandbox the
+      boundary, and round 4's run found a few denies lost (Skipped items).
 - [ ] Diff matches the plan: pending the verifier.
 
 ## 5. Close Out
@@ -798,7 +808,7 @@
       continued lines; program code, which the shared guard's own checks do
       not read; assembled words); the guard's own comments. No README or
       runbook text describes the guard's limits.
-- [x] Commit message explains why; record committed with the change (the four sync commits follow the verifier)
+- [x] Commit message explains why; record committed with the change (the sync commits, to Rikuri-PI and this repository, follow the sandbox drill)
 
 ## Skipped items — visible, never silent
 - **Holes older than this change** (verifiers, rounds 1 and 2, in both the
@@ -842,9 +852,9 @@
   still Not yet proven) and CI on a protected `main`. No such run since; the
   generated commands are kept outside the repository
   (`/home/junc/claude-wip/guard-continuation/scratch/fz/`). Owner: Henry.
-  Reactivate: before the sync to the five repositories — the owner's
-  decision, with the sandbox drill's result (recommended: the drill passes
-  first); or a deny seen lost in practice.
+  The owner's decision (2026-10-12): the sync to Rikuri-PI and this
+  repository waits until the sandbox drill passes. Reactivate: a deny seen
+  lost in practice.
 - **Commands longer than 16,000 characters ask** (R8): a long script run
   inline needs the owner's approval; writing it to a file first does not.
   Reversible: one constant. Owner: Henry.
