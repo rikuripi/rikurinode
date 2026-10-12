@@ -1,0 +1,7 @@
+
+== 1/7 pinned tools
+
+== 2/7 AI-session guard: wired to the tools in its matcher, hooks on; policy as generated; every example and failure mode
+.claude/settings.local.json: cannot read the settings ([Errno 13] Permission denied: '.claude/settings.local.json')
+full-gate: the guard is not wired (above)
+safe-run: no live node containers found here; the start-time check had nothing to compare

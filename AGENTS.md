@@ -90,18 +90,24 @@ ported with their tests, not copied wholesale.
   (2026-10-12, `r18-sandbox-drill.out`), in a session opened in a worktree
   of this repository, in `auto` mode: the sandbox started and refused a
   write in the home folder, in `scripts/quality/hooks` and in `.git/hooks`,
-  a Unix socket, a local port and an unlisted site; it allowed a write
-  inside the repository and GitHub; it showed the previous checkout's
-  `data/` and `/run/rikuri` as empty folders. It starts only because the
-  owner relaxed Ubuntu's AppArmor rule for bubblewrap
-  (`bwrap-userns-restrict`, 2026-10-11, `r12-bwrap-check.out`); before
-  that it failed closed. **Not yet proven:** the prompt for an unlisted
-  host in the other modes; a local port named through the sandbox's proxy;
-  the hook-folder forms under "What gets through the guard"; a session
-  opened in this folder itself. Inside the sandbox, paths it protects that
-  do not exist here (`.bashrc`, `.mcp.json`, `.claude/skills`, …) show as
-  untracked `/dev/null` devices, and `git add --all` fails on them: stage
-  by name.
+  a Unix socket (the guard asked first; the owner approved), a connection
+  to 127.0.0.1 (inside its own network namespace, where only its proxy
+  listens) and an unlisted site; it allowed a write inside the repository
+  and GitHub; it showed the previous checkout's `data/` and `/run/rikuri`
+  as empty folders. Round 9's drill (2026-10-11) failed closed on Ubuntu's
+  AppArmor rule for bubblewrap (`bwrap-userns-restrict`); the owner
+  relaxed it that day (`r12-bwrap-check.out`), and it is still relaxed.
+  **Not yet proven:** which change let the sandbox start (that, the Claude
+  Code version, or the folder); the prompt for an unlisted host in the
+  other modes; a local port named through the sandbox's proxy; the
+  hook-folder forms under "What gets through the guard"; a session opened
+  in this folder itself. Inside the sandbox, paths it protects that do not
+  exist here (`.bashrc`, `.mcp.json`, `.claude/skills`, …) are `/dev/null`
+  placeholders: they show as untracked, and `git add --all` fails on them
+  (stage by name); the one for `.claude/settings.local.json` cannot be
+  read, so the full gate fails at step 2 inside the sandbox (CI runs it
+  meanwhile; the fix is its own change); and `safe-run.sh` sees no node
+  containers there, so its start-time check compares nothing.
 - `.claude/hooks/guard.py` (with `guard_base.py` and `test_guard.py`,
   identical in every Full-tier repository) runs before each `Bash`,
   `Read`, `Edit`, `Write`, `MultiEdit`, `NotebookEdit` and `Grep` call
@@ -303,7 +309,8 @@ services or processes. CI is the reference run. Run every local test through
 so no runtime or systemd socket; no network but an empty loopback; a private
 process list), refusing stand-ins first on `PATH`, `DOCKER_HOST` at a missing
 socket, and the node's container start times compared before and after (a
-change fails the run). Without namespace support it refuses, unless
+change fails the run; inside Claude Code's sandbox it sees no container and
+says it compared nothing). Without namespace support it refuses, unless
 `SAFE_RUN_ALLOW_NO_NAMESPACE=1` (CI only: no live node there). What it does
 not cover: Unix sockets bound outside `/run` (a desktop's, an editor's, under
 `/tmp` or the home folder) stay reachable, and files stay writable — the layer
