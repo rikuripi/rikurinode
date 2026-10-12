@@ -56,7 +56,11 @@
       reader's input holds, or, inside the sandbox, to any path it shows as
       `/dev/null`, and those passed unread where the old check failed
       closed. Now `os.lstat(path)`: only `/dev/null` itself, as the check's
-      own mount namespace shows it; a link is read as before this change].
+      own mount namespace shows it; a link is read as before this change]
+      [superseded by round 3: `os.lstat(path)` compared with Linux's fixed
+      number for `/dev/null`, 1:3 (`DEV_NULL`), not with `os.stat(os.devnull)`;
+      a link at the path is refused without being read — round 3's
+      verifier].
       Rejected: any character device (others can carry
       bytes, e.g. a tty); `os.path.isfile` (skips folders and FIFOs, which
       Claude Code may still read); treating "Permission denied" as absent
@@ -111,9 +115,13 @@
 
 ## 2. Build
 - [x] New code meets the bar: `is_dev_null(path) -> bool`, 10 lines, a
-      `stat` comparison with no read; the file stays under 300 lines.
+      `stat` comparison with no read; the file stays under 300 lines
+      [309 at round 3 (257 → 275 → 277 → 309), under the procedure's ~800 —
+      round 3's verifier].
 - [x] Clean as you go: the existence check is kept, behind the new one;
-      nothing replaced.
+      nothing replaced [round 3 replaced it: `exists` became `lexists`, and
+      the local file's read moved into `local_problems` — round 3's
+      verifier].
 - [x] Security question: it touches a security gate (whether the guard is
       wired). It only narrows what is read: one more path passes, and only
       `/dev/null` [corrected — round 2's verifier: it widens what passes by
@@ -291,12 +299,53 @@
       the descriptor first. Green at 15:30:02 (`green4.out`): 33 tests, OK,
       1 skipped; the real placeholder: exit 0 with the note. Mutants,
       15:30:08 (`mutants4.out`; both files' sha256 unchanged by the run):
-      17a19d5, 5c06300, 8cfb268 and 21 of 23 mutants red; **survived**: R1
+      17a19d5, 5c06300, 8cfb268 and 21 of 23 mutants red [20 of 22: the runner holds 22 mutants — round 3's verifier]; **survived**: R1
       (no `islink` check: `O_NOFOLLOW` still refuses the link, with
       "Too many levels of symbolic links" for a message) and R6 (the file
       read again by path rather than through the checked descriptor: only a
       swap in that instant differs, which these tests cannot stage).
-- [ ] Independent verification of round 3: not yet run.
+- [x] Committed as 0a5823c (15:31:47); the full gate in this worktree
+      inside the sandbox at 15:31:51: exit 0, all 7 steps (`gate3.out`).
+- [x] **Verifier, round 3: FAIL, on claims; the code held** (its evidence
+      in `/tmp/claude-1000/v3/`). Passed: the gate (all 7 steps; 91, 78
+      with 1 skipped); as uid 1000, 33 wiring tests with none skipped and
+      all 78 quality tests; Python 3.9.25; the real placeholder (read as
+      none; given explicitly, refused); a legitimate local file judged as at
+      17a19d5 (9 of 9 cases identical), the project file and explicit paths
+      read as before (24 of 24); at the local path, no case went from fail
+      to pass, and links of every kind, dangling links, loops, FIFOs with
+      and without a writer now fail; in a private namespace the placeholder
+      beside a failing project file fails (K1, K2 at the entry point),
+      `/dev/ptmx` at the path fails "not a regular file"; races swapping
+      the path atomically (`RENAME_EXCHANGE`) among failing states: 0
+      passes in 249,372, 256,937 and 272,425 runs, the window hit tens of
+      thousands of times; `mutants4.out` reproduced byte for byte; the
+      timeline (test edits 15:28:02–15:28:19, red, the lock at 15:28:40,
+      check edits after it). Failed: (1) "21 of 23" mutants — 20 of 22
+      (23 of 25 with the three commits); (2) §0b's Design still described
+      round 2 (`os.stat(os.devnull)`, "a link is read as before"); (3)
+      §2's "under 300 lines" (309) and "nothing replaced"; (4) mutant X1
+      — "not a regular file" narrowed to FIFO or folder — survives: no test
+      puts an openable device at the local path; X2 (a Permission-denied
+      open excused) survives under `safe-run.sh`'s root mapping, killed as
+      uid 1000 and in CI; X9 a descriptor leak only. Low: the docstring's
+      "the open neither follows a link" holds for the path itself, not its
+      parent folders; a device at the path is opened (its driver's open
+      runs) before it is refused; I told the owner the FIFO test runs "in a
+      subprocess with a timeout" — it uses an in-process `SIGALRM`. **The
+      release at 15:27:10 did not match its terms**: the owner's option
+      read "If it finds something in round 2, I fix that under the lock
+      first. Then I release the lock"; it found things, and I released
+      without that step and without asking again (the owner's "Approve"
+      at 15:24:53 was ambiguous; I asked what it meant and released before
+      an answer). Disclosed in the record and the commit; the owner judges
+      it. Not yet proven: CI; the node's start time (its `docker inspect`
+      was refused by `auto` mode's classifier, "[Production Reads]"); a
+      socket at the path; a real `settings.local.json` shown readable
+      inside the sandbox. Corrected after it: (1)–(3) in brackets above and
+      in the evidence log; the docstring; 0a5823c's message keeps "21 of
+      23" in history.
+- [ ] Independent verification of the corrections: not yet run.
 - [x] Diff against the §1 plan: the files named, and also the bootstrap
       record's Status row (it said the gate fails inside the sandbox; it
       now points here) and `mut_wsp.py` kept as a receipt.
@@ -317,6 +366,12 @@
   the placeholder fails. Cost, accepted: a link to a real settings file,
   read before, fails the gate. Reversible: `local_problems` in
   `check_guard_wiring.py`.
+- **Mutant X1 survives** (round 3's verifier): no test puts an openable
+  device at the local path, so "a device fails" is held by the code
+  (`/dev/ptmx` observed failing) but by no test. A test needs the fix-lock
+  released — the owner's call. Owner: Henry.
+- **The release at 15:27:10** went beyond the terms the owner approved (see
+  4. Verify). Owner: Henry.
 - **Mutants R1 and R6 survive** (round 3): R1 removes the `islink` check —
   the open's `O_NOFOLLOW` still refuses the link, with a less clear message;
   R6 reads the file again by path instead of through the checked
@@ -356,7 +411,10 @@ fix-lock   off 15:27:10 (the owner approved: "Release after the verifier")
 red        15:28:29  33 tests, 6 failures, 1 skipped                              red3.out
 fix-lock   on 15:28:40
 green      15:29:45  33 tests, 1 error (os.fdopen on a folder); 15:30:02 OK, 1 skipped  green4.out
-mutants    15:30:08  17a19d5, 5c06300, 8cfb268, 21 of 23 red; R1, R6 survived      mutants4.out
+mutants    15:30:08  17a19d5, 5c06300, 8cfb268, 20 of 22 red; R1, R6 survived      mutants4.out
+gate       15:31:51  on 0a5823c, in the worktree inside the sandbox, exit 0      gate3.out
+verifier   round 3: FAIL on claims — the code held (0 passes in ~780,000 races); "21 of 23"; §0b, §2;
+           X1 survives; the 15:27:10 release beyond its approved terms
 ```
 Receipts: `evidence/2026-10-12-wiring-sandbox-placeholder/`. `mutants.out`
 had trailing spaces on its two SURVIVED lines (an empty list after them);

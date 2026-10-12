@@ -268,8 +268,10 @@ def local_problems(path: str) -> list:
     2026-10-12): its reader follows a link into a view this check may not
     share — inside the sandbox a link into a folder it hides dangles, outside
     it reaches a real file — and a FIFO with no writer stopped the check. The
-    read neither follows a link nor waits on a FIFO, and the open file is
-    checked again, so a swap after the first look fails closed."""
+    open neither follows a link at the path itself (one among its parent
+    folders is followed, as its reader would follow it) nor waits on a FIFO,
+    and the open file is checked again, so a swap after the first look fails
+    closed."""
     if os.path.islink(path):
         return ["%s: a link — only a regular file is read here, never through a link" % path]
     try:
