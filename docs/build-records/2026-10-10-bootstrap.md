@@ -1106,7 +1106,9 @@
       permission mode outside the list, stricter or not"; AGENTS.md's
       "2.1.295 or later" cites round 4, which found `onFailure` in that
       version's settings and README; the Receipts paragraph no longer
-      names a last round. The gate: below.
+      names a last round. The gate on 8117fc4, all 7 steps (91, 72;
+      `r14-gate.out`, in the next commit, which changes only it and this
+      line).
 - [ ] Verifier, round 14: pending (review only).
 
 ## 5. Close Out
