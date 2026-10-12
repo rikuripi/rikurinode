@@ -3,7 +3,7 @@
 Round 2's verifier: the gate's wiring step stayed green with
 "disableAllHooks": true, or with a command that merely mentioned guard.py.
 The check reads the settings as Claude Code does: hooks enabled, the exact
-guard command, before (PreToolUse) every file and shell tool; and (owner,
+guard command, before (PreToolUse) the tools in its TOOLS; and (owner,
 2026-10-11) the OS sandbox around every shell command, failing closed, with
 nothing in the settings that widens it. Round 10 (verifier round 9: nine
 widenings that Claude Code's settings schema documents passed): the check is

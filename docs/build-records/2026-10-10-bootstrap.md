@@ -5,8 +5,8 @@
 | **Date** | 2026-10-10 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | main |
-| **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (its gate receipt), 737bb47 and 87e2249 (the record only), db4a3ac (round 11), 3540614 (its gate receipt), 26d6862 (round 12), 383a6dc (its gate receipt), 0dd2660 (round 13), 439d295 (its gate receipt), 8117fc4 (round 14), 5628ac1 (its gate receipt), and round 15: the commit that adds this line |
-| **Status** | Rounds 1–13 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings, claims wider than the tests or the code); round 14 committed, its verifier (review only) pending; the sandbox's drill Not yet proven |
+| **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (its gate receipt), 737bb47 and 87e2249 (the record only), db4a3ac (round 11), 3540614 (its gate receipt), 26d6862 (round 12), 383a6dc (its gate receipt), 0dd2660 (round 13), 439d295 (its gate receipt), 8117fc4 (round 14), 5628ac1 (its gate receipt), ddc759b (round 15), 91ca836 (its gate receipt), and round 16: the commit that adds this line |
+| **Status** | Rounds 1–13 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings, claims wider than the tests or the code); rounds 14 and 15 FAIL on wording (round 14's verifier also found a crash that failed closed, fixed in round 15); round 16 (wording) committed, with no check round after it by the owner's stop rule (2026-10-11); the sandbox's drill Not yet proven |
 | **Change type** | bootstrap (process, security gates) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -1154,8 +1154,34 @@
       stays as written; this entry corrects its citation. The gate on
       ddc759b, all 7 steps (91, 72; `r15-gate.out`, in the next commit,
       which changes only it and this line).
-- [ ] Verifier, round 15: not run — whether the review-only loop
-      continues is the owner's to decide (asked 2026-10-11).
+- [x] **The owner's stop rule** (2026-10-11, asked after round 15):
+      findings in code or tests are fixed with a test and checked again;
+      findings only in wording are fixed without another check round; one
+      final check per branch.
+- [x] **Verifier, round 15 (review only, the final check): FAIL, wording
+      only** (its `rn-verify44/`; not stopped). Nothing to fix in the code
+      or the tests. Passed: the gate on 91ca836 (91, 72, no leaks); `git
+      diff --check`; ddc759b changes no other behaviour (the check's syntax
+      tree, docstrings removed, differs in the `defaultMode` condition and
+      four messages; 12 fixtures through the check's command line give the
+      same exit code before and after, except the list and object modes,
+      which crashed and now get a message); no test loosened; the red run
+      reproduced (2 errors); every finding of round 14's review, the
+      timeout's edges by reading. Failed (wording): the header's Status
+      row; the `additionalDirectories` message's "(only the repository is
+      in it here)", which the schema does not show; the comment's "which
+      program a command runs" (`LD_PRELOAD` and `BASH_ENV` add code rather
+      than change the program); round 15's entry, which said those two say
+      only what the schema or the list says; "every file and shell tool"
+      left in `test_guard_wiring.py`'s docstring, the CI step's name, and
+      the gate's step line ("wired to every tool").
+- [x] **Round 16** (2026-10-11): wording only, no behaviour changed. The
+      `additionalDirectories` message says it is refused because it adds
+      directories to the permission scope; the comment says "what a command
+      runs"; the test file's docstring, the CI step and the gate's step line
+      name the tools in the matcher, not every tool; the Status row. Round
+      15's entry above stays as written; this entry corrects it. The gate:
+      below. No check round follows (the owner's stop rule).
 
 ## 5. Close Out
 
@@ -1230,6 +1256,9 @@
   verifier). Reversible: add the key or name to the list in
   `check_guard_wiring.py` (a protected path: it asks in `stable` and is
   logged in `development`), with a test. Owner: Henry.
+- **Round 16 is not independently checked** (the owner's stop rule,
+  2026-10-11): its wording fixes stand on my reading and the gate. Owner:
+  Henry. Reactivate: the next change to these files gets its own check.
 - **The sandbox's drill** (round 9): Not yet proven. The owner's AppArmor
   change ran on 2026-10-11 at 11:43, and bubblewrap now starts a user
   namespace (`r12-bwrap-check.out`); whether Claude Code's sandbox starts —
@@ -1372,6 +1401,9 @@ round 14 text, two messages and two test cases (timeouts 0 and 2.5); the gate: r
          verifier (review only): FAIL — the "2.1.295" citation; "it asks" where development logs; the
          network "only through an allow-list"; "readable paths"; a list-valued defaultMode crashed the check
 round 15 wiring tests red 22:39:16 (r15-wiring-red.out): 2 errors; green: 27 OK; the gate: r15-gate.out
+         verifier (review only, final): FAIL, wording only — the Status row; two messages and a comment;
+         "every file and shell tool" in three files
+round 16 wording only; the gate: r16-gate.out; no check round (the owner's stop rule)
 ```
 Receipts: `evidence/2026-10-10-bootstrap/` — `gate-round1.out` to
 `gate-round3.out`, `gate-round3b.out` (the "round 3, continued" gate) and

@@ -63,7 +63,7 @@ ENV_WORDS = re.compile(r"SANDBOX|HOOK", re.IGNORECASE)
 # see; the guard's hook entry, exactly (`if`, `once`, `async`, … change when
 # it runs or whether its failure blocks); the permission modes in MODES (the
 # schema's others are refused); the environment variables that do not change
-# which program a command runs (PATH, LD_PRELOAD, BASH_ENV, … would).
+# what a command runs (PATH, LD_PRELOAD, BASH_ENV, … would).
 TOP_KEYS = {"$schema", "hooks", "permissions", "sandbox", "env", "disableAllHooks"}
 HOOK_EVENTS = {"PreToolUse"}
 ENTRY_KEYS = {"matcher", "hooks"}
@@ -121,8 +121,8 @@ def permission_problems(path: str, settings: dict) -> list:
         return ["%s: permissions must be an object" % path]
     found = []
     if "additionalDirectories" in perms:
-        found.append("%s: permissions.additionalDirectories adds directories to the permission scope (only the "
-                     "repository is in it here)" % path)
+        found.append("%s: permissions.additionalDirectories is refused: it adds directories to the permission "
+                     "scope" % path)
     for key in sorted(set(perms) - PERMISSION_KEYS - {"additionalDirectories"}):
         found.append("%s: permissions.%s is not one this check knows to leave the sandbox alone" % (path, key))
     mode = perms.get("defaultMode")

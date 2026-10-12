@@ -19,7 +19,7 @@ sc="$(shellcheck --version 2>/dev/null | sed -n 's/^version: //p')" || true
 gl="$(gitleaks version 2>/dev/null)" || true
 [ "$gl" = "$GITLEAKS_VERSION" ] || fail "gitleaks $GITLEAKS_VERSION required, found '${gl:-none}'"
 
-step "2/7 AI-session guard: wired to every tool, hooks on; policy as generated; every example and failure mode"
+step "2/7 AI-session guard: wired to the tools in its matcher, hooks on; policy as generated; every example and failure mode"
 python3 scripts/quality/check_guard_wiring.py || fail "the guard is not wired (above)"
 python3 scripts/quality/guard_policy.py --check || fail "the guard policy was edited by hand (above)"
 python3 -m unittest discover -s .claude/hooks -p 'test_*.py'
