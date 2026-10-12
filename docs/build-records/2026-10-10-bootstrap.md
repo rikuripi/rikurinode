@@ -4,9 +4,9 @@
 |---|---|
 | **Date** | 2026-10-10 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
-| **Branch** | main (the first commit of an empty repository) |
-| **Commits** | the commit that adds this line |
-| **Status** | Rounds 1–8 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked); round 9 adds the OS sandbox (owner) and answers round 8 — verifier pending; the sandbox's drill Not yet proven |
+| **Branch** | main |
+| **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (round 10's gate receipt), and the commit that adds this line |
+| **Status** | Rounds 1–9 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings); round 10 (the owner's choice) closes money and keys at the root and makes the wiring check closed-world — its verifier was stopped before its main checks (see round 10), Not yet proven; the sandbox's drill Not yet proven |
 | **Change type** | bootstrap (process, security gates) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -746,9 +746,10 @@
       of its rows are round 8's own drafted cases and 5 are duplicates;
       worked examples were flipped, not added, for changed rules; "a
       backtick ends the read exemption" is not what the policy does.
-- [x] **Round 10 — the owner's choice** (2026-10-11, asked after round 9:
-      "Close money/keys, then sandbox"): close the payment and key forms at
-      the root — a command that names a node tool asks unless the whole
+- [x] **Round 10 — the owner's choice** (2026-10-11, asked after round 9;
+      the owner picked the option labelled "Close money/keys, then sandbox",
+      whose description, written by me, said what follows): close the
+      payment and key forms at the root — a command that names a node tool asks unless the whole
       command is a known safe read; fix the sandbox settings check; narrow
       `AGENTS.md` to what the tests show; the remaining file-write tricks on
       the hook become listed limits, which the sandbox blocks once the
@@ -903,7 +904,19 @@
         (`r10-quality.out`); the gate on f1fdc07, all 7 steps
         (`r10-gate.out`, added in the next commit, which changes only it and
         this line).
-- [ ] Verifier, round 10: pending.
+- [x] **Verifier, round 10: stopped, Not yet proven** (its `rn-verify35/`,
+      lost with `/tmp` in the second crash). It passed the gate on 0f407f3
+      (91, 68, no leaks), `git diff --check`, the counts it checked (39
+      rules, 934 examples, 1,089 baseline rows), and that 0f407f3 changes
+      only the receipt and one line. Then Claude's safety classifier stopped
+      it while it was writing attempts to get payments and key exports past
+      the guard; it did not resume them, and checks 2–8 were not run. It
+      found this record's Status line stale (fixed). The owner chose how to
+      go on (2026-10-11, "Generated tests"): a fresh verifier replays the
+      evidence and mutants and judges generated test cases against real
+      bash and zsh, not hand-written bypass attempts; if the classifier
+      stops it again, the work stops and the owner is told.
+- [ ] Verifier, round 10 (generated tests): pending.
 
 ## 5. Close Out
 
