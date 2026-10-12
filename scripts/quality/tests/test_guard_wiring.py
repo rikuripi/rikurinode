@@ -20,9 +20,12 @@ import copy
 import io
 import json
 import os
+import stat
 import sys
 import tempfile
+import types
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
@@ -375,25 +378,45 @@ class Wiring(unittest.TestCase):
         # Bootstrap round 18: inside Claude Code's sandbox an absent
         # settings.local.json is /dev/null, bound on a nodev mount where it
         # cannot be opened, and the gate failed at step 2. /dev/null holds no
-        # settings anywhere; the check reads it as none, and says so.
-        rc, out = run_with_local(lambda p: os.symlink(os.devnull, p))
+        # settings; the check reads it as none, and says so. /dev/null itself
+        # stands in for the bind: a test cannot mount one, and a symlink to it
+        # is not the placeholder (below).
+        with mock.patch.object(w, "LOCAL", os.devnull):
+            rc, out = run_with_local(lambda p: None)
         self.assertEqual(rc, 0)
         self.assertIn("/dev/null", out)
 
     def test_only_dev_null_itself_is_the_placeholder(self):
         # This change's mutants: any character device (M2), or a missing path
-        # (M5), read as the placeholder survived the tests above. By stat
-        # alone: /dev/zero is never opened.
+        # (M5), read as the placeholder survived the first tests. Its
+        # verifier: a symlink was followed, so a link to /dev/stdin, or inside
+        # the sandbox to any path shown as /dev/null, passed unread; a block
+        # device numbered like /dev/null (V1). By stat alone: nothing is opened.
         self.assertTrue(w.is_dev_null(os.devnull))
         self.assertFalse(w.is_dev_null("/dev/zero"))
         with tempfile.TemporaryDirectory() as d:
             self.assertFalse(w.is_dev_null(os.path.join(d, "missing.json")))
+            for name, target in (("null", os.devnull), ("stdin", "/dev/stdin"), ("fd0", "/proc/self/fd/0")):
+                link = os.path.join(d, name)
+                os.symlink(target, link)
+                self.assertFalse(w.is_dev_null(link), target)
+        block = types.SimpleNamespace(st_mode=stat.S_IFBLK | 0o660, st_rdev=os.stat(os.devnull).st_rdev)
+        with mock.patch.object(w.os, "lstat", return_value=block):
+            self.assertFalse(w.is_dev_null("/dev/ram3"))
         self.assertEqual(run_with_local(lambda p: None), (0, ""))
+
+    def test_the_placeholder_rule_covers_the_default_local_file_only(self):
+        # Its verifier's surviving mutants: explicit paths (V5) and the project
+        # file (V7) excused as /dev/null too.
+        self.assertEqual(w.main(["check_guard_wiring.py", os.devnull]), 1)
+        with mock.patch.object(w, "PROJECT", os.devnull):
+            self.assertEqual(run_with_local(lambda p: None)[0], 1)
 
     def test_any_other_local_file_that_is_not_settings_fails(self):
         # Only /dev/null reads as no settings. Round 18's verifier: a check
         # using os.path.isfile passed every test and would skip a folder or a
-        # FIFO, which Claude Code may still read.
+        # FIFO, which Claude Code may still read. A symlink to /dev/null is
+        # read, as before this change, and holds no settings.
         def empty(p):
             open(p, "w").close()
 
@@ -404,7 +427,8 @@ class Wiring(unittest.TestCase):
                 f.write("{}")
             os.chmod(p, 0)
 
-        for name, make in (("empty", empty), ("folder", os.mkdir), ("unreadable", unreadable)):
+        for name, make in (("empty", empty), ("folder", os.mkdir), ("unreadable", unreadable),
+                           ("symlink to /dev/null", lambda p: os.symlink(os.devnull, p))):
             with self.subTest(name=name):
                 self.assertEqual(run_with_local(make)[0], 1)
 

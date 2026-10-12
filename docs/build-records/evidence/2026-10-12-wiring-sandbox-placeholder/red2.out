@@ -1,0 +1,107 @@
+.....claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: permissions must be an object
+.claude/settings.local.json: permissions.allow must be a list of rules
+.claude/settings.local.json: env must be an object
+.claude/settings.local.json: hooks must be an object
+.claude/settings.local.json: hooks.PreToolUse must be a list
+.claude/settings.local.json: permissions.defaultMode ["default"] is not one this check allows (allowed: acceptEdits, default, manual, plan)
+.claude/settings.local.json: permissions.defaultMode {"default": true} is not one this check allows (allowed: acceptEdits, default, manual, plan)
+..claude/settings.local.json: apiKeyHelper is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: statusLine is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: fileSuggestion is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: enabledPlugins is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: extraKnownMarketplaces is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: enableAllProjectMcpServers is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: otelHeadersHelper is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: newKey is not a settings key this check knows to leave the guard and the sandbox alone
+....claude/settings.local.json: the local settings may not add a PreToolUse hook
+.claude/settings.local.json: the local settings may not add a PreToolUse hook
+.claude/settings.local.json: a PermissionRequest hook could answer the guard's ask
+.claude/settings.local.json: a Stop hook is refused: only the guard's PreToolUse hook is wired here (a hook may run a command, a prompt, an agent, an HTTP request or an MCP tool)
+..claude/settings.local.json: cannot read the settings (Expecting value: line 1 column 1 (char 0))
+.claude/settings.local.json: cannot read the settings ([Errno 21] Is a directory: '.claude/settings.local.json')
+sF..claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: permissions.allow Edit(//home/junc/rikuri/**): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow WebFetch(domain:*): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+...claude/settings.local.json: env.CLAUDE_CODE_DISABLE_SANDBOX names the sandbox or hooks
+.claude/settings.local.json: env.SANDBOX_RUNTIME names the sandbox or hooks
+.claude/settings.local.json: env.CLAUDE_CODE_HOOKS names the sandbox or hooks
+..claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: permissions.additionalDirectories is refused: it adds directories to the permission scope
+...F.claude/settings.local.json: permissions.allow Edit: no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow Edit(//home/junc/**): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow Write(/tmp/**): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow MultiEdit(**): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow NotebookEdit(**): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow WebFetch: no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow WebFetch(domain:*): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow Read(//home/junc/rikuri/**): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+...claude/settings.local.json: disableAllHooks is set — no hook runs, the guard included
+....claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+../dev/null: cannot read the settings (Expecting value: line 1 column 1 (char 0))
+EE....
+======================================================================
+ERROR: test_the_placeholder_rule_covers_the_default_local_file_only (test_guard_wiring.Wiring.test_the_placeholder_rule_covers_the_default_local_file_only)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/guard-continuation/wt-main/scripts/quality/tests/test_guard_wiring.py", line 412, in test_the_placeholder_rule_covers_the_default_local_file_only
+    with mock.patch.object(w, "PROJECT", os.devnull):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/unittest/mock.py", line 1510, in __enter__
+    original, local = self.get_original()
+                      ~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.14/unittest/mock.py", line 1480, in get_original
+    raise AttributeError(
+        "%s does not have the attribute %r" % (target, name)
+    )
+AttributeError: <module 'check_guard_wiring' from '/home/junc/claude-wip/guard-continuation/wt-main/scripts/quality/check_guard_wiring.py'> does not have the attribute 'PROJECT'
+
+======================================================================
+ERROR: test_the_sandboxs_placeholder_is_no_local_settings (test_guard_wiring.Wiring.test_the_sandboxs_placeholder_is_no_local_settings)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/guard-continuation/wt-main/scripts/quality/tests/test_guard_wiring.py", line 384, in test_the_sandboxs_placeholder_is_no_local_settings
+    with mock.patch.object(w, "LOCAL", os.devnull):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/unittest/mock.py", line 1510, in __enter__
+    original, local = self.get_original()
+                      ~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.14/unittest/mock.py", line 1480, in get_original
+    raise AttributeError(
+        "%s does not have the attribute %r" % (target, name)
+    )
+AttributeError: <module 'check_guard_wiring' from '/home/junc/claude-wip/guard-continuation/wt-main/scripts/quality/check_guard_wiring.py'> does not have the attribute 'LOCAL'
+
+======================================================================
+FAIL: test_any_other_local_file_that_is_not_settings_fails (test_guard_wiring.Wiring.test_any_other_local_file_that_is_not_settings_fails) (name='symlink to /dev/null')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/guard-continuation/wt-main/scripts/quality/tests/test_guard_wiring.py", line 433, in test_any_other_local_file_that_is_not_settings_fails
+    self.assertEqual(run_with_local(make)[0], 1)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_only_dev_null_itself_is_the_placeholder (test_guard_wiring.Wiring.test_only_dev_null_itself_is_the_placeholder)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/guard-continuation/wt-main/scripts/quality/tests/test_guard_wiring.py", line 402, in test_only_dev_null_itself_is_the_placeholder
+    self.assertFalse(w.is_dev_null(link), target)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false : /dev/null
+
+----------------------------------------------------------------------
+Ran 31 tests in 0.053s
+
+FAILED (failures=2, errors=2, skipped=1)
+safe-run: no live node containers found here; the start-time check had nothing to compare

@@ -105,9 +105,11 @@ ported with their tests, not copied wholesale.
   exist here (`.bashrc`, `.mcp.json`, `.claude/skills`, …) are `/dev/null`
   placeholders: they show as untracked, and `git add --all` fails on them
   (stage by name); the one for `.claude/settings.local.json` cannot be
-  read, and the wiring check reads `/dev/null` there, and only `/dev/null`,
-  as no local settings and says so (anything else it cannot read as
-  settings still fails); and `safe-run.sh` sees no node containers there,
+  read, and the wiring check reads `/dev/null` itself there (a link to it is
+  read as before) as no local settings, and says so; what else passes or
+  stops that check at that path (a dangling link, a FIFO) is listed in
+  `docs/build-records/2026-10-12-wiring-sandbox-placeholder.md`; and
+  `safe-run.sh` sees no node containers there,
   so its start-time check compares nothing.
 - `.claude/hooks/guard.py` (with `guard_base.py` and `test_guard.py`,
   identical in every Full-tier repository) runs before each `Bash`,

@@ -25,8 +25,8 @@ green with "disableAllHooks": true or a command that merely mentioned the
 guard.
 
 Usage: check_guard_wiring.py [settings.json …]   (default: .claude/settings.json,
-and .claude/settings.local.json when present and not /dev/null, the sandbox's
-placeholder) — exit 0 wired, 1 not.
+and .claude/settings.local.json when present and not /dev/null itself, the
+sandbox's placeholder) — exit 0 wired, 1 not.
 Record: docs/build-records/2026-10-10-bootstrap.md;
 docs/build-records/2026-10-12-wiring-sandbox-placeholder.md
 """
@@ -39,6 +39,7 @@ import stat
 import sys
 
 GUARD = 'python3 "$CLAUDE_PROJECT_DIR/.claude/hooks/guard.py"'
+PROJECT, LOCAL = ".claude/settings.json", ".claude/settings.local.json"  # the default run's two files
 TOOLS = {"Bash", "Read", "Edit", "Write", "MultiEdit", "NotebookEdit", "Grep"}
 # The sandbox, exactly (Claude Code's settings reference, 2026-10-11). Only
 # git's network commands leave it (SSH cannot use its proxy); each still passes
@@ -242,12 +243,14 @@ def problems(path: str, require_guard: bool = True) -> list:
 
 
 def is_dev_null(path: str) -> bool:
-    """Whether `path` is /dev/null itself. Inside Claude Code's sandbox an
-    absent protected file is /dev/null, bound on a nodev mount where it cannot
-    be opened (bootstrap round 18: the gate failed at step 2). It holds no
-    settings anywhere; nothing else unreadable is excused."""
+    """Whether `path` is /dev/null itself — not a link to it, which is read
+    as before. Inside Claude Code's sandbox an absent protected file is
+    /dev/null, bound on a nodev mount where it cannot be opened (bootstrap
+    round 18: the gate failed at step 2). A link is followed by its reader,
+    and could lead to /dev/stdin or, inside the sandbox, to a file it hides
+    (this change's verifier); lstat does not follow it."""
     try:
-        here, null = os.stat(path), os.stat(os.devnull)
+        here, null = os.lstat(path), os.stat(os.devnull)
     except OSError:
         return False
     return stat.S_ISCHR(here.st_mode) and here.st_rdev == null.st_rdev
@@ -260,12 +263,11 @@ def main(argv: list) -> int:
         for p in paths:
             found += problems(p)
     else:
-        found += problems(".claude/settings.json")
-        local = ".claude/settings.local.json"
-        if is_dev_null(local):
-            print("%s is /dev/null (the sandbox's placeholder for a missing file): no local settings" % local)
-        elif os.path.exists(local):  # may switch every hook, or the sandbox, off here
-            found += problems(local, require_guard=False)
+        found += problems(PROJECT)
+        if is_dev_null(LOCAL):
+            print("%s is /dev/null (the sandbox's placeholder): no local settings" % LOCAL)
+        elif os.path.exists(LOCAL):  # may switch every hook, or the sandbox, off here
+            found += problems(LOCAL, require_guard=False)
     for line in found:
         print(line, file=sys.stderr)
     return 1 if found else 0
