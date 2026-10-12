@@ -395,6 +395,11 @@
       files' sha256 unchanged by the run): 17a19d5, 5c06300, 8cfb268,
       62c102b red; 22 of 24 mutants red; survived: R6 (listed) and X2
       (under `safe-run.sh` only, below).
+- [x] Committed as a4312f3 (16:22:15); the full gate in this worktree
+      inside the sandbox at 16:22:19: exit 0, all 7 steps; 91, 78 with 1
+      skipped; 28 commits scanned, no leaks (`gate4.out`).
+- [ ] Independent verification of round 4: not yet run. The owner's
+      choice (2026-10-12): push for CI next.
 - [x] Diff against the §1 plan: the files named, and also the bootstrap
       record's Status row (it said the gate fails inside the sandbox; it
       now points here) and `mut_wsp.py` kept as a receipt.
@@ -481,6 +486,7 @@ red        16:20:28  on 62c102b's check, 33 tests, 6 failures, 1 skipped        
 fix-lock   on 16:20:46
 green      16:20:46  33 tests, OK, 1 skipped                                    green5.out
 mutants    17a19d5, 5c06300, 8cfb268, 62c102b and 22 of 24 red; R6, X2 survived  mutants5.out
+gate       16:22:19  on a4312f3, in the worktree inside the sandbox, exit 0      gate4.out
 ```
 Receipts: `evidence/2026-10-12-wiring-sandbox-placeholder/`. `mutants.out`
 had trailing spaces on its two SURVIVED lines (an empty list after them);
