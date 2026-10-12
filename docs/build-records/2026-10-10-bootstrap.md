@@ -1054,8 +1054,8 @@
       in rounds 11 and 12: not engaged, for the reason given in round 11's
       correction; the red runs stand in for it. Mutants (`mut_r12.py`): 2,
       both red (`mut-r12.out`). Green: 91 guard tests, 72 quality-tool tests
-      (`r12-green.out`); the gate on this commit (`r12-gate.out`, in the next
-      commit).
+      (`r12-green.out`); the gate on 26d6862, all 7 steps (`r12-gate.out`, in
+      the next commit, which changes only it and this line).
 - [ ] Verifier, round 12: pending (review only).
 
 ## 5. Close Out
