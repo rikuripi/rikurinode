@@ -1,0 +1,114 @@
+
+== 1/7 pinned tools
+
+== 2/7 AI-session guard: wired to the tools in its matcher, hooks on; policy as generated; every example and failure mode
+.claude/settings.local.json is /dev/null (the sandbox's placeholder): no local settings
+....usage: guard.py fix-lock on <build-record> | off [--session <id> | --global] | status
+.fix-lock NOT engaged — cannot read /tmp/claude-1000/tmpjzza33x8/guard-config.json: guard-config.json: 'fix_lock_preflight' must be a list of argv lists, e.g. [["node", "scripts/quality-ratchet.mjs"]]
+Nothing was changed. Fix it first, then engage.
+.fix-lock NOT engaged — preflight /usr/bin/python3 -c import sys; sys.exit(3) failed (exit 3):
+
+Nothing was changed. Fix it first, then engage.
+................................................................................usage: guard.py profile [stable | development]
+.....
+----------------------------------------------------------------------
+Ran 91 tests in 24.335s
+
+OK
+fix-lock ENGAGED for docs/build-records/a.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/b.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/x.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock released (docs/build-records/a.md)
+fix-lock released (docs/build-records/owner.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+profile: stable
+profile: stable -> development
+profile: development -> stable
+
+== 3/7 the quality tools' own tests (hygiene, guard wiring, guard policy, test-safety layer)
+............claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: permissions must be an object
+.claude/settings.local.json: permissions.allow must be a list of rules
+.claude/settings.local.json: env must be an object
+.claude/settings.local.json: hooks must be an object
+.claude/settings.local.json: hooks.PreToolUse must be a list
+.claude/settings.local.json: permissions.defaultMode ["default"] is not one this check allows (allowed: acceptEdits, default, manual, plan)
+.claude/settings.local.json: permissions.defaultMode {"default": true} is not one this check allows (allowed: acceptEdits, default, manual, plan)
+..claude/settings.local.json: apiKeyHelper is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: statusLine is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: fileSuggestion is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: enabledPlugins is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: extraKnownMarketplaces is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: enableAllProjectMcpServers is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: otelHeadersHelper is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: newKey is not a settings key this check knows to leave the guard and the sandbox alone
+....claude/settings.local.json: the local settings may not add a PreToolUse hook
+.claude/settings.local.json: the local settings may not add a PreToolUse hook
+.claude/settings.local.json: a PermissionRequest hook could answer the guard's ask
+.claude/settings.local.json: a Stop hook is refused: only the guard's PreToolUse hook is wired here (a hook may run a command, a prompt, an agent, an HTTP request or an MCP tool)
+..claude/settings.local.json: cannot read the settings (Expecting value: line 1 column 1 (char 0))
+.claude/settings.local.json: cannot read the settings ([Errno 21] Is a directory: '.claude/settings.local.json')
+s.claude/settings.local.json: cannot read the settings (Expecting value: line 1 column 1 (char 0))
+..claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: permissions.allow Edit(//home/junc/rikuri/**): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow WebFetch(domain:*): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+...claude/settings.local.json: env.CLAUDE_CODE_DISABLE_SANDBOX names the sandbox or hooks
+.claude/settings.local.json: env.SANDBOX_RUNTIME names the sandbox or hooks
+.claude/settings.local.json: env.CLAUDE_CODE_HOOKS names the sandbox or hooks
+..claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: permissions.additionalDirectories is refused: it adds directories to the permission scope
+.....claude/settings.local.json: permissions.allow Edit: no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow Edit(//home/junc/**): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow Write(/tmp/**): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow MultiEdit(**): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow NotebookEdit(**): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow WebFetch: no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow WebFetch(domain:*): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow Read(//home/junc/rikuri/**): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+...claude/settings.local.json: disableAllHooks is set — no hook runs, the guard included
+....claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+../dev/null: cannot read the settings (Expecting value: line 1 column 1 (char 0))
+/dev/null: cannot read the settings (Expecting value: line 1 column 1 (char 0))
+............................................
+----------------------------------------------------------------------
+Ran 76 tests in 15.459s
+
+OK (skipped=1)
+
+== 4/7 repository hygiene: nothing tracked that belongs on the machine
+
+== 5/7 shell lint
+
+== 6/7 whitespace errors in every tracked file, committed or not
+
+== 7/7 secret scan of history
+[90m3:10PM[0m [32mINF[0m [1m23 commits scanned.[0m
+[90m3:10PM[0m [32mINF[0m [1mscanned ~1771085 bytes (1.77 MB) in 256ms[0m
+[90m3:10PM[0m [32mINF[0m [1mno leaks found[0m
+
+full-gate: all 7 steps passed
+safe-run: no live node containers found here; the start-time check had nothing to compare

@@ -38,7 +38,15 @@
       readable settings still fails: an empty file, a folder, an unreadable
       regular file (round 18's verifier: `os.path.isfile` in place of
       `os.path.exists` passes all 27 wiring tests and would skip a FIFO or a
-      folder); R3 explicit paths on the command line are read as before.
+      folder) [not so through round 2 — round 2's verifier: a dangling link
+      and a link loop passed, a FIFO with no writer hung the check (all as
+      before this change), and where `/dev/null` is a regular file a
+      whiteout passed; round 3 makes it so: the owner's choice R4 below,
+      and Linux's fixed number for `/dev/null`]; R3 explicit paths on the
+      command line are read as before; R4 (round 3, the owner's choice,
+      2026-10-12) anything at the local path but the placeholder must be a
+      regular file, read in place: a link (dangling or not), a folder, a
+      FIFO, a device, a socket fails.
 - [x] Design: compare `os.stat(path)` with `os.stat(os.devnull)` —
       `S_ISCHR` and the same `st_rdev` — before the existence check.
       Narrower than the option offered ("an unreadable character device"):
@@ -108,7 +116,9 @@
       nothing replaced.
 - [x] Security question: it touches a security gate (whether the guard is
       wired). It only narrows what is read: one more path passes, and only
-      `/dev/null`. Held by `test_any_other_local_file_that_is_not_settings_fails`
+      `/dev/null` [corrected — round 2's verifier: it widens what passes by
+      that one path (see Policy); round 3 narrows the rest: anything else at
+      the local path must be a regular file]. Held by `test_any_other_local_file_that_is_not_settings_fails`
       (an empty file, a folder, an unreadable file still fail) and the
       mutants below.
 
@@ -228,7 +238,65 @@
       this change (17a19d5), the first fix (5c06300), M1–M6, V1, V2 (`stat`
       for `lstat`), V4 (the note on stderr), V5, V7: all red. On the real
       placeholder: exit 0 with the note.
-- [ ] Independent verification of round 2: not yet run.
+- [x] Committed as 8cfb268 (15:09:35); the full gate in this worktree
+      inside the sandbox at 15:09:39: exit 0, all 7 steps (`gate2.out`).
+- [x] **Verifier, round 2: FAIL** (its evidence in this session's
+      scratchpad, `verify2/`). Passed: the gate (all 7 steps; 91, 76 with 1
+      skipped), the wiring tests as non-root (31, none skipped), under
+      `safe-run.sh` and on Python 3.9.25; the real placeholder read as none,
+      given explicitly refused, and beside a weakening project file refused;
+      every link to `/dev/null`, `/dev/stdin`, `/proc/self/fd/N`, chains and
+      links to the sandbox's other placeholders refused, as at 17a19d5;
+      races of a weakening file against a link: 0 passes in 81,044 and
+      88,903 runs; the builder's mutants reproduced; the timeline (test
+      edits before red, check edits after the lock). Failed: (1) where
+      `/dev/null` is a regular file (a private namespace), a whiteout (char
+      0:0) at the path matched it and passed — `S_ISCHR` was checked on the
+      path, not on the reference; nil impact in practice (it needs the
+      namespace, like binding `/dev/null` over a real file), but "only
+      `/dev/null` itself" was false; (2) mutants K1 (the placeholder clears
+      the project's findings) and K2 (it returns before the project check)
+      survived all 31 tests — in every sandboxed session that would blind
+      step 2 to `settings.json`; also K10 (the note names only the path) and
+      K11 (only `FileNotFoundError` excused); S1 and S2 stricter, K12
+      equivalent; (3) two overclaims uncorrected: §2's "It only narrows
+      what is read" and R2's "anything else … still fails"; the test's
+      "Only /dev/null reads as no settings". Noted: a link among the path's
+      parent folders is followed (it reaches the namespace's own
+      `/dev/null`, as its reader would); "lstat does not follow it" holds
+      for the path itself. Not yet proven: CI; the node's start time; a
+      Unix socket at the path (none can be made inside the sandbox).
+- [x] **Round 3: round 2's findings, and the owner's choice for the local
+      path** (2026-10-12: "1." — refuse anything there but a regular file
+      or the placeholder; the release "after the verifier" approved). I had
+      said round 2's findings would be fixed under the lock first; a fix
+      needs its failing test first, so both went into this round: fix-lock
+      released at 15:27:10 (`fix-lock.log`; the test file `d99aa4f9…` and
+      the check `14cbc103…` as committed). Tests first, red at 15:28:29
+      (`red3.out`: 33 tests, 6 failures — the whiteout matched, a dangling
+      link, a link loop and a link to a harmless `{}` passed, a FIFO with
+      no writer stopped the check until the test's 5 s alarm, a link the
+      first look misses was read); the placeholder test now also asserts
+      "no local settings" and that a weakening project file beside the
+      placeholder fails (K1, K2, K10); a path `lstat` cannot reach (K11).
+      Fix-lock on at 15:28:40 (`fix-locks/`; the test file `6dd50b67…`).
+      The fix: `is_dev_null` compares with Linux's fixed 1:3 (`DEV_NULL`),
+      no longer with this namespace's `/dev/null`; `local_problems` reads
+      the local file only as a regular file: a link (by `islink`) is
+      refused, the open neither follows a link (`O_NOFOLLOW`) nor waits on a
+      FIFO (`O_NONBLOCK`), and the open file's type is checked (`fstat`);
+      `lexists`, so a dangling link is seen. A first green run (15:29:45)
+      errored on the folder case: `os.fdopen` refuses a folder before the
+      type check (and the descriptor leaked) — the type is now checked on
+      the descriptor first. Green at 15:30:02 (`green4.out`): 33 tests, OK,
+      1 skipped; the real placeholder: exit 0 with the note. Mutants,
+      15:30:08 (`mutants4.out`; both files' sha256 unchanged by the run):
+      17a19d5, 5c06300, 8cfb268 and 21 of 23 mutants red; **survived**: R1
+      (no `islink` check: `O_NOFOLLOW` still refuses the link, with
+      "Too many levels of symbolic links" for a message) and R6 (the file
+      read again by path rather than through the checked descriptor: only a
+      swap in that instant differs, which these tests cannot stage).
+- [ ] Independent verification of round 3: not yet run.
 - [x] Diff against the §1 plan: the files named, and also the bootstrap
       record's Status row (it said the gate fails inside the sandbox; it
       now points here) and `mut_wsp.py` kept as a receipt.
@@ -244,15 +312,17 @@
 - [ ] Commit message explains WHY; record committed with the change
 
 ## Skipped items — visible, never silent
-- **An owner choice: what may stand at the local settings path.** Before
-  and after this change, a dangling link or a link loop there passes
-  silently (`os.path.exists` is false), also a link into a folder the
-  sandbox hides (dangling inside, real outside); a FIFO with no writer
-  hangs the check. Option: refuse anything there that is not a regular
-  file or the placeholder (by `lstat`, never opened). Cost: a link to a
-  real settings file, read today, would fail the gate. Reversible: one
-  branch in `main()`. Not done: a behaviour change beyond the owner's (c).
-  Owner: Henry.
+- **An owner choice: what may stand at the local settings path** — taken
+  (2026-10-12, "1."), done in round 3: anything there but a regular file or
+  the placeholder fails. Cost, accepted: a link to a real settings file,
+  read before, fails the gate. Reversible: `local_problems` in
+  `check_guard_wiring.py`.
+- **Mutants R1 and R6 survive** (round 3): R1 removes the `islink` check —
+  the open's `O_NOFOLLOW` still refuses the link, with a less clear message;
+  R6 reads the file again by path instead of through the checked
+  descriptor — only a swap in that instant differs. Killing them needs a
+  test change (the message; a stand-in for `open`), so the fix-lock
+  released again — the owner's call. Owner: Henry.
 - **An owner choice: the fix-lock release in `development`.** The guard
   logs "releasing the fix-lock ends the fix phase — owner approves" and
   lets it through; in `auto` mode nothing stops the call (14:49:34). The
@@ -280,6 +350,13 @@ red        15:07:35  31 tests, 2 failures, 2 errors, 1 skipped                  
 fix-lock   on 15:07:41
 green      15:08:15  31 tests, OK, 1 skipped                                    green3.out
 mutants    17a19d5, 5c06300, M1-M6, V1, V2, V4, V5, V7: all red                 mutants3.out
+gate       15:09:39  on 8cfb268, in the worktree inside the sandbox, exit 0      gate2.out
+verifier   round 2: FAIL — a whiteout matched a regular /dev/null; K1, K2 survived; two overclaims
+fix-lock   off 15:27:10 (the owner approved: "Release after the verifier")
+red        15:28:29  33 tests, 6 failures, 1 skipped                              red3.out
+fix-lock   on 15:28:40
+green      15:29:45  33 tests, 1 error (os.fdopen on a folder); 15:30:02 OK, 1 skipped  green4.out
+mutants    15:30:08  17a19d5, 5c06300, 8cfb268, 21 of 23 red; R1, R6 survived      mutants4.out
 ```
 Receipts: `evidence/2026-10-12-wiring-sandbox-placeholder/`. `mutants.out`
 had trailing spaces on its two SURVIVED lines (an empty list after them);

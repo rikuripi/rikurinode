@@ -20,6 +20,7 @@ import copy
 import io
 import json
 import os
+import signal
 import stat
 import sys
 import tempfile
@@ -382,28 +383,43 @@ class Wiring(unittest.TestCase):
         # stands in for the bind: a test cannot mount one, and a symlink to it
         # is not the placeholder (below).
         with mock.patch.object(w, "LOCAL", os.devnull):
-            rc, out = run_with_local(lambda p: None)
-        self.assertEqual(rc, 0)
-        self.assertIn("/dev/null", out)
+            rc, out, _ = run_with_local(lambda p: None)
+            self.assertEqual(rc, 0)
+            self.assertIn("no local settings", out)
+            # Round 2's verifier: a placeholder that cleared or skipped the
+            # project file's findings (K1, K2) passed every test; it sits
+            # beside the project file in every sandboxed session.
+            self.assertEqual(run_with_local(lambda p: None, project=settings(disableAllHooks=True))[0], 1)
 
     def test_only_dev_null_itself_is_the_placeholder(self):
         # This change's mutants: any character device (M2), or a missing path
         # (M5), read as the placeholder survived the first tests. Its
         # verifier: a symlink was followed, so a link to /dev/stdin, or inside
         # the sandbox to any path shown as /dev/null, passed unread; a block
-        # device numbered like /dev/null (V1). By stat alone: nothing is opened.
+        # device numbered like /dev/null (V1). Round 2's verifier: where
+        # /dev/null is a regular file, a whiteout (character device 0:0)
+        # matched it — the number is Linux's fixed 1:3 now; a path lstat
+        # cannot reach (K11) is not the placeholder. By stat alone: nothing
+        # is opened.
         self.assertTrue(w.is_dev_null(os.devnull))
         self.assertFalse(w.is_dev_null("/dev/zero"))
         with tempfile.TemporaryDirectory() as d:
             self.assertFalse(w.is_dev_null(os.path.join(d, "missing.json")))
+            write(os.path.join(d, "file"), "")
+            self.assertFalse(w.is_dev_null(os.path.join(d, "file", "below")))
             for name, target in (("null", os.devnull), ("stdin", "/dev/stdin"), ("fd0", "/proc/self/fd/0")):
                 link = os.path.join(d, name)
                 os.symlink(target, link)
                 self.assertFalse(w.is_dev_null(link), target)
-        block = types.SimpleNamespace(st_mode=stat.S_IFBLK | 0o660, st_rdev=os.stat(os.devnull).st_rdev)
+        block = types.SimpleNamespace(st_mode=stat.S_IFBLK | 0o660, st_rdev=os.makedev(1, 3))
         with mock.patch.object(w.os, "lstat", return_value=block):
             self.assertFalse(w.is_dev_null("/dev/ram3"))
-        self.assertEqual(run_with_local(lambda p: None), (0, ""))
+        whiteout = types.SimpleNamespace(st_mode=stat.S_IFCHR, st_rdev=os.makedev(0, 0))
+        regular = types.SimpleNamespace(st_mode=stat.S_IFREG | 0o644, st_rdev=os.makedev(0, 0))
+        with mock.patch.object(w.os, "lstat", return_value=whiteout), \
+                mock.patch.object(w.os, "stat", return_value=regular):
+            self.assertFalse(w.is_dev_null("whiteout"))
+        self.assertEqual(run_with_local(lambda p: None), (0, "", ""))
 
     def test_the_placeholder_rule_covers_the_default_local_file_only(self):
         # Its verifier's surviving mutants: explicit paths (V5) and the project
@@ -413,42 +429,90 @@ class Wiring(unittest.TestCase):
             self.assertEqual(run_with_local(lambda p: None)[0], 1)
 
     def test_any_other_local_file_that_is_not_settings_fails(self):
-        # Only /dev/null reads as no settings. Round 18's verifier: a check
-        # using os.path.isfile passed every test and would skip a folder or a
-        # FIFO, which Claude Code may still read. A symlink to /dev/null is
-        # read, as before this change, and holds no settings.
-        def empty(p):
-            open(p, "w").close()
-
+        # Nothing at the local path is excused but /dev/null itself. Round
+        # 18's verifier: a check using os.path.isfile passed every test and
+        # would skip a folder or a FIFO, which Claude Code may still read.
         def unreadable(p):
             if os.geteuid() == 0:
                 self.skipTest("root reads a mode-000 file")
-            with open(p, "w") as f:
-                f.write("{}")
+            write(p, "{}")
             os.chmod(p, 0)
 
-        for name, make in (("empty", empty), ("folder", os.mkdir), ("unreadable", unreadable),
+        for name, make in (("empty", lambda p: write(p, "")), ("folder", os.mkdir), ("unreadable", unreadable),
                            ("symlink to /dev/null", lambda p: os.symlink(os.devnull, p))):
             with self.subTest(name=name):
                 self.assertEqual(run_with_local(make)[0], 1)
 
+    def test_the_local_file_is_read_only_as_a_regular_file(self):
+        # The owner's choice (2026-10-12): a link there is followed by its
+        # reader into a view this check may not share — inside the sandbox a
+        # link into a folder it hides dangles, outside it reaches a real file
+        # — and a FIFO with no writer stopped the check. Anything there but a
+        # regular file or the placeholder fails, a link to a harmless file too
+        # (the cost the owner accepted); a regular file is read as before.
+        def loop(p):
+            os.symlink(p, p)
 
-def run_with_local(make):
-    """The gate's default run, with the local settings path made by `make`:
-    (exit status, what it printed)."""
+        for name, make in (("dangling link", lambda p: os.symlink(p + ".nowhere", p)), ("link loop", loop),
+                           ("link to {}", harmless_link)):
+            with self.subTest(name=name):
+                rc, _, err = run_with_local(make)
+                self.assertEqual(rc, 1)
+                self.assertIn("link", err)
+        with self.subTest(name="FIFO, no writer"):
+            rc, _, err = run_with_local(os.mkfifo, timeout=5)
+            self.assertEqual(rc, 1)
+            self.assertIn("not a regular file", err)
+        self.assertEqual(run_with_local(lambda p: write(p, "{}")), (0, "", ""))
+
+    def test_a_swap_after_the_first_look_fails_closed(self):
+        # The path may change between the check's first look and its read:
+        # the read neither follows a link nor waits on a FIFO, and the open
+        # file is checked again. Stand-ins for a swap: the first look misses
+        # the link; the open file turns out to be a FIFO.
+        with_link_unseen = lambda: mock.patch.object(w.os.path, "islink", return_value=False)  # noqa: E731
+        self.assertEqual(run_with_local(harmless_link, during=with_link_unseen)[0], 1)
+        fifo = types.SimpleNamespace(st_mode=stat.S_IFIFO | 0o644)
+        opened_as_fifo = lambda: mock.patch.object(w.os, "fstat", return_value=fifo)  # noqa: E731
+        self.assertEqual(run_with_local(lambda p: write(p, "{}"), during=opened_as_fifo)[0], 1)
+
+
+def write(path, text):
+    with open(path, "w") as f:
+        f.write(text)
+
+
+def harmless_link(p):
+    write(p + ".target", "{}")
+    os.symlink(p + ".target", p)
+
+
+def run_with_local(make, project=None, during=None, timeout=None):
+    """The gate's default run, with the local settings path made by `make`,
+    beside `project` (the standard settings by default), inside the context
+    `during()` makes, failing if it takes more than `timeout` seconds:
+    (exit status, what it printed, what it reported)."""
+    def too_slow(*_):
+        raise AssertionError("the check did not finish in %d s" % timeout)
+
     here = os.getcwd()
     with tempfile.TemporaryDirectory() as d:
         os.makedirs(os.path.join(d, ".claude"))
         with open(os.path.join(d, ".claude", "settings.json"), "w") as f:
-            json.dump(settings(), f)
+            json.dump(settings() if project is None else project, f)
         local = os.path.join(d, ".claude", "settings.local.json")
+        before = signal.signal(signal.SIGALRM, too_slow)
         try:
             make(local)
             os.chdir(d)
-            with contextlib.redirect_stdout(io.StringIO()) as out:
-                rc = w.main(["check_guard_wiring.py"])
-            return rc, out.getvalue()
+            with contextlib.redirect_stdout(io.StringIO()) as out, contextlib.redirect_stderr(io.StringIO()) as err:
+                with during() if during else contextlib.nullcontext():
+                    signal.alarm(timeout or 0)
+                    rc = w.main(["check_guard_wiring.py"])
+            return rc, out.getvalue(), err.getvalue()
         finally:
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, before)
             os.chdir(here)
             if os.path.isfile(local) and not os.path.islink(local):
                 os.chmod(local, 0o600)
