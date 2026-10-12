@@ -900,7 +900,9 @@
         current folder, `git worktree add --orphan`).
       - **Green** 17:16:47–17:17:28: 39 rules, 934 worked examples, 91 guard tests
         (`r10-guard.out`); 68 quality-tool tests, 2,147 claim cases
-        (`r10-quality.out`); the gate (`r10-gate.out`).
+        (`r10-quality.out`); the gate on f1fdc07, all 7 steps
+        (`r10-gate.out`, added in the next commit, which changes only it and
+        this line).
 - [ ] Verifier, round 10: pending.
 
 ## 5. Close Out
