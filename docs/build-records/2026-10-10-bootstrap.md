@@ -1076,7 +1076,9 @@
       of 1 to 10 s; the modes in `MODES`, not those that skip the prompts);
       AGENTS.md no longer says `acceptEdits` keeps any prompt — only which
       modes skip them, as Claude Code's settings schema names them; the
-      Receipts paragraph corrected. The gate: `r13-gate.out` (next commit).
+      Receipts paragraph corrected. The gate on 0dd2660, all 7 steps (91,
+      72; `r13-gate.out`, in the next commit, which changes only it and
+      this line).
 - [ ] Verifier, round 13: pending (review only).
 
 ## 5. Close Out

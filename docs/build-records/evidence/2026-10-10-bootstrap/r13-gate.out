@@ -1,0 +1,109 @@
+2026-10-11 22:12:56
+0dd2660 docs(guard policy): round 13 — the record and the check's own text say exactly what it refuses
+
+== 1/7 pinned tools
+
+== 2/7 AI-session guard: wired to every tool, hooks on; policy as generated; every example and failure mode
+....usage: guard.py fix-lock on <build-record> | off [--session <id> | --global] | status
+.fix-lock NOT engaged — cannot read /tmp/tmp72e_q8no/guard-config.json: guard-config.json: 'fix_lock_preflight' must be a list of argv lists, e.g. [["node", "scripts/quality-ratchet.mjs"]]
+Nothing was changed. Fix it first, then engage.
+.fix-lock NOT engaged — preflight /usr/bin/python3 -c import sys; sys.exit(3) failed (exit 3):
+
+Nothing was changed. Fix it first, then engage.
+................................................................................usage: guard.py profile [stable | development]
+.....
+----------------------------------------------------------------------
+Ran 91 tests in 24.378s
+
+OK
+fix-lock ENGAGED for docs/build-records/a.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/b.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/x.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock released (docs/build-records/a.md)
+fix-lock released (docs/build-records/owner.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+profile: stable
+profile: stable -> development
+profile: development -> stable
+
+== 3/7 the quality tools' own tests (hygiene, guard wiring, guard policy, test-safety layer)
+............claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: permissions must be an object
+.claude/settings.local.json: permissions.allow must be a list of rules
+.claude/settings.local.json: env must be an object
+.claude/settings.local.json: hooks must be an object
+.claude/settings.local.json: hooks.PreToolUse must be a list
+..claude/settings.local.json: apiKeyHelper is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: statusLine is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: fileSuggestion is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: enabledPlugins is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: extraKnownMarketplaces is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: enableAllProjectMcpServers is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: otelHeadersHelper is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: newKey is not a settings key this check knows to leave the guard and the sandbox alone
+....claude/settings.local.json: the local settings may not add a PreToolUse hook
+.claude/settings.local.json: the local settings may not add a PreToolUse hook
+.claude/settings.local.json: a PermissionRequest hook could answer the guard's ask
+.claude/settings.local.json: a Stop hook runs a command outside the guard and the sandbox: only the guard's PreToolUse hook is wired here
+...claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: permissions.allow Edit(//home/junc/rikuri/**) widens the sandbox (merged into its writable paths, readable paths or domains)
+.claude/settings.local.json: permissions.allow WebFetch(domain:*) widens the sandbox (merged into its writable paths, readable paths or domains)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+...claude/settings.local.json: env.CLAUDE_CODE_DISABLE_SANDBOX names the sandbox or hooks
+.claude/settings.local.json: env.SANDBOX_RUNTIME names the sandbox or hooks
+.claude/settings.local.json: env.CLAUDE_CODE_HOOKS names the sandbox or hooks
+..claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: permissions.additionalDirectories gives sandboxed commands write access outside the repository
+....claude/settings.local.json: permissions.allow Edit widens the sandbox (merged into its writable paths, readable paths or domains)
+.claude/settings.local.json: permissions.allow Edit(//home/junc/**) widens the sandbox (merged into its writable paths, readable paths or domains)
+.claude/settings.local.json: permissions.allow Write(/tmp/**) widens the sandbox (merged into its writable paths, readable paths or domains)
+.claude/settings.local.json: permissions.allow MultiEdit(**) widens the sandbox (merged into its writable paths, readable paths or domains)
+.claude/settings.local.json: permissions.allow NotebookEdit(**) widens the sandbox (merged into its writable paths, readable paths or domains)
+.claude/settings.local.json: permissions.allow WebFetch widens the sandbox (merged into its writable paths, readable paths or domains)
+.claude/settings.local.json: permissions.allow WebFetch(domain:*) widens the sandbox (merged into its writable paths, readable paths or domains)
+.claude/settings.local.json: permissions.allow Read(//home/junc/rikuri/**) widens the sandbox (merged into its writable paths, readable paths or domains)
+...claude/settings.local.json: disableAllHooks is set — no hook runs, the guard included
+....claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+............................................
+----------------------------------------------------------------------
+Ran 72 tests in 15.412s
+
+OK
+
+== 4/7 repository hygiene: nothing tracked that belongs on the machine
+
+== 5/7 shell lint
+
+== 6/7 whitespace errors in every tracked file, committed or not
+
+== 7/7 secret scan of history
+10:13PM INF 10 commits scanned.
+10:13PM INF scanned ~1579623 bytes (1.58 MB) in 235ms
+10:13PM INF no leaks found
+
+full-gate: all 7 steps passed
+exit 0
+2026-10-11 22:13:37
