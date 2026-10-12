@@ -43,7 +43,7 @@
       before this change), and where `/dev/null` is a regular file a
       whiteout passed; round 3 makes it so: the owner's choice R4 below,
       and Linux's fixed number for `/dev/null`]; R3 explicit paths on the
-      command line are read as before; R4 (round 3, the owner's choice,
+      command line are read as before; R4 (rounds 3 and 4, the owner's choice,
       2026-10-12) anything at the local path but the placeholder must be a
       regular file, read in place: a link (dangling or not), a folder, a
       FIFO, a device, a socket fails.
@@ -57,7 +57,7 @@
       `/dev/null`, and those passed unread where the old check failed
       closed. Now `os.lstat(path)`: only `/dev/null` itself, as the check's
       own mount namespace shows it; a link is read as before this change]
-      [superseded by round 3: `os.lstat(path)` compared with Linux's fixed
+      [superseded by rounds 3 and 4: `os.lstat(path)` compared with Linux's fixed
       number for `/dev/null`, 1:3 (`DEV_NULL`), not with `os.stat(os.devnull)`;
       a link at the path is refused without being read — round 3's
       verifier].
@@ -116,10 +116,10 @@
 ## 2. Build
 - [x] New code meets the bar: `is_dev_null(path) -> bool`, 10 lines, a
       `stat` comparison with no read; the file stays under 300 lines
-      [309 at round 3 (257 → 275 → 277 → 309), under the procedure's ~800 —
+      [309 at round 3 (257 → 275 → 277 → 309), 312 at round 4, under the procedure's ~800 —
       round 3's verifier].
 - [x] Clean as you go: the existence check is kept, behind the new one;
-      nothing replaced [round 3 replaced it: `exists` became `lexists`, and
+      nothing replaced [rounds 3 and 4 replaced it: `exists` became `lexists`, and
       the local file's read moved into `local_problems` — round 3's
       verifier].
 - [x] Security question: it touches a security gate (whether the guard is
@@ -368,6 +368,33 @@
       the order; its regression test comes in round 4 and is proven red on
       8cfb268 there. K1, K2, K10, K11, X1, R1 and the owner's choice for
       the local path are tests or new behaviour: round 4.
+- [x] **Round 4** (committed as 62c102b before it, 16:16). Fix-lock
+      released at 16:16:18 (the owner's approvals: "Release after the
+      verifier", and "Release; add both" for X1 and R1). Tests first: round
+      3's test file (`6dd50b67…`, reviewed by its verifier) plus a device at
+      the local path (X1: `/dev/ptmx`, "not a regular file") and the link
+      message asserted (R1: "never through a link"); red at 16:16:40 on
+      62c102b (`red4.out`: 33 tests, 6 failures — the swap stand-in, the
+      dangling link, the loop, the link to `{}`, and the FIFO and the
+      device stopped by the 5 s alarm; the whiteout test already green).
+      Fix-lock on at 16:16:57; the code: `problems(opened=)`,
+      `local_problems`, `lexists`, as round 3 had it, with the parent-folder
+      sentence. The first green run (16:17:24) failed the device case:
+      inside the sandbox and `safe-run.sh`, `/dev/ptmx` is a link to
+      `pts/ptmx`, so the check refused it as a link — the test was wrong,
+      not the code; the mutant run beside it had a failing baseline and
+      means nothing (both receipts overwritten by the runs below). The
+      owner approved releasing the lock to fix the test (16:20:19): the
+      device is `os.path.realpath("/dev/ptmx")`, skipped if not a character
+      device. Red again on 62c102b's check at 16:20:28 (`red4b.out`: the
+      same 6 failures, the device stopped by the alarm) — for that run the
+      file held 62c102b's check, put back byte for byte after it
+      (`71e67276…`). Fix-lock on at 16:20:46 (the test file `38e60813…`).
+      Green at 16:20:46 (`green5.out`): 33 tests, OK, 1 skipped; the real
+      placeholder: exit 0 with the note. Mutants (`mutants5.out`; both
+      files' sha256 unchanged by the run): 17a19d5, 5c06300, 8cfb268,
+      62c102b red; 22 of 24 mutants red; survived: R6 (listed) and X2
+      (under `safe-run.sh` only, below).
 - [x] Diff against the §1 plan: the files named, and also the bootstrap
       record's Status row (it said the gate fails inside the sandbox; it
       now points here) and `mut_wsp.py` kept as a receipt.
@@ -391,7 +418,8 @@
 - **Mutant X1 survives** (round 3's verifier): no test puts an openable
   device at the local path, so "a device fails" is held by the code
   (`/dev/ptmx` observed failing) but by no test. A test needs the fix-lock
-  released — the owner's call. Owner: Henry.
+  released — the owner's call. Owner: Henry. [Done in round 4, the owner's
+  choice: X1 red.]
 - **The release at 15:27:10** went beyond the terms the owner approved (see
   4. Verify). The owner's ruling: it does not stand; round 3 reverted and
   redone. Owner: Henry.
@@ -400,7 +428,13 @@
   R6 reads the file again by path instead of through the checked
   descriptor — only a swap in that instant differs. Killing them needs a
   test change (the message; a stand-in for `open`), so the fix-lock
-  released again — the owner's call. Owner: Henry.
+  released again — the owner's call. Owner: Henry. [Round 4, the owner's
+  choice: R1 red (the link message asserted); R6 stays: catching it needs a
+  stand-in for `open`.]
+- **Mutant X2 survives under `safe-run.sh`** (round 4): a "Permission
+  denied" open excused passes there, because the mode-000 case is skipped
+  as root; it is killed where that case runs — as uid 1000 (round 3's
+  verifier) and in CI. Owner: Henry.
 - **An owner choice: the fix-lock release in `development`.** The guard
   logs "releasing the fix-lock ends the fix phase — owner approves" and
   lets it through; in `auto` mode nothing stops the call (14:49:34). The
@@ -438,6 +472,15 @@ mutants    15:30:08  17a19d5, 5c06300, 8cfb268, 20 of 22 red; R1, R6 survived   
 gate       15:31:51  on 0a5823c, in the worktree inside the sandbox, exit 0      gate3.out
 verifier   round 3: FAIL on claims — the code held (0 passes in ~780,000 races); "21 of 23"; §0b, §2;
            X1 survives; the 15:27:10 release beyond its approved terms
+ruling     the owner: "Redo round 3" — fix-lock off 16:15:17; reverted to 8cfb268 (454bc56); on 16:15:42
+locked     16:15:56  the fixed 1:3 under the lock; round 2's 31 tests, OK      locked-fix.out (62c102b)
+fix-lock   off 16:16:18 (the owner approved)
+red        16:16:40  33 tests, 6 failures, 1 skipped                              red4.out
+fix-lock   on 16:16:57; off 16:20:19 (the owner approved: the device test was wrong)
+red        16:20:28  on 62c102b's check, 33 tests, 6 failures, 1 skipped          red4b.out
+fix-lock   on 16:20:46
+green      16:20:46  33 tests, OK, 1 skipped                                    green5.out
+mutants    17a19d5, 5c06300, 8cfb268, 62c102b and 22 of 24 red; R6, X2 survived  mutants5.out
 ```
 Receipts: `evidence/2026-10-12-wiring-sandbox-placeholder/`. `mutants.out`
 had trailing spaces on its two SURVIVED lines (an empty list after them);

@@ -3,8 +3,8 @@ own test_guard_wiring.py: each version is loaded in memory as the module the
 tests import; nothing on disk changes. Run from the repository root.
 Record: docs/build-records/2026-10-12-wiring-sandbox-placeholder.md (mutants.out
 came from an earlier version of this runner, mutants2.out from one that read the
-old check from HEAD; mutants3.out from round 2's list; this one names its
-commits)."""
+old check from HEAD; mutants3.out from round 2's list, mutants4.out from round
+3's; this one names its commits)."""
 import contextlib
 import importlib.util
 import os
@@ -15,7 +15,7 @@ import unittest
 SRC_PATH = "scripts/quality/check_guard_wiring.py"
 SRC = open(SRC_PATH).read()
 OLD = [("M0 before this change (17a19d5)", "17a19d5"), ("M0b the first fix, stat (5c06300)", "5c06300"),
-       ("M0c round 2, lstat (8cfb268)", "8cfb268")]
+       ("M0c round 2, lstat (8cfb268)", "8cfb268"), ("M0d the fix under the lock (62c102b)", "62c102b")]
 IS_NULL = "return stat.S_ISCHR(here.st_mode) and here.st_rdev == DEV_NULL"
 NOTE = "print(\"%s is /dev/null (the sandbox's placeholder): no local settings\" % LOCAL)"
 FLAGS = "os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK"
@@ -44,6 +44,12 @@ MUTANTS = [
     ("R5 exists for lexists", "elif os.path.lexists(LOCAL):", "elif os.path.exists(LOCAL):"),
     ("R6 read again by path, not the open file", "return problems(path, require_guard=False, opened=f)",
      "return problems(path, require_guard=False)"),
+    ("X1 not regular narrowed to FIFO or folder", "if not stat.S_ISREG(mode):",
+     "if stat.S_ISFIFO(mode) or stat.S_ISDIR(mode):"),
+    ("X2 a Permission-denied open excused",
+     "        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)\n    except OSError as e:",
+     "        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)\n    except PermissionError:\n"
+     "        return []\n    except OSError as e:"),
     ("V4 the note on stderr", NOTE, NOTE[:-1] + ", file=sys.stderr)"),
     ("V5 explicit paths excused too", "            found += problems(p)\n",
      "            found += [] if is_dev_null(p) else problems(p)\n"),

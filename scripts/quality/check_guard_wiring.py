@@ -25,8 +25,9 @@ green with "disableAllHooks": true or a command that merely mentioned the
 guard.
 
 Usage: check_guard_wiring.py [settings.json …]   (default: .claude/settings.json,
-and .claude/settings.local.json when present and not /dev/null itself, the
-sandbox's placeholder) — exit 0 wired, 1 not.
+and .claude/settings.local.json when present: /dev/null itself, the sandbox's
+placeholder, is no local settings; anything else there must be a regular file)
+— exit 0 wired, 1 not.
 Record: docs/build-records/2026-10-10-bootstrap.md;
 docs/build-records/2026-10-12-wiring-sandbox-placeholder.md
 """
@@ -216,10 +217,14 @@ def hook_problems(path: str, settings: dict, full: bool) -> tuple:
     return found, covered, open_on_failure
 
 
-def problems(path: str, require_guard: bool = True) -> list:
+def problems(path: str, require_guard: bool = True, opened=None) -> list:
+    """`opened`: the file, already open (the local file, read in place)."""
     try:
-        with open(path) as f:
-            settings = json.load(f)
+        if opened is None:
+            with open(path) as f:
+                settings = json.load(f)
+        else:
+            settings = json.load(opened)
     except (OSError, ValueError) as e:
         return ["%s: cannot read the settings (%s)" % (path, e)]
     if not isinstance(settings, dict):
@@ -259,6 +264,33 @@ def is_dev_null(path: str) -> bool:
     return stat.S_ISCHR(here.st_mode) and here.st_rdev == DEV_NULL
 
 
+def local_problems(path: str) -> list:
+    """The local file, read only as a regular file in place (owner,
+    2026-10-12): its reader follows a link into a view this check may not
+    share — inside the sandbox a link into a folder it hides dangles, outside
+    it reaches a real file — and a FIFO with no writer stopped the check. The
+    open neither follows a link at the path itself (one among its parent
+    folders is followed, as its reader would follow it) nor waits on a FIFO,
+    and the open file is checked again, so a swap after the first look fails
+    closed."""
+    if os.path.islink(path):
+        return ["%s: a link — only a regular file is read here, never through a link" % path]
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    except OSError as e:
+        return ["%s: cannot read the settings (%s)" % (path, e)]
+    try:
+        mode = os.fstat(fd).st_mode
+    except OSError as e:
+        os.close(fd)
+        return ["%s: cannot read the settings (%s)" % (path, e)]
+    if not stat.S_ISREG(mode):
+        os.close(fd)
+        return ["%s: not a regular file (%s) — only a regular file is read here" % (path, stat.filemode(mode))]
+    with os.fdopen(fd) as f:
+        return problems(path, require_guard=False, opened=f)
+
+
 def main(argv: list) -> int:
     paths = argv[1:]
     found = []
@@ -269,8 +301,8 @@ def main(argv: list) -> int:
         found += problems(PROJECT)
         if is_dev_null(LOCAL):
             print("%s is /dev/null (the sandbox's placeholder): no local settings" % LOCAL)
-        elif os.path.exists(LOCAL):  # may switch every hook, or the sandbox, off here
-            found += problems(LOCAL, require_guard=False)
+        elif os.path.lexists(LOCAL):  # anything there, a dangling link too, may switch every hook, or the sandbox, off
+            found += local_problems(LOCAL)
     for line in found:
         print(line, file=sys.stderr)
     return 1 if found else 0
