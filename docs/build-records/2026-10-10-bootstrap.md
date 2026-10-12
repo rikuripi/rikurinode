@@ -1151,7 +1151,9 @@
       and environment messages and its comment say only what the schema
       or the list says. The costed default's two "it asks" now say it asks
       in `stable` and is logged in `development`. Round 14's entry above
-      stays as written; this entry corrects its citation. The gate: below.
+      stays as written; this entry corrects its citation. The gate on
+      ddc759b, all 7 steps (91, 72; `r15-gate.out`, in the next commit,
+      which changes only it and this line).
 - [ ] Verifier, round 15: not run — whether the review-only loop
       continues is the owner's to decide (asked 2026-10-11).
 
