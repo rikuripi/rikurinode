@@ -1,0 +1,134 @@
+# the sandbox's drill, round 18 (2026-10-12). The owner's prompt: round 9's (r9-drill2.out) without
+# its --settings option. The session, from its transcript: Claude Code 2.1.296, entrypoint cli,
+# permission mode auto, cwd /home/junc/claude-wip/guard-continuation/wt-main (a worktree of
+# /home/junc/rikuripi/rikurinode), branch docs/on-github. Each command ran as its own Bash call, once.
+# Times are the transcript's tool-call times, UTC (14:20:45-14:22:13 PDT).
+# Outputs below are the tool results, verbatim.
+
+## 1  2026-10-12T21:20:45.873Z
+$ touch "$HOME/.rikurinode-sandbox-probe"; echo "status=$?"
+touch: cannot touch '/home/junc/.rikurinode-sandbox-probe': Read-only file system
+status=1
+
+## 2  2026-10-12T21:20:48.559Z
+$ python3 -c "open('scripts/quality/' + 'hooks/.sandbox-probe', 'w'); print('written')"
+Exit code 1
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    open('scripts/quality/' + 'hooks/.sandbox-probe', 'w'); print('written')
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 30] Read-only file system: 'scripts/quality/hooks/.sandbox-probe'
+
+## 3  2026-10-12T21:20:58.401Z
+$ python3 -c "open('/home/junc/rikuripi/rikurinode/.git/' + 'hooks/.sandbox-probe', 'w'); print('written')"
+Exit code 1
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    open('/home/junc/rikuripi/rikurinode/.git/' + 'hooks/.sandbox-probe', 'w'); print('written')
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 30] Read-only file system: '/home/junc/rikuripi/rikurinode/.git/hooks/.sandbox-probe'
+
+## 4  2026-10-12T21:21:10.346Z
+$ touch sandbox-probe.tmp && rm sandbox-probe.tmp && echo inside-ok
+inside-ok
+
+## 5  2026-10-12T21:21:15.500Z
+$ python3 -c "import socket; s=socket.socket(socket.AF_UNIX); s.connect('/var/run/' + 'docker' + '.sock'); print('connected')"
+Exit code 1
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import socket; s=socket.socket(socket.AF_UNIX); s.connect('/var/run/' + 'docker' + '.sock'); print('connected')
+                     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/socket.py", line 236, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 1] Operation not permitted
+
+## 6  2026-10-12T21:21:51.502Z
+$ curl -sS -m 8 -o /dev/null -w '%{http_code}' https://example.com
+Exit code 7
+curl: (7) CONNECT tunnel failed, response 403
+000
+# Claude Code's annotation on the result:
+deny network-outbound example.com:443 (not in this command's allowed_domains — re-run the command with this host listed if it needs it)
+
+## 7  2026-10-12T21:21:54.000Z
+$ curl -sS -m 8 -o /dev/null -w '%{http_code}' https://api.github.com
+200
+
+## 8  2026-10-12T21:21:59.030Z
+$ ls /home/junc/rikuri/rikurinode/data | wc -l; ls /run/rikuri | wc -l
+0
+0
+
+## 9  2026-10-12T21:22:13.812Z
+$ python3 -c "import socket; socket.create_connection(('127.0.0.1', 10009), 3); print('connected')"
+Exit code 1
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import socket; socket.create_connection(('127.0.0.1', 10009), 3); print('connected')
+                   ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/socket.py", line 870, in create_connection
+    raise exceptions[0]
+  File "/usr/lib/python3.14/socket.py", line 855, in create_connection
+    sock.connect(sa)
+    ~~~~~~~~~~~~^^^^
+ConnectionRefusedError: [Errno 111] Connection refused
+
+# ---------------------------------------------------------------------------------------------
+# After the drill, in the same session and sandbox (2026-10-12, 14:23-14:25 PDT), read-only:
+
+$ grep -E ' /home/junc/rikuri/rikurinode/(data|\.env) | /run/rikuri ' /proc/self/mountinfo
+8245 8210 0:206 / /run/rikuri rw,nosuid,nodev,relatime - tmpfs tmpfs rw,mode=755,uid=1000,gid=1000,inode64
+11461 8194 0:7 /null /home/junc/rikuri/rikurinode/.env ro,nosuid,nodev,relatime - devtmpfs udev rw,size=11984452k,nr_inodes=2996113,mode=755,inode64
+11462 8194 0:214 / /home/junc/rikuri/rikurinode/data rw,nosuid,nodev,relatime - tmpfs tmpfs rw,mode=755,uid=1000,gid=1000,inode64
+
+$ cat /proc/net/tcp            # the sandbox's network namespace: 0x0438 = 1080, 0x0C38 = 3128, both listening
+  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode
+   0: 00000000:0438 00000000:0000 0A 00000000:00000000 00:00000000 00000000  1000        0 21397637 1 0000000000000000 100 0 0 10 0
+   1: 00000000:0C38 00000000:0000 0A 00000000:00000000 00:00000000 00000000  1000        0 21391705 1 0000000000000000 100 0 0 10 0
+$ wc -l < /proc/net/tcp6
+1
+$ ip -brief addr
+lo               UNKNOWN        127.0.0.1/8 ::1/128
+# HTTPS_PROXY points at localhost:3128 (its credential is left out of this receipt)
+
+$ ps -e --no-headers | wc -l   # a private process list
+4
+
+$ git status                   # its untracked list, inside the sandbox
+	.bash_profile
+	.bashrc
+	.claude/commands
+	.claude/launch.json
+	.claude/loop.md
+	.claude/output-styles
+	.claude/routines
+	.claude/scheduled_tasks.json
+	.claude/skills
+	.claude/workflows
+	.gitconfig
+	.gitmodules
+	.idea
+	.mcp.json
+	.profile
+	.ripgreprc
+	.vscode
+	.zprofile
+	.zshrc
+$ ls -la --time-style=full-iso <the 19 paths>   # two of its 19 lines; all 19 alike: /dev/null, 1,3
+crw-rw-rw- 1 nobody nogroup 1, 3 2026-10-11 18:44:06.941328330 -0700 .bashrc
+crw-rw-rw- 1 nobody nogroup 1, 3 2026-10-11 18:44:06.941328330 -0700 .claude/skills
+$ git add --dry-run --all
+error: .bash_profile: can only add regular files, symbolic links or git-directories
+fatal: adding files failed
+# The session's opening git status, taken by Claude Code before any command ran: clean.
+
+$ gh auth status
+github.com
+  X Failed to log in to github.com account hchengit (/home/junc/.config/gh/hosts.yml)
+  - Active account: true
+  - The token in /home/junc/.config/gh/hosts.yml is invalid.
+
+# Not done: the node's start times were not compared (the process list is private and the
+# Docker socket refused, probe 5); .env was not read.

@@ -5,8 +5,8 @@
 | **Date** | 2026-10-10 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | main |
-| **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (its gate receipt), 737bb47 and 87e2249 (the record only), db4a3ac (round 11), 3540614 (its gate receipt), 26d6862 (round 12), 383a6dc (its gate receipt), 0dd2660 (round 13), 439d295 (its gate receipt), 8117fc4 (round 14), 5628ac1 (its gate receipt), ddc759b (round 15), 91ca836 (its gate receipt), bccf79d (round 16), 69e52a6 (its gate receipt; the first commit on GitHub), and round 17: the commits of the pull request that adds this line |
-| **Status** | Rounds 1–13 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings, claims wider than the tests or the code); rounds 14 and 15 FAIL on wording (round 14's verifier also found a crash that failed closed, fixed in round 15); round 16 (wording) committed, with no check round after it by the owner's stop rule (2026-10-11); on GitHub since 2026-10-12, CI green on `main`, `main` protected by the owner's ruleset — a direct push refused and a planted failing test blocked (round 17); the sandbox's drill Not yet proven |
+| **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (its gate receipt), 737bb47 and 87e2249 (the record only), db4a3ac (round 11), 3540614 (its gate receipt), 26d6862 (round 12), 383a6dc (its gate receipt), 0dd2660 (round 13), 439d295 (its gate receipt), 8117fc4 (round 14), 5628ac1 (its gate receipt), ddc759b (round 15), 91ca836 (its gate receipt), bccf79d (round 16), 69e52a6 (its gate receipt; the first commit on GitHub), round 17: the commits of the pull request that adds this line, and round 18 (the sandbox's drill): the commit that adds its entry |
+| **Status** | Rounds 1–13 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings, claims wider than the tests or the code); rounds 14 and 15 FAIL on wording (round 14's verifier also found a crash that failed closed, fixed in round 15); round 16 (wording) committed, with no check round after it by the owner's stop rule (2026-10-11); on GitHub since 2026-10-12, CI green on `main`, `main` protected by the owner's ruleset — a direct push refused and a planted failing test blocked (round 17); the sandbox's drill: nine of nine probes as intended, in a worktree session in `auto` mode, not independently checked (round 18) |
 | **Change type** | bootstrap (process, security gates) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -646,8 +646,8 @@
         repository, run by the owner with sudo) is not yet run [it ran the
         same day, 11:43 — round 12, `r12-bwrap-check.out`]. Until it is
         and the drill passes, the sandbox is **Not yet proven**, and on this
-        machine a session here cannot run shell commands at all. The drill
-        also hit the guard's own friction: `curl -w '%{http_code}\n'` asks
+        machine a session here cannot run shell commands at all [the drill's
+        nine probes came out as intended in round 18]. The drill also hit the guard's own friction: `curl -w '%{http_code}\n'` asks
         (the `\n` reads as a continued line).
       - **The read exemption** now ends when a segment also runs a lone `&`
         or a `$(…)`: the round-8 verifier's `&` forms all ask.
@@ -1212,6 +1212,53 @@
       (`r17-red-drill.out`); it was closed unmerged and its branch deleted.
       The pull request that adds this entry is the first change to reach
       `main` through the gate.
+- [x] **Round 18: the sandbox's drill** (2026-10-12, 14:20:45–14:22:13;
+      the owner's prompt, round 9's without its `--settings` option;
+      `r18-sandbox-drill.out`). The session, from its transcript: Claude
+      Code 2.1.296 (the CLI), permission mode `auto`, opened in the worktree
+      `/home/junc/claude-wip/guard-continuation/wt-main`, not in
+      `/home/junc/rikuripi/rikurinode`. The sandbox started: every command
+      ran, and round 9's seccomp failure did not recur. Each probe came out
+      as intended:
+      (1) a write in the home folder: "Read-only file system";
+      (2) a write into `scripts/quality/hooks` and (3) into the main
+      checkout's `.git/hooks`: `OSError: [Errno 30] Read-only file system`;
+      (4) a write and removal inside the repository: allowed;
+      (5) a Unix socket: refused when it is created, before any connect,
+      `PermissionError: [Errno 1] Operation not permitted`;
+      (6) `example.com`: refused by the sandbox's proxy, "CONNECT tunnel
+      failed, response 403" (exit 7), with no prompt: in `auto` mode an
+      unlisted host is refused unless the command names it in
+      `allowed_domains`; the prompt the other modes give was not drilled;
+      (7) `api.github.com`: 200;
+      (8) the previous checkout's `data/` and `/run/rikuri`: listed as
+      empty, with no error: the sandbox mounts an empty tmpfs over each,
+      and `/dev/null` over `.env` (`/proc/self/mountinfo`; `.env` itself
+      was not read);
+      (9) `127.0.0.1:10009`: "Connection refused", from the sandbox's own
+      network namespace, where only `lo` exists and only the proxy's two
+      ports listen (3128, 1080; `/proc/net/tcp`). It shows nothing about
+      the host's port.
+      Not drilled: a local port or `localhost` named through the sandbox's
+      proxy; the forms the guard misses that the hook folder's write
+      protection is meant to stop (round 9's verifier: `:(icase)`
+      pathspecs, `git worktree add --orphan`, `cp -r /tmp/scripts .`, `tar
+      -xf` into the current folder, a path through `..`); only a direct
+      write was probed. A session opened in the repository itself. The
+      node's start times were not compared: inside the sandbox the process
+      list is private (4 processes) and the Docker socket is refused (probe
+      5). Seen after the drill, in the same sandbox: `git status` lists 19
+      untracked paths (`.bashrc`, `.mcp.json`, `.idea`, `.claude/skills`,
+      …), each `/dev/null` (character device 1,3), the sandbox's mounts
+      over protected paths that do not exist here, so `git add --all`
+      fails ("can only add regular files, symbolic links or
+      git-directories"); whether they remain outside the sandbox is not
+      shown (the session's opening `git status`, taken before any command,
+      was clean). `gh` reports its token invalid inside the sandbox (cause
+      not established). `AGENTS.md` (the owner: "Yes update"): the drill's
+      results replace "Not yet proven on this machine", with what is still
+      not proven; the `auto` mode refusal; the hook folder's line in "What
+      gets through the guard".
 
 ## 5. Close Out
 
@@ -1289,17 +1336,19 @@
 - **Round 16 is not independently checked** (the owner's stop rule,
   2026-10-11): its wording fixes stand on my reading and the gate. Owner:
   Henry. Reactivate: the next change to these files gets its own check.
-- **The sandbox's drill** (round 9): Not yet proven. The owner's AppArmor
-  change ran on 2026-10-11 at 11:43, and bubblewrap now starts a user
-  namespace (`r12-bwrap-check.out`); whether Claude Code's sandbox starts —
-  round 9's drill failed in its seccomp helper, which needs a nested one —
-  and what it refuses (writes outside the repository, the hook folder, a
-  Unix socket, a local port, an unlisted site, the previous checkout's
-  secrets; a write inside the repository allowed) is the drill's to show.
-  Claude's safety classifier stopped me preparing the drill (2026-10-11);
-  the owner may run it from round 9's receipt (`r9-drill2.out`, its prompt
-  without the `--settings` option). Owner: Henry. Reactivate: the owner's
-  drill.
+- **The sandbox's drill** (rounds 9 and 18): its nine probes came out as
+  intended in round 18 (`r18-sandbox-drill.out`): writes outside the
+  repository and into both hook folders refused, a write inside allowed, a
+  Unix socket, a local port and an unlisted site refused, GitHub reached,
+  the previous checkout's `data/` and `/run/rikuri` hidden. Not yet proven:
+  the prompt for an unlisted host outside `auto` mode; a local port named
+  through the sandbox's proxy; the hook-folder forms the guard misses; a
+  session opened in `/home/junc/rikuripi/rikurinode` rather than a
+  worktree; an independent check. Friction seen: 19 `/dev/null` mount
+  points show as untracked inside the sandbox and `git add --all` fails on
+  them (stage by name, as `AGENTS.md` already asks); `gh` reports its token
+  invalid there. Owner: Henry. Reactivate: the first session opened in the
+  repository itself; a change to the sandbox block.
 - **The pre-commit hook is not a boundary** (rounds 3–10): what always asks,
   and what gets through, is listed in `AGENTS.md` and held by
   `test_guard_claims.py`. Not covered: a path relative to a folder entered
@@ -1310,7 +1359,8 @@
   worktree add --orphan`, `cp -r /tmp/scripts .`, `tar -xf` into the
   current folder (round 9's verifier; listed, not chased, by the owner's
   choice in round 10: the sandbox's write protection of the hook's folder
-  is meant to stop them once its drill passes); variables and words the
+  is meant to stop them; round 18's drill saw it refuse a direct write,
+  not these forms); variables and words the
   shell assembles; `~/.gitconfig`; and
   in `development`, copying into `scripts/quality` and file-tool edits
   (logged, not asked). The shared `guard.py` splits at every `|` and judges
@@ -1439,6 +1489,8 @@ round 17 pushed (69e52a6); CI green on main: runs 38215946599 and 38215946566 (r
          the owner's ruleset "Protect main" (r17-ruleset.json)
          drills: direct push to main refused, GH013 (r17-direct-push.out); pull request #1 with a planted
          failing test: Full gate (Ubuntu) red on that test, BLOCKED, closed unmerged (r17-red-drill.out)
+round 18 the sandbox's drill, 14:20:45-14:22:13, Claude Code 2.1.296, auto mode, a worktree session:
+         9 of 9 probes as intended (r18-sandbox-drill.out); not independently checked
 ```
 Receipts: `evidence/2026-10-10-bootstrap/` — `gate-round1.out` to
 `gate-round3.out`, `gate-round3b.out` (the "round 3, continued" gate) and

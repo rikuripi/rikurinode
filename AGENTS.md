@@ -47,7 +47,8 @@ ported with their tests, not copied wholesale.
   a Unix socket (the Docker socket drives the live node) or a local port,
   reaches GitHub's domains without a prompt and any other host only after
   a prompt (`strictAllowlist`, which would refuse them, is ignored in
-  project settings, per Claude Code's settings schema), and cannot read
+  project settings, per Claude Code's settings schema; in `auto` mode a
+  command that does not list the host is refused, with no prompt), and cannot read
   the previous checkout's `.env` and `data/` or `/run/rikuri`. The sandbox
   itself protects `.git/hooks`, `.git/config` and the paths it names under
   `.claude` (not `.claude/state`, as round 9's verifier read Claude Code's
@@ -85,12 +86,22 @@ ported with their tests, not copied wholesale.
   Claude Code 2.1.295 or later (`onFailure`: the version Claude Code's
   hooks reference gave when round 4 of the bootstrap read it; round 4's
   verifier found the setting in the installed 2.1.295 settings schema,
-  absent from 2.1.289, 2.1.292 and the 2.1.221 binary). **Not yet proven on this
-  machine:** the sandbox's drill. Ubuntu's AppArmor rule for bubblewrap
-  (`bwrap-userns-restrict`) stopped the sandbox from starting (drill,
-  2026-10-11); the owner relaxed it for bubblewrap the same day, and
-  bubblewrap now starts a user namespace (`r12-bwrap-check.out`); whether
-  Claude Code's sandbox starts, and what it refuses, is the drill's to show.
+  absent from 2.1.289, 2.1.292 and the 2.1.221 binary). **The drill**
+  (2026-10-12, `r18-sandbox-drill.out`), in a session opened in a worktree
+  of this repository, in `auto` mode: the sandbox started and refused a
+  write in the home folder, in `scripts/quality/hooks` and in `.git/hooks`,
+  a Unix socket, a local port and an unlisted site; it allowed a write
+  inside the repository and GitHub; it showed the previous checkout's
+  `data/` and `/run/rikuri` as empty folders. It starts only because the
+  owner relaxed Ubuntu's AppArmor rule for bubblewrap
+  (`bwrap-userns-restrict`, 2026-10-11, `r12-bwrap-check.out`); before
+  that it failed closed. **Not yet proven:** the prompt for an unlisted
+  host in the other modes; a local port named through the sandbox's proxy;
+  the hook-folder forms under "What gets through the guard"; a session
+  opened in this folder itself. Inside the sandbox, paths it protects that
+  do not exist here (`.bashrc`, `.mcp.json`, `.claude/skills`, …) show as
+  untracked `/dev/null` devices, and `git add --all` fails on them: stage
+  by name.
 - `.claude/hooks/guard.py` (with `guard_base.py` and `test_guard.py`,
   identical in every Full-tier repository) runs before each `Bash`,
   `Read`, `Edit`, `Write`, `MultiEdit`, `NotebookEdit` and `Grep` call
@@ -208,8 +219,8 @@ ported with their tests, not copied wholesale.
   add --orphan`, copying a folder named `scripts` into the repository root
   (`cp -r /tmp/scripts .`), `tar -xf` into the current folder, and a path
   through `..` (`rm -rf ../rikurinode/scripts`) — for the hook's folder,
-  the sandbox's write protection is meant to stop them, once its drill
-  passes; a node tool named through a variable or a word the shell
+  the sandbox's write protection is meant to stop them (its drill saw it
+  refuse a direct write, not these forms); a node tool named through a variable or a word the shell
   assembles (`T=lnc; ${T}li …`, `ln""cli`), or run from a script file the
   guard does not read (`bash /tmp/x.sh`); other words the shell assembles
   (`core.hoo""ksPath`, `$'…'`); a credential file with a generic name
