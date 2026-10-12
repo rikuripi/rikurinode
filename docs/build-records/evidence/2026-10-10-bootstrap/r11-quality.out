@@ -1,0 +1,53 @@
+2026-10-11 21:38:44
+............claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: permissions must be an object
+.claude/settings.local.json: permissions.allow must be a list of rules
+.claude/settings.local.json: env must be an object
+.claude/settings.local.json: hooks must be an object
+.claude/settings.local.json: hooks.PreToolUse must be a list
+..claude/settings.local.json: apiKeyHelper is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: statusLine is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: fileSuggestion is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: enabledPlugins is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: extraKnownMarketplaces is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: enableAllProjectMcpServers is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: otelHeadersHelper is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: newKey is not a settings key this check knows to leave the guard and the sandbox alone
+....claude/settings.local.json: the local settings may not add a PreToolUse hook
+.claude/settings.local.json: the local settings may not add a PreToolUse hook
+.claude/settings.local.json: a PermissionRequest hook could answer the guard's ask
+.claude/settings.local.json: a Stop hook runs a command outside the guard and the sandbox: only the guard's PreToolUse hook is wired here
+...claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: permissions.allow Edit(//home/junc/rikuri/**) widens the sandbox (merged into its writable paths, readable paths or domains)
+.claude/settings.local.json: permissions.allow WebFetch(domain:*) widens the sandbox (merged into its writable paths, readable paths or domains)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+...claude/settings.local.json: env.CLAUDE_CODE_DISABLE_SANDBOX names the sandbox or hooks
+.claude/settings.local.json: env.SANDBOX_RUNTIME names the sandbox or hooks
+.claude/settings.local.json: env.CLAUDE_CODE_HOOKS names the sandbox or hooks
+..claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: permissions.additionalDirectories gives sandboxed commands write access outside the repository
+....claude/settings.local.json: permissions.allow Edit widens the sandbox (merged into its writable paths, readable paths or domains)
+.claude/settings.local.json: permissions.allow Edit(//home/junc/**) widens the sandbox (merged into its writable paths, readable paths or domains)
+.claude/settings.local.json: permissions.allow Write(/tmp/**) widens the sandbox (merged into its writable paths, readable paths or domains)
+.claude/settings.local.json: permissions.allow MultiEdit(**) widens the sandbox (merged into its writable paths, readable paths or domains)
+.claude/settings.local.json: permissions.allow NotebookEdit(**) widens the sandbox (merged into its writable paths, readable paths or domains)
+.claude/settings.local.json: permissions.allow WebFetch widens the sandbox (merged into its writable paths, readable paths or domains)
+.claude/settings.local.json: permissions.allow WebFetch(domain:*) widens the sandbox (merged into its writable paths, readable paths or domains)
+.claude/settings.local.json: permissions.allow Read(//home/junc/rikuri/**) widens the sandbox (merged into its writable paths, readable paths or domains)
+...claude/settings.local.json: disableAllHooks is set — no hook runs, the guard included
+....claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+............................................
+----------------------------------------------------------------------
+Ran 72 tests in 14.103s
+
+OK
+2026-10-11 21:38:58

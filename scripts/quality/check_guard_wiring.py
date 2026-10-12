@@ -5,16 +5,21 @@ Reads the Claude Code settings as Claude Code does: hooks not disabled, the
 exact guard command, on PreToolUse, covering every tool the guard judges, and
 blocking the call if the guard times out or fails ("onFailure": "block" —
 without it Claude Code lets the call through). And the OS sandbox around
-every shell command (owner, 2026-10-11), closed-world since round 10 (verifier
-round 9: nine widenings Claude Code's settings schema documents passed a check
-that listed the bad keys): the project file's sandbox is exactly SANDBOX below;
-the local file sets none; no permission rule widens it (Edit/Write rules are
+every shell command (owner, 2026-10-11). Closed-world (round 10, after round
+9's verifier found nine documented widenings passing a check that listed the
+bad keys; round 11, after round 10's verifier found the rest open): the
+project file's sandbox is exactly SANDBOX below and the local file sets none;
+the settings hold only the top-level keys in TOP_KEYS (others may run a
+command, load a plugin that brings hooks, or start MCP servers); the only hook
+is the guard's own PreToolUse entry, with exactly its keys (`if`, `once`,
+`async`, … change when it runs or whether its failure blocks) and a timeout of
+at most 10 s; no permission rule widens the sandbox (Edit/Write rules are
 merged into its writable paths, WebFetch into its domains, Read may re-open
-what it hides); no environment variable names the sandbox or hooks; and no
-other hook runs before a tool call (it could change the call after the guard
-judged it) or answers a permission prompt (it could answer the guard's ask).
-Round 2's verifier: a text search for "guard.py" stayed green with
-"disableAllHooks": true or a command that merely mentioned the guard.
+what it hides) and the permission mode keeps the prompts; and the environment
+holds only the names in ENV_NAMES (PATH, LD_PRELOAD, BASH_ENV, … would change
+what a command runs). Round 2's verifier: a text search for "guard.py" stayed
+green with "disableAllHooks": true or a command that merely mentioned the
+guard.
 
 Usage: check_guard_wiring.py [settings.json …]   (default: .claude/settings.json,
 and .claude/settings.local.json when present) — exit 0 wired, 1 not.
@@ -48,6 +53,20 @@ SANDBOX = {
 PERMISSION_KEYS = {"allow", "deny", "ask", "defaultMode", "disableBypassPermissionsMode"}
 WIDENING_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", "WebFetch", "Read"}
 ENV_WORDS = re.compile(r"SANDBOX|HOOK", re.IGNORECASE)
+# Round 11 (round 10's verifier, from Claude Code 2.1.296's settings schema):
+# closed-world beyond the sandbox block too. The top-level keys these settings
+# may hold — any other may run a command (apiKeyHelper, statusLine, …), load a
+# plugin that brings hooks, or start MCP servers whose tools the guard does not
+# see; the guard's hook entry, exactly (`if`, `once`, `async`, … change when
+# it runs or whether its failure blocks); the permission modes that keep the
+# prompts; the environment variables that change no command (PATH, LD_PRELOAD,
+# BASH_ENV, … would).
+TOP_KEYS = {"$schema", "hooks", "permissions", "sandbox", "env", "disableAllHooks"}
+HOOK_EVENTS = {"PreToolUse"}
+ENTRY_KEYS = {"matcher", "hooks"}
+GUARD_HOOK_KEYS = {"type", "command", "timeout", "onFailure"}
+MODES = {"default", "acceptEdits", "plan"}
+ENV_NAMES = {"RUST_LOG", "RUST_BACKTRACE", "CARGO_TERM_COLOR", "CARGO_TERM_VERBOSE", "NO_COLOR", "TZ", "LANG", "LC_ALL"}
 
 
 def _differences(where: str, want, got) -> list:
@@ -103,6 +122,9 @@ def permission_problems(path: str, settings: dict) -> list:
                      "repository" % path)
     for key in sorted(set(perms) - PERMISSION_KEYS - {"additionalDirectories"}):
         found.append("%s: permissions.%s is not one this check knows to leave the sandbox alone" % (path, key))
+    if "defaultMode" in perms and perms["defaultMode"] not in MODES:
+        found.append("%s: permissions.defaultMode %s skips the permission prompts (allowed: %s)"
+                     % (path, json.dumps(perms["defaultMode"]), ", ".join(sorted(MODES))))
     for key in ("allow", "deny", "ask"):
         rules = perms.get(key, [])
         if not isinstance(rules, list) or not all(isinstance(r, str) for r in rules):
@@ -122,7 +144,10 @@ def env_problems(path: str, settings: dict) -> list:
         return []
     if not isinstance(env, dict):
         return ["%s: env must be an object" % path]
-    return ["%s: env.%s names the sandbox or hooks" % (path, k) for k in sorted(env) if ENV_WORDS.search(k)]
+    return (["%s: env.%s names the sandbox or hooks" % (path, k) for k in sorted(env) if ENV_WORDS.search(k)]
+            + ["%s: env.%s is not one this check knows to change no command (allowed: %s)"
+               % (path, k, ", ".join(sorted(ENV_NAMES))) for k in sorted(env)
+               if k not in ENV_NAMES and not ENV_WORDS.search(k)])
 
 
 def hook_problems(path: str, settings: dict, full: bool) -> tuple:
@@ -135,6 +160,9 @@ def hook_problems(path: str, settings: dict, full: bool) -> tuple:
     found, covered, open_on_failure = [], set(), False
     if hooks.get("PermissionRequest"):
         found.append("%s: a PermissionRequest hook could answer the guard's ask" % path)
+    for event in sorted(set(hooks) - HOOK_EVENTS - {"PermissionRequest"}):
+        found.append("%s: a %s hook runs a command outside the guard and the sandbox: only the guard's PreToolUse "
+                     "hook is wired here" % (path, event))
     entries = hooks.get("PreToolUse")
     if entries is None:
         return found, covered, open_on_failure
@@ -143,6 +171,9 @@ def hook_problems(path: str, settings: dict, full: bool) -> tuple:
     if not full and entries:
         return found + ["%s: the local settings may not add a PreToolUse hook" % path], covered, open_on_failure
     for entry in entries:
+        if isinstance(entry, dict) and set(entry) - ENTRY_KEYS:
+            found.append("%s: a PreToolUse entry has keys the check does not know: %s"
+                         % (path, ", ".join(sorted(set(entry) - ENTRY_KEYS))))
         inner = entry.get("hooks") if isinstance(entry, dict) else None
         if not isinstance(inner, list):
             found.append("%s: a PreToolUse entry has no list of hooks" % path)
@@ -155,6 +186,14 @@ def hook_problems(path: str, settings: dict, full: bool) -> tuple:
         guards = [h for h in inner if h not in others]
         if not guards:
             continue
+        for h in guards:
+            extra = sorted(set(h) - GUARD_HOOK_KEYS)
+            if extra:  # `if`, `once`, `async`, … change when the guard runs, or whether its failure blocks
+                found.append("%s: the guard's hook has keys the check does not know: %s" % (path, ", ".join(extra)))
+            timeout = h.get("timeout", 10)
+            if isinstance(timeout, bool) or not isinstance(timeout, int) or not 1 <= timeout <= 10:
+                found.append("%s: the guard's timeout must be a whole number of seconds, at most 10 (it is %s)"
+                             % (path, json.dumps(timeout)))
         if any(h.get("onFailure") != "block" for h in guards):
             open_on_failure = True  # counts for nothing: a slow or broken guard would allow
             continue
@@ -174,7 +213,8 @@ def problems(path: str, require_guard: bool = True) -> list:
         return ["%s: cannot read the settings (%s)" % (path, e)]
     if not isinstance(settings, dict):
         return ["%s: the settings must be an object" % path]
-    found = []
+    found = ["%s: %s is not a settings key this check knows to leave the guard and the sandbox alone" % (path, k)
+             for k in sorted(set(settings) - TOP_KEYS)]
     if settings.get("disableAllHooks"):
         found.append("%s: disableAllHooks is set — no hook runs, the guard included" % path)
     found += sandbox_problems(path, settings, require_guard)

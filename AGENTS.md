@@ -56,18 +56,27 @@ ported with their tests, not copied wholesale.
   `git pull` leave it (SSH cannot use its proxy); they still pass the guard
   and the permission prompt. `scripts/quality/check_guard_wiring.py` (run by
   the gate) is closed-world: it fails unless `.claude/settings.json`'s
-  `sandbox` block is exactly this one, and fails if
-  `.claude/settings.local.json` sets a sandbox at all, or if either file has
-  a permission rule that widens it (an `Edit`, `Write`, `MultiEdit`,
-  `NotebookEdit`, `WebFetch` or `Read` allow rule, `additionalDirectories`,
-  or a permissions key it does not know), an environment variable whose
-  name contains `SANDBOX` or `HOOK`, another `PreToolUse` hook (it could
-  change a call after the guard judged it) or a `PermissionRequest` hook (it
-  could answer the guard's ask). **Not yet
-  proven on this machine:** Ubuntu's AppArmor rule for bubblewrap
-  (`bwrap-userns-restrict`) stops the sandbox from starting, so every shell
-  command fails, closed (drill, 2026-10-11); the owner chose to relax it for
-  bubblewrap. The drill in the build record must pass after that change.
+  `sandbox` block is exactly this one and `.claude/settings.local.json` sets
+  none, and in either file it allows only the top-level keys it lists
+  (`$schema`, `hooks`, `permissions`, `sandbox`, `env`, `disableAllHooks`:
+  others may run a command, such as `apiKeyHelper` or `statusLine`, load a
+  plugin that brings hooks, or start MCP servers), only the guard's own
+  `PreToolUse` hook (with exactly its committed keys — `if`, `once` or
+  `async` would change when it runs or whether its failure blocks — and a
+  timeout of at most 10 s; no other hook event, and none in the local file),
+  only permission rules that do not widen the sandbox (no `Edit`, `Write`,
+  `MultiEdit`, `NotebookEdit`, `WebFetch` or `Read` allow rule, no
+  `additionalDirectories`, no permissions key it does not know), a
+  permission mode that keeps the prompts (`default`, `acceptEdits`, `plan`),
+  and only the environment variables it lists (`RUST_LOG`, `NO_COLOR` and a
+  few more: `PATH`, `LD_PRELOAD` or `BASH_ENV` would change what a command
+  runs). Not checked: the owner's own user settings (`~/.claude/`), and MCP
+  servers a project `.mcp.json` declares — their tools are outside the
+  guard's matcher. **Not yet proven on this machine:** the sandbox's drill.
+  Ubuntu's AppArmor rule for bubblewrap (`bwrap-userns-restrict`) stopped the
+  sandbox from starting (drill, 2026-10-11); the owner relaxed it for
+  bubblewrap the same day, and bubblewrap now starts, but the drill has not
+  run since.
 - `.claude/hooks/guard.py` (with `guard_base.py` and `test_guard.py`,
   identical in every Full-tier repository) runs before every tool call,
   wired in `.claude/settings.json`; this repository's policy is
@@ -163,7 +172,7 @@ ported with their tests, not copied wholesale.
   Copying into `scripts/quality` and editing the hook's paths with the file
   tools ask in `stable` and are logged in `development`.
 - **Held by tests:** the 934 worked examples; `test_guard_claims.py` builds
-  2,147 cases from the forms, path spellings, node and container reads
+  2,168 cases from the forms, path spellings, node and container reads
   listed above; `test_guard_baseline.py` replays 1,089 cases — the
   verifiers' from rounds 6 to 8 and 100 that round 8 drafted — and fails on
   any changed verdict until the baseline is regenerated and its diff

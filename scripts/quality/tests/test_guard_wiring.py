@@ -288,7 +288,61 @@ class Wiring(unittest.TestCase):
             self.assertEqual(main_with(settings(), local), 1, local)
         s = settings()
         s["hooks"]["PostToolUse"] = [{"matcher": "*", "hooks": [extra]}]
-        self.assertEqual(problems(s), [], "a hook after the call cannot change what the guard judged")
+        # round 11 (round 10's verifier): hooks are closed-world too — any
+        # event other than the guard's PreToolUse is refused, even one after
+        # the call (it runs a command outside the sandbox and the guard)
+        self.assertTrue(problems(s), "only the guard's PreToolUse hook")
+        for event in ("SessionStart", "UserPromptSubmit", "Stop"):
+            s = settings()
+            s["hooks"][event] = [{"hooks": [extra]}]
+            self.assertTrue(problems(s), event)
+        self.assertEqual(main_with(settings(), {"hooks": {"Stop": [{"hooks": [extra]}]}}), 1, "the local file: no hooks")
+
+    def test_the_guards_own_hook_entry_is_exactly_the_committed_one(self):
+        # round 10's verifier, from Claude Code's settings schema: `if` runs the
+        # hook only for matching calls, `once` removes it after one run, an
+        # async hook's onFailure is ignored — each would pass a check that
+        # read only the hook's type and command
+        for key, value in (("if", "Bash(git *)"), ("once", True), ("async", True), ("asyncRewake", True),
+                           ("args", ["x"]), ("shell", "sh"), ("statusMessage", "x")):
+            with self.subTest(key=key):
+                s = settings()
+                s["hooks"]["PreToolUse"][0]["hooks"][0][key] = value
+                self.assertTrue(problems(s))
+        s = settings()
+        s["hooks"]["PreToolUse"][0]["newKey"] = True
+        self.assertTrue(problems(s), "an entry key the check does not know")
+        for timeout in (60, "10", True):
+            s = settings()
+            s["hooks"]["PreToolUse"][0]["hooks"][0]["timeout"] = timeout
+            self.assertTrue(problems(s), timeout)
+
+    def test_a_settings_key_the_check_does_not_know_fails(self):
+        # settings that run a command, load plugins (which may bring hooks) or
+        # MCP servers (their tools are outside the guard's matcher): closed-world
+        for key, value in (("apiKeyHelper", "/tmp/x.sh"), ("statusLine", {"type": "command", "command": "x"}),
+                           ("fileSuggestion", {"type": "command", "command": "x"}), ("enabledPlugins", {"x@y": True}),
+                           ("extraKnownMarketplaces", {"x": {}}), ("enableAllProjectMcpServers", True),
+                           ("otelHeadersHelper", "/tmp/x.sh"), ("newKey", 1)):
+            with self.subTest(key=key):
+                self.assertTrue(problems(settings(**{key: value})))
+                self.assertEqual(main_with(settings(), {key: value}), 1)
+        self.assertEqual(problems(settings(**{"$schema": "https://json.schemastore.org/claude-code-settings.json"})),
+                         [])
+
+    def test_a_permission_mode_that_skips_the_prompts_fails(self):
+        for mode in ("bypassPermissions", "dontAsk", "auto"):
+            with self.subTest(mode=mode):
+                self.assertTrue(problems(settings(permissions={"defaultMode": mode})))
+        for mode in ("default", "acceptEdits", "plan"):
+            self.assertEqual(problems(settings(permissions={"defaultMode": mode})), [], mode)
+
+    def test_environment_that_changes_what_a_command_runs_fails(self):
+        for name in ("PATH", "LD_PRELOAD", "LD_LIBRARY_PATH", "BASH_ENV", "ENV", "ZDOTDIR", "PYTHONPATH",
+                     "PYTHONSTARTUP", "SHELL", "GIT_CONFIG_GLOBAL", "GIT_EXEC_PATH", "NODE_OPTIONS"):
+            with self.subTest(name=name):
+                self.assertTrue(problems(settings(env={name: "/tmp/x"})))
+        self.assertEqual(problems(settings(env={"RUST_LOG": "debug", "CARGO_TERM_COLOR": "always"})), [])
 
     def test_unreadable_settings_fail(self):
         with tempfile.TemporaryDirectory() as d:

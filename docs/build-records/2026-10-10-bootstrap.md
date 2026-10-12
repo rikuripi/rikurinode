@@ -5,8 +5,8 @@
 | **Date** | 2026-10-10 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | main |
-| **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (round 10's gate receipt), and the commit that adds this line |
-| **Status** | Rounds 1–9 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings); round 10 (the owner's choice) closes money and keys at the root and makes the wiring check closed-world — its verifier was stopped before its main checks (see round 10), Not yet proven; the sandbox's drill Not yet proven |
+| **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (its gate receipt), 737bb47 and 87e2249 (the record only), and round 11: the commit that adds this line |
+| **Status** | Rounds 1–10 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings, claims wider than the tests); round 11 committed, its verifier (review only) pending; the sandbox's drill Not yet proven |
 | **Change type** | bootstrap (process, security gates) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -947,6 +947,73 @@
       by me and its clone restored and checked by sha256; the node's start
       times were the same before and after (lnd 2026-10-12T01:46:20Z,
       since the machine's second reboot).
+- [x] **Verifier, round 10 (review only): FAIL** (the owner's choice after
+      the two stops: re-run what is committed, review diffs, receipts and
+      claims, write no new command meant to get past the guard; its
+      `rn-verify37/`, persistent; the classifier did not stop it). Passed:
+      the gate on 87e2249 (91, 68, no leaks); every count; `git diff
+      --check`; the test, example and baseline changes against their
+      reasons (one behaviour loosened across every committed case — `ag`
+      on the previous checkout, ask → allow, named in the Round 10 entry);
+      `mut_r10.py` 64 of 64 red, identical to `mut-r10.out`; every receipt
+      reproduced. Failed: **the closed-world claim for the wiring check was
+      wider than the code** — it never read the guard hook's other keys
+      (`if`, `once`, `async` … would change when it runs or whether its
+      failure blocks), and accepted other hook events, plugins, settings
+      that run a command (`apiKeyHelper`, `statusLine`), MCP servers, any
+      permission mode and any environment variable but two words;
+      **"AGENTS.md says only what the tests show" was false**: AGENTS.md
+      lists forms that ask which no claim, example or baseline row held (a
+      commit or tag message from `--file` or `-t`; `--symbolic-link` in
+      full; rsync's `-T`, `--temp-dir`, `--backup-dir`, `--partial-dir`,
+      `--write-batch`, `--copy-dest`, `--compare-dest`; scp's `-F`, `-J`;
+      `nerdctl` and `podman-compose` by the node rule alone) — the policy
+      implements each, but removing it left every test green; and numbers:
+      "30 wiring checks" and "28 failing and 2 crashing" (the receipt shows
+      27 failing and 2 crashing — 29, the claims test being the 28th FAIL),
+      "inputs of up to 7,000 characters" (8,419), "held by mutants R43 to
+      R46" (4 of the 5 free claims; `/home/junc/rikuri.bak` has none).
+      Smaller: the record's change (b) overstated (only the `git grep`
+      options became payment forms; the bare `--ext-diff` and `--textconv`
+      claims went, still covered by the previous-checkout claims); the
+      wiring test's fixture gained `*.githubusercontent.com` without a reason
+      (it is the committed settings' domain list, needed for an exact
+      match); the record did not say whether round 10 engaged the fix-lock;
+      the Commits row and two commit messages left out record-only changes.
+      Also seen: the live node restarted Tor itself while it worked — its
+      dashboard raised `tor_onion_unreachable` at 20:44 and its control plane
+      ran its own recovery runbook at 20:49:25 (`safe-run.sh` caught the
+      restart and failed that chunk; the same incident had opened at 18:55).
+- [x] **Round 11** (2026-10-11). Tests first: claims for each listed form
+      no test held (22 cases; the duplicated `find … -ok` claim dropped:
+      2,168 cases, all distinct) — they pass at once, as the policy
+      implements them, and mutants that remove each form turn them red
+      (below); the wiring check's tests for the guard hook's own keys and
+      timeout, the entry's keys, every hook event other than the guard's,
+      unknown top-level keys, permission modes and environment variables —
+      32 red at 21:28:37 (`r11-wiring-red.out`). The check is now
+      closed-world for the top level (`$schema`, `hooks`, `permissions`,
+      `sandbox`, `env`, `disableAllHooks`), the hooks (only the guard's
+      `PreToolUse` entry, with exactly its keys and a timeout of at most 10
+      s; no other event; none in the local file), the permission mode
+      (`default`, `acceptEdits`, `plan`) and the environment (a short list of
+      harmless names) — as well as the sandbox block and the permission
+      keys. Test changed after red: the hook test's `PostToolUse` case, which
+      asserted that a hook after the call passes, now asserts it is refused
+      (every non-guard hook runs a command outside the guard and the
+      sandbox) — stricter. AGENTS.md says what the check refuses and what it
+      does not check (the owner's user settings, a project `.mcp.json`).
+      Corrections to round 10's entry: the numbers above; (b) as the
+      verifier read it; the fixture's reason (above); the fix-lock — not
+      engaged in round 10, for the reason the continuation fix's record
+      gives (this session runs under Rikuri-PI's hook, which reads neither
+      this repository's lock nor its paths); the red run in this record
+      stands in for it. Mutants (`mut_r11.py`): 16, all red — each removed
+      form, and each part of the closed-world check undone, turns a test red
+      (`mut-r11.out`). Green 21:38:21–21:38:58: 91 guard tests, 72 quality-tool tests
+      (`r11-guard.out`, `r11-quality.out`); the gate (`r11-gate.out`, in the
+      next commit).
+- [ ] Verifier, round 11: pending (review only).
 
 ## 5. Close Out
 
@@ -1126,6 +1193,12 @@ round 10 examples written first: 69 of 139 wrong (r10-examples-red.out, rerun at
          mutants 65 → 62 red, X11 and X18 pinned, R33 equivalent removed (mut-r10-first-run.out,
          mut-r10-rerun.out); final 64/64 red (mut-r10.out); green 17:16:47–17:17:28: 39 rules, 934 examples,
          91 OK; quality tools 68 OK, 2,147 claims (r10-guard.out, r10-quality.out)
+         verifiers: two stopped by the safety classifier (Not yet proven); review only: FAIL — the wiring
+         check's closed-world claim wider than its code; a dozen listed forms held by no test; numbers
+         (29 wiring checks red, not 30; inputs up to 8,419 characters, not 7,000)
+round 11 wiring tests red 21:28:37 (r11-wiring-red.out): 32; claims 2,147 -> 2,168 (22 added, a duplicate
+         dropped); mutants 16/16 red (mut_r11.py, mut-r11.out); green 21:38:21–21:38:58: 91 OK, quality tools 72 OK
+         (r11-guard.out, r11-quality.out)
 ```
 Receipts: `evidence/2026-10-10-bootstrap/` — `gate-round1.out` to
 `gate-round3.out`, `gate-round3b.out` (the "round 3, continued" gate) and
