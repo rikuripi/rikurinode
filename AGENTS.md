@@ -47,7 +47,8 @@ ported with their tests, not copied wholesale.
   a Unix socket (the Docker socket drives the live node) or a local port,
   reaches GitHub's domains without a prompt and any other host only after
   a prompt (`strictAllowlist`, which would refuse them, is ignored in
-  project settings, per Claude Code's settings schema), and cannot read
+  project settings, per Claude Code's settings schema; in `auto` mode a
+  command that does not list the host is refused, with no prompt), and cannot read
   the previous checkout's `.env` and `data/` or `/run/rikuri`. The sandbox
   itself protects `.git/hooks`, `.git/config` and the paths it names under
   `.claude` (not `.claude/state`, as round 9's verifier read Claude Code's
@@ -85,12 +86,32 @@ ported with their tests, not copied wholesale.
   Claude Code 2.1.295 or later (`onFailure`: the version Claude Code's
   hooks reference gave when round 4 of the bootstrap read it; round 4's
   verifier found the setting in the installed 2.1.295 settings schema,
-  absent from 2.1.289, 2.1.292 and the 2.1.221 binary). **Not yet proven on this
-  machine:** the sandbox's drill. Ubuntu's AppArmor rule for bubblewrap
-  (`bwrap-userns-restrict`) stopped the sandbox from starting (drill,
-  2026-10-11); the owner relaxed it for bubblewrap the same day, and
-  bubblewrap now starts a user namespace (`r12-bwrap-check.out`); whether
-  Claude Code's sandbox starts, and what it refuses, is the drill's to show.
+  absent from 2.1.289, 2.1.292 and the 2.1.221 binary). **The drill**
+  (2026-10-12, `r18-sandbox-drill.out`), in a session opened in a worktree
+  of this repository, in `auto` mode: the sandbox started and refused a
+  write in the home folder, in `scripts/quality/hooks` and in `.git/hooks`,
+  a Unix socket (the guard asked first; the owner approved), a connection
+  to 127.0.0.1 (inside its own network namespace, where only its proxy
+  listens) and an unlisted site; it allowed a write inside the repository
+  and GitHub; it showed the previous checkout's `data/` and `/run/rikuri`
+  as empty folders. Round 9's drill (2026-10-11) failed closed on Ubuntu's
+  AppArmor rule for bubblewrap (`bwrap-userns-restrict`); the owner
+  relaxed it that day (`r12-bwrap-check.out`), and it is still relaxed.
+  **Not yet proven:** which change let the sandbox start (that, the Claude
+  Code version, or the folder); the prompt for an unlisted host in the
+  other modes; a local port named through the sandbox's proxy; the
+  hook-folder forms under "What gets through the guard"; a session opened
+  in this folder itself. Inside the sandbox, paths it protects that do not
+  exist here (`.bashrc`, `.mcp.json`, `.claude/skills`, …) are `/dev/null`
+  placeholders: they show as untracked, and `git add --all` fails on them
+  (stage by name); the one for `.claude/settings.local.json` cannot be
+  read, and the wiring check reads `/dev/null` itself there (a character
+  device numbered 1:3, not a link to it) as no local settings, and says so;
+  anything else there must be a regular file, read in place: a link
+  (dangling or not), a folder, a FIFO, a device or a socket fails the gate
+  (owner, 2026-10-12; `docs/build-records/2026-10-12-wiring-sandbox-placeholder.md`); and
+  `safe-run.sh` sees no node containers there,
+  so its start-time check compares nothing.
 - `.claude/hooks/guard.py` (with `guard_base.py` and `test_guard.py`,
   identical in every Full-tier repository) runs before each `Bash`,
   `Read`, `Edit`, `Write`, `MultiEdit`, `NotebookEdit` and `Grep` call
@@ -208,8 +229,8 @@ ported with their tests, not copied wholesale.
   add --orphan`, copying a folder named `scripts` into the repository root
   (`cp -r /tmp/scripts .`), `tar -xf` into the current folder, and a path
   through `..` (`rm -rf ../rikurinode/scripts`) — for the hook's folder,
-  the sandbox's write protection is meant to stop them, once its drill
-  passes; a node tool named through a variable or a word the shell
+  the sandbox's write protection is meant to stop them (its drill saw it
+  refuse a direct write, not these forms); a node tool named through a variable or a word the shell
   assembles (`T=lnc; ${T}li …`, `ln""cli`), or run from a script file the
   guard does not read (`bash /tmp/x.sh`); other words the shell assembles
   (`core.hoo""ksPath`, `$'…'`); a credential file with a generic name
@@ -292,7 +313,8 @@ services or processes. CI is the reference run. Run every local test through
 so no runtime or systemd socket; no network but an empty loopback; a private
 process list), refusing stand-ins first on `PATH`, `DOCKER_HOST` at a missing
 socket, and the node's container start times compared before and after (a
-change fails the run). Without namespace support it refuses, unless
+change fails the run; inside Claude Code's sandbox it sees no container and
+says it compared nothing). Without namespace support it refuses, unless
 `SAFE_RUN_ALLOW_NO_NAMESPACE=1` (CI only: no live node there). What it does
 not cover: Unix sockets bound outside `/run` (a desktop's, an editor's, under
 `/tmp` or the home folder) stay reachable, and files stay writable — the layer

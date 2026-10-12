@@ -1,0 +1,30 @@
+baseline: 33 tests, 1 skipped, 0 failing []
+M0 before this change (17a19d5)      RED      9 failing: test_a_swap_after_the_first_look_fails_closed; test_the_local_file_is_read_only_as_a_regular_file (name='dangling link'); test_the_local_file_is_read_only_as_a_regular_file (name='link loop') …
+M0b the first fix, stat (5c06300)    RED      10 failing: test_a_swap_after_the_first_look_fails_closed; test_any_other_local_file_that_is_not_settings_fails (name='symlink to /dev/null'); test_only_dev_null_itself_is_the_placeholder …
+M0c round 2, lstat (8cfb268)         RED      7 failing: test_a_swap_after_the_first_look_fails_closed; test_only_dev_null_itself_is_the_placeholder; test_the_local_file_is_read_only_as_a_regular_file (name='dangling link') …
+M0d the fix under the lock (62c102b) RED      6 failing: test_a_swap_after_the_first_look_fails_closed; test_the_local_file_is_read_only_as_a_regular_file (name='dangling link'); test_the_local_file_is_read_only_as_a_regular_file (name='link loop') …
+M1 isfile for lexists                RED      6 failing: test_any_other_local_file_that_is_not_settings_fails (name='folder'); test_any_other_local_file_that_is_not_settings_fails (name='symlink to /dev/null'); test_the_local_file_is_read_only_as_a_regular_file (name='dangling link') …
+M2 any character device              RED      2 failing: test_only_dev_null_itself_is_the_placeholder; test_the_local_file_is_read_only_as_a_regular_file (name='a device (/dev/ptmx)')
+M3 everything is /dev/null           RED      53 failing: test_a_section_of_the_wrong_type_fails_without_crashing (path=('sandbox', 'network')); test_a_section_of_the_wrong_type_fails_without_crashing (path=('sandbox', 'filesystem')); test_a_section_of_the_wrong_type_fails_without_crashing (path=('sandbox',)) …
+M4 silent fallback                   RED      1 failing: test_the_sandboxs_placeholder_is_no_local_settings
+M5 a missing path is /dev/null       RED      1 failing: test_only_dev_null_itself_is_the_placeholder
+M6 placeholder still read            RED      1 failing: test_the_sandboxs_placeholder_is_no_local_settings
+V1 rdev only, no S_ISCHR             RED      1 failing: test_only_dev_null_itself_is_the_placeholder
+V2 stat follows links                RED      2 failing: test_any_other_local_file_that_is_not_settings_fails (name='symlink to /dev/null'); test_only_dev_null_itself_is_the_placeholder
+K1 placeholder clears the project's findings RED      1 failing: test_the_sandboxs_placeholder_is_no_local_settings
+K2 placeholder returns before the project check RED      1 failing: test_the_sandboxs_placeholder_is_no_local_settings
+K10 the note names only the path     RED      1 failing: test_the_sandboxs_placeholder_is_no_local_settings
+K11 only FileNotFoundError excused   RED      1 failing: test_only_dev_null_itself_is_the_placeholder
+W1 the number read from /dev/null    RED      1 failing: test_only_dev_null_itself_is_the_placeholder
+R1 no link check before opening      RED      3 failing: test_the_local_file_is_read_only_as_a_regular_file (name='dangling link'); test_the_local_file_is_read_only_as_a_regular_file (name='link loop'); test_the_local_file_is_read_only_as_a_regular_file (name='link to {}')
+R2 the open follows links            RED      1 failing: test_a_swap_after_the_first_look_fails_closed
+R3 the open waits on a FIFO          RED      1 failing: test_the_local_file_is_read_only_as_a_regular_file (name='FIFO, no writer')
+R4 no regular-file check on the open file RED      4 failing: test_a_swap_after_the_first_look_fails_closed; test_the_local_file_is_read_only_as_a_regular_file (name='FIFO, no writer'); test_the_local_file_is_read_only_as_a_regular_file (name='a device (/dev/ptmx)') …
+R5 exists for lexists                RED      2 failing: test_the_local_file_is_read_only_as_a_regular_file (name='dangling link'); test_the_local_file_is_read_only_as_a_regular_file (name='link loop')
+R6 read again by path, not the open file SURVIVED 0 failing
+X1 not regular narrowed to FIFO or folder RED      1 failing: test_the_local_file_is_read_only_as_a_regular_file (name='a device (/dev/ptmx)')
+X2 a Permission-denied open excused  SURVIVED 0 failing
+V4 the note on stderr                RED      1 failing: test_the_sandboxs_placeholder_is_no_local_settings
+V5 explicit paths excused too        RED      1 failing: test_the_placeholder_rule_covers_the_default_local_file_only
+V7 the project file excused too      RED      1 failing: test_the_placeholder_rule_covers_the_default_local_file_only
+safe-run: no live node containers found here; the start-time check had nothing to compare
