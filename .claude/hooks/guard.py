@@ -425,8 +425,9 @@ def shell_names(target: str, cwd: str) -> list:
 WORD_BREAK = " \t\n;&|()<>"
 
 
-def split_segments(cmd: str, notes: list | None = None) -> list:
-    """Split on ; && || | and newlines, outside quotes, reading backslashes as
+def split_segments(cmd: str, notes: list | None = None, joins: list | None = None) -> list:
+    """Split on ; && || | |& a lone & and newlines, outside quotes (a lone &
+    since round 4: it hid the rest of the line), reading backslashes as
     the shell does (2026-10-11: each line of `lncli \\⏎ sendcoins …` used to be
     judged alone). Outside single quotes a backslash-newline continues the
     command — both characters vanish — except at the end of a comment, which
@@ -440,17 +441,23 @@ def split_segments(cmd: str, notes: list | None = None) -> list:
     this splitter does not either, as the guard before this fix (round 3's
     verifier: a comment's newline inside a substitution split the command, and
     its text was never judged). Such a `#` is noted in `notes`, if given: the
-    caller asks, because what bash then skips is not modelled."""
+    caller asks, because what bash then skips is not modelled. The index of
+    each backslash the shell removes with its newline (or at the end) goes to
+    `joins`, if given (`_joined`)."""
     segs, cur, quote, comment, i = [], [], None, False, 0
     word_start, subst = True, 0  # a `#` here opens a comment; open `$(` (their `)` ends no word)
     tick = False  # inside a backtick
     while i < len(cmd):
         c = cmd[i]
         if c == "\\" and quote != "'" and not comment and i + 1 == len(cmd):
-            i += 1  # a backslash that ends the command continues onto nothing: zsh and bash drop it
+            if joins is not None:
+                joins.append(i)
+            i += 1  # a backslash that ends the command continues onto nothing: zsh drops it, bash keeps it as text
             continue
         if c == "\\" and quote != "'" and not comment and i + 1 < len(cmd):
             if cmd[i + 1] == "\n":  # a line continuation: the shell joins the two lines
+                if joins is not None:
+                    joins.append(i)
                 i += 2
                 continue
             if quote is None or cmd[i + 1] in "\"\\$`":
@@ -461,18 +468,19 @@ def split_segments(cmd: str, notes: list | None = None) -> list:
         if quote:
             if c == quote:
                 quote = None
-            elif c == "`" and quote == '"':
-                tick = not tick
             cur.append(c)
         elif c in "'\"" and not comment:
             quote, word_start = c, False
             cur.append(c)
-        elif c in ";|\n" or cmd.startswith("&&", i):
+        elif c in ";|\n" or cmd.startswith("&&", i) or (c == "&" and cur[-1:] not in (["<"], [">"])
+                                                         and cmd[i + 1:i + 2] != ">"):
+            # a lone & ends a command too (it runs it in the background), as
+            # `|&` is a pipe; `>&`, `<&`, `&>` and `2>&1` are redirections
             segs.append(_end_segment("".join(cur), comment))
             cur, word_start = [], True
             if c == "\n":
                 comment = False
-            if cmd.startswith("&&", i) or cmd.startswith("||", i):
+            if cmd.startswith("&&", i) or cmd.startswith("||", i) or cmd.startswith("|&", i):
                 i += 1
         else:
             if c == "#" and word_start and not subst and not tick:
@@ -492,6 +500,24 @@ def split_segments(cmd: str, notes: list | None = None) -> list:
         i += 1
     segs.append(_end_segment("".join(cur), comment))
     return [s for s in segs if s]
+
+
+def _joined(cmd: str) -> str:
+    """The command with its line continuations joined, as the shell joins them
+    (the backslash-newlines split_segments removes, and a backslash that ends
+    the command). The previous guard is given this text: a command continued
+    over lines is judged as the same command on one line (owner, 2026-10-11:
+    "Judge as one line")."""
+    joins = []
+    split_segments(cmd, joins=joins)
+    if not joins:
+        return cmd
+    out, k = [], 0
+    for j in joins:
+        out.append(cmd[k:j])
+        k = j + (1 if j + 1 == len(cmd) else 2)
+    out.append(cmd[k:])
+    return "".join(out)
 
 
 def _end_segment(text: str, in_comment: bool) -> str:
@@ -718,15 +744,21 @@ STRING_LIT = re.compile(r"""\s*[rRbBuU]{0,2}(?:'([^'\\\n]*)'|"([^"\\\n]*)")\s*""
 DYNAMIC_SCOPE = re.compile(r"\b(?:globals|locals|vars|exec|eval|setattr|Function)\s*\(|__dict__|\bReflect\.")
 
 
-def _balanced(code: str, i: int, open_end: bool = False) -> int:
+def _balanced(code: str, i: int, open_end: bool = False, shell: bool = False) -> int:
     """Index just past the ')' matching the '(' at code[i] (quotes respected).
     Unclosed: the text's length, or one past it with `open_end` (so that
-    `code[i + 1:end - 1]` keeps the text to its end)."""
+    `code[i + 1:end - 1]` keeps the text to its end). With `shell`, a
+    backslash escapes as in the shell: outside quotes too (an escaped `"`
+    opens no quote), never inside single quotes (round 4's fuzzer: a
+    `$(head -\\"c 99 …)` read as unclosed, so its last word kept the `)`)."""
     depth, quote, j = 0, None, i
     while j < len(code):
         c = code[j]
+        if shell and c == "\\" and quote != "'":
+            j += 2
+            continue
         if quote:
-            if c == "\\":
+            if c == "\\" and not shell:
                 j += 1
             elif c == quote:
                 quote = None
@@ -1624,7 +1656,9 @@ def decide(event: dict, cfg: dict, root: str = ROOT, lock_present: bool | None =
     """Return (decision, [reasons]): the STRICTER of the previous guard
     (guard_base.py, unchanged) and the new checks — the new code can only add.
     A stricter previous decision is set aside only when every one of its
-    reasons is one of the two owner-approved overrides (_overridable)."""
+    reasons is one of the two owner-approved overrides (_overridable). The
+    previous guard judges a continued command joined, as the shell runs it
+    (_joined)."""
     global _DEADLINE, _DEADLINE_ALL
     cmd = (event.get("tool_input") or {}).get("command") if event.get("tool_name") == "Bash" else None
     if isinstance(cmd, str) and len(cmd) > MAX_COMMAND_CHARS:
@@ -1645,18 +1679,31 @@ def decide(event: dict, cfg: dict, root: str = ROOT, lock_present: bool | None =
         timed_out = True
         new, new_relaxed = TOO_SLOW, []
 
+    base_event = event
+    if isinstance(cmd, str) and "\\" in cmd:
+        base_event = dict(event, tool_input=dict(event["tool_input"], command=_joined(cmd)))
+
     def overridable(r: str) -> bool:
         if timed_out:  # unchecked: nothing may lift the previous guard (verifier round 7)
             return False
         try:
-            return _overridable(r, event, cfg, root, new[1])
+            return _overridable(r, base_event, cfg, root, new[1])
         except _TooSlow:
             return False
 
     def finish() -> tuple:
         # under the timer too: the previous guard (a deny it finds in time
         # stands) and the checks that may set its answer aside
-        base = base_decide(event, cfg, root, lock_present=lock_present, branch_fn=branch_fn, relaxed=base_relaxed)
+        base = base_decide(base_event, cfg, root, lock_present=lock_present, branch_fn=branch_fn,
+                           relaxed=base_relaxed)
+        if base_event is not event and base[0] != "deny":
+            # The previous guard also reads the command line by line, as it
+            # always did: a deny it finds there stands — its asks there do
+            # not (the owner's choice); round 4's fuzzer: a lone & hides a
+            # force push on one line, and line by line it was denied.
+            lines = base_decide(event, cfg, root, lock_present=lock_present, branch_fn=branch_fn, relaxed=[])
+            if lines[0] == "deny":
+                base = lines
         if RANK[base[0]] > RANK[new[0]] and not all(overridable(r) for r in base[1]):
             return base, base_relaxed
         return new, new_relaxed
@@ -1753,8 +1800,15 @@ def _substitutions(seg: str) -> list:
     """Command text inside $(…) and `…` — run before the command itself."""
     out = []
     for m in re.finditer(r"\$\(", seg):
-        end = _balanced(seg, m.end() - 1, open_end=True)  # unclosed: all of the rest (round 3's verifier)
-        out.append(seg[m.end():end - 1])
+        # read with the shell's escapes and as before, both judged where they
+        # differ (only adds): an escaped quote must open no quote (round 4's
+        # fuzzer), and an escaped `)` the shell would never close on must not
+        # hide what the plain reading sees (a shared test's `cd "$(… \\)"`);
+        # unclosed, all of the rest (round 3's verifier)
+        for shell in (True, False):
+            end = _balanced(seg, m.end() - 1, open_end=True, shell=shell)
+            if seg[m.end():end - 1] not in out:
+                out.append(seg[m.end():end - 1])
     out += re.findall(r"`([^`]*)`", seg)
     return out
 

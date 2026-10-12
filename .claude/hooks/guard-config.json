@@ -307,7 +307,7 @@
     },
     {
       "regex": "^(?:(?!\\s*(?:git\\s+(?:-C\\s+\\S+\\s+)?(?:grep|log|show|diff)|git\\s+(?:commit|tag)\\b|gh\\s+(?:pr|issue)\\s+(?:create|edit|comment)|grep|egrep|fgrep|rg|ag|less|head|tail|echo|printf)\\b)|(?=[\\s\\S]*(?:(?<![&>])&(?![&>])|\\$\\(|[<>=]\\(|\\s(?:-[A-Za-z]*O|--(?:op|pre\\b|pager\\b|ou|ext(?:-d\\w*|-)?(?![\\w-])|textc))))|(?=[\\s\\S]*>))[\\s\\S]*?(?:\\\\(?:\\n|$)|\\\\\\\\\\\\n)",
-      "reason": "a command continued onto the next line (backslash-newline): the previous guard, which runs beside guard.py, judges each line on its own (verifier, 2026-10-10). Join it onto one line",
+      "reason": "a command broken across lines inside program code (a backslash-newline inside quotes, or written as the escape \\\\\\n in a code string): the program, not the shell, joins it, so the guard cannot judge it whole. Write it on one line of its own",
       "always_ask": true
     },
     {
@@ -7588,16 +7588,14 @@
       "input": {
         "command": "lncli \\\n  getinfo"
       },
-      "expect": "ask",
-      "expect_dev": "ask"
+      "expect": "allow"
     },
     {
       "tool": "Bash",
       "input": {
         "command": "docker \\\n  ps"
       },
-      "expect": "ask",
-      "expect_dev": "ask"
+      "expect": "allow"
     },
     {
       "tool": "Bash",
@@ -7710,6 +7708,22 @@
       "tool": "Bash",
       "input": {
         "command": "python3 -c \"import subprocess; subprocess.run('ls\\\\n  git push origin main', shell=True)\""
+      },
+      "expect": "ask",
+      "expect_dev": "ask"
+    },
+    {
+      "tool": "Bash",
+      "input": {
+        "command": "python3 -c 'import shutil\nshutil.rmtree(\"/home/junc/rikuri/rikurinode\")'"
+      },
+      "expect": "ask",
+      "expect_dev": "ask"
+    },
+    {
+      "tool": "Bash",
+      "input": {
+        "command": "python3 -c 'import os\nos.system(\"lncli sendcoins --addr x --amt 1\")\nos.system(\"ls -h\")'"
       },
       "expect": "ask",
       "expect_dev": "ask"

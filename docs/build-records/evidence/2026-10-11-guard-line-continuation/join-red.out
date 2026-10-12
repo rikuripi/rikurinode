@@ -1,0 +1,10 @@
+2026-10-11 18:57:29
+tree: 944fe55 (round 4, before the join) + the new JudgedAsOneLine tests
+test_a_rule_on_a_line_end_no_longer_asks_for_a_continued_command (test_guard.JudgedAsOneLine.test_a_rule_on_a_line_end_no_longer_asks_for_a_continued_command) ... FAIL
+test_the_lines_are_joined_as_the_shell_joins_them (test_guard.JudgedAsOneLine.test_the_lines_are_joined_as_the_shell_joins_them) ... ERROR
+test_the_previous_guard_is_given_the_joined_command (test_guard.JudgedAsOneLine.test_the_previous_guard_is_given_the_joined_command) ... FAIL
+AttributeError: module 'guard' has no attribute '_joined'
+AssertionError: 'ask' != 'allow'
+AssertionError: Lists differ: ['lncli \\\n  getinfo', 'git status'] != ['lncli   getinfo', 'git status']
+Ran 3 tests in 0.012s
+FAILED (failures=2, errors=1)

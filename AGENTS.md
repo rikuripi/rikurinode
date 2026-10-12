@@ -203,19 +203,19 @@ ported with their tests, not copied wholesale.
   tool's name in a heredoc's body). The shared `guard.py` reads a command
   continued with a backslash-newline as one command, as the shell does (a
   backslash that ends a command continues onto nothing; zsh drops it, bash
-  keeps it as a character); the previous guard, which runs beside it
-  unchanged, still judges each line on its own, and this policy makes it ask
-  before any command continued that way — except a read with no
-  redirection — also inside a quoted code string (whether continued commands
-  may instead be judged as their one-line forms is an owner's choice, in the
-  continuation fix's record). It splits a command at every `|`, so this
-  policy asks before a `>|` outside a quoted code string. In program code (a
-  quoted script, or the escapes `\\` and `\n` in a code string) this policy
-  reads every line, and asks before a node, container or system command
-  broken across lines or started on a new line there; the shared guard's own
-  checks (secret reads, pushes, protected paths) do not read program code, on
-  any line (`python3 -c 'subprocess.run("cat .env", shell=True)'` gets
-  through them). A `#` that starts a word inside a `$(…)` or a backtick asks:
+  keeps it as a character), and gives the previous guard, which runs beside
+  it unchanged, the joined command too: a continued command is judged as the
+  same command on one line (owner, 2026-10-11), so the one-line forms that
+  get through (above) get through continued too. A backslash-newline the
+  shell keeps — inside single quotes, in program code — asks, unless the
+  segment is a read with no redirection. It splits a command at every `|`,
+  so this policy asks before a `>|` outside a quoted code string. In
+  program code (a quoted script, or the escapes `\\` and `\n` in a code
+  string) this policy reads every line, and asks before a node, container
+  or system command broken across lines or started on a new line there;
+  the shared guard's own checks (secret reads, pushes, protected paths) do
+  not read program code, on any line (`python3 -c 'subprocess.run("cat
+  .env", shell=True)'` gets through them). A `#` that starts a word inside a `$(…)` or a backtick asks:
   bash may read a comment there, which the guard does not model. The guard
   also reads a heredoc's body as commands, so write commit messages and
   documents with the file tools and `git commit -F <file>`. The guard and

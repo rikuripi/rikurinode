@@ -1,0 +1,12 @@
+2026-10-11 19:18:00
+tree: checkpoint ddb5ab2 (round 4 with the join, before the line-view deny and the shell escapes in _balanced) + the current tests
+test_a_deny_the_previous_guard_finds_line_by_line_stands (test_guard.JudgedAsOneLine.test_a_deny_the_previous_guard_finds_line_by_line_stands) ... FAIL
+test_a_rule_on_a_line_end_no_longer_asks_for_a_continued_command (test_guard.JudgedAsOneLine.test_a_rule_on_a_line_end_no_longer_asks_for_a_continued_command) ... ok
+test_an_escaped_quote_inside_a_substitution_opens_no_quote (test_guard.JudgedAsOneLine.test_an_escaped_quote_inside_a_substitution_opens_no_quote) ... FAIL
+test_the_lines_are_joined_as_the_shell_joins_them (test_guard.JudgedAsOneLine.test_the_lines_are_joined_as_the_shell_joins_them) ... ok
+test_the_previous_guard_is_given_the_joined_command (test_guard.JudgedAsOneLine.test_the_previous_guard_is_given_the_joined_command) ... FAIL
+AssertionError: {'cmd': 'true & \\\ngit push -f origin x', 'p': 'stable', 'v': 'allow'} != {'cmd': 'true & \\\ngit push -f origin x', 'p': 'stable', 'v': 'deny'}
+AssertionError: {'cmd': 'echo $(head -\\"c 99 .env)', 'v': 'allow'} != {'cmd': 'echo $(head -\\"c 99 .env)', 'v': 'deny'}
+AssertionError: Lists differ: ['lncli   getinfo', 'git status'] != ['lncli   getinfo', 'lncli \\\n  getinfo', 'git status']
+Ran 5 tests in 0.013s
+FAILED (failures=3)

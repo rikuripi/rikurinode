@@ -1,0 +1,68 @@
+--- test_guard.py at red (rebuilt: 92c39a2's file + round 4's tests as first written; sha256 e17fe565…)	2026-10-11 19:01:27.665557734 -0700
++++ .claude/hooks/test_guard.py	2026-10-11 18:57:20.448431562 -0700
+@@ -1175,7 +1175,8 @@
+         seg = guard.split_segments
+         self.assertEqual(seg("echo 'x \\\n y'; z"), ["echo 'x \\\n y'", "z"])    # single quotes keep it
+         self.assertEqual(seg("echo a\\\\\nb"), ["echo a\\\\", "b"])              # an escaped backslash
+-        self.assertEqual(seg("echo hi # note \\\nb"), ["echo hi # note \\", "b"])  # a comment ends at the newline
++        self.assertEqual(seg("echo hi # note \\\nb"), ["echo hi # note", "b"])  # a comment ends at the newline
++        # (its last backslash is its text, dropped since round 4 so the words stay readable)
+         self.assertEqual(seg('echo "a\\"; b"; c'), ['echo "a\\"; b"', "c"])       # \" does not end the quote
+
+     def test_a_continued_command_is_judged_whole(self):
+@@ -1481,7 +1482,8 @@
+         # guard before the fix, it keeps the substitution's text in one piece,
+         # and judges it as a command of its own
+         for cmd in ("echo `git push -f origin #'\"\nx`", "echo $(git push -f origin #'\"\nx)",
+-                    "x=$( true # it's\n); git push --force origin x"):
++                    "x=$( true # it's\n); git push --force origin x",
++                    "x=$( true # it's\n); cat .env"):  # an unclosed substitution's text, to its last character
+             for profile in ("stable", "development"):
+                 self.assertEqual({"cmd": cmd, "p": profile, "v": self.v(cmd, profile)},
+                                  {"cmd": cmd, "p": profile, "v": "deny"})
+@@ -1490,7 +1492,7 @@
+
+     def test_a_quote_in_a_heredoc_body_does_not_hide_what_follows(self):
+         for cmd in (": # it's\n<<X\n'\nX\n(git push --force origin x)", "cat <<X\n'\nX\ngit push --force origin x",
+-                    "cat <<'X'\n\"\nX\ncat .env"):
++                    "cat <<'X'\n\"\nX\ncat .env", "sh <<'X'\n'\ngit push --force origin x\nX"):
+             for profile in ("stable", "development"):
+                 self.assertEqual({"cmd": cmd, "p": profile, "v": self.v(cmd, profile)},
+                                  {"cmd": cmd, "p": profile, "v": "deny"})
+@@ -1541,5 +1543,36 @@
+             guard.CHECK_TIME_BUDGET, guard.OVERALL_TIME_BUDGET, guard._decide_new, guard.base_decide = saved
+
+
++class JudgedAsOneLine(unittest.TestCase):
++    """Owner, 2026-10-11 ("Judge as one line"): a command continued over lines
++    is judged as the same command on one line — by the new checks, and by the
++    previous guard, which is given the joined text (_joined)."""
++
++    def test_the_lines_are_joined_as_the_shell_joins_them(self):
++        j = guard._joined
++        self.assertEqual(j("lncli \\\n  getinfo"), "lncli   getinfo")
++        self.assertEqual(j('echo "a \\\nb"'), 'echo "a b"')                    # double quotes join
++        self.assertEqual(j("echo 'a \\\nb'"), "echo 'a \\\nb'")                # single quotes keep it
++        self.assertEqual(j("# note \\\ngit status"), "# note \\\ngit status")  # a comment ends at the newline
++        self.assertEqual(j("echo a\\\\\nb"), "echo a\\\\\nb")                  # an escaped backslash
++        self.assertEqual(j("ls \\"), "ls ")                                    # a backslash that ends it
++
++    def test_the_previous_guard_is_given_the_joined_command(self):
++        seen, real = [], guard.base_decide
++        guard.base_decide = lambda event, *a, **k: seen.append(event["tool_input"]["command"]) or ("allow", [])
++        try:
++            verdict("Bash", {"command": "lncli \\\n  getinfo"})
++            verdict("Bash", {"command": "git status"})
++        finally:
++            guard.base_decide = real
++        self.assertEqual(seen, ["lncli   getinfo", "git status"])
++
++    def test_a_rule_on_a_line_end_no_longer_asks_for_a_continued_command(self):
++        # a policy rule that asks when a line ends in a backslash, as the
++        # previous guard read every line of a continued command
++        cfg = dict(LineContinuation.SYN, funds_patterns=[{"regex": r"\\$", "reason": "continued", "always_ask": True}])
++        self.assertEqual(verdict("Bash", {"command": "ls \\\n -la"}, cfg=cfg), "allow")
++
++
+ if __name__ == "__main__":
+     unittest.main()

@@ -62,8 +62,9 @@ REDIR = r"(?:[0-9]*|&)[<>]{1,2}&?\s*\S+"
 # abbreviation: --op…), rg's --pre, ag's --pager, git's --output (--ou…),
 # --ext-diff and --textconv (verifier round 9).
 RUNS = r"\s(?:-[A-Za-z]*O|--(?:op|pre\b|pager\b|ou|ext(?:-d\w*|-)?(?![\w-])|textc))"
-# A segment that runs more than its first command: a lone & (guard.py splits at
-# ; && || | and newlines, not at &), a $(…), a process substitution — <(…),
+# A segment that runs more than its first command: a lone & (guard.py splits
+# there since the continuation fix's round 4; the previous guard, which runs
+# beside it, does not), a $(…), a process substitution — <(…),
 # >(…) or zsh's =(…), which guard.py does not read (verifier round 9: `grep x
 # <(lncli sendcoins …)`) — or an option in RUNS. (guard.py reads a backtick's
 # command itself, and a $(…)'s.)
@@ -383,20 +384,20 @@ rule(rx(W + SUDO + r"(?:\S*/)?" + CONTINUED + r"\b.*?\\(?:[ \t]*\n|\\|n(?![A-Za-
      "a node, container or system command broken across lines inside program code (a backslash at a quoted line's "
      "end, or the escapes \\\\ and \\n), or started on a new line there by a \\n escape: the program, not the "
      "shell, reads it, so the guard cannot judge it whole. Write it on one line of its own")
-# Any command continued onto the next line (backslash-newline) asks, whatever
-# it is. guard.py now reads such a command whole, but the previous guard
-# (guard_base.py), which runs beside it unchanged, still judges each line on
-# its own, and this rule is what makes it ask; whether continued commands may
-# then be judged as their one-line forms is the owner's choice (the
-# continuation fix's record). Verifier round 9: `shred -u \⏎scripts/quality/hooks/pre-commit`, and
-# tee, truncate, dd, unlink, vim, …) — except a read that writes nowhere: a
-# read with a redirection asks too (`echo x > \⏎<the hook>` writes the hook).
-# A backslash-newline inside quotes (a code string) is not split by guard.py:
-# it asks wherever it is in the segment, also written as Python writes it in
-# a string (`'rm \\\nx'`: an escaped backslash, then \n).
+# A backslash-newline the shell keeps asks. guard.py joins every one the shell
+# removes, and gives the previous guard the joined command too, so a command
+# continued over lines is judged as its one-line form (owner, 2026-10-11:
+# "Judge as one line"; before the continuation fix, any continued command
+# asked here — verifier round 9: `shred -u \⏎scripts/quality/hooks/pre-commit`).
+# What still reaches this rule is a backslash-newline inside single quotes —
+# program code, which joins it itself; guard.py does not split there — or one
+# written as Python writes it in a string (`'rm \\\nx'`: an escaped
+# backslash, then \n). A read that writes nowhere stays free; a read with a
+# redirection asks too.
 rule(r"^(?:(?!\s*" + READS + r")|" + MORE + r"|(?=[\s\S]*>))[\s\S]*?(?:\\(?:\n|$)|\\\\\\n)",
-     "a command continued onto the next line (backslash-newline): the previous guard, which runs beside guard.py, "
-     "judges each line on its own (verifier, 2026-10-10). Join it onto one line")
+     "a command broken across lines inside program code (a backslash-newline inside quotes, or written as the "
+     "escape \\\\\\n in a code string): the program, not the shell, joins it, so the guard cannot judge it "
+     "whole. Write it on one line of its own")
 
 rule(r">\s*$",
      "a `>|` redirection (it overwrites even under noclobber): the shared guard.py splits a command at every `|`, "

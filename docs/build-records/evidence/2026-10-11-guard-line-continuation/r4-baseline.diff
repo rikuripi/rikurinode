@@ -1,0 +1,2 @@
+row 757 Bash stable: ask -> deny | 'echo x & cat /home/junc/rikuri/rikurinode/.lnd/data/chain/bitcoin/mainnet/admin.macaroon'
+row 757 Bash development: ask -> deny | 'echo x & cat /home/junc/rikuri/rikurinode/.lnd/data/chain/bitcoin/mainnet/admin.macaroon'

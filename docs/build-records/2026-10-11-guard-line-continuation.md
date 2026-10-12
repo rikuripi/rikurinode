@@ -4,9 +4,9 @@
 |---|---|
 | **Date** | 2026-10-11 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
-| **Branch** | fix/guard-continuation, from `main` a443085 (rounds 1 and 2 were on fix/guard-line-continuation, 1aaa8bd on the bootstrap's round 5, which `main` replaced; that branch is superseded) |
-| **Commits** | round 3: the commit on fix/guard-continuation that adds this line (rounds 1-2: 1aaa8bd, superseded); the four sync commits follow the verifier |
-| **Status** | IN PROGRESS — round 1 FAIL, round 2 FAIL; round 3 committed, verifier pending; then the four sync commits |
+| **Branch** | fix/guard-continuation, rebased onto `main` 0f407f3 in round 4 (rounds 1 and 2 were on fix/guard-line-continuation, 1aaa8bd on the bootstrap's round 5, which `main` replaced; that branch is superseded) |
+| **Commits** | round 3: 7c77ce4 (was 92c39a2 before the rebase); round 4: 944fe55 and the commit that adds this line (rounds 1-2: 1aaa8bd, superseded); the four sync commits follow the verifier |
+| **Status** | IN PROGRESS — rounds 1, 2 and 3 FAIL; round 4 committed, verifier pending; then the four sync commits |
 | **Change type** | fix (security gate, shared by five repositories) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -53,8 +53,15 @@
         decision that runs out of its 7 s (the hook has 10) asks — in every
         profile. A deny the previous guard finds in time still stands.
       - R9 (round 3; the round-2 verifier's regression) A backslash that ends
-        a command is dropped, as zsh and bash drop it: `sh -c 'git push
-        --force origin x' \` is judged as the force push it runs.
+        a command continues onto nothing and is dropped (zsh drops it; bash
+        keeps it as a character, which changes no command here): `sh -c 'git
+        push --force origin x' \` is judged as the force push it runs. Round
+        4 (round 3's verifier): an escaped blank at the end stays a word,
+        and a backslash that ends a comment is the comment's text.
+      - R10 (round 4; the owner, 2026-10-11: "Judge as one line") A command
+        continued over lines is judged as the same command on one line, by
+        the new checks and by the previous guard, which is given the joined
+        text.
 - [x] Design: fix the one tokenizer every check uses (`split_segments`), so
       the money rules, secret reads, pushes, fix-lock and test-write checks,
       and nested `sh -c` text all see the joined command. Rejected: joining
@@ -62,12 +69,15 @@
       and comments apart); a policy rule in each repository (that is the
       stopgap this replaces — it can only ask, and only for the commands it
       names).
-- [x] Policy applied: a security gate; the change can only make the guard
-      see more. This repository's stopgap rule is narrowed, not dropped: a
-      command broken across lines inside program code (a backslash-newline
-      inside single quotes, which Python and other languages join, or the
-      escapes `\\` and `\n` in a code string) is still invisible to a shell
-      parser.
+- [x] Policy applied: a security gate. Not "the change can only make the
+      guard see more" (said until round 3, and false — round 3's verifier):
+      the guard now sees a continued command whole, and judges it as its
+      one-line form, so whatever gets through on one line also gets through
+      continued (the owner's choice, R10). This repository's stopgap rule
+      is narrowed, not dropped: a command broken across lines inside program
+      code (a backslash-newline inside single quotes, which Python and other
+      languages join, or the escapes `\\` and `\n` in a code string) is
+      still invisible to a shell parser.
 - [x] Flagged concerns: Rikuri-PI's working tree holds another session's
       uncommitted work and that session's fix-lock; its copy is changed in a
       separate worktree on a branch from `main`, by pull request, so that
@@ -108,12 +118,14 @@
 
 ## 2. Build
 - [x] New code meets the bar: one function changed (`split_segments`, 26 →
-      39 lines in round 1; 54 after round 3) and one named constant
-      (`WORD_BREAK`); the header names the fifth repository and continued
-      lines. `guard_base.py` unchanged (sha256 `1ef6f5cc…`, as in all five
-      repositories). Rounds 2 and 3 add the length limit and the time bound
-      (`decide` 60 lines, `_base_in_child` 38, `_alarm` 19, `_timed` 13).
-      `guard.py` is 2,077 lines, past the 1,200 to justify: it is one file
+      39 lines in round 1; 54 after round 3; 71 after round 4) and one named
+      constant (`WORD_BREAK`); the header names the fifth repository and
+      continued lines. `guard_base.py` unchanged (sha256 `1ef6f5cc…`, as in
+      all five repositories). Rounds 2 and 3 add the length limit and the
+      time bound (`decide` 56 lines after round 4, `_alarm` 21, `_timed`
+      13; round 3's `_base_in_child` was removed in that round); round 4
+      adds `_end_segment` (13), `_joined` (16) and `_all_segments` (15).
+      `guard.py` is 2,104 lines, past the 1,200 to justify: it is one file
       on purpose, copied unchanged to five repositories and run as one
       script by the hook, and splitting it is its own change.
 - [x] Clean as you go: the stopgap rule's reason said the shared guard
@@ -121,8 +133,10 @@
       `AGENTS.md`'s limits paragraph rewritten the same way.
 - [x] Security question: a gate that decides what an AI session may run.
       Proven by `LineContinuation` (6 tests) and this repository's worked
-      examples (611) in round 1; after round 3, by those classes,
-      `LineContinuationRound3` (5) and `TimeBound` (9), and 830 examples.
+      examples (611) in round 1; after round 4, by `LineContinuation` (8),
+      `LineContinuationRound3` (5), `LineContinuationRound4` (5),
+      `TimeBound` (11), `TimeBoundRound4` (3) and `JudgedAsOneLine` (3), and
+      959 examples.
 - [x] This repository's policy. The stopgap rule now asks only for a node,
       container or system command broken inside program code: a backslash
       before a newline *inside* the text (only quoted text keeps one), or the
@@ -399,7 +413,181 @@
         a `\n` escape, and the same 12 on one line inside code — the shared
         guard's own checks (secret reads, pushes, protected paths) do not
         read program code on any line (Skipped items).
-- [ ] Independent verification, round 3: pending.
+- [x] **Verifier, round 3: FAIL** (on 92c39a2; its `rn-verify34/` was lost
+      with `/tmp` when the machine crashed a second time; its report is in
+      the session's transcript). Passed: the gate 7/7 (115, 61, 830
+      examples), the record's hashes, R1–R5, R7, the R8 time bound (70
+      timings, at most 7.10 s; over 16,000 characters asks in 0.07 s), the
+      pinned survivors G1, G2, G4, G7, G9 and P1, and the shared suite in
+      the four other repositories. Failed: (1) **R9 only for a backslash
+      that is literally last** — an escaped blank at the end (`sh -c 'git
+      push --force origin x' \ `, also `\<TAB>`, and before `;`, `|`, `&&`
+      or a newline) and a comment ending in a backslash (`eval "cat .env" #
+      note \`) became a trailing backslash when the segment was stripped:
+      allowed in both profiles, while 2075218 asked; (2) **a `#` inside a
+      backtick or `$(…)` read as a comment**: its newline split the command
+      inside the substitution, which was then never judged — under all five
+      repositories' policies, force pushes and `.env`/`tls.key` reads that
+      bash and zsh run went from deny to allow (its fuzzer and shell oracle:
+      3 to 8 such commands per policy with the shared guard alone); also a
+      quote in a heredoc's body swallowing the commands after it; (3) **the
+      timer turned a deny the new checks had found into ask** when the
+      previous guard was then stopped; (4) eight surviving mutants that are
+      not equivalent (V2, V10, V16, V18, V20, V21, Q7, Q9); (5) claims: "as
+      zsh and bash drop it" (bash keeps it), "the three verifier rounds'
+      surviving mutants" (two had run), "the change can only make the guard
+      see more" and "no path from untrusted input gains a verdict it did not
+      have" (false: the record's own probes showed `docker'' \⏎restart lnd`,
+      `git $( true ) \⏎push --force …` and `env git|&git \⏎push --force …`
+      go from ask to allow, and its fuzzer found more); Close Out's "a
+      decision out of time asks instead of being let through by the hook's
+      time-out" (here, `"onFailure": "block"` made a time-out block); §2's
+      numbers stale; six hashes in the Evidence log that no receipt holds;
+      round 3 silent on the fix-lock.
+- [x] **Round 4.** First rebuilt on `main` 0f407f3 (the bootstrap's round
+      10): round 3 is now 7c77ce4 (was 92c39a2), round 4's first commit
+      944fe55 (was 9768c9c). The policy is round 10's, with this change's
+      multi-line reading applied to it again (`LINE`, `NR`'s `(?m)\A`,
+      `rx`'s `[\s\S]*?`, the closed-world rule's `[\s\S]*`, the money rules'
+      help exemptions per line, the code-string rule; in the node and
+      container rule a read is the whole segment, `\Z`, not a line's end);
+      AGENTS.md likewise; round 10's worked examples and this change's 23
+      merged (957), and the replayed commit's message corrected (bash keeps
+      a trailing backslash; two verifier rounds, not three).
+      - **Tests first**: red at 17:12:03 (`r4-red.out`: 8 tests, 5
+        failures — the escaped blank, the comment's backslash, a `#` inside
+        a substitution, a quote in a heredoc's body, the deny lost to the
+        timer; the other three pin the verifier's survivors V2, V10, V18,
+        V20 and V21 and passed on the code they protect). `test_guard.py`
+        at red, rebuilt exactly from 92c39a2's file and the tests as first
+        written: sha256 `e17fe565…`; every change since is in
+        `r4-tests-since-red.diff` and below.
+      - **The fixes**: a segment keeps a blank its backslash escapes, and a
+        backslash that ends a comment is dropped as the comment's text
+        (`_end_segment`); a `#` opens a comment only outside a `$(…)` or a
+        backtick, as the guard before this fix, and a `#` that starts a word
+        inside one asks — bash may read a comment there, which the guard
+        does not model; an unclosed `$(…)`'s text is judged to its last
+        character (it lost one: `cat .env` became `cat .en`); a command is
+        also judged without its heredoc bodies, and each body line on its
+        own (`_all_segments`, only adds); a deny the new checks found in time
+        stands when the previous guard is stopped.
+      - **The owner's choice** (2026-10-11, asked when the merge kept round
+        10's rule that asked before every continued command: "Judge as one
+        line"): a command continued over lines is judged as the same
+        command on one line — by the new checks, and by the previous guard,
+        which `decide()` now gives the joined text (`_joined`, from the same
+        scan as `split_segments`; `guard_base.py` itself is unchanged).
+        Cost, as put to the owner: the forms that get through on one line
+        get through continued too — `docker'' \⏎restart lnd`, `git $( true
+        ) \⏎push --force …` and `env git|&git \⏎push --force …` (round 3's
+        verifier) are allowed, as they are on one line (Skipped items). The
+        policy's continued-line rule now fires only on a backslash-newline
+        the shell keeps — inside single quotes, in program code; its comment
+        and reason say so. Its tests were written after the code (the
+        choice came after round 4's code): `JudgedAsOneLine`, 3 tests, all
+        red on 944fe55 (`join-red.out`).
+      - **Round 4's own fuzzer and shell oracle, first run** (the round-3
+        verifier's tools, rebuilt; `fuzz-r4-run1.out`, `oracle-r4-run1/`),
+        on the code with the join: commands bash or zsh ran that the guard
+        stops when written plainly, now allowed where main's guard denied —
+        under every policy, 7 to 17 per policy: (1) a lone `&` before a
+        continuation (`true & \⏎git push -f origin x`): joined, the lone
+        `&` hides the push, an older one-line hole, where the previous
+        guard's line-by-line view had denied it; (2) zsh's `{\⏎git push
+        --force \⏎origin x; }`, which zsh runs as a group; (3) **a
+        regression of mine**: an escaped quote inside a `$(…)` (`$(head
+        -\"c 99 .env)`) made the substitution look unclosed, and since this
+        round an unclosed one keeps its last character, so the file's name
+        ended in `.env)` and no longer matched. Answers: the previous guard
+        also reads the command line by line, as it always did, and **a deny
+        it finds there stands** — its asks there do not, as the owner chose
+        (`JudgedAsOneLine`); `_balanced` reads a substitution with the
+        shell's escapes, and `_substitutions` judges that reading and the
+        one before it where they differ (only adds: a shared test's `cd
+        "$(… \)"` escapes the `)` the shell would close on). Tests for
+        these, written after the code, red on the checkpoint before it
+        (`fuzz4-red.out`).
+      - **Second run** (`fuzz-r4-run2.out`, `oracle-r4-run2/`): no command
+        that main's guard denied and this one allows remained under the four
+        other repositories' policies, but for a carriage return before the
+        newline (bash passes it into the word: git is given `-f<CR>`, which it
+        refuses; the round-3 verifier excluded such cases). What remained were
+        asks lost to older one-line holes — most of them **a lone `&`**, which
+        the guard did not read as the end of a command, so `true & git push
+        -f origin x` was allowed **even on one line**. That older hole (listed
+        below until now) is closed in this round: `split_segments` ends a
+        command at a lone `&`, and `|&` is a pipe (`>&`, `<&`, `&>` and `2>&1`
+        stay redirections). Tests first (`LoneAmpersand`, 2 tests, red at
+        19:40:07, `amp-red.out`). One baseline verdict tightened, ask → deny:
+        `echo x & cat <the previous checkout>/…/admin.macaroon` (the guard
+        now sees the `cat` of a macaroon; `r4-baseline.diff`). This
+        repository's policy keeps its lone-`&` alternative in `MORE`: the
+        previous guard does not split there.
+      - **Final run, and where this stopped.** The last run still found, under
+        each policy, a few commands that bash or zsh runs, that main's guard
+        stopped and this one does not — most of them asks lost to older
+        one-line holes, a few of them denies. They were not analysed further:
+        Claude's safety classifier stopped my own analysis of them twice, as
+        it stopped both of round 10's verifiers in the bootstrap. The owner
+        then chose (2026-10-11) to stop searching for ways past the guard: the
+        guard is an early warning, the boundary is the OS sandbox (its drill,
+        now possible, follows) and CI on a protected `main`. **Not yet
+        proven: that this change never loses a deny main's guard gave.** The
+        fuzzer (the round-3 verifier's, rebuilt from the session's
+        transcript), the oracle and their outputs are kept outside the repository
+        (`/home/junc/claude-wip/guard-continuation/scratch/fz/`), not
+        committed: their outputs are lists of generated commands of that
+        kind.
+      - **Test and example changes after red**, each with its reason: (a)
+        round 1's `test_what_the_shell_does_not_join` expected `echo hi #
+        note \` and now `echo hi # note`: the comment's last backslash is
+        its text, dropped on purpose (the split at the newline, which the
+        test is about, is unchanged); (b) two cases added to round 4's tests
+        (an unclosed substitution's last character; a heredoc body fed to a
+        shell) — stricter, pinning mutants S1 and H2; (c) `JudgedAsOneLine`
+        added — and, after the fuzzer, its capture test expects the previous
+        guard to be called twice for a continued command (joined, then line
+        by line, where only a deny counts), and its substitution test takes
+        the shell's reading as the first of two, by design; (d) in the
+        merge, `sh -c 'git push --force origin x' \` went from ask to
+        **deny** (round 10's example and claim: the fixed guard
+        sees the force push), and the continued reads `lncli \⏎ getinfo` and
+        `docker \⏎ ps` asked while round 10's rule was kept and are allowed
+        again after the owner's choice — as in round 3; (e) `LoneAmpersand`
+        added, tests first, and the baseline's row 757 tightened (above); (f)
+        two worked examples pin the verifier's policy survivors: Q7 (the
+        previous checkout named on a script's second line) and Q9 (a payment
+        in a script with `-h` on a later line), 959 examples. Q9 is equivalent
+        after the merge: round 10's node rule asks for any command naming
+        `lncli` that is not a listed read.
+      - **Mutants** (`mut_cont10.py`, in a scratch clone, never the
+        worktree): the first set, 22 (D3 removed as equivalent before it), 20
+        red (`mut-cont10-first-run.out`); the final set on the final code, 32
+        — with mutants of the line-by-line deny, the substitution's two
+        readings and the lone `&` — 29 red (`mut-cont10.out`). The three
+        green: A2 (`|&` keeps its `&`) and V16 (the end-of-command rule also
+        in a comment) are equivalent — the `&` left after a `|` ends an empty
+        command, and `_end_segment` drops a comment's last backslash anyway;
+        J4 (the overrides read the command as written) can only make an
+        override rarer, so stricter. Kept as code and recorded.
+      - **The four other repositories** (clean clones; `guard.py` and
+        `test_guard.py` copied in; `guard_base.py` byte-identical): 130
+        tests OK in each, against each repository's own policy
+        (`sync4-*.out`; Rikuri-PI at its `origin/main` 1ea439d, Iceman
+        21eac0b, AISecurity 12ff2e8, the previous rikurinode 3bbbe392).
+      - **Corrections to earlier entries.** §2's numbers are brought up to
+        date (above). The hashes `d66c9461…`, `ea19d761…`, `f27b20c7…`,
+        `e076fc01…` and `94ada3e7…` in the Evidence log were computed and
+        printed in the session at the time, not saved in a receipt; they
+        cannot be shown now beyond what the commits hold. Round 3 did not
+        say why the fix-lock was not engaged: the reason is round 1's — this
+        session runs under Rikuri-PI's hook, which reads neither this
+        repository's lock nor its paths — and the recorded hash and the diff
+        since red stand in for it, here too. The claims the verifier found
+        false are narrowed in Close Out and Skipped items.
+- [ ] Independent verification, round 4: pending (by generated tests, the
+      owner's choice for round 10's verification, 2026-10-11).
 - [ ] Diff matches the plan: pending the verifier.
 
 ## 5. Close Out
@@ -413,11 +601,15 @@
       reason rewritten. `git status`: only this change's files.
 - [x] Reviewed per `REVIEW.md` (self-review; the independent review is the
       verifier, pending). Bugs: the timer's race, found by the suite, is
-      pinned by a test that fires it inside its disarm. Security: the change
-      only adds checks and asks — the guard reads more of each command, and
-      a decision out of time asks instead of being let through by the
-      hook's time-out; no path from untrusted input gains a verdict it did
-      not have (the probes against 2075218 above). Compliance: the diff is
+      pinned by a test that fires it inside its disarm. Security: the guard
+      reads more of each command; a continued command is judged as its
+      one-line form, so what gets through on one line gets through continued
+      (the owner's choice, R10; Skipped items); a decision out of time asks
+      — in the four repositories without `"onFailure": "block"` the hook's
+      time-out used to let it through, in this one it used to block. Round
+      3's claim that no path gains a verdict it did not have was false
+      (round 3's verifier); round 4's fuzzer and shell oracle results are in
+      its entry. Compliance: the diff is
       the Plan's files plus the time bound (R8, R9). **Risk note — protected
       paths changed:** `.claude/hooks/guard.py`, `test_guard.py`,
       `guard-config.json`, `scripts/quality/guard_policy.py`, the baseline
@@ -428,7 +620,10 @@
       **Defaults chosen for the owner** (each asks, never allows; each one
       constant): a command over 16,000 characters asks; a decision over 7 s
       asks. Cost: a long inline script, or a long command that is slow to
-      check, needs your approval (write it to a file instead).
+      check, needs your approval (write it to a file instead) — and it is
+      asked, not denied, even when it holds what the guard would deny: a
+      command over 16,000 characters is not checked at all, and a deny is
+      kept only when the new checks found it in time.
 - [x] Lesson loop: (1) a budget checked between steps cannot stop one slow
       step — the timer, with a test whose single search never ends; (2) a
       timer and a deadline set for the same moment race — a test fires the
@@ -436,7 +631,13 @@
       that mutants are rewriting — said plainly above, and now done on
       copies checked with `cmp`; (4) every change to a test after red is
       recorded when it is made — the dropped case, found only by reading
-      the session back, is restored.
+      the session back, is restored; (5) round 4: a change to the guard's
+      tokenizer is differentially tested against real bash and zsh in the
+      same round, not only by the verifier — round 4's own run found three
+      problems, one of them its own regression; (6) a search for ways past
+      the guard is stopped by Claude's safety classifier, so the guard's
+      completeness cannot be established that way: the boundary has to be
+      one that does not read command text (the OS sandbox).
 - [x] Knowledge layer: `AGENTS.md` (the time bound and its defaults;
       continued lines; program code, which the shared guard's own checks do
       not read; assembled words); the guard's own comments. No README or
@@ -447,14 +648,21 @@
 - **Holes older than this change** (verifiers, rounds 1 and 2, in both the
   previous and the new guard): ANSI-C quoting (`$'…'`) read as a plain
   quote; a `"` inside `'…'` inside `$(…)` inside `"…"`; an apostrophe in an
-  unquoted heredoc body opening a "quote"; a lone `&` (run in the
-  background) not read as a separator, which hides the rest of its line; `|&`;
-  process substitution after an exempt `echo` (`echo <(…)`, `echo x >
-  >(…)`); a word the shell assembles (`docker'' restart lnd`, `git $( true )
-  push --force origin x` are allowed on one line). They are the same class —
+  unquoted heredoc body opening a "quote" (round 4 judges the lines after a
+  heredoc on their own, too); process substitution after an exempt `echo`
+  (`echo <(…)`, `echo x > >(…)`); a word the shell assembles (`docker''
+  restart lnd`, `git $( true ) push --force origin x` are allowed on one
+  line); zsh's `{` before a continued line, which zsh runs as a group (`{\⏎git
+  push origin main; }` asks no more: the previous guard's line-by-line view
+  keeps only its denies). Closed in round 4: a lone `&` and `|&`. They are the same class —
   the tokenizer disagreeing with the shell — and get their own change, tests
-  first, so this one stays reviewable. Owner: Henry. Reactivate: the next
-  guard change (recommended: next).
+  first, so this one stays reviewable. Since round 4 they also apply to a
+  command continued over lines, which is judged as its one-line form (the
+  owner's choice, R10): `docker'' \⏎restart lnd`, `git $( true )
+  \⏎push --force origin x` and `env git|&git \⏎push --force origin x` are
+  allowed, as they are on one line; this repository's policy used to ask
+  before every continued command. Owner: Henry. Reactivate: the next guard
+  change (recommended: next).
 - **The shared guard does not read program code** (older; round 3's R7
   rerun): `python3 -c 'subprocess.run("cat .env", shell=True)'`, a force
   push or a protected-path delete written inside a code string get through
@@ -515,4 +723,15 @@ final    guard.py 9271baee…: cont5-green1.out, cont5-green2.out 114 OK (test_g
          probe10-*.out, r7check10.out: same verdicts as probe9/r7check9; hooktime11.out: all 40 <= 7.10 s
          sync3-{Rikuri-PI,Iceman,AISecurity,old-rikurinode}.out: 115 OK each, own policy
          gate3.out: full gate 7/7 (guard 115 OK, quality 61 OK); gate4.out: the same after this record's last edit
+         verifier round 3: FAIL — escaped blank / comment backslash / `#` in a substitution looser than before;
+         a deny lost to the timer; 8 surviving mutants; claims wider than shown
+round 4  rebased onto main 0f407f3 (round 3 = 7c77ce4); red 17:12:03 (r4-red.out): 8 tests, 5 failures;
+         test_guard.py at red e17fe565… (rebuilt), every change since: r4-tests-since-red.diff
+         the owner's "Judge as one line": JudgedAsOneLine, red on 944fe55 (join-red.out)
+         round 4's fuzzer and shell oracle (not committed; kept in the working folder): line-by-line deny,
+         shell escapes, both readings — red on the checkpoint before (fuzz4-red.out)
+         the lone &: LoneAmpersand red 19:40:07 (amp-red.out); baseline row 757 ask -> deny (r4-baseline.diff)
+         mutants: mut_cont10.py → mut-cont10-first-run.out 20/22 → final mut-cont10.out 29/32 (A2, V16
+         equivalent; J4 stricter only)
+         sync4-{Rikuri-PI,Iceman,AISecurity,old-rikurinode}.out: 130 OK each, own policy
 ```
