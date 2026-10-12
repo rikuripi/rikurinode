@@ -5,8 +5,8 @@
 | **Date** | 2026-10-10 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | main |
-| **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (its gate receipt), 737bb47 and 87e2249 (the record only), and round 11: the commit that adds this line |
-| **Status** | Rounds 1–10 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings, claims wider than the tests); round 11 committed, its verifier (review only) pending; the sandbox's drill Not yet proven |
+| **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (its gate receipt), 737bb47 and 87e2249 (the record only), db4a3ac (round 11), 3540614 (its gate receipt), and round 12: the commit that adds this line |
+| **Status** | Rounds 1–11 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings, claims wider than the tests or the code); round 12 committed, its verifier (review only) pending; the sandbox's drill Not yet proven |
 | **Change type** | bootstrap (process, security gates) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -643,7 +643,8 @@
         times did not change. `enableWeakerNestedSandbox` failed the same way.
         The owner chose to relax AppArmor for bubblewrap; the script
         (`/home/junc/rikuripi/allow-bwrap-for-claude-sandbox.sh`, outside this
-        repository, run by the owner with sudo) is not yet run. Until it is
+        repository, run by the owner with sudo) is not yet run [it ran the
+        same day, 11:43 — round 12, `r12-bwrap-check.out`]. Until it is
         and the drill passes, the sandbox is **Not yet proven**, and on this
         machine a session here cannot run shell commands at all. The drill
         also hit the guard's own friction: `curl -w '%{http_code}\n'` asks
@@ -1014,7 +1015,48 @@
       (`r11-guard.out`, `r11-quality.out`); the gate on db4a3ac, all 7 steps
       (`r11-gate.out`, in the next commit, which changes only it and this
       line).
-- [ ] Verifier, round 11: pending (review only).
+- [x] **Verifier, round 11 (review only): FAIL** (its `rn-verify39/`;
+      the classifier did not stop it). Passed: the gate on 3540614 (91, 72,
+      no leaks); every count; the red run reproduced exactly from the
+      committed tests (the same 32 names); `mut_r11.py` 16 of 16 red,
+      identical to `mut-r11.out`; each of round 10's findings answered by
+      code and a test (W1–W8, P1–P8); no test loosened (the PostToolUse case
+      turned stricter). Failed: AGENTS.md's "bubblewrap now starts" had no
+      receipt, and this record still said the AppArmor script had not run;
+      "a timeout of at most 10 s" while a guard hook with no timeout passed
+      (a test asserted it, and Claude Code's default is not shown to be 10
+      s or less); the costed owner default still described round 10. And:
+      "a permission mode that keeps the prompts" (`acceptEdits` skips the
+      prompts for file edits); `defaultMode: "manual"`, the schema's alias
+      for `default`, refused; the list of what the check does not read left
+      out agents, skills and commands under `.claude/` (they may declare MCP
+      servers or run shell commands; only `verifier.md` is tracked, and it
+      declares neither); db4a3ac's message said the check had read "only the
+      sandbox block and the permission keys" (it also refused environment
+      names with SANDBOX or HOOK and other PreToolUse and PermissionRequest
+      hooks); the Commits row, the Receipts paragraph and
+      `test_guard_wiring.py`'s docstring were stale; round 11's fix-lock not
+      stated. Also seen: the `claude` on this machine's PATH is 2.1.221; the
+      `"onFailure": "block"` the wiring check requires needs 2.1.295 or later
+      (only the VS Code extension, 2.1.296, has it). Reported to the owner.
+- [x] **Round 12** (2026-10-11). Tests first, red at 22:01:44
+      (`r12-wiring-red.out`): a guard hook without a timeout is refused, and
+      `manual` is allowed as a permission mode; the code follows. Test
+      changed after red, stricter: the split-entries test's hooks now carry
+      their timeout. `r12-bwrap-check.out`: the owner's AppArmor change
+      (11:43) and bubblewrap starting a user namespace — not the drill.
+      AGENTS.md: the timeout, the modes ("keeps the prompts for commands"),
+      what the check does not read (agents, skills, commands under
+      `.claude/`), bubblewrap and the drill, and the version of Claude Code
+      the settings need. Corrected: the costed default and the drill in
+      Skipped items, round 9's line about the script, the Commits row, the
+      Receipts paragraph, `test_guard_wiring.py`'s docstring. The fix-lock,
+      in rounds 11 and 12: not engaged, for the reason given in round 11's
+      correction; the red runs stand in for it. Mutants (`mut_r12.py`): 2,
+      both red (`mut-r12.out`). Green: 91 guard tests, 72 quality-tool tests
+      (`r12-green.out`); the gate on this commit (`r12-gate.out`, in the next
+      commit).
+- [ ] Verifier, round 12: pending (review only).
 
 ## 5. Close Out
 
@@ -1065,21 +1107,35 @@
   build`, a heredoc's body that names a tool; each costs one approval.
   Reversible: add a read to the list (a protected path; it asks). Owner:
   Henry.
-- **A default chosen for the owner (round 10): the wiring check is
-  closed-world.** It refuses a sandbox block other than the committed one, a
-  local sandbox, a permissions key it does not know (only `allow`, `deny`,
-  `ask`, `defaultMode`, `disableBypassPermissionsMode`), and an environment
-  variable naming the sandbox or hooks. Cost: a new Claude Code settings key,
-  or a local permission mode outside those keys, fails the gate until the
-  check is updated. Reversible: widen `PERMISSION_KEYS` or `SANDBOX` in
-  `check_guard_wiring.py` (a protected path). Owner: Henry.
-- **The sandbox's drill** (round 9): Not yet proven. It needs the owner's
-  AppArmor change on this machine, then a passing drill (writes outside the
-  repository, the hook folder, a Unix socket, a local port, an unlisted
-  site and the previous checkout's secrets all refused; a write inside the
-  repository allowed). Until then, sessions in this folder on this machine
-  cannot run shell commands. Owner: Henry. Reactivate: the AppArmor script
-  has run.
+- **A default chosen for the owner (rounds 10–12): the wiring check is
+  closed-world.** In `.claude/settings.json` and `.claude/settings.local.json`
+  it allows only: the committed sandbox block (and none in the local file);
+  the top-level keys in `TOP_KEYS` (`$schema`, `hooks`, `permissions`,
+  `sandbox`, `env`, `disableAllHooks`); the guard's own `PreToolUse` hook
+  with exactly the keys in `GUARD_HOOK_KEYS` and a timeout of 1 to 10 s, and
+  no other hook event (`HOOK_EVENTS`, `ENTRY_KEYS`); the permission keys in
+  `PERMISSION_KEYS` and modes in `MODES` (`default`, `manual`,
+  `acceptEdits`, `plan`); the environment names in `ENV_NAMES`. Cost:
+  legitimate settings fail the gate until the check is widened — among them
+  `model`, `attribution`, a status line, a plugin, the guard's
+  `statusMessage`, a fractional timeout, an environment name outside the
+  eight, and settings that only tighten (`permissions.blockReadsOutsideWorkingDirectories`,
+  which Claude Code itself may write, `disableAutoMode`,
+  `disableSkillShellExecution`, `disabledMcpjsonServers`) (round 11's
+  verifier). Reversible: add the key or name to the list in
+  `check_guard_wiring.py` (a protected path, so it asks), with a test.
+  Owner: Henry.
+- **The sandbox's drill** (round 9): Not yet proven. The owner's AppArmor
+  change ran on 2026-10-11 at 11:43, and bubblewrap now starts a user
+  namespace (`r12-bwrap-check.out`); whether Claude Code's sandbox starts —
+  round 9's drill failed in its seccomp helper, which needs a nested one —
+  and what it refuses (writes outside the repository, the hook folder, a
+  Unix socket, a local port, an unlisted site, the previous checkout's
+  secrets; a write inside the repository allowed) is the drill's to show.
+  Claude's safety classifier stopped me preparing the drill (2026-10-11);
+  the owner may run it from round 9's receipt (`r9-drill2.out`, its prompt
+  without the `--settings` option). Owner: Henry. Reactivate: the owner's
+  drill.
 - **The pre-commit hook is not a boundary** (rounds 3–10): what always asks,
   and what gets through, is listed in `AGENTS.md` and held by
   `test_guard_claims.py`. Not covered: a path relative to a folder entered
@@ -1200,6 +1256,10 @@ round 10 examples written first: 69 of 139 wrong (r10-examples-red.out, rerun at
 round 11 wiring tests red 21:28:37 (r11-wiring-red.out): 32; claims 2,147 -> 2,168 (22 added, a duplicate
          dropped); mutants 16/16 red (mut_r11.py, mut-r11.out); green 21:38:21–21:38:58: 91 OK, quality tools 72 OK
          (r11-guard.out, r11-quality.out)
+         verifier (review only): FAIL — "bubblewrap now starts" without a receipt; a guard hook without a
+         timeout passed; the costed default not updated
+round 12 wiring tests red 22:01:44 (r12-wiring-red.out): 2; r12-bwrap-check.out; mutants 2/2 red (mut-r12.out);
+         green: 91 OK, quality tools 72 OK (r12-green.out)
 ```
 Receipts: `evidence/2026-10-10-bootstrap/` — `gate-round1.out` to
 `gate-round3.out`, `gate-round3b.out` (the "round 3, continued" gate) and
@@ -1207,6 +1267,5 @@ Receipts: `evidence/2026-10-10-bootstrap/` — `gate-round1.out` to
 `*.log`), the hygiene, round-3, round-4 and round-5 runs, the mutation
 scripts and their tables, and both verifiers' final probe reruns
 (`verifier1-probes/`, `verifier2-probes/`), rounds 6, 7 and 8's runs
-(`r6-*`, `r7-*`, `r8-*`, `r9-*`, `r10-*`, `mut_r6.py` to `mut_r10.py` and
-their tables). Round 1's red and green runs and
+(`r6-*` to `r12-*`, `mut_r6.py` to `mut_r12.py` and their tables). Round 1's red and green runs and
 its mutants' list were never saved (said in round 1's verifier entry).

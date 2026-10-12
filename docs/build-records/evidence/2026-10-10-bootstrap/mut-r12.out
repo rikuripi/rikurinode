@@ -1,0 +1,5 @@
+2026-10-11 22:03:13
+W9 a guard hook without a timeout passes           RED   test_the_guards_own_hook_entry_is_exactly_the_committed_one
+W10 manual refused                                 RED   test_a_permission_mode_that_skips_the_prompts_fails
+restored, sha256 checked: .claude/hooks/guard-config.json db1524dbfa53, scripts/quality/check_guard_wiring.py 2d7e3baebf57, scripts/quality/guard_policy.py 7a0c5e659868
+2026-10-11 22:03:45

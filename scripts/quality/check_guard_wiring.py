@@ -65,7 +65,7 @@ TOP_KEYS = {"$schema", "hooks", "permissions", "sandbox", "env", "disableAllHook
 HOOK_EVENTS = {"PreToolUse"}
 ENTRY_KEYS = {"matcher", "hooks"}
 GUARD_HOOK_KEYS = {"type", "command", "timeout", "onFailure"}
-MODES = {"default", "acceptEdits", "plan"}
+MODES = {"default", "manual", "acceptEdits", "plan"}  # manual: the schema's alias for default
 ENV_NAMES = {"RUST_LOG", "RUST_BACKTRACE", "CARGO_TERM_COLOR", "CARGO_TERM_VERBOSE", "NO_COLOR", "TZ", "LANG", "LC_ALL"}
 
 
@@ -190,7 +190,7 @@ def hook_problems(path: str, settings: dict, full: bool) -> tuple:
             extra = sorted(set(h) - GUARD_HOOK_KEYS)
             if extra:  # `if`, `once`, `async`, … change when the guard runs, or whether its failure blocks
                 found.append("%s: the guard's hook has keys the check does not know: %s" % (path, ", ".join(extra)))
-            timeout = h.get("timeout", 10)
+            timeout = h.get("timeout")  # missing: Claude Code's own default, not shown to be 10 s or less
             if isinstance(timeout, bool) or not isinstance(timeout, int) or not 1 <= timeout <= 10:
                 found.append("%s: the guard's timeout must be a whole number of seconds, at most 10 (it is %s)"
                              % (path, json.dumps(timeout)))

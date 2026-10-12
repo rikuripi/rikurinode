@@ -1,0 +1,8 @@
+2026-10-11 22:01:44
+tree: 3540614 + round 12's wiring tests (check_guard_wiring.py unchanged)
+FAIL: test_a_permission_mode_that_skips_the_prompts_fails
+AssertionError: Lists differ: ['/tmp/tmpx5f0yzyr/settings.json: permissi[88 chars]an)'] != []
+FAIL: test_the_guards_own_hook_entry_is_exactly_the_committed_one
+AssertionError: [] is not true : no timeout
+Ran 27 tests in 0.064s
+FAILED (failures=2)

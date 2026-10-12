@@ -1,0 +1,11 @@
+# 2026-10-11: the owner's AppArmor change for bubblewrap, and bubblewrap starting a user namespace (a start-up check, not the sandbox's drill)
+2026-10-11 22:02:14
+$ ls -l --time-style=full-iso /etc/apparmor.d/bwrap /etc/apparmor.d/disable/bwrap-userns-restrict
+-rw-r--r-- 1 root root 138 2026-10-11 11:43:52.254322510 -0700 /etc/apparmor.d/bwrap
+lrwxrwxrwx 1 root root  37 2026-10-11 11:43:52.209320530 -0700 /etc/apparmor.d/disable/bwrap-userns-restrict -> /etc/apparmor.d/bwrap-userns-restrict
+$ cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+1
+$ bwrap --version
+bubblewrap 0.11.1
+$ bwrap --ro-bind / / --unshare-user --unshare-pid --dev /dev --proc /proc true; echo exit $?
+exit 0

@@ -9,7 +9,10 @@ nothing in the settings that widens it. Round 10 (verifier round 9: nine
 widenings that Claude Code's settings schema documents passed): the check is
 closed-world — the project file's sandbox is exactly the expected block, the
 local file has none, and no permission rule, environment variable or other
-hook in either file widens or bypasses it.
+hook in either file widens or bypasses it. Rounds 11 and 12 (rounds 10's and
+11's verifiers): the top-level keys, the hook events, the guard hook's own
+keys and its timeout (required, at most 10 s), the permission mode and the
+environment are closed-world too.
 Record: docs/build-records/2026-10-10-bootstrap.md
 """
 import copy
@@ -83,9 +86,10 @@ class Wiring(unittest.TestCase):
     def test_split_entries_or_a_wildcard_pass(self):
         split = settings()
         split["hooks"]["PreToolUse"] = [
-            {"matcher": "Bash|Read|Grep", "hooks": [{"type": "command", "command": CMD, "onFailure": "block"}]},
+            {"matcher": "Bash|Read|Grep",
+             "hooks": [{"type": "command", "command": CMD, "timeout": 10, "onFailure": "block"}]},
             {"matcher": "Edit|Write|MultiEdit|NotebookEdit",
-             "hooks": [{"type": "command", "command": CMD, "onFailure": "block"}]}]
+             "hooks": [{"type": "command", "command": CMD, "timeout": 10, "onFailure": "block"}]}]
         self.assertEqual(problems(split), [])
         star = settings()
         star["hooks"]["PreToolUse"][0]["matcher"] = "*"
@@ -316,6 +320,11 @@ class Wiring(unittest.TestCase):
             s = settings()
             s["hooks"]["PreToolUse"][0]["hooks"][0]["timeout"] = timeout
             self.assertTrue(problems(s), timeout)
+        # round 11's verifier: a guard hook without a timeout passed (Claude
+        # Code's default then applies, which nothing shows is 10 s or less)
+        s = settings()
+        del s["hooks"]["PreToolUse"][0]["hooks"][0]["timeout"]
+        self.assertTrue(problems(s), "no timeout")
 
     def test_a_settings_key_the_check_does_not_know_fails(self):
         # settings that run a command, load plugins (which may bring hooks) or
@@ -334,7 +343,7 @@ class Wiring(unittest.TestCase):
         for mode in ("bypassPermissions", "dontAsk", "auto"):
             with self.subTest(mode=mode):
                 self.assertTrue(problems(settings(permissions={"defaultMode": mode})))
-        for mode in ("default", "acceptEdits", "plan"):
+        for mode in ("default", "manual", "acceptEdits", "plan"):  # manual: the schema's alias for default
             self.assertEqual(problems(settings(permissions={"defaultMode": mode})), [], mode)
 
     def test_environment_that_changes_what_a_command_runs_fails(self):
