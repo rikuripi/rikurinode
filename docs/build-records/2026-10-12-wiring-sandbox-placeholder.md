@@ -357,6 +357,17 @@
       first, where they are code; then the release; then round 4, test
       first — with the owner's further choice (2026-10-12): tests for X1 and
       R1 too.
+- [x] **The redo, under the lock** (engaged again at 16:15:42 on round 2's
+      tests, `d99aa4f9…`, as before round 3). Round 2's one finding that is
+      code: `is_dev_null` compares with Linux's fixed number for
+      `/dev/null`, 1:3 (`DEV_NULL`), not with this namespace's
+      `/dev/null`; its docstring says a link among the path's parent
+      folders is followed. Round 2's tests, locked: green at 16:15:56
+      (`locked-fix.out`: 31, OK, 1 skipped); the real placeholder: exit 0
+      with the note. A fix without a new test, as the approved option set
+      the order; its regression test comes in round 4 and is proven red on
+      8cfb268 there. K1, K2, K10, K11, X1, R1 and the owner's choice for
+      the local path are tests or new behaviour: round 4.
 - [x] Diff against the §1 plan: the files named, and also the bootstrap
       record's Status row (it said the gate fails inside the sandbox; it
       now points here) and `mut_wsp.py` kept as a receipt.

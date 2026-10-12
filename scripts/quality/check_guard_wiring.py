@@ -40,6 +40,7 @@ import sys
 
 GUARD = 'python3 "$CLAUDE_PROJECT_DIR/.claude/hooks/guard.py"'
 PROJECT, LOCAL = ".claude/settings.json", ".claude/settings.local.json"  # the default run's two files
+DEV_NULL = os.makedev(1, 3)  # Linux's device number for /dev/null
 TOOLS = {"Bash", "Read", "Edit", "Write", "MultiEdit", "NotebookEdit", "Grep"}
 # The sandbox, exactly (Claude Code's settings reference, 2026-10-11). Only
 # git's network commands leave it (SSH cannot use its proxy); each still passes
@@ -243,17 +244,19 @@ def problems(path: str, require_guard: bool = True) -> list:
 
 
 def is_dev_null(path: str) -> bool:
-    """Whether `path` is /dev/null itself — not a link to it, which is read
-    as before. Inside Claude Code's sandbox an absent protected file is
-    /dev/null, bound on a nodev mount where it cannot be opened (bootstrap
-    round 18: the gate failed at step 2). A link is followed by its reader,
-    and could lead to /dev/stdin or, inside the sandbox, to a file it hides
-    (this change's verifier); lstat does not follow it."""
+    """Whether `path` itself (a link there is not followed) is a character
+    device numbered as Linux's /dev/null. Inside Claude Code's sandbox an
+    absent protected file is /dev/null, bound on a nodev mount where it cannot
+    be opened (bootstrap round 18: the gate failed at step 2). A link would
+    lead its reader elsewhere — to /dev/stdin, or inside the sandbox to a file
+    it hides; and the number is fixed, not read from this namespace's
+    /dev/null, which may be something else (this change's verifiers). A link
+    among the path's parent folders is followed, as its reader would."""
     try:
-        here, null = os.lstat(path), os.stat(os.devnull)
+        here = os.lstat(path)
     except OSError:
         return False
-    return stat.S_ISCHR(here.st_mode) and here.st_rdev == null.st_rdev
+    return stat.S_ISCHR(here.st_mode) and here.st_rdev == DEV_NULL
 
 
 def main(argv: list) -> int:
