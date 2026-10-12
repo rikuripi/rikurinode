@@ -12,10 +12,11 @@ project file's sandbox is exactly SANDBOX below and the local file sets none;
 the settings hold only the top-level keys in TOP_KEYS (others may run a
 command, load a plugin that brings hooks, or start MCP servers); the only hook
 is the guard's own PreToolUse entry, with exactly its keys (`if`, `once`,
-`async`, … change when it runs or whether its failure blocks) and a timeout of
-at most 10 s; no permission rule widens the sandbox (Edit/Write rules are
-merged into its writable paths, WebFetch into its domains, Read may re-open
-what it hides) and the permission mode keeps the prompts; and the environment
+`async`, … change when it runs or whether its failure blocks) and a timeout,
+required, of 1 to 10 s; no permission rule widens the sandbox (Edit/Write rules
+are merged into its writable paths, WebFetch into its domains, Read may re-open
+what it hides) and the permission mode is one of MODES (not bypassPermissions,
+dontAsk or auto, which skip the permission prompts); and the environment
 holds only the names in ENV_NAMES (PATH, LD_PRELOAD, BASH_ENV, … would change
 what a command runs). Round 2's verifier: a text search for "guard.py" stayed
 green with "disableAllHooks": true or a command that merely mentioned the
@@ -58,8 +59,9 @@ ENV_WORDS = re.compile(r"SANDBOX|HOOK", re.IGNORECASE)
 # may hold — any other may run a command (apiKeyHelper, statusLine, …), load a
 # plugin that brings hooks, or start MCP servers whose tools the guard does not
 # see; the guard's hook entry, exactly (`if`, `once`, `async`, … change when
-# it runs or whether its failure blocks); the permission modes that keep the
-# prompts; the environment variables that change no command (PATH, LD_PRELOAD,
+# it runs or whether its failure blocks); the permission modes in MODES (not
+# bypassPermissions, dontAsk or auto); the environment variables that change
+# no command (PATH, LD_PRELOAD,
 # BASH_ENV, … would).
 TOP_KEYS = {"$schema", "hooks", "permissions", "sandbox", "env", "disableAllHooks"}
 HOOK_EVENTS = {"PreToolUse"}

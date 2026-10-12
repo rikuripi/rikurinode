@@ -5,8 +5,8 @@
 | **Date** | 2026-10-10 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | main |
-| **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (its gate receipt), 737bb47 and 87e2249 (the record only), db4a3ac (round 11), 3540614 (its gate receipt), and round 12: the commit that adds this line |
-| **Status** | Rounds 1–11 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings, claims wider than the tests or the code); round 12 committed, its verifier (review only) pending; the sandbox's drill Not yet proven |
+| **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (its gate receipt), 737bb47 and 87e2249 (the record only), db4a3ac (round 11), 3540614 (its gate receipt), 26d6862 (round 12), 383a6dc (its gate receipt), and round 13: the commit that adds this line |
+| **Status** | Rounds 1–12 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings, claims wider than the tests or the code); round 13 committed, its verifier (review only) pending; the sandbox's drill Not yet proven |
 | **Change type** | bootstrap (process, security gates) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -1056,7 +1056,28 @@
       both red (`mut-r12.out`). Green: 91 guard tests, 72 quality-tool tests
       (`r12-green.out`); the gate on 26d6862, all 7 steps (`r12-gate.out`, in
       the next commit, which changes only it and this line).
-- [ ] Verifier, round 12: pending (review only).
+- [x] **Verifier, round 12 (review only): FAIL** (its `rn-verify41/`).
+      Passed: the gate on 383a6dc (91, 72, no leaks); the counts; the red run
+      reproduced exactly (2 failures); `mut_r12.py` 2 of 2 red; the test
+      changes (one loosening, `manual` allowed, with a reason that holds:
+      the schema's alias); `r12-bwrap-check.out` reproduced on this machine,
+      and nothing claims more than it shows. Failed: the costed default left
+      out the refusal of `allow` rules for six tools and of a local
+      `PreToolUse` hook, and what the first costs; the check's own docstring
+      and a comment still said "keeps the prompts" and gave the timeout
+      without saying it is required; the Receipts paragraph began "rounds
+      6, 7 and 8's runs (`r6-*` to `r12-*`)". Not yet proven: that
+      `acceptEdits` "keeps the prompts for commands" — Claude's classifier
+      stopped the verifier while it searched Claude Code's binary for it
+      ("[Auto-Mode Bypass]"); it stopped there.
+- [x] **Round 13** (2026-10-11): text only, no behaviour changed. The
+      costed default lists the two refusals and the cost of the first; the
+      check's docstring and comment say what it does (a timeout, required,
+      of 1 to 10 s; the modes in `MODES`, not those that skip the prompts);
+      AGENTS.md no longer says `acceptEdits` keeps any prompt — only which
+      modes skip them, as Claude Code's settings schema names them; the
+      Receipts paragraph corrected. The gate: `r13-gate.out` (next commit).
+- [ ] Verifier, round 13: pending (review only).
 
 ## 5. Close Out
 
@@ -1113,13 +1134,18 @@
   the top-level keys in `TOP_KEYS` (`$schema`, `hooks`, `permissions`,
   `sandbox`, `env`, `disableAllHooks`); the guard's own `PreToolUse` hook
   with exactly the keys in `GUARD_HOOK_KEYS` and a timeout of 1 to 10 s, and
-  no other hook event (`HOOK_EVENTS`, `ENTRY_KEYS`); the permission keys in
-  `PERMISSION_KEYS` and modes in `MODES` (`default`, `manual`,
-  `acceptEdits`, `plan`); the environment names in `ENV_NAMES`. Cost:
+  no other hook event (`HOOK_EVENTS`, `ENTRY_KEYS`), and no `PreToolUse`
+  hook at all in the local file; the permission keys in `PERMISSION_KEYS`,
+  with no `allow` rule for `Edit`, `Write`, `MultiEdit`, `NotebookEdit`,
+  `WebFetch` or `Read` and no `additionalDirectories`, and modes in `MODES`
+  (`default`, `manual`, `acceptEdits`, `plan`); the environment names in
+  `ENV_NAMES`. Cost:
   legitimate settings fail the gate until the check is widened — among them
   `model`, `attribution`, a status line, a plugin, the guard's
   `statusMessage`, a fractional timeout, an environment name outside the
-  eight, and settings that only tighten (`permissions.blockReadsOutsideWorkingDirectories`,
+  eight, an `allow` rule for one of those six tools even when it is narrow
+  (`WebFetch(domain:docs.rs)`, `Read(./docs/**)`) — such reads and fetches
+  then ask, and settings that only tighten (`permissions.blockReadsOutsideWorkingDirectories`,
   which Claude Code itself may write, `disableAutoMode`,
   `disableSkillShellExecution`, `disabledMcpjsonServers`) (round 11's
   verifier). Reversible: add the key or name to the list in
@@ -1266,6 +1292,6 @@ Receipts: `evidence/2026-10-10-bootstrap/` — `gate-round1.out` to
 `gate-round4.out` (written as `.log` files: the hygiene check refuses
 `*.log`), the hygiene, round-3, round-4 and round-5 runs, the mutation
 scripts and their tables, and both verifiers' final probe reruns
-(`verifier1-probes/`, `verifier2-probes/`), rounds 6, 7 and 8's runs
+(`verifier1-probes/`, `verifier2-probes/`), the later rounds' runs
 (`r6-*` to `r12-*`, `mut_r6.py` to `mut_r12.py` and their tables). Round 1's red and green runs and
 its mutants' list were never saved (said in round 1's verifier entry).

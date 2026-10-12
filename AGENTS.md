@@ -67,8 +67,9 @@ ported with their tests, not copied wholesale.
   only permission rules that do not widen the sandbox (no `Edit`, `Write`,
   `MultiEdit`, `NotebookEdit`, `WebFetch` or `Read` allow rule, no
   `additionalDirectories`, no permissions key it does not know), a
-  permission mode that keeps the prompts for commands (`default` or its
-  alias `manual`, `acceptEdits`, `plan`),
+  permission mode other than those that skip the permission prompts
+  (`bypassPermissions`, `dontAsk`, `auto`): `default` or its alias `manual`,
+  `acceptEdits` (file edits without asking), `plan`,
   and only the environment variables it lists (`RUST_LOG`, `NO_COLOR` and a
   few more: `PATH`, `LD_PRELOAD` or `BASH_ENV` would change what a command
   runs). Not checked: the owner's own user settings (`~/.claude/`); MCP
