@@ -5,7 +5,7 @@
 | **Date** | 2026-10-11 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | fix/guard-continuation, rebased onto `main` 0f407f3 in round 4 (rounds 1 and 2 were on fix/guard-line-continuation, 1aaa8bd on the bootstrap's round 5, which `main` replaced; that branch is superseded) |
-| **Commits** | round 3: 7c77ce4 (was 92c39a2 before the rebase); round 4: 944fe55, 517e385, 7390125 (receipt); round 5: 6b9be19, the merge of `main` 7ecc958, 0d50bb4 (receipt); round 6: 5d4999d, eaa8333 (receipt); round 7: the commit that adds this line (rounds 1-2: 1aaa8bd, superseded); the four sync commits follow the verifier |
+| **Commits** | round 3: 7c77ce4 (was 92c39a2 before the rebase); round 4: 944fe55, 517e385, 7390125 (receipt); round 5: 6b9be19, the merge of `main` 7ecc958, 0d50bb4 (receipt); round 6: 5d4999d, eaa8333 (receipt); round 7: 8404ed0, and the commit that adds this line (receipt) (rounds 1-2: 1aaa8bd, superseded); the four sync commits follow the verifier |
 | **Status** | IN PROGRESS — rounds 1 to 5 FAIL (rounds 4 and 5: review only, the owner's choice); round 6's final check FAIL on wording only (the owner's stop rule, 2026-10-11), fixed in round 7 with no check round after it; then the sync, after the other session's shared-guard change lands (the owner's choice, 2026-10-11: that one first, this one on top), with `main` merged in and the gate rerun on the merged tree; known, before the sync: round 4's "Final run" found a few denies of `main`'s guard this one does not give (Skipped items) |
 | **Change type** | fix (security gate, shared by five repositories) |
 
@@ -739,8 +739,9 @@
       `mut_cont11.py`'s J2 no longer applies to round 6's code (its target
       line changed); the set was not rerun. `sync6` was run on 5d4999d's
       `guard.py`, which round 7 changes only in docstrings; the sync reruns
-      the suite anyway. The gate: below. No check round follows (the
-      owner's stop rule).
+      the suite anyway. The gate on 8404ed0, all 7 steps (130, 72;
+      `gate8.out`, in the next commit, which changes only it and three
+      record lines). No check round follows (the owner's stop rule).
 - [ ] Diff matches the plan: pending the verifier.
 
 ## 5. Close Out
@@ -923,5 +924,6 @@ round 6  a comment's whole last run dropped: r6-red.out (red 23:20:34, 1 failure
          gate7.out: full gate 7/7 on 5d4999d (guard 130 OK, quality 72 OK), added in the next commit
          final check (review only): FAIL, wording only — "no differential run" (round 4's was one, a few
          denies lost); "no reading sees a line end"; unsaved node times; sync5 cited; J4 described as mutated
-round 7  wording only; sync6.sh committed; gate8.out; no check round (the owner's stop rule)
+round 7  wording only; sync6.sh committed; gate8.out: full gate 7/7 on 8404ed0 (guard 130 OK, quality 72 OK);
+         no check round (the owner's stop rule)
 ```
