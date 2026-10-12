@@ -5,7 +5,7 @@
 | **Date** | 2026-10-11 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | fix/guard-continuation, rebased onto `main` 0f407f3 in round 4 (rounds 1 and 2 were on fix/guard-line-continuation, 1aaa8bd on the bootstrap's round 5, which `main` replaced; that branch is superseded) |
-| **Commits** | round 3: 7c77ce4 (was 92c39a2 before the rebase); round 4: 944fe55, 517e385, 7390125 (receipt); round 5: 6b9be19, the merge of `main` 7ecc958, 0d50bb4 (receipt); round 6: the commit that adds this line (rounds 1-2: 1aaa8bd, superseded); the four sync commits follow the verifier |
+| **Commits** | round 3: 7c77ce4 (was 92c39a2 before the rebase); round 4: 944fe55, 517e385, 7390125 (receipt); round 5: 6b9be19, the merge of `main` 7ecc958, 0d50bb4 (receipt); round 6: 5d4999d, and the commit that adds this line (receipt) (rounds 1-2: 1aaa8bd, superseded); the four sync commits follow the verifier |
 | **Status** | IN PROGRESS — rounds 1 to 5 FAIL (rounds 4 and 5: review only, the owner's choice); round 6 committed, its final check pending (the owner's stop rule, 2026-10-11); then the sync, after the other session's shared-guard change lands (the owner's choice, 2026-10-11: that one first, this one on top) |
 | **Change type** | fix (security gate, shared by five repositories) |
 
@@ -694,7 +694,8 @@
       shared suite in clean clones of the four other repositories on round
       6's guard: 130 OK each, the copies `cmp`-identical (`sync6-*.out`;
       the node's container start times the same before and after). The
-      full gate: below.
+      full gate on 5d4999d, all 7 steps (130, 72; `gate7.out`, in the next
+      commit, which changes only it and three record lines).
 - [ ] Final check, round 6 (review only; the owner's stop rule): pending.
 - [ ] Diff matches the plan: pending the verifier.
 
@@ -866,5 +867,5 @@ round 5  V16 pinned: r5-red.out (red 21:20:51); mut_cont11.py → mut-cont11.out
          R6 and decide's docstring narrower than the code; stale numbers and comments
 round 6  a comment's whole last run dropped: r6-red.out (red 23:20:34, 1 failure), r6-green.out (130 OK);
          sync6-{Rikuri-PI,Iceman,AISecurity,old-rikurinode}.out: 130 OK each, own policy, cmp-identical;
-         gate7.out: the full gate on the round-6 commit, added in the next commit
+         gate7.out: full gate 7/7 on 5d4999d (guard 130 OK, quality 72 OK), added in the next commit
 ```
