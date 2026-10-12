@@ -1,0 +1,21 @@
+red-test drill read at 2026-10-12T13:57:31-0700
+pull request #1 (drill/red-test at 53690b2, a planted failing test on main 69e52a6)
+
+# gh pr checks 1
+Full gate (Ubuntu)	fail	51s
+Guard and quality-tool tests (py3.12)	fail	47s
+Guard and quality-tool tests (py3.9)	fail	54s
+
+# gh pr view 1: merge state
+state OPEN, mergeable MERGEABLE, mergeStateStatus BLOCKED
+
+# run 38307437696, job Full gate (Ubuntu): the failing lines
+2026-10-12T20:56:26.8464029Z == 1/7 pinned tools
+2026-10-12T20:56:27.1925150Z == 2/7 AI-session guard: wired to the tools in its matcher, hooks on; policy as generated; every example and failure mode
+2026-10-12T20:56:58.9984149Z Ran 91 tests in 31.559s
+2026-10-12T20:56:59.0304969Z == 3/7 the quality tools' own tests (hygiene, guard wiring, guard policy, test-safety layer)
+2026-10-12T20:57:11.1212183Z FAIL: test_planted_failure (test_drill_red.Drill.test_planted_failure)
+2026-10-12T20:57:11.1216959Z AssertionError: 1 != 2 : planted by the red-test drill
+2026-10-12T20:57:11.1218371Z Ran 73 tests in 11.721s
+2026-10-12T20:57:11.1218922Z FAILED (failures=1, skipped=4)
+2026-10-12T20:57:11.1324576Z ##[error]Process completed with exit code 1.

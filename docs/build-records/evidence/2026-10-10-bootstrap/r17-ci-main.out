@@ -1,0 +1,21 @@
+# CI on main at 69e52a6, read with gh run view --log (2026-10-12); job "Full gate (Ubuntu)" of workflow "CI", run 38215946599
+2026-10-12T07:06:48.0452475Z   SAFE_RUN_ALLOW_NO_NAMESPACE: 1
+2026-10-12T07:06:48.0580409Z == 1/7 pinned tools
+2026-10-12T07:06:48.4005757Z == 2/7 AI-session guard: wired to the tools in its matcher, hooks on; policy as generated; every example and failure mode
+2026-10-12T07:07:20.0844441Z Ran 91 tests in 31.493s
+2026-10-12T07:07:20.0890896Z OK
+2026-10-12T07:07:20.1049500Z == 3/7 the quality tools' own tests (hygiene, guard wiring, guard policy, test-safety layer)
+2026-10-12T07:07:31.9996985Z Ran 72 tests in 11.531s
+2026-10-12T07:07:31.9997791Z OK (skipped=4)
+2026-10-12T07:07:32.0101256Z == 4/7 repository hygiene: nothing tracked that belongs on the machine
+2026-10-12T07:07:32.0727012Z == 5/7 shell lint
+2026-10-12T07:07:32.1598370Z == 6/7 whitespace errors in every tracked file, committed or not
+2026-10-12T07:07:32.1800063Z == 7/7 secret scan of history
+2026-10-12T07:07:32.8744615Z 7:07AM INF 17 commits scanned.
+2026-10-12T07:07:32.8746870Z 7:07AM INF no leaks found
+2026-10-12T07:07:32.8763553Z full-gate: all 7 steps passed
+
+# workflow "AI-session guard and quality tools", run 38215946566: jobs
+Guard and quality-tool tests (py3.12): success
+Guard and quality-tool tests (py3.9): success
+CI run 38215946599 head 69e52a6dab60efb99b4fa4f2e81bb43b8a9c1aaa: Full gate (Ubuntu): success

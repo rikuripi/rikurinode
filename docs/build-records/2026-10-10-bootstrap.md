@@ -5,8 +5,8 @@
 | **Date** | 2026-10-10 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | main |
-| **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (its gate receipt), 737bb47 and 87e2249 (the record only), db4a3ac (round 11), 3540614 (its gate receipt), 26d6862 (round 12), 383a6dc (its gate receipt), 0dd2660 (round 13), 439d295 (its gate receipt), 8117fc4 (round 14), 5628ac1 (its gate receipt), ddc759b (round 15), 91ca836 (its gate receipt), and round 16: the commit that adds this line |
-| **Status** | Rounds 1–13 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings, claims wider than the tests or the code); rounds 14 and 15 FAIL on wording (round 14's verifier also found a crash that failed closed, fixed in round 15); round 16 (wording) committed, with no check round after it by the owner's stop rule (2026-10-11); the sandbox's drill Not yet proven |
+| **Commits** | a443085 (rounds 1–9, one root commit), f1fdc07 (round 10), 0f407f3 (its gate receipt), 737bb47 and 87e2249 (the record only), db4a3ac (round 11), 3540614 (its gate receipt), 26d6862 (round 12), 383a6dc (its gate receipt), 0dd2660 (round 13), 439d295 (its gate receipt), 8117fc4 (round 14), 5628ac1 (its gate receipt), ddc759b (round 15), 91ca836 (its gate receipt), bccf79d (round 16), 69e52a6 (its gate receipt; the first commit on GitHub), and round 17: the commits of the pull request that adds this line |
+| **Status** | Rounds 1–13 FAIL (guard gaps, an isolation layer that did not isolate, gates that missed disabled hooks and hook-skipping forms, untested checks, overclaims, regressions of mine, a rule that backtracked, money moves through process substitution, a wiring check that passed documented widenings, claims wider than the tests or the code); rounds 14 and 15 FAIL on wording (round 14's verifier also found a crash that failed closed, fixed in round 15); round 16 (wording) committed, with no check round after it by the owner's stop rule (2026-10-11); on GitHub since 2026-10-12, CI green on `main`, `main` protected by the owner's ruleset — a direct push refused and a planted failing test blocked (round 17); the sandbox's drill Not yet proven |
 | **Change type** | bootstrap (process, security gates) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -1184,6 +1184,34 @@
       on bccf79d, all 7 steps (91, 72; `r16-gate.out`, in the next commit,
       which changes only it and this line). No check round follows (the
       owner's stop rule).
+- [x] **Round 17: on GitHub** (2026-10-12; the owner: "Let's push"). The
+      repository github.com/rikuripi/rikurinode (private, empty until then;
+      `hchengit` has push, not admin) is `origin`; `main` (69e52a6, 17
+      commits, all by the owner's name, every one scanned: no leaks) and
+      `fix/guard-continuation` (as a backup; it lands with the guard sync)
+      pushed. CI observed green on `main` at 69e52a6 (`r17-ci-main.out`):
+      run 38215946599, "Full gate (Ubuntu)", all 7 steps — 91 guard tests;
+      72 quality-tool tests with 4 skipped, the `Namespace` class of
+      `test_safe_run.py` (GitHub's runner gives no user namespace, and the
+      workflow sets `SAFE_RUN_ALLOW_NO_NAMESPACE=1`; they run on this
+      machine); 17 commits scanned, no leaks — and run 38215946566, the
+      guard and quality-tool tests on Python 3.9 and 3.12. The owner then
+      created the ruleset "Protect main" (`r17-ruleset.json`: active, the
+      default branch, no deletion, no force push, a pull request, "Full
+      gate (Ubuntu)" required on an up-to-date branch, no bypass), imported
+      from a copy of Rikuri-PI's, read with `gh api` (the import file:
+      `/home/junc/rikuripi/protect-main-ruleset.json`). Drills, the same
+      day: a direct push of this round's first commit to `main` was refused
+      — "GH013: Repository rule violations", "Changes must be made through
+      a pull request", "Required status check "Full gate (Ubuntu)" is
+      expected" — and `main` stayed at 69e52a6 (`r17-direct-push.out`). A
+      pull request with a planted failing test (#1, `test_drill_red.py`,
+      titled as a drill): "Full gate (Ubuntu)" and both guard-test jobs
+      failed, on that test alone ("AssertionError: 1 != 2 : planted by the
+      red-test drill"), and GitHub reported it `BLOCKED`
+      (`r17-red-drill.out`); it was closed unmerged and its branch deleted.
+      The pull request that adds this entry is the first change to reach
+      `main` through the gate.
 
 ## 5. Close Out
 
@@ -1288,8 +1316,8 @@
   (logged, not asked). The shared `guard.py` splits at every `|` and judges
   a continued line by line — to fix in the shared guard with its other
   parsing holes. The boundary is CI's full gate on every pull
-  request to a protected `main` — Not yet proven until the repository is on
-  GitHub and `main` is protected. Owner: Henry. Reactivate: a skip seen in
+  request to a protected `main` — in place since 2026-10-12 (round 17's
+  drills: a direct push refused, a planted failing test blocked). Owner: Henry. Reactivate: a skip seen in
   practice; the next change to the shared guard.
 - **An owner choice for later:** whether hook writes should ask in
   `development` too, for every form — that needs the shared guard to treat
@@ -1311,9 +1339,10 @@
   folder) stay reachable, and files stay writable. None belongs to the node;
   the layer keeps tests away from the node and is not a general sandbox
   (`AGENTS.md`). Owner: Henry. Reactivate: a node socket outside `/run`.
-- Namespace isolation on GitHub's runners: unknown until CI runs; if the
-  runner forbids user namespaces, the namespace tests are reported as
-  skipped there (`SAFE_RUN_ALLOW_NO_NAMESPACE=1`; no live node in CI).
+- Namespace isolation on GitHub's runners: none (observed 2026-10-12, run
+  38215946599): the 4 `Namespace` tests are reported skipped there
+  (`SAFE_RUN_ALLOW_NO_NAMESPACE=1`; no live node in CI); they run on this
+  machine. Owner: Henry. Reactivate: a runner that gives user namespaces.
 - **The shared `guard.py` and backslash-newline** (round 1's verifier, I3):
   every repository's guard judges a continued command line by line. This
   policy asks before any continued command meanwhile, except a read with no
@@ -1406,6 +1435,10 @@ round 15 wiring tests red 22:39:16 (r15-wiring-red.out): 2 errors; green: 27 OK;
          verifier (review only, final): FAIL, wording only — the Status row; two messages and a comment;
          "every file and shell tool" in three files
 round 16 wording only; the gate: r16-gate.out; no check round (the owner's stop rule)
+round 17 pushed (69e52a6); CI green on main: runs 38215946599 and 38215946566 (r17-ci-main.out);
+         the owner's ruleset "Protect main" (r17-ruleset.json)
+         drills: direct push to main refused, GH013 (r17-direct-push.out); pull request #1 with a planted
+         failing test: Full gate (Ubuntu) red on that test, BLOCKED, closed unmerged (r17-red-drill.out)
 ```
 Receipts: `evidence/2026-10-10-bootstrap/` — `gate-round1.out` to
 `gate-round3.out`, `gate-round3b.out` (the "round 3, continued" gate) and
