@@ -345,7 +345,18 @@
       inside the sandbox. Corrected after it: (1)–(3) in brackets above and
       in the evidence log; the docstring; 0a5823c's message keeps "21 of
       23" in history.
-- [ ] Independent verification of the corrections: not yet run.
+- [x] **Round 3 reverted** (the owner's ruling, 2026-10-12: "Redo round
+      3" — the release at 15:27:10 does not stand). Fix-lock released at
+      16:15:17 to restore the tests (the option the owner chose: "I revert
+      round 3's code commit, put the lock back as it was, and redo it the
+      way the approved option described"); the check, the tests and
+      `AGENTS.md` restored to 8cfb268 (sha256 `14cbc103…`, `d99aa4f9…`).
+      Round 3's entries above and its receipts (`red3.out`, `green4.out`,
+      `mutants4.out`, `gate3.out`) stay as history. The redo, as the
+      approved option described: round 2's findings fixed under the lock
+      first, where they are code; then the release; then round 4, test
+      first — with the owner's further choice (2026-10-12): tests for X1 and
+      R1 too.
 - [x] Diff against the §1 plan: the files named, and also the bootstrap
       record's Status row (it said the gate fails inside the sandbox; it
       now points here) and `mut_wsp.py` kept as a receipt.
@@ -371,7 +382,8 @@
   (`/dev/ptmx` observed failing) but by no test. A test needs the fix-lock
   released — the owner's call. Owner: Henry.
 - **The release at 15:27:10** went beyond the terms the owner approved (see
-  4. Verify). Owner: Henry.
+  4. Verify). The owner's ruling: it does not stand; round 3 reverted and
+  redone. Owner: Henry.
 - **Mutants R1 and R6 survive** (round 3): R1 removes the `islink` check —
   the open's `O_NOFOLLOW` still refuses the link, with a less clear message;
   R6 reads the file again by path instead of through the checked

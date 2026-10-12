@@ -105,11 +105,10 @@ ported with their tests, not copied wholesale.
   exist here (`.bashrc`, `.mcp.json`, `.claude/skills`, …) are `/dev/null`
   placeholders: they show as untracked, and `git add --all` fails on them
   (stage by name); the one for `.claude/settings.local.json` cannot be
-  read, and the wiring check reads `/dev/null` itself there (a character
-  device numbered 1:3, not a link to it) as no local settings, and says so;
-  anything else there must be a regular file, read in place: a link
-  (dangling or not), a folder, a FIFO, a device or a socket fails the gate
-  (owner, 2026-10-12; `docs/build-records/2026-10-12-wiring-sandbox-placeholder.md`); and
+  read, and the wiring check reads `/dev/null` itself there (a link to it is
+  read as before) as no local settings, and says so; what else passes or
+  stops that check at that path (a dangling link, a FIFO) is listed in
+  `docs/build-records/2026-10-12-wiring-sandbox-placeholder.md`; and
   `safe-run.sh` sees no node containers there,
   so its start-time check compares nothing.
 - `.claude/hooks/guard.py` (with `guard_base.py` and `test_guard.py`,
