@@ -1,0 +1,19 @@
+2026-10-11 21:31:29
+P1 a commit message from --file or -t a read       RED   test_every_listed_form
+P2 --symbolic-link in full a read                  RED   test_every_listed_form
+P3 rsync -T a read                                 RED   test_every_listed_form
+P4 rsync's temp, backup, partial, batch dirs a read RED   test_every_listed_form
+P5 rsync --copy-dest/--compare-dest a read         RED   test_every_listed_form
+P6 scp -F/-J a read                                RED   test_every_listed_form
+P7 nerdctl not a node tool                         RED   test_every_listed_form
+P8 podman-compose not a node tool                  RED   test_every_listed_form
+W1 any top-level key                               RED   test_a_settings_key_the_check_does_not_know_fails
+W2 any hook event                                  RED   test_another_hook_before_tool_calls_or_permissions_fails
+W3 any PreToolUse entry key                        RED   test_the_guards_own_hook_entry_is_exactly_the_committed_one
+W4 any key on the guard's hook                     RED   test_the_guards_own_hook_entry_is_exactly_the_committed_one
+W5 a timeout up to 600 s                           RED   test_the_guards_own_hook_entry_is_exactly_the_committed_one
+W6 a timeout of true                               RED   test_the_guards_own_hook_entry_is_exactly_the_committed_one
+W7 any permission mode                             RED   test_a_permission_mode_that_skips_the_prompts_fails
+W8 any environment variable                        RED   test_environment_that_changes_what_a_command_runs_fails
+restored, sha256 checked: .claude/hooks/guard-config.json db1524dbfa53, scripts/quality/check_guard_wiring.py 0edef7c4c1e5, scripts/quality/guard_policy.py 7a0c5e659868
+2026-10-11 21:38:07

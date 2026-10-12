@@ -74,7 +74,7 @@ OLD_NOT_READS = ["cp -l /home/junc/rikuri/rikurinode/x ./x", "cp --link /home/ju
                  "cp -s /home/junc/rikuri/rikurinode/x ./x", "install -l /home/junc/rikuri/rikurinode/x ./x",
                  "rsync -a --link-dest=/home/junc/rikuri/rikurinode/ src/ dst/",
                  "find /home/junc/rikuri/rikurinode -fprint /tmp/x", "find /home/junc/rikuri/rikurinode -fls /tmp/x",
-                 "find /home/junc/rikuri/rikurinode -ok rm {} ;", "tree -o /tmp/x /home/junc/rikuri/rikurinode",
+                 "tree -o /tmp/x /home/junc/rikuri/rikurinode",  # (find … -ok: DIR_FORMS has it)
                  "rg --pre cat x /home/junc/rikuri/rikurinode/README.md", "git -C /home/junc/rikuri/rikurinode grep -O vim x",
                  "git -C /home/junc/rikuri/rikurinode grep --open-files-in-pager=vim x",
                  "git -C /home/junc/rikuri/rikurinode diff --output=x.diff",
@@ -110,7 +110,14 @@ OLD_NOT_READS += [c % "/home/junc/rikuri/rikurinode" for c in [
     "scp -S %s/x.sh /tmp/a h:/tmp/b", "scp -o ProxyCommand=%s/x.sh /tmp/a h:/tmp/b",
     "install --strip --strip-program=%s/x.sh /tmp/a /tmp/b", "git commit -F %s/notes",
     "gh pr create --title x --body-file %s/notes", "gh issue create --title x -F %s/data/bitcoin/debug.log",
-    "cat $( echo %s/x )", "cp x %s/f >> /tmp/log"]]
+    "cat $( echo %s/x )", "cp x %s/f >> /tmp/log",
+    # round 11 (round 10's verifier: listed in AGENTS.md, held by no test)
+    "git commit --file=%s/notes", "git commit --file %s/notes", "git commit -t %s/template",
+    "git tag -a v1 -F %s/notes", "cp --symbolic-link %s/x ./x", "rsync -T %s/tmp /tmp/a /tmp/b",
+    "rsync --temp-dir=%s/tmp /tmp/a /tmp/b", "rsync -b --backup-dir=%s/old /tmp/a /tmp/b",
+    "rsync --partial-dir=%s/p /tmp/a /tmp/b", "rsync --write-batch=%s/b /tmp/a /tmp/b",
+    "rsync --copy-dest=%s /tmp/a /tmp/b", "rsync --compare-dest=%s /tmp/a /tmp/b",
+    "scp -F %s/ssh_config /tmp/a h:/tmp/b", "scp -J jump %s/x /tmp/b"]]
 # round 10: the parent folder of the previous checkout, closed-world for writes
 PARENT_FILES = ["/home/junc/rikuri/x", "~/rikuri/x", '"${HOME:?}/rikuri/x"', "/home/junc/rikuri/rikurinode-old/x",
                 "/home/junc/rikuri/x/../rikurinode/f", "/home/junc/rikuri/", "~/rikuri"]
@@ -135,7 +142,10 @@ NODE_ASKS = ["lncli updatechanpolicy --base_fee_msat 1000 --fee_rate 0.0001 --ti
              "docker pull x", "docker save lnd -o /tmp/x.tar", "docker stats", "podman generate systemd lnd",
              "podman secret inspect x", "nerdctl ps; nerdctl stop lnd", "docker-compose config",
              "/usr/bin/docker ps -q | xargs docker inspect", "docker container inspect lnd", "podman inspect lnd",
-             "docker build -t x .", "journalctl --vacuum-time=1s -u docker"]
+             "docker build -t x .", "journalctl --vacuum-time=1s -u docker",
+             # round 11: nerdctl and podman-compose by the node rule alone (the older container rule
+             # does not list these subcommands)
+             "nerdctl pull x", "nerdctl save x -o /tmp/x.tar", "podman-compose config", "podman-compose pull"]
 NODE_READS = ["lncli getinfo", "lncli --network=mainnet getinfo", "lncli -n mainnet listchannels",
               "lncli listchannels --active_only", "lncli fwdinghistory --start_time -1w", "lncli walletbalance",
               "lncli channelbalance", "lncli pendingchannels", "lncli closedchannels", "lncli listpeers",
@@ -157,7 +167,8 @@ NODE_READS = ["lncli getinfo", "lncli --network=mainnet getinfo", "lncli -n main
               "journalctl -u docker --since today", "docker events --since 1h --until 1m",
               "docker image inspect lightninglabs/lnd:v0.18.3-beta", "docker inspect lnd --format '{{json .Mounts}}'",
               "docker compose -f compose.yml logs -f --tail 50 lnd", "docker compose config --services",
-              "bitcoin-cli listdescriptors", "tapcli assets mint batches"]
+              "bitcoin-cli listdescriptors", "tapcli assets mint batches",
+              "nerdctl ps", "nerdctl images", "podman-compose ps", "podman-compose logs lnd"]
 # round 10: a command continued onto the next line asks, unless it is a read that writes nowhere
 CONTINUED = ([f.format(t="\\\n" + "scripts/quality/hooks/pre-commit") for f in FILE_FORMS]
              + ["rm -rf \\\nscripts", "shred -u \\\n/home/junc/rikuri/rikurinode/f",
