@@ -8,7 +8,11 @@ The design goal: a failed update must never cost the node or its funds.
 **Status: bootstrap.** This repository holds the engineering process and its
 gates. There is no node code yet, and nothing here is ready to run. The
 [platform and architecture plan](docs/architecture/platform-plan.md) says how
-the node will be built, and which decisions are still the owner's.
+the node will be built, and which decisions are still the owner's; its
+decisions are in [docs/adr/](docs/adr/). The
+[lessons register](docs/requirements/lessons-register.md) holds what the
+previous node taught: each requirement with the incidents behind it and the
+check that must exist.
 
 ## How the work is done
 

@@ -4,9 +4,9 @@
 |---|---|
 | **Date** | 2026-10-11 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
-| **Branch** | docs/platform-plan |
-| **Commits** | (fill at close-out) |
-| **Status** | COMPLETE locally — verifier round 9 PASS; D2 and D3 decided, D1, D4 and D5 open; the rebase onto the final `main`, the push, CI and the owner's merge Not yet proven |
+| **Branch** | docs/platform-plan (2026-10-11, on the pre-GitHub root); re-landed on `main` as docs/plan-and-lessons (2026-10-12) |
+| **Commits** | 1ec05a7 on the old root; on `main`: its cherry-pick and the D5 commit of the pull request that adds this line |
+| **Status** | COMPLETE — verifier round 9 PASS; D2, D3 and D5 decided (D5 on 2026-10-12, ADR 0003), D1 and D4 open; re-landed on `main` 5630ea0 with the full gate green; CI and the owner's merge Not yet proven when this line was written |
 | **Change type** | documentation (plan) |
 
 ## 0. Intent
@@ -298,12 +298,26 @@
       left out without a word; how data-volume ownership stays matched when
       `userns=auto` picks ranges is a question for the owner. Not yet
       proven: the gate on the final `main`.
+- [x] **Re-landed on `main`, and D5 decided** (2026-10-12). The branch sat
+      on the pre-GitHub root (2075218), with no merge base with `main`;
+      1ec05a7 cherry-picked onto `main` 5630ea0 without conflict, beside the
+      lessons register's commit. The owner, asked why no node code existed
+      after three days of process work, chose (AskUserQuestion): freeze
+      guard work after the running review; D5 = "Rootless, range each
+      (Recommended)"; the N150 is not ready, so stage 1 builds and tests the
+      image in CI first. D5 written into the plan (status, summary, §7) and
+      ADR 0001, and as ADR 0003, whose consequences come from §7's D5 row
+      and round 9's notes; round 9's data-volume ownership question is kept
+      in ADR 0003 as open for stage 2's first container. The README links
+      the ADRs and the register. Wording only, so no check round (the
+      owner's stop rule, 2026-10-11, recorded in the bootstrap record).
+      Gate: all 7 steps passed on this tree (`reland-gate.out`).
 
 ## 5. Close Out
-- [x] Full gate green: all 7 steps, 13:33 on round 9's tree (before the
-      rebase onto the final `main`: Not yet proven there)
+- [x] Full gate green: all 7 steps, 13:33 on round 9's tree, and on the
+      re-landed tree on `main` 5630ea0 (2026-10-12, `reland-gate.out`)
 - [ ] Knowledge layer: N/A — no behaviour, help page or runbook exists yet.
-- [ ] Commit message explains why; record committed with the change.
+- [x] Commit message explains why; record committed with the change.
 
 ## Skipped items — visible, never silent
 - Fedora's own documentation pages for IoT bootc refused automated reading
@@ -314,4 +328,6 @@
 ## Evidence log
 ```
 2026-10-11  sources read: see platform-plan.md §9
+2026-10-12  re-landed on main 5630ea0; D5 decided (ADR 0003); full gate: all 7 steps passed
+            (evidence/2026-10-11-platform-plan/reland-gate.out)
 ```

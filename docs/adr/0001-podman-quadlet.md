@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | Accepted — owner, 2026-10-11 |
 | **Decision** | D2 of `docs/architecture/platform-plan.md` |
-| **Open beside it** | D5: rootless or rootful, and an ID range per container (the plan's §7) |
+| **Beside it** | D5, decided 2026-10-12: rootless, an ID range per container (ADR 0003) |
 
 ## Context
 
