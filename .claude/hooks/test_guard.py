@@ -862,10 +862,128 @@ class TestModuleFiles(unittest.TestCase):
 
     def test_the_scanners_keep_to_their_deadline(self):
         # R12: past the deadline the scans stop (the hook then asks), however
-        # few declarations a file holds (verifier round 6's mutant E9).
+        # few declarations a file holds (mutant E9 of the builder's own run in
+        # round 6).
         for scan, text in ((guard.rust_file_modules, "mod a;\n" * 3), (guard.rust_file_attrs, "#![cfg(test)]\n")):
             with self.assertRaises(guard._TooSlow):
                 scan(text, 0.0)
+        # Between files too, also those that declare nothing (round 7).
+        with self.assertRaises(guard._TooSlow):
+            guard.test_modules(self.root, ["src/plain.rs"], lambda _rel, _attr: True, 0.0)
+
+    def test_one_attribute_comment_or_string_keeps_to_the_deadline(self):
+        # Verifier round 4, N1: the deadline was checked only between tokens,
+        # so one long attribute (`#[` and 32 MB of `[`) held a locked edit
+        # 11.7-13.6 s, past the hook's 10 s limit. Each step inside one checks
+        # it too.
+        import time
+        for end, text in ((guard.rust_attr_end, "[]" * 10), (guard.rust_comment_end, "/**/" * 10),
+                          (guard.rust_string_end, "\\a" * 5000)):
+            with self.assertRaises(guard._TooSlow, msg=end.__name__):
+                end(text, 0, 0.0)
+        for text in ("mod a;\n#[" + "[]" * 3000000, "mod a;\n/*" + "/**/" * 4000000):
+            t0 = time.time()
+            with self.assertRaises(guard._TooSlow):
+                guard.rust_file_modules(text, time.time() + 0.2)
+            self.assertLess(time.time() - t0, 1.0, text[:10])
+
+    def test_a_long_run_of_other_characters_is_read_quickly(self):
+        # N1's sibling (round 7): one search for the next token over 16 MB of
+        # `(` took 2.4 s, inside one regex call where no deadline can stop it.
+        import time
+        t0 = time.time()
+        self.assertEqual(guard.rust_file_modules("mod a;\n" + "(" * 16000000 + "\nmod b;\n"),
+                         [("a", [], None, []), ("b", [], None, [])])
+        self.assertLess(time.time() - t0, 1.0)
+        # A run of brackets in an attribute is one step (verifier round 4, N1:
+        # `#[` and 32 MB of `[`); a run of `]` ends the attribute at its own.
+        t0 = time.time()
+        mods = guard.rust_file_modules("mod a;\n#[" + "[" * 8000000 + "]" * 8000001 + "\nmod b;\n")
+        self.assertLess(time.time() - t0, 1.0)
+        self.assertEqual([(m[0], len(m[3])) for m in mods], [("a", 0), ("b", 1)])
+        self.assertEqual(len(mods[1][3][0]), 2 + 16000001)
+        self.assertEqual(guard.rust_attr_end("a[b]]] x", 0), 5)
+
+    def test_a_long_string_is_read_in_little_memory(self):
+        # Verifier round 4, N1: one regex over a string literal held about 130
+        # bytes per character (a 4 MB literal: 512 MB; 10 MB: 1.25-1.57 GB);
+        # so did the #[path] pattern.
+        import tracemalloc
+        body = "a" * (2 << 20)
+        for text in ('mod a;\nconst S: &str = "' + body + '";\n', 'mod a;\nb"' + "\\a" * (1 << 20),
+                     'mod a;\nc"' + body, '#[path = "' + body + '"]\nmod a;\n'):
+            tracemalloc.start()
+            try:
+                guard.rust_file_modules(text)
+                peak = tracemalloc.get_traced_memory()[1]
+            finally:
+                tracemalloc.stop()
+            self.assertLess(peak, 16 << 20, text[:12])
+
+    def test_past_the_cap_one_marker_stands_for_the_rest(self):
+        # Verifier round 4, N4: the cap's marker was added once per enclosing
+        # block, so a declaration's attributes still grew with nesting (a
+        # planted 341 KB file took the hook to 992 MB).
+        text = ("".join("#![allow(a_%d)]\n" % i for i in range(300)) + "fn f() {\n#![allow(b)]\n" * 500
+                + "mod m;\n" + "}\n" * 500)
+        (mod,) = guard.rust_file_modules(text)
+        self.assertEqual(mod[3].count(guard.RUST_TOO_MANY), 1)
+        self.assertEqual(len(mod[3]), guard.RUST_MAX_ATTRS + 1)
+
+    def test_past_the_cap_a_declarations_path_still_counts(self):
+        # Verifier round 4, N2: with 256 attributes in scope the cap dropped a
+        # declaration's own #[path], so the module's real file was not locked.
+        text = ("".join('#![doc = "%d"]\n' % i for i in range(256))
+                + '#[cfg(test)]\n#[path = "real_tests.rs"]\nmod t;\n')
+        self.assertEqual([m[:3] for m in guard.rust_file_modules(text)], [("t", [], "real_tests.rs")])
+
+    def test_a_file_too_big_to_check_asks(self):
+        # Verifier round 4, N4: nested inline modules, each with an attribute,
+        # then many declarations: each declaration carried every module around
+        # it (a planted 341 KB file: 992 MB, then an ask at 4.2 s). Past
+        # RUST_MAX_KEPT entries, or RUST_MAX_BYTES on disk, a file is too big
+        # to check, and a locked edit it could bear on asks at once; one the
+        # other files already show to be a test module is still refused.
+        import time
+        import tracemalloc
+        deep = "mod m {\n#![allow(unused)]\n" * 2000 + "mod a;\n" * 2000 + "}\n" * 2000
+        # Every declaration's own list of 256 attributes, or a fresh copy of
+        # its scope's after each block, counts too.
+        top = "".join("#![allow(a_%d)]\n" % i for i in range(255))
+        wide = top + "".join("#[allow(b_%d)]\nmod m_%d;\n" % (i, i) for i in range(40000))
+        blocks = top + "fn f() {\n    mod a;\n}\n" * 40000
+        for name, write in (("deep", lambda f: f.write(deep)), ("wide", lambda f: f.write(wide)),
+                            ("blocks", lambda f: f.write(blocks)),
+                            ("huge", lambda f: f.truncate(guard.RUST_MAX_BYTES + 1))):
+            with open(os.path.join(self.root, "zz.rs"), "w") as f:
+                write(f)
+            tracemalloc.start()
+            t0 = time.time()
+            try:
+                self.assertEqual(self.v("Edit", self.changes("src/plain.rs")[0][1]), "ask", name)
+                self.assertEqual(self.v("Edit", self.changes("src/tests.rs")[0][1]), "deny", name)
+                peak = tracemalloc.get_traced_memory()[1]
+            finally:
+                tracemalloc.stop()
+            self.assertLess(time.time() - t0, 2.0, name)
+            self.assertLess(peak, 32 << 20, name)
+        # So does an edit that would make the file it writes too big (above
+        # its tests, which stay as they were).
+        os.remove(os.path.join(self.root, "zz.rs"))
+        content = " " * (guard.RUST_MAX_BYTES + 1) + self.FILES["src/lib.rs"]
+        self.assertEqual(self.v("Write", {"file_path": "src/lib.rs", "content": content}), "ask")
+
+    def test_many_declarations_of_a_test_file_cannot_stall_the_hook(self):
+        # Found while fixing N1 (round 7): each kept declaration of a
+        # tests-only file was looked up in a list of the edit's, and read the
+        # file again; 40,000 of them held a locked edit of their parent 8.4 s.
+        import time
+        with open(os.path.join(self.root, "src", "lib.rs"), "a") as f:
+            f.write("".join("#[allow(a_%d)]\nmod whole;\n" % i for i in range(40000)))
+        t0 = time.time()
+        self.assertEqual(self.v("Edit", {"file_path": "src/lib.rs", "old_string": "pub mod plain;\n",
+                                         "new_string": "pub mod plain;\n\n"}), "allow")
+        self.assertLess(time.time() - t0, 4.0)
 
     def test_the_scanner_takes_linear_time(self):
         import time
@@ -964,6 +1082,12 @@ class TestModuleFiles(unittest.TestCase):
                                                                                     "#![allow(x)]"]),
                           ("c", [], None, ["#![cfg(test)]", "#[cfg(test)]"]), ("d", [], None, ["#![cfg(test)]"]),
                           ("e", [], None, ["#![cfg(test)]"]), ("\u00e9t\u00e9", [], None, ["#![cfg(test)]"])])
+        # Declarations with no attributes of their own share their scope's
+        # list until it changes: an inner attribute, a block opened or closed.
+        self.assertEqual(guard.rust_file_modules("mod a;\n#![allow(x)]\nmod b;\n#[cfg(test)]\nmod m {\n    mod c;\n}\n"
+                                                 "mod d;\n"),
+                         [("a", [], None, []), ("b", [], None, ["#![allow(x)]"]),
+                          ("c", ["m"], None, ["#![allow(x)]", "#[cfg(test)]"]), ("d", [], None, ["#![allow(x)]"])])
 
     def test_a_modules_inner_path_names_its_folder(self):
         # Corpus probe, 2026-10-11 (cargo-mutants' fixture of the Rust
@@ -985,6 +1109,9 @@ class TestModuleFiles(unittest.TestCase):
         # An attribute runs to its own closing bracket, past brackets inside it.
         self.assertEqual(guard.rust_file_modules("#[x([1])]\n#[cfg(test)]\nmod y;\n"),
                          [("y", [], None, ["#[x([1])]", "#[cfg(test)]"])])
+        # A path is the whole attribute's one string, as written (round 7).
+        self.assertEqual(guard.rust_path('#[path = "p.rs" x]'), None)
+        self.assertEqual(guard.rust_path('#[path = "a\\"b.rs"]'), 'a\\"b.rs')
 
     def test_a_declaration_as_rustc_reads_it(self):
         # Verifier round 1, D2: rustc reads each of these as `mod tests;` —
@@ -1018,6 +1145,14 @@ class TestModuleFiles(unittest.TestCase):
                          [("a", [], None, [])])
         self.assertEqual(guard.rust_file_modules('mod a;\nconst S: &str = "never closed\nmod b;\n'),
                          [("a", [], None, [])])
+        # Round 7: a string is read 1,000 escapes at a time; a `\` that ends
+        # the file leaves it unclosed; a bracket in a string inside an
+        # attribute is not the attribute's.
+        self.assertEqual([m[0] for m in guard.rust_file_modules(
+            'const S: &str = "' + "\\n" * 1500 + '";\nmod after;\n')], ["after"])
+        self.assertEqual(guard.rust_file_modules('mod a;\nconst S: &str = "never closed\\'), [("a", [], None, [])])
+        self.assertEqual(guard.rust_file_modules('#[doc = "]"]\n#[cfg(test)]\nmod t;\n'),
+                         [("t", [], None, ['#[doc = "]"]', "#[cfg(test)]"])])
 
     def test_where_a_module_file_is_looked_for(self):
         self.assertEqual(guard.module_files("src/lib.rs", "x", [], None), [["src/x.rs", "src/x/mod.rs"]])
@@ -1266,6 +1401,40 @@ class InlineTestCoverage(unittest.TestCase):
         t0 = time.time()
         self.assertEqual(self.gaps(root, self.RULES), [])
         self.assertLess(time.time() - t0, 4.0)
+
+    def test_a_deeply_nested_file_cannot_stall_the_tripwire(self):
+        # Verifier round 4, N5: a tracked 273 KB file of nested inline modules
+        # and declarations took the tripwire 32.5 s and 1 GB. Too big to
+        # check, it is named, at once.
+        import time
+        root = self.repo({"src/lib.rs": "mod m {\n#![allow(unused)]\n" * 3000 + "mod a;\n" * 3000 + "}\n" * 3000})
+        t0 = time.time()
+        self.assertEqual(self.gaps(root, self.RULES), ["src/lib.rs"])
+        self.assertLess(time.time() - t0, 2.0)
+
+    def test_the_tripwire_keeps_to_its_time(self):
+        # N5: past its own budget the tripwire says it could not check
+        # (`fix-lock on` then warns), never "nothing found".
+        root = self.repo({"src/lib.rs": self.DECLARES, "src/tests.rs": self.TESTS_ONLY})
+        with mock.patch.object(guard, "TRIPWIRE_TIME_BUDGET", -1.0):
+            with self.assertRaises(OSError):
+                self.gaps(root, self.RULES)
+            # Its own reading of the files keeps to it, and so does its lookup.
+            with mock.patch.object(guard, "test_modules", return_value={}):
+                with self.assertRaises(OSError):
+                    self.gaps(root, self.RULES)
+        root = self.repo({"src/lib.rs": "mod a;\n#[" + "[]" * 3000000})
+        with mock.patch.object(guard, "TRIPWIRE_TIME_BUDGET", 0.5):
+            with self.assertRaises(OSError):
+                self.gaps(root, self.RULES)
+
+    def test_a_file_too_big_to_check_is_named(self):
+        # A test module the lock cannot follow is still named when a file
+        # beside it is too big to check (which is named too).
+        root = self.repo({"src/a/foo.rs": 'pub fn f() {}\n\n#[cfg(test)]\n#[path = "../b/t.rs"]\nmod t;\n',
+                          "src/b/t.rs": self.TESTS_ONLY,
+                          "src/zz.rs": "mod m {\n#![allow(unused)]\n" * 1000 + "mod a;\n" * 1000 + "}\n" * 1000})
+        self.assertCountEqual(self.gaps(root, self.RULES), ["src/b/t.rs", "src/zz.rs"])
 
     def test_a_production_module_is_not_named(self):
         root = self.repo({"src/lib.rs": "#[cfg(not(test))]\npub mod plain;\n\n#[cfg(test)]\nmod tests;\n",

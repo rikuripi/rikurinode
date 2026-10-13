@@ -1,0 +1,12 @@
+# lines_probe.py at 00:52:36, Python 3.14.4, Rikuri-PI's config; safe-run; lnd 2026-10-12T01:46:20.584320594Z
+## round 7 (guard.py 240c4cc0…)
+  locked Edit of src/zz.rs: one line, then 4 MB of empty lines  allow   4.31 s
+  locked Edit of src/lib.rs, beside it                          allow   0.15 s
+  locked Edit of src/zz.rs: one line, then 15 MB of empty lines allow  16.21 s  past the hook's 10 s
+  locked Edit of src/lib.rs, beside it                          allow   0.34 s
+## aa51a24 (before this change)
+  locked Edit of src/zz.rs: one line, then 4 MB of empty lines  allow   4.30 s
+  locked Edit of src/lib.rs, beside it                          allow   0.06 s
+  locked Edit of src/zz.rs: one line, then 15 MB of empty lines allow  15.80 s  past the hook's 10 s
+  locked Edit of src/lib.rs, beside it                          allow   0.06 s
+# lnd after: 2026-10-12T01:46:20.584320594Z

@@ -1,3 +1,3 @@
-# round 6 final (origin) at 17:19:31: Python 3.9.25; guard.py c884a868…, test_guard.py 42a7d741…, guard_base.py 1ef6f5cc…; safe-run; exit 0; lnd 2026-10-12T01:46:20.584320594Z -> 2026-10-12T01:46:20.584320594Z
-Ran 142 tests in 22.684s
+# round 7 green at 00:51:50: Python 3.9.25; guard.py 240c4cc0…, test_guard.py 4fc2340a…, guard_base.py 1ef6f5cc…; safe-run; exit 0; lnd 2026-10-12T01:46:20.584320594Z -> 2026-10-12T01:46:20.584320594Z
+Ran 152 tests in 26.887s
 OK

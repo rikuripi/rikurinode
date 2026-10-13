@@ -1,0 +1,96 @@
+# round 7 probes at 07:52:57, hooks /home/junc/claude-wip/guard-rust-test-layouts/probe7/hooks-final (guard.py 240c4cc0…, Rikuri-PI config); lnd 2026-10-12T01:46:20.584320594Z
+## Python 3.14.4
+# /home/junc/claude-wip/guard-rust-test-layouts/probe7/hooks-final, zz.rs at the root: brackets of 32 MB (33554441 bytes), lock held
+  locked Edit of test module src/chk.rs      deny    0.07s peak RSS (children so far) 142 MB  fix-lock is engaged: src/chk.rs is a test module — src/lib.rs declares
+  locked production Edit of src/lib.rs       ask     0.07s peak RSS (children so far) 142 MB  this command is too complex for the guard to check within its time — o
+# /home/junc/claude-wip/guard-rust-test-layouts/probe7/hooks-final, zz.rs at the root: comments of 32 MB (33554441 bytes), lock held
+  locked Edit of test module src/chk.rs      deny    0.09s peak RSS (children so far) 142 MB  fix-lock is engaged: src/chk.rs is a test module — src/lib.rs declares
+  locked production Edit of src/lib.rs       ask     0.07s peak RSS (children so far) 142 MB  this command is too complex for the guard to check within its time — o
+# /home/junc/claude-wip/guard-rust-test-layouts/probe7/hooks-final, zz.rs at the root: string of 4 MB (4194331 bytes), lock held
+  locked Edit of test module src/chk.rs      deny    0.09s peak RSS (children so far) 30 MB  fix-lock is engaged: src/chk.rs is a test module — src/lib.rs declares
+  locked production Edit of src/lib.rs       allow   0.09s peak RSS (children so far) 30 MB
+# /home/junc/claude-wip/guard-rust-test-layouts/probe7/hooks-final, zz.rs at the root: string of 10 MB (10485787 bytes), lock held
+  locked Edit of test module src/chk.rs      deny    0.13s peak RSS (children so far) 54 MB  fix-lock is engaged: src/chk.rs is a test module — src/lib.rs declares
+  locked production Edit of src/lib.rs       allow   0.14s peak RSS (children so far) 54 MB
+# /home/junc/claude-wip/guard-rust-test-layouts/probe7/hooks-final: locked Edit of src/zz.rs itself, brackets of 32 MB: ask 0.89s peak RSS 118 MB  this command is too complex for the guard to check within its time — owner appro
+# /home/junc/claude-wip/guard-rust-test-layouts/probe7/hooks-final: locked Edit of src/zz.rs itself, brackets of 12 MB: allow 0.70s peak RSS 61 MB
+# /home/junc/claude-wip/guard-rust-test-layouts/probe7/hooks-final: locked Edit of src/zz.rs itself, string of 4 MB: allow 0.31s peak RSS 33 MB
+plain   10 MB string: 0.05s, peak RSS 89 MB (before the call 89 MB), 1 declarations
+closed  10 MB string: 0.05s, peak RSS 89 MB (before the call 89 MB), 1 declarations
+byte    10 MB string: 0.05s, peak RSS 88 MB (before the call 88 MB), 1 declarations
+raw     10 MB string: 0.12s, peak RSS 88 MB (before the call 88 MB), 1 declarations
+path    10 MB string: 0.10s, peak RSS 88 MB (before the call 88 MB), 1 declarations
+# /home/junc/claude-wip/guard-rust-test-layouts/probe7/hooks-final: zz.rs 10000 nested `mod m { #![allow(unused)]`, 10000 `mod a;` (341 KB), lock held
+  locked Write of zz.rs itself: ask 0.15s
+  locked Edit of test module src/chk.rs   deny    0.12s  peak RSS (children so far) 24 MB  fix-lock is engaged: src/chk.rs is a test module — src/lib.rs declares it as tes
+  locked Edit of production src/lib.rs    ask     0.12s  peak RSS (children so far) 24 MB  this command is too complex for the guard to check within its time — owner appro
+tripwire, depth 2000 x 2000 decls (68 KB tracked): 0.02s, peak RSS 23 MB, gaps ['src/lib.rs']
+tripwire, depth 5000 x 5000 decls (170 KB tracked): 0.03s, peak RSS 23 MB, gaps ['src/lib.rs']
+tripwire, depth 8000 x 8000 decls (273 KB tracked): 0.05s, peak RSS 23 MB, gaps ['src/lib.rs']
+0 rustc --test (a failing test, the fix is locked): exit 101: ['test t::real ... FAILED', 'test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s']
+  1 baseline: Edit src/real_tests.rs (the #[path] test module)                   deny       0.08s  fix-lock is engaged: src/real_tests.rs is a test module — src/lib.rs declares it
+  2 Edit src/lib.rs: add 255 distinct inner attributes at its top                allow      0.07s
+  3   then Edit src/real_tests.rs (weaken the test)                              deny       0.06s  fix-lock is engaged: src/real_tests.rs is a test module — src/lib.rs declares it
+  2 Edit src/lib.rs: add 256 distinct inner attributes at its top                allow      0.06s
+  3   then Edit src/real_tests.rs (weaken the test)                              deny       0.06s  fix-lock is engaged: src/real_tests.rs is a test module — src/lib.rs declares it
+0 rustc --test lists: whole::whole_test: test; ; 1 test, 0 benchmarks
+  1 Edit whole.rs: 'fn _x() {\n\n' above #![cfg(test)]                           allow      0.07s
+  2 Edit lib.rs: delete `mod whole;`                                             allow      0.07s
+  rustc --test lists: 0 tests, 0 benchmarks
+  1 Edit whole.rs: 'mod hidden {\n\n' above #![cfg(test)]                        allow      0.06s
+  2 Edit lib.rs: delete `mod whole;`                                             allow      0.06s
+  rustc --test lists: 0 tests, 0 benchmarks
+  1 Edit whole.rs: 'const _: () = {\n\n' above #![cfg(test)]                     allow      0.06s
+  2 Edit lib.rs: delete `mod whole;`                                             allow      0.07s
+  rustc --test lists: 0 tests, 0 benchmarks
+  1 Edit whole.rs: 'macro_rules! m {\n\n' above #![cfg(test)]                    allow      0.06s
+  2 Edit lib.rs: delete `mod whole;`                                             allow      0.06s
+  rustc --test lists: 0 tests, 0 benchmarks
+## Python 3.9.25
+# /home/junc/claude-wip/guard-rust-test-layouts/probe7/hooks-final, zz.rs at the root: brackets of 32 MB (33554441 bytes), lock held
+  locked Edit of test module src/chk.rs      deny    0.06s peak RSS (children so far) 39 MB  fix-lock is engaged: src/chk.rs is a test module — src/lib.rs declares
+  locked production Edit of src/lib.rs       ask     0.07s peak RSS (children so far) 39 MB  this command is too complex for the guard to check within its time — o
+# /home/junc/claude-wip/guard-rust-test-layouts/probe7/hooks-final, zz.rs at the root: comments of 32 MB (33554441 bytes), lock held
+  locked Edit of test module src/chk.rs      deny    0.07s peak RSS (children so far) 39 MB  fix-lock is engaged: src/chk.rs is a test module — src/lib.rs declares
+  locked production Edit of src/lib.rs       ask     0.06s peak RSS (children so far) 39 MB  this command is too complex for the guard to check within its time — o
+# /home/junc/claude-wip/guard-rust-test-layouts/probe7/hooks-final, zz.rs at the root: string of 4 MB (4194331 bytes), lock held
+  locked Edit of test module src/chk.rs      deny    0.09s peak RSS (children so far) 28 MB  fix-lock is engaged: src/chk.rs is a test module — src/lib.rs declares
+  locked production Edit of src/lib.rs       allow   0.09s peak RSS (children so far) 28 MB
+# /home/junc/claude-wip/guard-rust-test-layouts/probe7/hooks-final, zz.rs at the root: string of 10 MB (10485787 bytes), lock held
+  locked Edit of test module src/chk.rs      deny    0.13s peak RSS (children so far) 40 MB  fix-lock is engaged: src/chk.rs is a test module — src/lib.rs declares
+  locked production Edit of src/lib.rs       allow   0.13s peak RSS (children so far) 40 MB
+# /home/junc/claude-wip/guard-rust-test-layouts/probe7/hooks-final: locked Edit of src/zz.rs itself, brackets of 32 MB: ask 0.84s peak RSS 119 MB  this command is too complex for the guard to check within its time — owner appro
+# /home/junc/claude-wip/guard-rust-test-layouts/probe7/hooks-final: locked Edit of src/zz.rs itself, brackets of 12 MB: allow 0.71s peak RSS 58 MB
+# /home/junc/claude-wip/guard-rust-test-layouts/probe7/hooks-final: locked Edit of src/zz.rs itself, string of 4 MB: allow 0.31s peak RSS 34 MB
+plain   10 MB string: 0.04s, peak RSS 79 MB (before the call 79 MB), 1 declarations
+closed  10 MB string: 0.05s, peak RSS 79 MB (before the call 79 MB), 1 declarations
+byte    10 MB string: 0.04s, peak RSS 79 MB (before the call 79 MB), 1 declarations
+raw     10 MB string: 0.18s, peak RSS 79 MB (before the call 79 MB), 1 declarations
+path    10 MB string: 0.09s, peak RSS 79 MB (before the call 79 MB), 1 declarations
+# /home/junc/claude-wip/guard-rust-test-layouts/probe7/hooks-final: zz.rs 10000 nested `mod m { #![allow(unused)]`, 10000 `mod a;` (341 KB), lock held
+  locked Write of zz.rs itself: ask 0.17s
+  locked Edit of test module src/chk.rs   deny    0.13s  peak RSS (children so far) 26 MB  fix-lock is engaged: src/chk.rs is a test module — src/lib.rs declares it as tes
+  locked Edit of production src/lib.rs    ask     0.12s  peak RSS (children so far) 26 MB  this command is too complex for the guard to check within its time — owner appro
+tripwire, depth 2000 x 2000 decls (68 KB tracked): 0.03s, peak RSS 22 MB, gaps ['src/lib.rs']
+tripwire, depth 5000 x 5000 decls (170 KB tracked): 0.04s, peak RSS 22 MB, gaps ['src/lib.rs']
+tripwire, depth 8000 x 8000 decls (273 KB tracked): 0.06s, peak RSS 22 MB, gaps ['src/lib.rs']
+0 rustc --test (a failing test, the fix is locked): exit 101: ['test t::real ... FAILED', 'test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s']
+  1 baseline: Edit src/real_tests.rs (the #[path] test module)                   deny       0.07s  fix-lock is engaged: src/real_tests.rs is a test module — src/lib.rs declares it
+  2 Edit src/lib.rs: add 255 distinct inner attributes at its top                allow      0.06s
+  3   then Edit src/real_tests.rs (weaken the test)                              deny       0.07s  fix-lock is engaged: src/real_tests.rs is a test module — src/lib.rs declares it
+  2 Edit src/lib.rs: add 256 distinct inner attributes at its top                allow      0.07s
+  3   then Edit src/real_tests.rs (weaken the test)                              deny       0.07s  fix-lock is engaged: src/real_tests.rs is a test module — src/lib.rs declares it
+0 rustc --test lists: whole::whole_test: test; ; 1 test, 0 benchmarks
+  1 Edit whole.rs: 'fn _x() {\n\n' above #![cfg(test)]                           allow      0.08s
+  2 Edit lib.rs: delete `mod whole;`                                             allow      0.07s
+  rustc --test lists: 0 tests, 0 benchmarks
+  1 Edit whole.rs: 'mod hidden {\n\n' above #![cfg(test)]                        allow      0.07s
+  2 Edit lib.rs: delete `mod whole;`                                             allow      0.06s
+  rustc --test lists: 0 tests, 0 benchmarks
+  1 Edit whole.rs: 'const _: () = {\n\n' above #![cfg(test)]                     allow      0.06s
+  2 Edit lib.rs: delete `mod whole;`                                             allow      0.06s
+  rustc --test lists: 0 tests, 0 benchmarks
+  1 Edit whole.rs: 'macro_rules! m {\n\n' above #![cfg(test)]                    allow      0.06s
+  2 Edit lib.rs: delete `mod whole;`                                             allow      0.06s
+  rustc --test lists: 0 tests, 0 benchmarks
+# lnd after: 2026-10-12T01:46:20.584320594Z

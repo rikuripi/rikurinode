@@ -1,20 +1,53 @@
-# Rikuri-PI full gate at 17:22:56 on a private clone of dc7e327 + round 6, committed (never pushed); safe-run (no network), CARGO_NET_OFFLINE=true; the gate script exits 1 at its dependency step
+# Rikuri-PI full gate at 07:54:18 on a private clone of f9f58c0 + round 7, committed (never pushed): guard.py 240c4cc0…; safe-run (no network), CARGO_NET_OFFLINE=true; the gate script exits 1 at its dependency step
+── GATE tools: tool_versions
 ── GATE tools: PASS
+── GATE gate-selftests: run_selftests
 ── GATE gate-selftests: PASS
+── GATE guard: python3 -m unittest discover -s .claude/hooks -p test_*.py -q
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpvzxd74sj failed: fatal: not a git repository (or any parent up to mount point /)
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpvzxd74sj failed: fatal: not a git repository (or any parent up to mount point /)
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpaglg4ogq failed: fatal: not a git repository (or any parent up to mount point /)
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmp_efwm5j3 failed: fatal: not a git repository (or any parent up to mount point /)
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmp6swrqj1p failed: fatal: not a git repository (or any parent up to mount point /)
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmp5iawhrkr failed: fatal: not a git repository (or any parent up to mount point /)
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpg9ovymtr failed: fatal: not a git repository (or any parent up to mount point /)
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpwth37xyv failed: fatal: not a git repository (or any parent up to mount point /)
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpwth37xyv failed: fatal: not a git repository (or any parent up to mount point /)
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpwth37xyv failed: fatal: not a git repository (or any parent up to mount point /)
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpa_wi2788 failed: fatal: not a git repository (or any parent up to mount point /)
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpa_wi2788 failed: fatal: not a git repository (or any parent up to mount point /)
+WARNING: could not check for inline tests that no inline_tests rule covers: git ls-files in /tmp/tmpoc5id_m0 failed: fatal: not a git repository (or any parent up to mount point /)
 ── GATE guard: PASS
+── GATE format: cargo fmt --all --check
 ── GATE format: PASS
+── GATE build: cargo build --workspace --all-targets --locked
 ── GATE build: PASS
+── GATE clippy: run_clippy
 ── GATE clippy: PASS
+── GATE test: scripts/quality/no-temp-residue.sh cargo test --workspace --locked
+test tests::error_codes_are_stable_and_map_to_documented_exit_codes ... ok
+test every_error_code_has_its_documented_exit_code_and_retry_flag ... ok
+test a_usage_error_exits_2 ... ok
+test id::tests::errors_do_not_echo_unbounded_input ... ok
+test event_type_errors_are_bounded ... ok
+test ledger_errors_say_whether_the_store_failed ... ok
+test storage_errors_say_whether_the_store_failed ... ok
+test corrupt_row_errors_are_bounded ... ok
+test parameter_errors_are_bounded ... ok
+test the_log_is_one_line_per_request_and_errors_stay_bounded ... ok
 ── GATE test: PASS
+── GATE smoke: scripts/quality/no-temp-residue.sh scripts/quality/smoke.sh
 ── GATE smoke: PASS
+── GATE crash-matrix: run_crash_matrix
 ── GATE crash-matrix: PASS
+── GATE dependencies: cargo deny --locked check
 fatal: unable to access 'https://github.com/RustSec/advisory-db/': Could not resolve host: github.com
 ── GATE dependencies: FAIL
 RESULT: FAIL (dependencies)
-# the steps after 'dependencies', run one by one in the same copy (safe-run, offline); the advisory database as cached 2026-10-09 10:12:02 +0200 (CI fetches a fresh one)
+# the steps after 'dependencies', run one by one in the same copy (safe-run, offline); the advisory database as cached (CI fetches a fresh one)
 [cargo deny --locked --offline check] exit 0: advisories ok, bans ok, licenses ok, sources ok
-[scripts/quality/secret-scan.sh] exit 0: 5:22PM INF no leaks found
-[scripts/quality/ratchet.sh] exit 0: RATCHET todo_markers: 0 (baseline 0)
+[scripts/quality/secret-scan.sh] exit 0: [90m7:55AM[0m [32mINF[0m [1mUnknown SCM platform. Use --platform to include links in findings.[0m [36mhost=[0m [90m7:55AM[0m [32mINF[0m [1m165 commits scanned.[0m [90m7:55AM[0m [32mIN
+[scripts/quality/ratchet.sh] exit 0: RATCHET ignored_tests: 0 (baseline 0) RATCHET lint_suppressions: 0 (baseline 0) RATCHET todo_markers: 0 (baseline 0)
 [scripts/quality/module-contracts.sh] exit 0: CONTRACT checked 7 crate(s)
 [scripts/quality/crate-policy.sh] exit 0: POLICY checked 7 crate(s)
 [scripts/quality/scrap-sweep.sh] exit 0: SCRAP clean

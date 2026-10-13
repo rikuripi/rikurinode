@@ -32,6 +32,8 @@ tests as a whole: the guard follows such declarations as rustc does, from the
 folders above the file, with the declaring file's rules, and locks every
 place rustc may read it from; `#![cfg(test)]` at a file's top is a marker
 too, and that file's `mod` declaration is locked in its parent (2026-10-11).
+A .rs file too big to check that way (RUST_MAX_BYTES, RUST_MAX_KEPT) makes a
+locked edit it could bear on ask (2026-10-12).
 Each repo opts in through its own config, so test_guard.py fails while a
 tracked .rs file holds Rust tests the lock does not cover, and `fix-lock on`
 names such files instead of calling them read-only (2026-10-11).
@@ -340,7 +342,7 @@ def inline_edit_hit(tool: str, tin: dict, rel: str, root: str, cfg: dict) -> tup
                         "fix-lock this file takes exact edits only (copy the text as it is)" % rel, True)
     kept = [repr(d) for d in test_file_declarations(rel, before, root, cfg, _DEADLINE_ALL)]
     for a in after if kept else []:
-        left = [repr(d) for d in test_file_declarations(rel, a, root, cfg, _DEADLINE_ALL)]
+        left = {repr(d) for d in test_file_declarations(rel, a, root, cfg, _DEADLINE_ALL)}
         if any(d not in left for d in kept):
             return ("deny", "fix-lock is engaged: this removes or changes, in %s, the declaration (`mod …;` "
                             "with its attributes) of a module whose file is tests as a whole "
@@ -373,21 +375,33 @@ def inline_edit_hit(tool: str, tin: dict, rel: str, root: str, cfg: dict) -> tup
 # lifetime (`'a`) is not a character literal. One never closed runs to the end
 # of the file, as rustc reads it, so no opener is read twice (verifier round 1,
 # D1: 40,000 unclosed `/*` took 16 s). Block comments nest, as in rustc
-# (rust_comment_end).
+# (rust_comment_end); a string other than a raw one is read by
+# rust_string_end.
 RUST_SKIP = (r"//[^\n]*"
              r'|(?<!\w)[bc]?r(?P<hashes>#*)"[\s\S]*?(?:"(?P=hashes)|\Z)'
-             r'|(?<!\w)[bc]?"(?:\\[\s\S]|[^"\\])*(?:"|\Z)'
+             r'|(?P<string>(?<!\w)[bc]?")'
              r"|(?<!\w)b?'(?:\\(?:u\{[0-9A-Fa-f_]*\}|x[0-9A-Fa-f]{2}|[^\n])|[^'\\\n])'")
 RUST_SCAN = re.compile(r"(?P<comment>/\*)|" + RUST_SKIP + r"|(?P<attr>#\s*(?:(?P<inner>!)\s*)?\[)"
                        r"|(?P<word>(?:r#)?[^\W\d]\w*)|(?P<open>\{)|(?P<close>\})|(?P<semi>;)")
-RUST_BRACKET = re.compile(r"(?P<comment>/\*)|" + RUST_SKIP + r"|(?P<open>\[)|(?P<close>\])")
+RUST_BRACKET = re.compile(r"(?P<comment>/\*)|" + RUST_SKIP + r"|(?P<open>\[+)|(?P<close>\]+)")
+# The characters a token of each may start with. A search for a whole token
+# tries every alternative at every character: 2.4 s over 16 MB of `(`, inside
+# one regex call no deadline can stop (round 7, beside verifier round 4's N1);
+# a search for one of these characters is quick.
+RUST_SCAN_START = re.compile(r"[/\"'#{};A-Za-z_\x80-\U0010ffff]")
+RUST_BRACKET_START = re.compile(r"[/\"'\[\]bcr]")
 RUST_COMMENT_MARK = re.compile(r"/\*|\*/")
+# A string's body, at most 1,000 escapes at a time: one regex over a whole
+# string held about 130 bytes per character (verifier round 4, N1: a 4 MB
+# literal took the hook to 512 MB); a bounded repeat holds a fixed amount.
+RUST_STRING_BODY = re.compile(r'[^"\\]*(?:\\[\s\S][^"\\]*){0,1000}')
 # Rust's whitespace (Pattern_White_Space); Python's \s lacks U+200E and U+200F.
 # `#\s*(?:!\s*)?\[`, never `#\s*!?\s*\[`: two `\s*` side by side take time growing with
 # the square of a run of spaces, inside one regex call no deadline can stop (verifier
 # round 2, F1: a crafted file held a locked edit 13 s, a crafted edit 27 s).
 RUST_SPACE = re.compile(r"[\t\n\v\f\r \x85\u200e\u200f\u2028\u2029]*")
-RUST_PATH = re.compile(r'#\s*(?:!\s*)?\[\s*path\s*=\s*"((?:\\.|[^"\\])*)"\s*\]\Z')
+RUST_PATH = re.compile(r'#\s*(?:!\s*)?\[\s*path\s*=\s*"')
+RUST_PATH_END = re.compile(r"\s*\]\Z")
 RUST_MOD_WORD = re.compile(r"(?<!\w)mod(?!\w)")
 # At most this many distinct attributes apply to one declaration; past it one
 # RUST_TOO_MANY stands for the rest, and the declaration counts as test code
@@ -395,31 +409,107 @@ RUST_MOD_WORD = re.compile(r"(?<!\w)mod(?!\w)")
 # declarations held a locked edit 13 s.
 RUST_MAX_ATTRS = 256
 RUST_TOO_MANY = "#[cfg(test)] /* more than %d attributes: counted as test code */" % RUST_MAX_ATTRS
+# What the scan takes of one file: at most RUST_MAX_BYTES (a larger file is not
+# read), and at most RUST_MAX_KEPT entries for its declarations (each counts
+# one plus its inline modules, and each list of attributes, which declarations
+# may share, its length once). Past either the file is too big to check
+# (_TooBig), and a locked edit it could bear on asks. Verifier round 4:
+# a regex call over a 32 MB file cannot be stopped (N1), and 2,000 nested
+# modules above 2,000 declarations took the hook to 992 MB (N4). The largest
+# .rs file among this machine's 38,084 from crates.io is 4.1 MB.
+RUST_MAX_BYTES = 16 << 20
+RUST_MAX_KEPT = 100000
 
 
-def rust_comment_end(text: str, pos: int) -> int:
+class _TooBig(_TooSlow):
+    pass
+
+
+def rust_next(scan, start, text: str, pos: int, deadline: float):
+    """The next token `scan` matches at or after `pos`, looked for where
+    `start` finds a character it may begin with, or None. Past `deadline` it
+    raises _TooSlow."""
+    while True:
+        if time.time() > deadline:
+            raise _TooSlow()
+        s = start.search(text, pos)
+        if s is None:
+            return None
+        m = scan.match(text, s.start())
+        if m is not None:
+            return m
+        pos = s.start() + 1
+
+
+def rust_comment_end(text: str, pos: int, deadline: float = float("inf")) -> int:
     """Where the block comment opened just before `pos` ends: comments nest,
-    as in rustc, and one never closed runs to the end of the file."""
+    as in rustc, and one never closed runs to the end of the file. Past
+    `deadline` it raises _TooSlow (verifier round 4, N1)."""
     depth = 1
     for m in RUST_COMMENT_MARK.finditer(text, pos):
+        if time.time() > deadline:
+            raise _TooSlow()
         depth += 1 if m.group() == "/*" else -1
         if depth == 0:
             return m.end()
     return len(text)
 
 
-def rust_attr_end(text: str, pos: int) -> int:
+def rust_string_end(text: str, pos: int, deadline: float = float("inf")) -> int:
+    """Where the string (not a raw one) whose `"` ends just before `pos`
+    ends: just past its closing `"`, or at the end of the file when it is
+    never closed. Past `deadline` it raises _TooSlow."""
+    while True:
+        if time.time() > deadline:
+            raise _TooSlow()
+        pos = RUST_STRING_BODY.match(text, pos).end()
+        if pos < len(text) and text[pos] == '"':
+            return pos + 1
+        if pos + 1 >= len(text):  # never closed (a lone `\` may end the file)
+            return len(text)
+
+
+def rust_attr_end(text: str, pos: int, deadline: float = float("inf")) -> int:
     """Where the attribute whose `[` ends just before `pos` ends: at its own
     `]`, past brackets, comments and strings inside it; at the end of the
-    file when it is never closed."""
-    depth, b = 1, RUST_BRACKET.search(text, pos)
-    while b is not None:
-        after = rust_comment_end(text, b.end()) if b.group("comment") else b.end()
-        depth += 1 if b.group("open") else -1 if b.group("close") else 0
-        if depth == 0:
-            return after
-        b = RUST_BRACKET.search(text, after)
-    return len(text)
+    file when it is never closed. A run of brackets is one step, and past
+    `deadline` it raises _TooSlow (verifier round 4, N1: `#[` and 32 MB of
+    `[` held a locked edit 12 s)."""
+    depth = 1
+    while True:
+        b = rust_next(RUST_BRACKET, RUST_BRACKET_START, text, pos, deadline)
+        if b is None:
+            return len(text)
+        pos = b.end()
+        if b.group("comment"):
+            pos = rust_comment_end(text, pos, deadline)
+        elif b.group("string"):
+            pos = rust_string_end(text, pos, deadline)
+        elif b.group("open"):
+            depth += len(b.group("open"))
+        elif b.group("close"):
+            depth -= len(b.group("close"))
+            if depth <= 0:
+                return pos + depth  # just past the `]` that closes it
+
+
+def rust_path(attr: str, deadline: float = float("inf")) -> str | None:
+    """The path an attribute `#[path = "…"]` (or `#![path = "…"]`) names, as
+    written, or None for any other attribute."""
+    m = RUST_PATH.match(attr)
+    if m is None:
+        return None
+    end = rust_string_end(attr, m.end(), deadline)
+    if end == len(attr) or not RUST_PATH_END.match(attr, end):
+        return None
+    return attr[m.end():end - 1]
+
+
+def rust_read(path: str) -> str:
+    """A Rust file's text, or _TooBig, unread, past RUST_MAX_BYTES."""
+    if os.path.getsize(path) > RUST_MAX_BYTES:
+        raise _TooBig()
+    return read_text(path)
 
 
 def rust_file_attrs(text: str, deadline: float = float("inf")) -> list:
@@ -431,16 +521,16 @@ def rust_file_attrs(text: str, deadline: float = float("inf")) -> list:
     _TooSlow."""
     out, depth, pos = [], 0, 0
     while True:
-        if time.time() > deadline:
-            raise _TooSlow()
-        m = RUST_SCAN.search(text, pos)
+        m = rust_next(RUST_SCAN, RUST_SCAN_START, text, pos, deadline)
         if m is None:
             return out
         pos = m.end()
         if m.group("comment"):
-            pos = rust_comment_end(text, pos)
+            pos = rust_comment_end(text, pos, deadline)
+        elif m.group("string"):
+            pos = rust_string_end(text, pos, deadline)
         elif m.group("attr"):
-            end = rust_attr_end(text, pos)
+            end = rust_attr_end(text, pos, deadline)
             if m.group("inner") and depth == 0:
                 out.append(text[m.start():end])
             pos = end
@@ -458,43 +548,52 @@ def rust_file_modules(text: str, deadline: float = float("inf")) -> list:
     block around it, its own). A declaration is the word `mod`, a name and
     `;` (`{` for an inline module) with nothing but comments and Rust's
     whitespace between them (verifier round 1, D2: `mod /* c */ tests;`).
-    Each attribute is kept once, and at most RUST_MAX_ATTRS of them in scope.
-    Past `deadline` it raises _TooSlow."""
-    out, pending, frames, top, pos = [], [], [], [], 0
-    state, name = 0, ""  # state 1: after the word `mod`; 2: after the module's name
-    held = 0  # attributes in scope: the file's, every open block's, the next item's
+    Each attribute is kept once, and at most RUST_MAX_ATTRS of them in
+    scope; a declaration's own #[path] counts past that too (verifier round
+    4, N2). Raises _TooBig past RUST_MAX_BYTES or RUST_MAX_KEPT, _TooSlow
+    past `deadline`."""
+    if len(text) > RUST_MAX_BYTES:
+        raise _TooBig()
+    out, pending, scope, names, frames, pos = [], [], [], [], [], 0
+    # scope: the attributes in force, the file's and then each open block's;
+    # frames: for each open block, where its attributes start in scope and
+    # whether it is an inline module (its name, or #![path], last in names);
+    # shared: a copy of scope that declarations with no attributes of their
+    # own share until scope changes (its entries are kept once).
+    state, name, path, kept, shared = 0, "", None, 0, None  # state 1: after `mod`; 2: after the name
 
-    def keep(where: list, attr: str) -> None:
-        nonlocal held
-        if attr in where or RUST_TOO_MANY in where:
-            return
+    def keep(where: list, start: int, attr: str) -> None:
+        nonlocal shared
+        held = len(scope) + len(pending)
+        if held > RUST_MAX_ATTRS or attr in where[start:]:
+            return  # past the cap one RUST_TOO_MANY in scope stands for the rest (verifier round 4, N4)
         where.append(attr if held < RUST_MAX_ATTRS else RUST_TOO_MANY)
-        held += 1
+        if where is scope:
+            shared = None
 
     while True:
-        if time.time() > deadline:
-            raise _TooSlow()
-        m = RUST_SCAN.search(text, pos)
+        m = rust_next(RUST_SCAN, RUST_SCAN_START, text, pos, deadline)
         if m is None:
             return out
         if RUST_SPACE.match(text, pos, m.start()).end() != m.start():
             state = 0  # something rustc does not skip between the words: `mod $n;` in a macro
         pos = m.end()
         if m.group("comment"):
-            pos = rust_comment_end(text, pos)
+            pos = rust_comment_end(text, pos, deadline)
             continue
         if m.group("attr"):
-            end = rust_attr_end(text, pos)
+            end = rust_attr_end(text, pos, deadline)
             attr, pos, state = text[m.start():end], end, 0
             if not m.group("inner"):  # `#[…]`: the next item's
-                keep(pending, attr)
+                keep(pending, 0, attr)
+                path = rust_path(attr, deadline) if path is None else path
             elif not frames:  # `#![…]` at the top: the file's
-                keep(top, attr)
+                keep(scope, 0, attr)
             else:  # `#![…]` in a block: its own; a module's `#![path]` names its folder
-                keep(frames[-1][1], attr)
-                inner_path = RUST_PATH.match(attr)
-                if inner_path and frames[-1][0] is not None:
-                    frames[-1][0] = inner_path.group(1)
+                keep(scope, frames[-1][0], attr)
+                inner_path = rust_path(attr, deadline)
+                if inner_path is not None and frames[-1][1]:
+                    names[-1] = inner_path
             continue
         word = m.group("word")
         if word is not None:
@@ -504,23 +603,40 @@ def rust_file_modules(text: str, deadline: float = float("inf")) -> list:
                 state = 1 if word == "mod" else 0
             continue
         if m.group("open"):
-            path = next((p.group(1) for p in map(RUST_PATH.match, pending) if p), None)
-            frames.append([(path or name) if state == 2 else None, pending])
-            pending = []  # now the block's: still in scope
+            frames.append((len(scope), state == 2))
+            if state == 2:
+                names.append(path or name)
+            scope += pending  # now the block's: still in scope
+            shared = None
         elif m.group("close"):
-            held -= len(frames[-1][1]) if frames else 0
-            frames = frames[:-1]
+            if frames:
+                start, named = frames.pop()
+                del scope[start:]
+                if named:
+                    names.pop()
+            shared = None
         elif m.group("semi"):
             if state == 2:
-                path = next((p.group(1) for p in map(RUST_PATH.match, pending) if p), None)
-                out.append((name, [f[0] for f in frames if f[0] is not None], path,
-                            top + [a for f in frames for a in f[1]] + pending))
-        else:  # a line comment keeps a declaration going; a string or a character ends it
+                if pending:
+                    attrs = scope + pending
+                    kept += len(attrs)
+                else:
+                    if shared is None:
+                        shared = list(scope)
+                        kept += len(shared)
+                    attrs = shared
+                kept += 1 + len(names)  # what follows a declaration grows with its inline modules
+                if kept > RUST_MAX_KEPT:
+                    raise _TooBig()
+                out.append((name, list(names), path, attrs))
+        elif m.group("string"):  # a string ends a declaration
+            pos, state = rust_string_end(text, pos, deadline), 0
+            continue
+        else:  # a line comment keeps a declaration going; a raw string or a character ends it
             if not m.group().startswith("//"):
                 state = 0
             continue
-        held -= len(pending)
-        pending, state = [], 0
+        pending, path, state = [], None, 0
 
 
 def module_files(rel: str, name: str, inline: list, path: str | None) -> list:
@@ -549,7 +665,8 @@ def module_files(rel: str, name: str, inline: list, path: str | None) -> list:
     return out
 
 
-def test_modules(root: str, rels: list, is_test, deadline: float = float("inf")) -> dict:
+def test_modules(root: str, rels: list, is_test, deadline: float = float("inf"),
+                 unchecked: list | None = None) -> dict:
     """{module file: (the file declaring it, every path that declaration may
     name)} for every test module the Rust files `rels` declare: a `mod name;`
     with an attribute `is_test(declaring file, attribute)` accepts, or any
@@ -557,18 +674,34 @@ def test_modules(root: str, rels: list, is_test, deadline: float = float("inf"))
     module, existing or not (owner's choice "Lock both places", verifier round
     1, D3: choosing the place by which file exists let a decoy in one place
     unlock the other; a Write there creates a test module). A file that cannot
-    be read as UTF-8 declares nothing: rustc cannot compile it either."""
+    be read as UTF-8 declares nothing: rustc cannot compile it either. A file
+    too big to check raises _TooBig, or, given `unchecked`, is listed there and
+    passed over (its declarations could only add test modules)."""
     decls = {}
     for rel in rels:
+        if time.time() > deadline:
+            raise _TooSlow()
         try:
-            text = read_text(os.path.join(root, rel))
+            text = rust_read(os.path.join(root, rel))
+            mods = rust_file_modules(text, deadline) if RUST_MOD_WORD.search(text) else []
         except (OSError, UnicodeDecodeError):
             continue
-        if RUST_MOD_WORD.search(text):
+        except _TooBig:
+            if unchecked is None:
+                raise
+            unchecked.append(rel)
+            continue
+        if mods:
             marks: dict = {}  # each distinct attribute matched once (verifier round 3, I1)
-            decls[rel] = [(name, inline, path,
-                           any(marks[a] if a in marks else marks.setdefault(a, is_test(rel, a)) for a in attrs))
-                          for name, inline, path, attrs in rust_file_modules(text, deadline)]
+            lists: dict = {}  # each list of attributes once: declarations share one (all alive in mods)
+
+            def marked(attrs: list) -> bool:
+                if id(attrs) not in lists:
+                    lists[id(attrs)] = any(marks[a] if a in marks else marks.setdefault(a, is_test(rel, a))
+                                           for a in attrs)
+                return lists[id(attrs)]
+
+            decls[rel] = [(name, inline, path, marked(attrs)) for name, inline, path, attrs in mods]
     found, grew = {}, True
     while grew:
         grew = False
@@ -593,7 +726,8 @@ def test_module_parent(rel: str, root: str, cfg: dict, deadline: float = float("
     tripwire names such a module); each declaring file's own `inline_tests`
     rules say which attributes mark a test. Reads the working tree, untracked
     files too. Raises OSError when a folder cannot be listed, _TooSlow past
-    `deadline`."""
+    `deadline`, and _TooBig when a file there is too big to check and the
+    others do not already show `rel` to be a test module."""
     rels, folder = [], os.path.dirname(rel)
     while True:
         try:
@@ -609,7 +743,13 @@ def test_module_parent(rel: str, root: str, cfg: dict, deadline: float = float("
     def is_test(declaring: str, attr: str) -> bool:
         return any(re.search(r["starts_at"], attr, re.M) for r in inline_rules(declaring, cfg))
 
-    return test_modules(root, rels, is_test, deadline).get(rel, (None,))[0]
+    unchecked: list = []
+    found = test_modules(root, rels, is_test, deadline, unchecked)
+    if rel in found:
+        return found[rel][0]
+    if unchecked:
+        raise _TooBig()
+    return None
 
 
 def test_file_declarations(rel: str, text: str, root: str, cfg: dict, deadline: float = float("inf")) -> list:
@@ -619,21 +759,24 @@ def test_file_declarations(rel: str, text: str, root: str, cfg: dict, deadline: 
     Verifier round 1, D4: deleting `mod whole;`, or adding `#[cfg(any())]`
     above it, switched every test in such a file off, though its region was
     locked. Round 2, F2: the file's attributes decide, not its text — a blank
-    line above them used to make the file look partly production code. Past
-    `deadline` it raises _TooSlow."""
-    out = []
+    line above them used to make the file look partly production code. Each
+    module file is read once. Raises _TooBig when a file is too big to
+    check, _TooSlow past `deadline`."""
+    out, whole = [], {}  # module file: whether it is tests as a whole
     if not RUST_MOD_WORD.search(text):
         return out
     for decl in rust_file_modules(text, deadline):
         for p in (x for ps in module_files(rel, decl[0], decl[1], decl[2]) for x in ps):
             if time.time() > deadline:
                 raise _TooSlow()
-            rules = inline_rules(p, cfg)
-            try:
-                attrs = rust_file_attrs(read_text(os.path.join(root, p)), deadline) if rules else []
-            except (OSError, UnicodeDecodeError):
-                continue
-            if any(re.search(r["starts_at"], a, re.M) for a in attrs for r in rules):
+            if p not in whole:
+                rules = inline_rules(p, cfg)
+                try:
+                    attrs = rust_file_attrs(rust_read(os.path.join(root, p)), deadline) if rules else []
+                except (OSError, UnicodeDecodeError):
+                    attrs = []
+                whole[p] = any(re.search(r["starts_at"], a, re.M) for a in attrs for r in rules)
+            if whole[p]:
                 out.append(decl)
                 break
     return out
@@ -644,6 +787,9 @@ def test_file_declarations(rel: str, text: str, root: str, cfg: dict, deadline: 
 # Rust. A tracked .rs file with this marker needs a rule that finds its tests;
 # the inner attribute `#![cfg(test)]` makes a whole file tests (owner, 2(a)).
 RUST_INLINE_TEST = re.compile(r"^[ \t]*#\s*(?:!\s*)?\[\s*cfg\s*\(\s*test\s*\)\s*\]", re.M)
+# The tripwire's own time: past it, it says it could not check (verifier round
+# 4, N5: a tracked 273 KB file of nested modules took it 32.5 s and 1 GB).
+TRIPWIRE_TIME_BUDGET = 30.0
 # `git rev-parse --local-env-vars`: a git hook exports some of them (GIT_DIR,
 # GIT_INDEX_FILE), and they would point `git -C <root>` at another repository.
 GIT_LOCAL_ENV = {"GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_CONFIG", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT",
@@ -664,9 +810,12 @@ def uncovered_inline_tests(root: str, cfg: dict) -> list:
     test modules (2026-10-11): one the lock does not protect (no rule's glob
     names it, so a shell write passes, or test_module_parent does not find
     it), and a file declaring one whose file exists nowhere. Only files git
-    tracks count; one that cannot be read as UTF-8 counts as uncovered (it
-    cannot be checked). Raises OSError when git cannot list the files: an
-    unlisted repository is never "nothing found"."""
+    tracks count; one that cannot be read as UTF-8, or is too big to check
+    for its declarations (RUST_MAX_BYTES, RUST_MAX_KEPT), counts as
+    uncovered (it cannot be checked). Raises OSError when git cannot list the
+    files, or the check takes longer than TRIPWIRE_TIME_BUDGET: an unlisted
+    or unfinished repository is never "nothing found"."""
+    deadline = time.time() + TRIPWIRE_TIME_BUDGET
     try:
         proc = subprocess.run(["git", "-C", root, "ls-files", "-z", "--", "*.rs"],
                               capture_output=True, timeout=30, env=git_env())
@@ -675,32 +824,41 @@ def uncovered_inline_tests(root: str, cfg: dict) -> list:
     if proc.returncode != 0:
         raise OSError("git ls-files in %s failed: %s" % (root, proc.stderr.decode(errors="replace").strip()))
     out, tracked = [], []
-    for raw in filter(None, proc.stdout.split(b"\0")):
-        rel = os.fsdecode(raw)  # raw bytes: a name that is not UTF-8 still opens
-        tracked.append(rel)
-        try:
-            text = read_text(os.path.join(root, rel))
-        except (OSError, UnicodeDecodeError):
-            out.append(rel)
-            continue
-        m = RUST_INLINE_TEST.search(text)
-        if m is None:
-            continue
-        regions = [inline_region(text, r["starts_at"], r.get("attached_above", "")) for r in inline_rules(rel, cfg)]
-        if not any(reg is not None and len(reg) >= len(text) - m.start() for reg in regions):
-            out.append(rel)
-    known = set(tracked)
-    for child, (parent, places) in test_modules(root, tracked,
-                                                lambda _rel, attr: bool(RUST_INLINE_TEST.match(attr))).items():
-        if child in known:
+    try:
+        for raw in filter(None, proc.stdout.split(b"\0")):
+            if time.time() > deadline:
+                raise _TooSlow()
+            rel = os.fsdecode(raw)  # raw bytes: a name that is not UTF-8 still opens
+            tracked.append(rel)
             try:
-                covered = bool(inline_rules(child, cfg)) and test_module_parent(child, root, cfg) is not None
-            except OSError:
-                covered = False
-            if not covered and child not in out:
-                out.append(child)
-        elif not any(os.path.lexists(os.path.join(root, p)) for p in places) and parent not in out:
-            out.append(parent)  # its test module is nowhere
+                text = read_text(os.path.join(root, rel))
+            except (OSError, UnicodeDecodeError):
+                out.append(rel)
+                continue
+            m = RUST_INLINE_TEST.search(text)
+            if m is None:
+                continue
+            regions = [inline_region(text, r["starts_at"], r.get("attached_above", ""))
+                       for r in inline_rules(rel, cfg)]
+            if not any(reg is not None and len(reg) >= len(text) - m.start() for reg in regions):
+                out.append(rel)
+        known, unchecked = set(tracked), []
+        modules = test_modules(root, tracked, lambda _rel, attr: bool(RUST_INLINE_TEST.match(attr)), deadline,
+                               unchecked)
+        out += [rel for rel in unchecked if rel not in out]
+        for child, (parent, places) in modules.items():
+            if child in known:
+                try:
+                    covered = (bool(inline_rules(child, cfg))
+                               and test_module_parent(child, root, cfg, deadline) is not None)
+                except (OSError, _TooBig):
+                    covered = False
+                if not covered and child not in out:
+                    out.append(child)
+            elif not any(os.path.lexists(os.path.join(root, p)) for p in places) and parent not in out:
+                out.append(parent)  # its test module is nowhere
+    except _TooSlow:
+        raise OSError("the check did not finish within %g s (TRIPWIRE_TIME_BUDGET)" % TRIPWIRE_TIME_BUDGET) from None
     return out
 
 
@@ -2192,7 +2350,7 @@ def fix_lock_cli(args: list, root: str = ROOT, config_path: str = CONFIG_PATH, s
             more = " and %d more" % (len(gaps) - 10) if len(gaps) > 10 else ""
             print("WARNING: the Rust tests in %d tracked file%s are NOT read-only: no inline_tests rule in "
                   "guard-config.json covers them, or the guard cannot follow the test module's declaration "
-                  "(a #[path] out of its folder, or no such file): %s%s"
+                  "(a #[path] out of its folder, no such file, or a file too big to check): %s%s"
                   % (len(gaps), "" if len(gaps) == 1 else "s", ", ".join(gaps[:10]), more), file=sys.stderr)
         return 0
     if args[:1] == ["off"]:

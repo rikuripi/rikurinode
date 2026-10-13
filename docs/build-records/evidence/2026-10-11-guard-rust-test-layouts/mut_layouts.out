@@ -1,34 +1,40 @@
-# mutants, round 6 (final), at 16:50:16: guard.py c884a868…, test_guard.py 42a7d741…; safe-run; exit 0; lnd 2026-10-12T01:46:20.584320594Z -> 2026-10-12T01:46:20.584320594Z
-E1 a test module is not refused                      RED   test_a_crafted_attribute_cannot_stall_the_hook, test_a_crafted_file_cannot_stall_the_hook, test_a_test_module_file_is_read_only, test_a_test_module_th
+# round 7 mutants at 23:56:22, Python 3.14.4, guard.py 240c4cc0…, test_guard.py 4fc2340a…; safe-run; lnd 2026-10-12T01:46:20.584320594Z
+E1 a test module is not refused                      RED   test_a_crafted_attribute_cannot_stall_the_hook, test_a_crafted_file_cannot_stall_the_hook, test_a_file_too_big_to_check_asks, test_a_test_module_file_
 E2 a folder that cannot be listed allows the edit    RED   test_a_folder_that_cannot_be_listed_is_refused
 E3 any attribute marks a test                        RED   test_a_test_module_file_needs_a_rule, test_past_256_attributes_a_declaration_counts_as_test_code, test_the_repositorys_rules_decide
 E4 the edited file's rules, not the declaring file's RED   test_the_repositorys_rules_decide
 E5 a test module's own modules are not tests         RED   test_a_test_module_file_is_read_only, test_a_test_module_inside_a_test_module, test_both_places_of_a_test_module_are_locked, test_the_deny_names_the_d
-E6 only the edited file's own folder                 RED   test_a_test_module_file_is_read_only, test_a_test_module_inside_a_test_module, test_a_test_module_that_does_not_exist_yet, test_both_places_of_a_test_
+E6 only the edited file's own folder                 RED   test_a_file_too_big_to_check_asks, test_a_test_module_file_is_read_only, test_a_test_module_inside_a_test_module, test_a_test_module_that_does_not_exi
 E7 a new folder is an error                          RED   test_a_test_module_that_does_not_exist_yet
-E8 an unreadable file stops the check                RED   test_a_check_that_runs_out_of_time_asks, test_a_crafted_attribute_cannot_stall_the_hook, test_a_crafted_file_cannot_stall_the_hook, test_a_file_that_c
-E9 the scanner ignores the time budget               RED   test_the_scanners_keep_to_their_deadline
+E8 an unreadable file stops the check                RED   test_a_crafted_attribute_cannot_stall_the_hook, test_a_crafted_file_cannot_stall_the_hook, test_a_file_that_cannot_be_read_counts, test_a_file_that_ca
+E9 the token search ignores the deadline             RED   test_one_attribute_comment_or_string_keeps_to_the_deadline, test_the_scanners_keep_to_their_deadline
 E10 the lookup gets no time budget                   RED   test_a_check_that_runs_out_of_time_asks
-F1 the parent's declaration is not checked           RED   test_the_declaration_of_a_test_file_is_locked_in_its_parent
+F1 the parent's declaration is not checked           RED   test_a_file_too_big_to_check_asks, test_the_declaration_of_a_test_file_is_locked_in_its_parent
 F2 the module file's rules not read (the edited file's instead) RED   test_the_declaration_of_a_test_file_is_locked_in_its_parent
 F4 comments read as code in the file's attributes    RED   test_the_declaration_of_a_test_file_is_locked_in_its_parent
 F7 only the file's first inner attribute             RED   test_the_declaration_of_a_test_file_is_locked_in_its_parent
-F11 the file's attributes ignore the deadline        RED   test_the_scanners_keep_to_their_deadline
+F11 the lookup checks the deadline only inside files RED   test_the_scanners_keep_to_their_deadline
 F8 an outer attribute counts as the file's           RED   test_the_declaration_of_a_test_file_is_locked_in_its_parent
 F9 an inner attribute in a block counts as the file's RED   test_the_declaration_of_a_test_file_is_locked_in_its_parent
 F10 blocks not tracked in the file's attributes      RED   test_the_declaration_of_a_test_file_is_locked_in_its_parent
-C1 no cap                                            RED   test_past_256_attributes_a_declaration_counts_as_test_code
+F12 the edit's declarations looked up in a list (round 7) RED   test_many_declarations_of_a_test_file_cannot_stall_the_hook
+F13 each module file read again per declaration (round 7) GREEN
+C1 no cap                                            RED   test_past_256_attributes_a_declaration_counts_as_test_code, test_past_the_cap_one_marker_stands_for_the_rest
 C2 a repeated attribute counts again                 RED   test_past_256_attributes_a_declaration_counts_as_test_code
-C3 the cap one late                                  RED   test_past_256_attributes_a_declaration_counts_as_test_code
-C4 a closed block's attributes stay in scope         RED   test_past_256_attributes_a_declaration_counts_as_test_code
-C5 a declared item's attributes stay in scope        RED   test_past_256_attributes_a_declaration_counts_as_test_code
+C3 the cap one late                                  RED   test_past_256_attributes_a_declaration_counts_as_test_code, test_past_the_cap_one_marker_stands_for_the_rest
+C4 a closed block's attributes stay in scope         RED   test_a_modules_inner_path_names_its_folder, test_past_256_attributes_a_declaration_counts_as_test_code, test_production_modules_stay_open, test_the_sc
+C5 a declared item's attributes stay in scope        RED   test_a_modules_inner_path_names_its_folder, test_many_declarations_of_a_test_file_cannot_stall_the_hook, test_past_256_attributes_a_declaration_counts
 C6 past the cap, not test code                       RED   test_past_256_attributes_a_declaration_counts_as_test_code
-F3 the edit's result is not read                     RED   test_the_declaration_of_a_test_file_is_locked_in_its_parent
-A1 the blocks' attributes ignored                    RED   test_a_modules_inner_path_names_its_folder, test_a_test_module_file_is_read_only, test_the_scanner
-A2 the file's inner attributes ignored               RED   test_a_test_module_file_is_read_only, test_past_256_attributes_a_declaration_counts_as_test_code, test_the_scanner
-A3 the declaration's own attributes ignored          RED   test_a_crafted_attribute_cannot_stall_the_hook, test_a_crafted_file_cannot_stall_the_hook, test_a_declaration_as_rustc_reads_it, test_a_modules_inner_
-A4 a block does not take the attributes before it    RED   test_a_test_module_file_is_read_only, test_past_256_attributes_a_declaration_counts_as_test_code, test_the_scanner
+C7 the cap's marker once per block (N4)              RED   test_past_the_cap_one_marker_stands_for_the_rest
+F3 the edit's result is not read                     RED   test_a_file_too_big_to_check_asks, test_the_declaration_of_a_test_file_is_locked_in_its_parent
+A1 the blocks' inner attributes ignored              RED   test_a_modules_inner_path_names_its_folder, test_the_scanner
+A2 the file's inner attributes ignored               RED   test_a_file_too_big_to_check_asks, test_a_test_module_file_is_read_only, test_past_256_attributes_a_declaration_counts_as_test_code, test_the_scanner
+A3 the declaration's own attributes ignored          RED   test_a_crafted_attribute_cannot_stall_the_hook, test_a_crafted_file_cannot_stall_the_hook, test_a_declaration_as_rustc_reads_it, test_a_file_too_big_t
+A4 a block does not take the attributes before it    RED   test_a_test_module_file_is_read_only, test_the_scanner
 A5 `;` does not end an attribute's reach             RED   test_past_256_attributes_a_declaration_counts_as_test_code, test_the_scanner
+A6 a later inner attribute leaves the shared list stale RED   test_the_scanner
+A7 an opened block leaves the shared list stale      RED   test_the_scanner
+A8 a closed block leaves the shared list stale       RED   test_production_modules_stay_open, test_the_scanner
 P1 lib.rs and main.rs are not mod-rs                 RED   test_where_a_module_file_is_looked_for
 P2 no crate-root place                               RED   test_a_test_module_file_is_read_only, test_a_test_module_that_does_not_exist_yet, test_both_places_of_a_test_module_are_locked, test_the_repositorys_r
 P3 the crate-root folder first                       RED   test_where_a_module_file_is_looked_for
@@ -37,25 +43,51 @@ P5 no name/mod.rs                                    RED   test_a_test_module_th
 P6 paths outside the repository kept                 RED   test_where_a_module_file_is_looked_for
 P7 only the first place locked                       RED   test_a_test_module_file_is_read_only, test_a_test_module_that_does_not_exist_yet, test_both_places_of_a_test_module_are_locked, test_the_repositorys_r
 P8 only places that exist locked                     RED   test_a_test_module_that_does_not_exist_yet, test_a_test_module_with_no_file_is_named, test_both_places_of_a_test_module_are_locked
-P9 a declaration's #[path] ignored                   RED   test_a_modules_inner_path_names_its_folder, test_a_test_module_file_is_read_only, test_a_test_module_the_lock_cannot_follow_is_named, test_both_places
+P9 a declaration's #[path] ignored                   RED   test_a_file_too_big_to_check_is_named, test_a_modules_inner_path_names_its_folder, test_a_test_module_file_is_read_only, test_a_test_module_the_lock_c
 P10 an inline module's #[path] ignored               RED   test_a_modules_inner_path_names_its_folder, test_the_scanner
 P11 the inline modules ignored                       RED   test_a_modules_inner_path_names_its_folder, test_a_test_module_file_is_read_only, test_the_scanner
 P12 a module's inner #![path] ignored                RED   test_a_modules_inner_path_names_its_folder
 P13 #![path] names a function's block too            RED   test_a_modules_inner_path_names_its_folder
+P14 a declaration's #[path] dropped past the cap (N2) RED   test_a_modules_inner_path_names_its_folder, test_past_the_cap_a_declarations_path_still_counts, test_the_scanner
+P15 a path need not be the whole attribute           RED   test_a_modules_inner_path_names_its_folder
+P16 a path keeps its closing quote                   RED   test_a_file_too_big_to_check_is_named, test_a_modules_inner_path_names_its_folder, test_a_test_module_file_is_read_only, test_a_test_module_the_lock_c
 L1 line comments read as code                        RED   test_a_declaration_as_rustc_reads_it, test_a_test_module_file_is_read_only, test_the_scanner
-L2 block comments read as code                       RED   test_a_declaration_as_rustc_reads_it, test_a_test_module_file_is_read_only, test_comments_and_strings_end_where_rustc_ends_them, test_the_declaration_
+L2 block comments read as code                       RED   test_a_declaration_as_rustc_reads_it, test_a_test_module_file_is_read_only, test_comments_and_strings_end_where_rustc_ends_them, test_one_attribute_co
 L3 block comments do not nest                        RED   test_comments_and_strings_end_where_rustc_ends_them
 L4 an unclosed comment skips only its opener         RED   test_a_crafted_file_cannot_stall_the_hook, test_comments_and_strings_end_where_rustc_ends_them
 L5 raw strings read as code                          RED   test_comments_and_strings_end_where_rustc_ends_them, test_the_scanner
 L6 a raw string runs to its last closer              RED   test_a_test_module_file_is_read_only, test_comments_and_strings_end_where_rustc_ends_them, test_the_scanner
 L7 an unclosed raw string is retried                 RED   test_a_crafted_file_cannot_stall_the_hook
-L8 strings read as code                              RED   test_a_modules_inner_path_names_its_folder, test_a_test_module_file_is_read_only, test_comments_and_strings_end_where_rustc_ends_them, test_the_scanne
-L9 escapes in a string ignored                       RED   test_a_test_module_file_is_read_only, test_the_scanner
+L8 strings read as code                              RED   test_a_crafted_attribute_cannot_stall_the_hook, test_a_crafted_file_cannot_stall_the_hook, test_a_crafted_file_cannot_stall_the_tripwire, test_a_decla
+L9 escapes in a string ignored                       RED   test_a_modules_inner_path_names_its_folder, test_a_test_module_file_is_read_only, test_the_scanner
 L10 an unclosed string skips only its quote          RED   test_comments_and_strings_end_where_rustc_ends_them
 L11 C strings read as code                           RED   test_a_test_module_file_is_read_only, test_comments_and_strings_end_where_rustc_ends_them, test_the_scanner
 L12 characters read as code                          RED   test_a_test_module_file_is_read_only, test_the_scanner
 L13 a lifetime read as a character                   RED   test_a_test_module_file_is_read_only, test_the_scanner
-L14 an attribute ends at its first ]                 RED   test_a_modules_inner_path_names_its_folder
+L14 an attribute ends at its first ]                 RED   test_a_long_run_of_other_characters_is_read_quickly, test_a_modules_inner_path_names_its_folder, test_one_attribute_comment_or_string_keeps_to_the_dea
+L15 a run of ] past the attribute's own              RED   test_a_long_run_of_other_characters_is_read_quickly
+N1 a comment ignores the deadline                    RED   test_one_attribute_comment_or_string_keeps_to_the_deadline
+N2 a string ignores the deadline                     RED   test_one_attribute_comment_or_string_keeps_to_the_deadline
+N3 an attribute ignores the deadline                 RED   test_one_attribute_comment_or_string_keeps_to_the_deadline
+N4 the module scan gives an attribute no deadline    RED   test_one_attribute_comment_or_string_keeps_to_the_deadline
+N5 the module scan gives a comment no deadline       RED   test_one_attribute_comment_or_string_keeps_to_the_deadline
+N6 one search for a whole token                      RED   test_a_long_run_of_other_characters_is_read_quickly
+N7 brackets one at a time                            RED   test_a_long_run_of_other_characters_is_read_quickly
+N8 a string's body in one unbounded step             RED   test_a_long_string_is_read_in_little_memory
+N9 a string ends at its first 1,000 escapes          RED   test_comments_and_strings_end_where_rustc_ends_them
+N10 a `\` that ends the file loops                   RED   (the suite did not finish in 300 s)
+N11 non-ASCII names start no token                   RED   test_the_scanner
+N12 a quote in an attribute starts no string         RED   test_a_modules_inner_path_names_its_folder, test_comments_and_strings_end_where_rustc_ends_them
+K1 inline modules not counted                        RED   test_a_deeply_nested_file_cannot_stall_the_tripwire, test_a_file_too_big_to_check_asks
+K2 a declaration's own list not counted              RED   test_a_file_too_big_to_check_asks
+K3 a shared list not counted                         RED   test_a_file_too_big_to_check_asks
+K4 no cap on what a file keeps                       RED   test_a_deeply_nested_file_cannot_stall_the_tripwire, test_a_file_too_big_to_check_asks
+K5 no cap on a file read                             RED   test_a_file_too_big_to_check_asks
+K6 no cap on a text scanned                          RED   test_a_file_too_big_to_check_asks
+K7 a file too big passed over silently               RED   test_a_deeply_nested_file_cannot_stall_the_tripwire, test_a_file_too_big_to_check_asks, test_a_file_too_big_to_check_is_named
+K8 too big outranks a test module found              RED   test_a_file_too_big_to_check_asks
+K9 a file too big does not stop the lookup           RED   test_a_file_too_big_to_check_asks
+K10 each declaration's list matched again            GREEN
 D1 the keyword `mod` at a word's end                 RED   test_the_scanner
 D2 raw identifiers not words                         RED   test_a_test_module_file_is_read_only, test_the_scanner
 D3 a raw name keeps its r#                           RED   test_a_test_module_file_is_read_only, test_the_scanner
@@ -69,13 +101,20 @@ T1 #![cfg(test)] is not a marker                     RED   test_a_file_that_star
 S1 the scanner's attribute pattern squares (verifier round 2, F1) RED   test_a_crafted_attribute_cannot_stall_the_hook, test_a_crafted_file_cannot_stall_the_tripwire, test_the_scanner_takes_linear_time
 S2 the tripwire's marker squares                     RED   test_a_crafted_file_cannot_stall_the_tripwire, test_the_scanner_takes_linear_time
 S3 the path pattern squares                          RED   test_the_scanner_takes_linear_time
-T2 test modules not checked                          RED   test_a_production_module_is_not_named, test_a_test_module_file_needs_a_rule, test_a_test_module_inside_a_test_module, test_a_test_module_the_check_can
+T2 test modules not checked                          RED   test_a_deeply_nested_file_cannot_stall_the_tripwire, test_a_file_too_big_to_check_is_named, test_a_production_module_is_not_named, test_a_test_module_
 T3 a module no glob names counts as covered          RED   test_a_test_module_file_needs_a_rule, test_a_test_module_inside_a_test_module, test_fix_lock_on_names_a_test_module_it_does_not_cover
-T4 the lock's lookup not consulted                   RED   test_a_test_module_file_needs_a_rule, test_a_test_module_the_check_cannot_read_is_named, test_a_test_module_the_lock_cannot_follow_is_named
+T4 the lock's lookup not consulted                   RED   test_a_file_too_big_to_check_is_named, test_a_test_module_file_needs_a_rule, test_a_test_module_the_check_cannot_read_is_named, test_a_test_module_the
 T5 a module that is nowhere is not named             RED   test_a_test_module_with_no_file_is_named
 T6 nowhere judged by one place                       RED   test_a_crafted_file_cannot_stall_the_tripwire, test_a_production_module_is_not_named, test_a_test_module_file_needs_a_rule, test_a_test_module_inside_
 T7 untracked modules count                           RED   test_an_untracked_test_module_does_not_count
 T8 any attribute marks a test module                 RED   test_a_production_module_is_not_named
-T9 a lookup error counts as covered                  RED   test_a_test_module_the_check_cannot_read_is_named
+T9 a lookup error counts as covered                  RED   test_a_file_too_big_to_check_is_named, test_a_test_module_the_check_cannot_read_is_named
+T10 the tripwire has no time budget (N5)             RED   test_the_tripwire_keeps_to_its_time
+T11 its own reading ignores the budget               RED   test_the_tripwire_keeps_to_its_time
+T12 its lookup ignores the budget                    RED   test_the_tripwire_keeps_to_its_time
+T13 a file too big is not named                      RED   test_a_deeply_nested_file_cannot_stall_the_tripwire, test_a_file_too_big_to_check_is_named
+T14 a too-big file stops the module check            RED   test_a_file_too_big_to_check_is_named
+T15 a timed-out tripwire is not an error             RED   test_the_tripwire_keeps_to_its_time
 W1 the old warning                                   RED   test_fix_lock_on_names_a_test_module_it_does_not_cover
-79 of 79 red; restored, sha256 checked: .claude/hooks/guard.py c884a868aaef
+115 of 117 red; restored, sha256 checked: .claude/hooks/guard.py 240c4cc00e86
+# lnd after: 2026-10-12T01:46:20.584320594Z

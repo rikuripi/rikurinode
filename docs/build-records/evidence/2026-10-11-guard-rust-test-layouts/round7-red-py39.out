@@ -1,0 +1,21 @@
+# round 7 red (new tests, round 6 guard.py) at 22:21:53: Python 3.9.25; guard.py c884a868…, test_guard.py a0ec53e2…, guard_base.py 1ef6f5cc…; safe-run; exit 1; lnd 2026-10-12T01:46:20.584320594Z -> 2026-10-12T01:46:20.584320594Z
+ERROR: test_the_tripwire_keeps_to_its_time (test_guard.InlineTestCoverage)
+AttributeError: <module 'guard' from '/home/junc/claude-wip/guard-rust-test-layouts/rn/.claude/hooks/guard.py'> does not have the attribute 'TRIPWIRE_TIME_BUDGET'
+ERROR: test_one_attribute_comment_or_string_keeps_to_the_deadline (test_guard.TestModuleFiles)
+AttributeError: module 'guard' has no attribute 'rust_string_end'
+FAIL: test_a_deeply_nested_file_cannot_stall_the_tripwire (test_guard.InlineTestCoverage)
+AssertionError: 10.35073208808899 not less than 2.0
+FAIL: test_a_file_too_big_to_check_asks (test_guard.TestModuleFiles)
+AssertionError: 'ask' != 'deny'
+FAIL: test_a_long_run_of_other_characters_is_read_quickly (test_guard.TestModuleFiles)
+AssertionError: 2.5039217472076416 not less than 1.0
+FAIL: test_a_long_string_is_read_in_little_memory (test_guard.TestModuleFiles)
+AssertionError: 378211676 not less than 16777216 : mod a;
+FAIL: test_many_declarations_of_a_test_file_cannot_stall_the_hook (test_guard.TestModuleFiles)
+AssertionError: 'ask' != 'allow'
+FAIL: test_past_the_cap_a_declarations_path_still_counts (test_guard.TestModuleFiles)
+AssertionError: Lists differ: [('t', [], None)] != [('t', [], 'real_tests.rs')]
+FAIL: test_past_the_cap_one_marker_stands_for_the_rest (test_guard.TestModuleFiles)
+AssertionError: 501 != 1
+Ran 151 tests in 48.945s
+FAILED (failures=7, errors=2)

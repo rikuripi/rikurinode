@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Date** | 2026-10-11 to 2026-10-12 |
+| **Date** | 2026-10-11 to 2026-10-13 |
 | **Author / session** | Claude Code (Opus 5.5) for Henry Chen; a side session of a Rikuri-PI session (worktree `sad-moore-14776b`) |
 | **Branch** | `fix/guard-rust-test-layouts`, on `fix/guard-inline-tests-tripwire` (`aa51a24`, the committed tripwire, not yet in `main`), in its own worktree under `~/claude-wip/guard-rust-test-layouts/` (owner's choice after the crash, below); the main checkout is untouched |
-| **Commits** | `6410bb4` (rounds 1–4; owner, 2026-10-11: "let's commit and continue tomorrow"), `86db3e9` (round 5; owner, 2026-10-12: "commit and push") and the round-6 commit that follows them, on `fix/guard-rust-test-layouts`, pushed; Rikuri-PI's sync `7103ec5`, `dc7e327` and its round-6 commit on `fix/guard-rust-test-layouts-sync`, pushed |
-| **Status** | Round 6 (the owner's recalibration after verifier round 3) built, tested, committed and pushed here and in Rikuri-PI; verifier round 4 next; PRs and merges are the owner's call |
+| **Commits** | `6410bb4` (rounds 1–4; owner, 2026-10-11: "let's commit and continue tomorrow"), `86db3e9` (round 5; owner, 2026-10-12: "commit and push"), `97a2a8b` (round 6) and the round-7 commit that follows them, on `fix/guard-rust-test-layouts`, pushed; Rikuri-PI's sync `7103ec5`, `dc7e327`, `f9f58c0` and its round-7 commit on `fix/guard-rust-test-layouts-sync`, pushed |
+| **Status** | Round 7 (answering verifier round 4) built, tested, committed and pushed here and in Rikuri-PI; verifier round 5 next, the last (owner, 2026-10-12: "we've spent enough time with Guard"); PRs and merges are the owner's call |
 | **Change type** | fix (two gaps the inline-test tripwire's verifier found) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -137,21 +137,33 @@
         unlocked the declaration. Round 3, I4: an item written above
         `#![cfg(test)]` — rustc then rejects the file — made it look partly
         code; every inner attribute outside a block now counts.)
-      - R12 (verifier round 1, D1; round 2, F1) The lookup reads each file
-        once, in time that grows with its length, and keeps to the guard's
-        check budget (4 s): past it the hook asks the owner. No pattern puts
+      - R12 (verifier round 1, D1; round 2, F1; round 4, N1, N4, N5) The
+        lookup reads each file once, in time that grows with its length, and
+        keeps to the guard's check budget (4 s) — between tokens and inside
+        one attribute, comment or string — past it the hook asks the owner.
+        A string is read 1,000 escapes at a time, in fixed memory. A file
+        over 16 MiB (`RUST_MAX_BYTES`, not read), or whose declarations would
+        keep more than 100,000 entries (`RUST_MAX_KEPT`), is too big to
+        check: a locked edit it could bear on asks, except one the other
+        files already show to be a test module, which is still refused; the
+        tripwire names it. The tripwire keeps to its own budget (30 s,
+        `TRIPWIRE_TIME_BUDGET`): past it, it says it could not check. No pattern puts
         two `\s*` side by side (`#\s*!?\s*\[`): their time grows with the
         square of a run of spaces inside a single regex call, where no
         deadline can stop it — the scanner's attribute and path patterns, the
         tripwire's marker, and every Rust rule's patterns (a generic test
         checks the repository's own against runs of spaces). Each attribute
         is kept once, at most 256 distinct ones apply to a declaration — past
-        that it counts as test code, the safe side — and each is matched
-        against the rules once. (40,000 unclosed `/*` took 16 s; a file of
-        `#` and 120,000 spaces held a locked edit 13.6 s, a crafted edit
-        27 s; 2,000 attributes on each of 2,000 declarations 13.7 s — all past
-        the hook's 10 s limit.) Other slow inputs of the rule's older
-        patterns (round 3, I5) are split into their own change.
+        that one marker stands for the rest and it counts as test code, the
+        safe side, while its own `#[path]` still counts (round 4, N2, N4) —
+        and each is matched against the rules once. (40,000 unclosed `/*`
+        took 16 s; a file of `#` and 120,000 spaces held a locked edit
+        13.6 s, a crafted edit 27 s; 2,000 attributes on each of 2,000
+        declarations 13.7 s; `#[` and 32 MB of `[` 11.7–13.6 s — all past the
+        hook's 10 s limit; a 4 MB string 512 MB; 10,000 nested modules above
+        10,000 declarations 992 MB; the tripwire on a 273 KB file 32.5 s.)
+        Other slow inputs of the rule's older patterns (round 3, I5) are
+        split into their own change.
       - R13 (owner, 2026-10-12) Every guard hook blocks when it fails or runs
         out of time (`"onFailure": "block"`, Claude Code 2.1.295 or later): a
         stalled guard closes the gate instead of opening it. A generic test
@@ -170,7 +182,11 @@
       inner attributes with `rust_file_attrs()` — before the in-file region
       check. In-scope attributes are deduplicated and capped
       (`RUST_MAX_ATTRS`, `RUST_TOO_MANY`); each distinct one is matched once
-      per file.
+      per file. Round 7: tokens are found by a quick search for a character
+      that may start one, then matched there (`rust_next`); a string's end
+      by `rust_string_end`, a path by `rust_path`; a run of brackets is one
+      step; files are read through `rust_read`; too big to check is
+      `_TooBig`, which `test_modules` lists and passes over when asked to.
       The tripwire calls the same `test_module_parent` for every test module
       it finds, so the two cannot disagree about what is covered.
       Alternatives rejected: everything below the first test marker counts
@@ -183,8 +199,11 @@
 - [x] Policy applied: the hook can only add denies, only under a held
       fix-lock, and only for files an `inline_tests` glob already names.
       Behaviour choices put to the owner: 1(a), 2(a), D3, the round-3
-      recalibration. Limits are listed under Skipped, each marked "named by
-      the tripwire" or "silent".
+      recalibration, I3 as a documented limit (2026-10-12). Round 7's
+      bounds (`RUST_MAX_BYTES` 16 MiB, `RUST_MAX_KEPT` 100,000, the
+      tripwire's 30 s) are defaults chosen here and put to the owner in the
+      round's report (Skipped, "The safe side, at a cost"). Limits are
+      listed under Skipped, each marked "named by the tripwire" or "silent".
 - [x] Flagged concerns resolved: stacked on unlanded changes, routed to the
       owner; they moved during the work (§3).
 
@@ -224,8 +243,8 @@
 - [x] New code meets the bar: `rust_file_modules` reads text only (no code
       runs); every loop advances (each token is at least one character; a
       comment or attribute ends at its closer or at the file's end); every
-      token checks the deadline (R12), and no pattern puts two `\s*` side by
-      side. `test_module_parent` raises `OSError` only when a folder cannot
+      step checks the deadline, between tokens and inside one (R12), and no
+      pattern puts two `\s*` side by side. `test_module_parent` raises `OSError` only when a folder cannot
       be listed, which `inline_edit_hit` turns into a deny and the tripwire
       into "uncovered"; `_TooSlow` becomes the hook's "ask". Measured cost of
       a locked Edit's decision on Rikuri-PI's 56 tracked `.rs` files: mean
@@ -369,8 +388,56 @@
         are caught (a comment holding a brace above `#![cfg(test)]`; an
         inner attribute inside a block is not the file's; a repeated
         attribute counts once; a closed block's or a declared item's
-        attributes leave the scope), nothing loosened: 141 OK
-        (`round6-green.out`, test_guard.py `ecad50c1…`).
+        attributes leave the scope), then a direct deadline test for my own
+        mutant E9 and R13's generic test, nothing loosened: 142 OK
+        (`round6-green.out`, test_guard.py `42a7d741…`).
+      - **Verifier round 4: FAIL** (2026-10-12; summary in §4): I1 and I4
+        fixed, R13 in place, everything else PASS, one Important finding:
+        N1 — the deadline was checked only between tokens, so one long
+        attribute (`#[` and 32 MB of `[`) held a locked edit 11.7–13.6 s, and
+        one regex over a string literal held about 130 bytes per character
+        (4 MB: 512 MB). Minor: N2 (past the cap a declaration's `#[path]`
+        was dropped: three allowed edits weakened a test), N3 (an unclosed
+        `fn _x() {` above `#![cfg(test)]`, then the declaration deleted), N4
+        (the cap's marker once per enclosing block: 992 MB), N5 (the
+        tripwire: no deadline, quadratic), N6 (I3 is one allowed Edit, not
+        several: the owner chose "Document it as a limit"), N7 (this
+        record's figures).
+      - **Round 7**, tests first. Red at 22:21 (`round7-red.out`,
+        `round7-red-py39.out`: 151 run, 9 failing on Python 3.14 and 3.9.25
+        — the deadline inside an attribute, comment or string; 16 MB of `(`
+        2.5 s in one regex call, found beside N1; a 2 MB string 299–378 MB;
+        the marker 501 times; the `#[path]` dropped; a too-big file decided
+        late; 40,000 declarations of a tests-only file 8.4 s, found beside
+        N1; the tripwire 4.8–10.4 s and no budget; test_guard.py
+        `a0ec53e2…`). Fix: deadline checks inside each literal and
+        attribute, a quick search for where a token may start, a run of
+        brackets in one step, a string read 1,000 escapes at a time, a
+        path by the same reader; one marker in scope, a declaration's
+        `#[path]` kept apart from the cap; declarations with no attributes
+        of their own share their scope's list; the file caps
+        (`RUST_MAX_BYTES`, `RUST_MAX_KEPT`, `_TooBig`); R11's declarations
+        compared as a set, each module file read once; the tripwire's
+        30 s budget, and too-big files named. First green run: one test
+        of round 6 failed — I1's file (2,000 attributes, 2,000
+        declarations) hit the new cap, since every declaration counted its
+        257 shared attributes — so a shared list now counts once; then
+        151 OK on both Pythons. After green, assertions added so that the
+        new mutants are caught (each with its mutant in `mut_layouts.py`):
+        the shared list goes stale after an inner attribute, an opened or a
+        closed block (A6–A8); a string of 1,500 escapes, a `\` that ends the
+        file, a `]` in a string inside an attribute (N9, N10, N12); a run of
+        `]` past the attribute's own, a run of 16 M brackets in one step
+        (L15, N7); a path that is not the whole attribute, an escaped quote
+        in a path (P15); the lookup's deadline between files (F11); two more
+        too-big shapes and a too-big Write (K2, K3, K6); the tripwire's
+        own reading and its lookup keep to its budget, a too-big file
+        beside an unfollowable module (T11, T12, T14). Two of my new
+        assertions were wrong and were corrected before any mutant ran: a
+        16 MB attribute applies to the next `mod` (I had expected none), and
+        a Write padded at the end changes lib.rs's locked test region (the
+        previous guard refuses it, correctly), so the padding goes at the
+        top. 152 OK (test_guard.py `4fc2340a…`).
       The fix-lock was not engaged: this session's hook is Rikuri-PI's
       guard, rooted in its own worktree, so a lock written here would bind
       nothing. Evidence stands in for it: the test file's hash at each red,
@@ -383,7 +450,7 @@
       it.
 
 ## 4. Verify
-- [x] Unit tests: `TestModuleFiles` (21 tests: every test-module shape
+- [x] Unit tests: `TestModuleFiles` (28 tests: every test-module shape
       refused under the lock and allowed without it; production modules —
       one below a test module — open; both places locked, a decoy unlocking
       nothing (D3); a tests-only file's declaration locked in its parent,
@@ -395,21 +462,27 @@
       module file's for R11; an unlistable folder refuses; crafted files and
       edits cannot stall the hook, nor 2,000 attributes on 2,000
       declarations, and a check past its budget asks (D1, F1, I1); past 256
-      attributes in scope a declaration is test code; the scanner takes
-      linear time and keeps to its deadline; shell writes as before; the
+      attributes in scope a declaration is test code, one marker standing for
+      the rest, its `#[path]` still counted (N2, N4); the scanner takes
+      linear time and keeps to its deadline, inside one attribute, comment
+      or string too, over 16 MB of `(` and a 16 M bracket run, and reads a
+      long string in little memory (N1); a file too big to check asks, a
+      test module others show is still refused (N4); 40,000 declarations of
+      a tests-only file decide in time; shell writes as before; the
       scanner over comments (nested), strings (raw, byte, C), chars,
       lifetimes, escapes, unclosed openers, nested attributes, inner
       attributes, `#![path]`, `#[path]` before or after the cfg and written
       with spaces, raw and non-ASCII names, and declarations split by
       comments or Rust whitespace (D2); where a module file is looked for),
       `InlineTests.test_a_file_that_starts_cfg_test_is_tests` and
-      `test_marker_shapes`' inner-attribute cases, 10 new
-      `InlineTestCoverage` tests (a crafted file cannot stall the tripwire),
-      and three generic tests that read the repository's own files: every
-      Rust rule finds a `#![cfg(test)]` file's tests (R8) and takes linear
-      time on runs of spaces (R12), and the guard hook blocks on failure
-      (R13). Suite 142 OK on Python 3.14 (`round6-green.out`) and 3.9.25
-      (`py39-origin.out`).
+      `test_marker_shapes`' inner-attribute cases, 13 new
+      `InlineTestCoverage` tests (a crafted or deeply nested file cannot
+      stall the tripwire, which keeps to its own budget and names a file too
+      big to check), and three generic tests that read the repository's own
+      files: every Rust rule finds a `#![cfg(test)]` file's tests (R8) and
+      takes linear time on runs of spaces (R12), and the guard hook blocks
+      on failure (R13). Suite 152 OK on Python 3.14 (`round7-green.out`)
+      and 3.9.25 (`py39-origin.out`).
 - [x] Watched it work through the real entry point: `guard.decide` with real
       PreToolUse events (`gap_probe_after.out`): with Rikuri-PI's rule as
       before this change, the test-module edit is refused and the tripwire
@@ -427,25 +500,32 @@
 - [x] Recovery/fallback: N/A — no fallback path; a guard crash still asks
       (`FailureModes`, unchanged, green); a check past its budget asks
       (`test_a_check_that_runs_out_of_time_asks`).
-- [x] Regression guard proven to FAIL on the old code: round 6's tests on
-      the round-5 guard (`round6-red.out`, 3 failing) and Rikuri-PI's
+- [x] Regression guard proven to FAIL on the old code: round 7's tests on
+      the round-6 guard (`round7-red.out`, `round7-red-py39.out`, 9 failing
+      on each Python); round 6's on the round-5 guard (`round6-red.out`, 3
+      failing) and Rikuri-PI's
       settings (`round6-red-Rikuri-PI.out`); round 5's on round 4's
       (`round5-red.out`, 4 failing; `round5-red-Rikuri-PI.out`); round 4's
       on round 3's (7 failing, §3); round 3's on `aa51a24` (`red.out`, 16
       failing). Mutants of every requirement against the final guard.py,
       restored and checked by sha256 (`mut_layouts.py`, `mut_layouts.out`):
-      **79 of 79 red** — enforcement and its budget E1–E10, the parent
-      declaration and the module file's own attributes F1–F4 and F7–F11,
-      the attribute cap C1–C6, attributes A1–A5, places P1–P13, literals and
-      comments L1–L14, declarations D1–D9, patterns that square S1–S3,
-      tripwire T1–T9, warning W1 (round 1: 37 of 47; round 3: 47 of 47;
-      round 4: 64 of 64; round 5: 72 of 72; round 6's first run 77 of 78 —
-      E9 survived behind the new fixpoint deadline until a direct deadline
-      test pinned it).
+      **115 of 117 red** — enforcement and its budget E1–E10, the parent
+      declaration and the module file's own attributes F1–F4 and F7–F12,
+      the attribute cap C1–C7, attributes and the shared list A1–A8, places
+      P1–P16, literals and comments L1–L15, one step inside a literal N1–N12
+      (N10 hangs the suite; the runner's 300 s timeout counts it caught),
+      files too big K1–K9, declarations D1–D9, patterns that square S1–S3,
+      tripwire T1–T15, warning W1. Two survive, both caches that only save
+      time: F13 (a module file read again per declaration) and K10 (a shared
+      list matched again per declaration); with either removed, the suite's
+      largest inputs still decide within their budgets (Skipped, "Not pinned
+      by a test"). Earlier rounds: 37 of 47 (round 1), 47 of 47 (3), 64 of
+      64 (4), 72 of 72 (5), 79 of 79 (6, after a direct deadline test pinned
+      my mutant E9).
 - [x] Rikuri-PI, a clean clone of `main` `1ea439d` (which holds exactly
       `aa51a24`'s guard files, PR #32), the shared files copied in
       (`cmp`-equal, guard_base.py unchanged), its rule changed and its hook
-      blocking on failure: 142 OK on Python 3.14 (`sync-Rikuri-PI.out`) and
+      blocking on failure: 152 OK on Python 3.14 (`sync-Rikuri-PI.out`) and
       3.9.25 (`py39-Rikuri-PI.out`).
       With the shared files but the rule as on `main` it fails the R8 test
       and the linear-time test (`sync-Rikuri-PI-rule-not-widened.out`:
@@ -457,9 +537,19 @@
       parsed rule equals the old one but for the three spellings; no
       invisible character added): two lines of the file change. Python 3.12
       (CI's newer entry) is not installed here: Not yet proven until CI.
-- [ ] Independent verification: rounds 1–3 FAIL (below); round 4 (pending)
-- [x] Diff matches the §1 plan: guard.py (+332/−14 against `aa51a24`),
-      test_guard.py (+548/−7: the seven removed lines are an assertion
+- [x] The verifier's round-4 reproducers through the real hook on the final
+      guard (`round7-probes.out`, both Pythons): a 32 MB crafted file at the
+      root — a test-module edit denied, a production edit asks, 0.07–0.09 s
+      (was 11.7–12.1 s); 4 and 10 MB strings 30–54 MB peak (was 508 MB at
+      4 MB); 10,000 nested modules above 10,000 declarations 0.12 s, 24 MB
+      (was 4.2 s, 992 MB); the tripwire on it 0.02–0.05 s (was up to
+      32.5 s); N2's three edits: the weakening edit denied; N3's edits still
+      allowed (documented).
+- [ ] Independent verification: rounds 1–4 FAIL (below); round 5, the last
+      (pending)
+- [x] Diff matches the §1 plan: guard.py (+502/−26 against `aa51a24`; the
+      removed lines are its tripwire body, now inside a `try` for its
+      budget), test_guard.py (+717/−7: the seven removed lines are an assertion
       message reworded, a comment, the fixture rule's three regex lines —
       `!?` added and in the linear form — and a setUp list gaining
       `inner.rs`), this record and its evidence; in Rikuri-PI two lines of
@@ -503,25 +593,41 @@ recalibrated (§0, §3): round 6 fixes I1 and I4 and makes Rikuri-PI's hook
 block on failure; I2 and I3 are documented deliberate evasions; I5 has its
 own change.
 
+Verifier round 4 (2026-10-12, 17:40–20:02), summarized: I1 and I4 fixed
+through the real hook (2,000 × 2,000 and 3,000 × 3,000: 0.06–0.08 s); R13 in
+place in both repositories (its effect at runtime Not yet proven: no blocked
+call observed live); R1–R12 PASS (25 of 25 rows through the real hook;
+Rikuri-PI's real tree: 33 of 33 production edits allowed, 13 of 13 in-file
+test edits and 42 of 42 `test_globs` files denied, tripwire `[]`); 5,280
+Bash/Read/Grep decisions unchanged; tests first PASS; 79 of 79 recorded
+mutants red, 13 of its own 19; both repositories PASS on 3.14.4 and 3.9.25;
+gates PASS (Rikuri-PI's dependency step offline). FAIL: N1, Important; Minor
+N2–N7 (§3). The owner chose for N6 "Document it as a limit"; round 7 fixes
+N1, N2, N4, N5 and N7 and documents N3 and I3. Under the owner's direction of
+2026-10-12 ("we've spent enough time with Guard"), round 5 of the verifier is
+this change's last: Critical or Important findings are fixed, Minor ones
+fixed or logged as owned debt without another round.
+
 ## 5. Close Out
 - [x] Full gate green: this repository's, 7 of 7, inside `safe-run.sh` on a
-      private clone at `86db3e9` with every file of round 6 committed (never
-      pushed) (`gate-committed.out`). Rikuri-PI's own gate on a private clone
-      of `dc7e327` with round 6 committed (`gate-Rikuri-PI.out`): tools,
+      private clone at `97a2a8b` with every file of round 7 committed (never
+      pushed) (`gate-committed.out`; its first run failed the whitespace step
+      on trailing spaces in two evidence outputs, now stripped). Rikuri-PI's
+      own gate on a private clone of `f9f58c0` with round 7 committed
+      (`gate-Rikuri-PI.out`): tools,
       self-tests, guard, format, build, clippy, test, smoke and crash matrix
       PASS; the script then stops at its dependency step — `cargo deny`
       cannot fetch its advisory database inside the no-network layer — so
       that step and the five after it ran one by one: deny offline against
-      the database cached 2026-10-09 (advisories, bans, licenses, sources
-      ok); secrets, ratchet, contracts, crate-policy, scrap PASS. CI Not yet
-      proven.
+      the cached database (advisories, bans, licenses, sources ok); secrets,
+      ratchet, contracts, crate-policy, scrap PASS. CI Not yet proven.
 - [x] Scrap Sweep: the evidence scripts are kept with their outputs; the
       clones for rikurinode, AISecurity and Iceman were deleted when the
       owner narrowed the scope, with their outputs (their round-3 runs
       passed; §3); the helper tools, Rikuri-PI's clone and the gate copies
       live in `~/claude-wip/guard-rust-test-layouts/`, outside every
       repository, deleted at close-out (after the merges).
-- [ ] Reviewed per `REVIEW.md`: by the verifier (round 3 pending).
+- [ ] Reviewed per `REVIEW.md`: by the verifier (round 5 pending).
 - [x] Lesson loop: the class tripwire covers the two layouts on every suite
       run; R8 keeps each Rust rule's inner-attribute form; the generic
       linear-time test keeps runs of spaces from stalling a repository's
@@ -540,8 +646,10 @@ own change.
   branch sits on it; `main` has moved since — bootstrap rounds 11–14 — and
   holds neither `aa51a24` nor line continuation `92c39a2`); in Rikuri-PI,
   directly on `main` (`1ea439d` holds exactly `aa51a24`'s guard files, PR
-  #32). Line continuation changes the same two files; whichever lands second
-  is re-applied and rerun. Owner: Henry.
+  #32). Line continuation changes the same two files, and the split-off I5
+  change (Rikuri-PI's rule patterns, uncommitted as of 2026-10-13) the same
+  rule line and the shared test file; whichever lands second is re-applied
+  and rerun. Owner: Henry.
 - **rikurinode, AISecurity, Iceman not synced** (owner, 2026-10-11): they
   keep the previous shared files; the global CLAUDE.md and `guard.py`'s
   header still say "identical in every full-tier repo". Their rules keep
@@ -555,14 +663,18 @@ own change.
   the owner (proposed as a separate session, "Make Rikuri-PI's inline_tests
   rule patterns linear"). Rikuri-PI's hook now blocks on failure (R13), so
   such a stall closes the gate. Owner: Henry.
-- **Deliberate multi-step evasions** (Minor by the owner's recalibration,
-  2026-10-12 — the guard is "a tripwire, not a wall"): an opener `/*` (or
-  `mod hidden {`) added above a parent's code, the test module edited, the
-  opener removed (verifier round 3, I2: three allowed edits, the scanner then
-  reads the rest of the parent as a comment); a tests-only file's
-  declaration wrapped in a `macro_rules!` that is never expanded (I3). Both
-  are silent. Reactivate: if a session is ever seen doing either. Owner:
-  Henry.
+- **Deliberate evasions** (Minor by the owner's recalibration, 2026-10-12 —
+  the guard is "a tripwire, not a wall"): an opener `/*` (or `mod hidden {`)
+  added above a parent's code, the test module edited, the opener removed
+  (verifier round 3, I2: three allowed edits, the scanner then reads the rest
+  of the parent as a comment); a tests-only file's declaration moved into a
+  `macro_rules!` body that is never expanded — one allowed Edit, after which
+  rustc lists 0 tests (I3; verifier round 4, N6: the owner chose "Document it
+  as a limit"); an unclosed `fn _x() {`, `mod hidden {`, `const _: () = {` or
+  `macro_rules! m {` written above a tests-only file's `#![cfg(test)]` (not an
+  attached line, so allowed; rustc then rejects the file), then its
+  declaration deleted — two allowed edits (round 4, N3, I4's sibling). All
+  are silent. Reactivate: if a session is ever seen doing one. Owner: Henry.
 - **Limits the tripwire names** (a tracked file is flagged, never silent):
   a `#[path]` that climbs out of the declaring file's folder with `..`
   (rustc follows it; the lock looks only in the module's folder and those
@@ -588,8 +700,35 @@ own change.
   top of `lib.rs`) is refused under the lock, since they apply to the
   declaration too (verifier round 2, M5); a declaration with more than 256
   distinct attributes in scope counts as test code (round 6), so its module
-  is locked even if it is production code.
-- **Not pinned by a test** (verifier rounds 2 and 3): the fixpoint's and
+  is locked even if it is production code. Round 7's bounds, defaults chosen
+  here for the owner to confirm or change (each one constant in guard.py):
+  a .rs file over 16 MiB (`RUST_MAX_BYTES`), or one whose declarations would
+  keep more than 100,000 entries (`RUST_MAX_KEPT`: 2,000 nested modules above
+  2,000 declarations, or 40,000 declarations each with its own attribute
+  below 255 in scope), is too big to check — a locked edit it could bear on
+  asks (allowed and logged under the development profile), one the other
+  files show to be a test module is still refused, and the tripwire names
+  the file; the largest .rs file among 38,084 from crates.io on this machine
+  is 4.1 MB (verifier round 4). The tripwire stops after 30 s
+  (`TRIPWIRE_TIME_BUDGET`) and reports that it could not check: `fix-lock on`
+  warns, the suite's generic test errors.
+- **A long file edited under the lock, before this change too** (found while
+  fixing N1; owned debt, not fixed here — the owner's direction of
+  2026-10-12 ends guard work with this change): the in-file checks read the
+  edited file line by line with no deadline, in the previous guard
+  (`guard_base.py`, frozen) and in this one. A locked Edit of a .rs file of
+  one line and 15 MB of empty lines takes 15.8 s with `aa51a24` and 16.2 s
+  with this change, 4 MB 4.3 s with either (`lines_probe.py`,
+  `lines_probe.out`, through the real hook). Rikuri-PI's hook blocks on failure (R13), so the
+  call is refused, not let through. Reactivate: if a real file that size is
+  ever edited under the lock. Owner: Henry.
+- **Not pinned by a test** (round 7): two caches that only save time —
+  each module file read once in R11 (mutant F13) and each shared list of
+  attributes matched once (K10); the suite's largest inputs decide within
+  their budgets without them. The deadline the tripwire passes on to
+  `test_module_parent` has no test or mutant of its own. Evidence outputs
+  are stored with trailing spaces stripped (the gate's whitespace step).
+  (Verifier rounds 2 and 3:) the fixpoint's and
   R11's own deadline checks, and `\u{…}` character escapes, are equivalent
   in tests today (the scanner meets the deadline first and raises; a
   `\u{…}` escape's braces are balanced); verifier round 3's other surviving
@@ -601,7 +740,8 @@ own change.
   Rikuri-PI's, so a lock here would bind nothing; the red runs, hashes and
   the reasons for every test change after a red stand in for it (§3).
 - **Independent verification and REVIEW.md** boxes: open until verifier
-  round 4 reports; the stop rule, as recalibrated, decides.
+  round 5 reports; it is the last round (the owner's direction of
+  2026-10-12).
 
 ## Evidence log
 Files in `evidence/2026-10-11-guard-rust-test-layouts/`; every run inside
@@ -615,15 +755,20 @@ gap      gap_probe.py: gap_probe_before.out (aa51a24: both layouts editable; tri
 survey   survey_mods.py / survey_mods.out (Rikuri-PI main 1ea439d)
 red      red.out: round 3's tests on aa51a24 (16 failing); round4-red1.out, round4-red2.out (round 4);
          round5-red.out (4 failures), round5-red-Rikuri-PI.out (its committed rule: the linear-time test);
-         round6-red.out (3 failures), round6-red-Rikuri-PI.out (its settings: the onFailure test)
+         round6-red.out (3 failures), round6-red-Rikuri-PI.out (its settings: the onFailure test);
+         round7-red.out, round7-red-py39.out (9 failures each; test_guard.py a0ec53e2…)
 green    green.out (round 3, 128 OK); round4-green.out (134 OK); round5-green.out (138 OK);
-         round6-green.out: 142 OK (guard.py c884a868…, test_guard.py 42a7d741…); py39-origin.out: 142 OK on 3.9.25
-mutants  mut_layouts.py / mut_layouts.out: 79 of 79 red, guard.py restored (sha256 c884a868aaef)
+         round6-green.out (142 OK); round7-green.out: 152 OK (guard.py 240c4cc0…, test_guard.py
+         4fc2340a…); py39-origin.out: 152 OK on 3.9.25
+mutants  mut_layouts.py / mut_layouts.out: 115 of 117 red (F13, K10 survive: caches that only save
+         time), guard.py restored (sha256 240c4cc00e86)
 probes   real_repos_probe.py / .out (Rikuri-PI, its own rule); corpus_probe.py / .out (Rust standard
-         library; crates.io sources in ~/.cargo/registry)
-sync     sync-Rikuri-PI.out, py39-Rikuri-PI.out: 142 OK each; sync-Rikuri-PI-rule-not-widened.out:
-         2 failures (R8, linear time)
-gate     gate-committed.out: 7 of 7 (round 6); gate-Rikuri-PI.out: its script stops at the dependency step
+         library; crates.io sources in ~/.cargo/registry); round7-probes.out (verifier round 4's
+         reproducers on the final guard, both Pythons); lines_probe.py / .out (owned debt: a long file
+         edited under the lock, aa51a24 and round 7)
+sync     sync-Rikuri-PI.out, py39-Rikuri-PI.out: 152 OK each; sync-Rikuri-PI-rule-not-widened.out:
+         2 failures (R8, linear time; round 5)
+gate     gate-committed.out: 7 of 7 (round 7); gate-Rikuri-PI.out: its script stops at the dependency step
          (no network); that step and the five after it pass one by one offline
 lnd      every run: StartedAt unchanged within it (2026-10-11T22:24:44Z until the 18:43 reboot,
          2026-10-12T01:46:20Z after it); it changed only with the machine's own restarts
