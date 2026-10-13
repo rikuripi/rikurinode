@@ -164,25 +164,27 @@
 
 ## 4. Verify
 - [x] Unit tests: 28 in `image/tests/test_check_image_root.py` at PR #5;
-      51 after the fix round, all pass (`fix-tests.out`: "Ran 51 tests …
-      OK"), one per verifier probe case and per proposed mutant; the
-      committed `greenboot.conf` is checked as shipped. **Two of the 28
+      51 after the fix (`fix-tests.out`: "Ran 51 tests … OK"), 54 with the
+      three added after the lock's release (`fix-tests2.out`: "Ran 54
+      tests … OK"), one per verifier probe case and per proposed mutant;
+      the committed `greenboot.conf` is checked as shipped. **Two of the 28
       were lost in the red commit's rewrite** (`test_conf_missing`,
       `test_greenboot_not_installed`; found by the mutant run below, not
-      by the builder) and go back in after the lock's release, with a
-      third for P1.
+      by the builder) and went back in after the release, with
+      `test_a_folder_where_a_file_is_expected` for P1.
 - [x] Mutants (`mutate_check.py`): 14 of 14 caught (`mutants.out`). The
       first run had one mutant whose pattern matched twice and did not run;
       it was made specific and rerun.
-- [ ] Mutants after the fix (`mutants2.out`): 33 in the set (the round's
+- [x] Mutants after the fix (`mutants2.out`): 33 in the set (the round's
       P1 to P9 and one per form the fix added; "[section] allowed" dropped
       as message-only; "not KEY=VALUE" now skipped silently rather than
-      crashing, P8's form), **31 of 33 caught**. Missed: P1 (`_regular`
-      accepting any file type: no test puts a folder where a file is
-      expected, and the use that caught it at PR #5 is now `_dir`) and
-      "greenboot binary not required" (its test was lost, above). Both get
-      a test once the owner releases the lock; this box closes only when
-      the rerun reads 33 of 33.
+      crashing, P8's form), 31 of 33 caught under the lock. Missed: P1
+      (`_regular` accepting any file type: no test put a folder where a
+      file is expected, and the use that caught it at PR #5 is now `_dir`)
+      and "greenboot binary not required" (its test was lost, above). The
+      owner released the lock (2026-10-13 00:16, AskUserQuestion; logged in
+      `.claude/state/fix-lock.log`), the three tests went in, and the rerun
+      reads **33 of 33 caught** (`mutants3.out`).
 - [x] The pre-commit secret scan refused the first commit: two fake private
       keys in the test fixtures. As the hook says, not allowlisted: the
       fixtures now assemble their PEM text at run time (`pem()`), and the
@@ -341,4 +343,6 @@
             binary not required" missed, tests to add after the release); local gate
             stops at step 2 on the stale settings mount (gate2.out), steps 1 and 3 to 7
             pass one by one (gate2-steps.out)
+2026-10-13  fix-lock released 00:16 (owner); three tests added: Ran 54 tests, OK
+            (fix-tests2.out); mutants 33 of 33 caught (mutants3.out)
 ```

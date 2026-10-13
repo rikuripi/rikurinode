@@ -193,7 +193,25 @@ class CheckImageRoot(unittest.TestCase):
         self.root.link("usr/lib/os-release", "/usr/lib/os-release")
         self.assertFinds("usr/lib/os-release: missing, or not a regular file")
 
-    # --- greenboot: the file in the one form greenboot and the check read alike (F1)
+    # --- greenboot -----------------------------------------------------------
+    def test_greenboot_not_installed(self):
+        self.root.remove(cir.GREENBOOT_BIN)
+        self.assertFinds("greenboot is not installed")
+
+    def test_conf_missing(self):
+        self.root.remove(cir.GREENBOOT_CONF)
+        self.assertFinds("greenboot.conf: missing")
+
+    def test_a_folder_where_a_file_is_expected(self):
+        # F5 (P1): a folder (or a device, a FIFO) is not a regular file.
+        for rel, fragment in ((cir.GREENBOOT_BIN, "greenboot is not installed"),
+                              ("usr/lib/os-release", "usr/lib/os-release: missing, or not a regular file")):
+            with self.subTest(path=rel):
+                self.root.remove(rel)
+                os.makedirs(os.path.join(self.root.path, rel))
+                self.assertFinds(fragment)
+
+    # --- greenboot.conf in the one form greenboot and the check read alike (F1)
     def test_shipped_conf_parses_to_the_expected_values(self):
         # The checker's own reading of the shipped file. greenboot's reading of
         # it is proven in change 3, by its journal ("Skipping disabled script").
