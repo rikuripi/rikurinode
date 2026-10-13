@@ -101,8 +101,21 @@
       the gate's secret scan. No signing or publishing yet: no credential in
       the workflow, `permissions: contents: read`.
 
-## 3. Debug
-- [ ] N/A — no defect fixed.
+## 3. Debug — the fix round (verifier round 1's findings 1 to 4)
+- [x] Reproduced before fixing (2026-10-12, the fix-round session, inside
+      `safe-run.sh`): the verifier's 15 `greenboot.conf` cases run through
+      its rust-ini 0.21.3 probe and through the checker. The checker passed
+      cases 03 to 11, 14 and 15 with 0 findings; greenboot reads 03, 04, 06,
+      07, 08, 09, 14 and 15 as `disabled=[]` (the DNS check on) and 05 as
+      intended only because the indented comment became a key named
+      `# owner`. Its link probe: with `usr` a link out of the root,
+      `usr/local/host-only.key` was read and reported.
+- [x] Failing tests written and SEEN failing (`red-tests.out`): 51 tests,
+      40 failures and 7 errors on the unfixed checker; one test per probe
+      case (the table in `test_check_image_root.py` carries what greenboot
+      reads from each) and per missed mutant P2 to P9; then the fix-lock.
+- [ ] Root cause is a CLASS, named here:
+- [ ] Swept for siblings of the class (where else it lived):
 
 ## 4. Verify
 - [x] Unit tests: 28 in `image/tests/test_check_image_root.py`, all pass;
