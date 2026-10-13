@@ -5,8 +5,8 @@
 | **Date** | 2026-10-12 |
 | **Author / session** | Claude Code (Fable 5.1), a session opened in the worktree `/home/junc/claude-wip/b0/rn` in `auto` mode, inside the sandbox; owner Henry |
 | **Branch** | b0/workspace (on `main` at 678b1b8 after PRs #4, #5 and #7 merged) |
-| **Commits** | 9f94898 on `b0/workspace` (the whole change and this record); a second commit records the owner's answers of 2026-10-13 (a fix round would add to it) |
-| **Status** | COMPLETE — verifier round 1 FAIL on wording only (W1–W4, corrected here, in AGENTS.md and in PR #7's record; no further round, the owner's stop rule); code and tests: no defect, three nits for the owner (Skipped items). Not yet proven: the gate in CI on the pull request |
+| **Commits** | 9f94898 on `b0/workspace` (the whole change and this record); 2123c2c (the owner's answers of 2026-10-13); a third commit records CI on PR #8 |
+| **Status** | COMPLETE — verifier round 1 FAIL on wording only (W1–W4, corrected here, in AGENTS.md and in PR #7's record; no further round, the owner's stop rule); code and tests: no defect, three nits for the owner (Skipped items; the owner: "ok", 2026-10-13). CI green on pull request #8 at 2123c2c: "Full gate (Ubuntu)" (CI run 38421806229, 1m 47s) and the guard tests on Python 3.9 and 3.12 (run 38421806872, 1m 11s); `ci-pr8.out`. Awaiting the owner's merge |
 | **Change type** | feature (the first control plane code) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -300,7 +300,11 @@ settings file changes.
       output was overwritten by the green run and is not kept, so this
       rests on the session's word; the probe now strips them (`tr -d '\r'`
       in `probe-daemon.sh`). The verifier's own run: `verify-gate.out`, all
-      9 steps. CI: to be seen on the pull request.
+      9 steps. CI: seen green on pull request #8 (opened by the owner,
+      2026-10-13), commit 2123c2c — "Full gate (Ubuntu)" completed
+      successfully (CI run 38421806229, "CI #23", 1m 47s), and the guard
+      tests on Python 3.9 and 3.12 (run 38421806872, 1m 11s); `ci-pr8.out`,
+      read from GitHub's pages in the owner's browser.
 - [x] Scrap Sweep: nothing stray in the tree (`git status`: only this
       change and the sandbox's placeholders). Outside it: the D24 fetch
       probe and the mutants' backups under `TMPDIR`
@@ -335,11 +339,12 @@ settings file changes.
   (`.cargo-home/`; PR #7's skipped item, re-seen by the verifier). Owner:
   Henry. Reactivate: a hygiene rule for `.cargo-home/` if the cache is
   ever seen staged.
-- Not yet proven: the gate in CI on this pull request (`rustup toolchain
-  install` with no argument on the runner: rustup 1.29.1 is on the
-  ubuntu-24.04 image per its README, read by the verifier); `--offline`
-  turning a missing crate into a failure rather than a hang; headers above
-  60 KB; rustup installing 1.98.1 on first use (already installed here).
+- Seen since: the gate in CI on pull request #8 (CI run 38421806229; its
+  step 1 passed there, so the toolchain file's version was active on the
+  runner after `rustup toolchain install` with no argument). Still not yet
+  proven: `--offline` turning a missing crate into a failure rather than a
+  hang; headers above 60 KB; rustup installing 1.98.1 on first use here
+  (already installed).
 
 ## Evidence log
 ```
@@ -356,4 +361,6 @@ settings file changes.
             9 mutations, 8 caught, 1 missed = N1); W1–W4 corrected
             committed 9f94898 on b0/workspace, pushed; the owner opens the pull request
             owner: "ok" to the three choices (loopback until B0.2; deny with reasoned skips; N1–N3 left as is)
+            PR #8 opened by the owner; on 2123c2c: CI run 38421806229 (Full gate (Ubuntu), 1m 47s) and
+            run 38421806872 (guard tests, py3.9 and py3.12, 1m 11s) completed successfully (ci-pr8.out)
 ```

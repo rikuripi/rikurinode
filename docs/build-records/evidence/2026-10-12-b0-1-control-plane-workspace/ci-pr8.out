@@ -1,0 +1,33 @@
+CI on pull request #8 (opened by the owner, 2026-10-13; head 2123c2c on b0/workspace,
+base main). Read from GitHub's pages through the owner's browser (the Claude-in-Chrome
+extension) by the B0.1 session on 2026-10-13; the page texts as extracted, trimmed to
+the lines that carry the result.
+
+--- https://github.com/rikuripi/rikurinode/pull/8/checks ---
+B0/workspace #8  Merge Status: Ready to merge
+rikuripi wants to merge 2 commits into main from b0/workspace  (+2,614 -43; 34 files)
+docs(control-plane): the owner's answers on B0.1's three choices  2123c2c
+CI  on: pull_request
+AI-session guard and quality tools  on: pull_request  (2)
+Check runs (each "This job succeeded"):
+  Full gate (Ubuntu)                      success
+  Guard and quality-tool tests (py3.9)    success
+  Guard and quality-tool tests (py3.12)   success
+
+--- https://github.com/rikuripi/rikurinode/actions/runs/38421806229 ---
+CI  B0/workspace #23
+Triggered via pull request  rikuripi opened #8  b0/workspace
+Status: Success   Total duration: 1m 47s
+ci.yml on: pull_request
+  Full gate (Ubuntu)   1m 44s
+
+--- https://github.com/rikuripi/rikurinode/actions/runs/38421806872 ---
+AI-session guard and quality tools  B0/workspace #19
+Triggered via pull request  rikuripi opened #8  b0/workspace
+Status: Success   Total duration: 1m 11s
+claude-guard.yml on: pull_request   Matrix: guard   2 jobs completed
+Annotations: 2 warnings (actions/setup-python targets Node.js 20, run on Node.js 24;
+GitHub's deprecation notice; not a failure)
+
+--- https://github.com/rikuripi/rikurinode/actions/workflows/ci.yml?query=branch%3Ab0%2Fworkspace ---
+1 workflow run result: B0/workspace  completed successfully  CI #23  Pull request #8  1m 47s
