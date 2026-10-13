@@ -1,12 +1,12 @@
-# Build Record — the sandbox reaches crates.io; cargo's cache stays in the checkout (D24); credential files hidden (D25)
+# Build Record — the sandbox set to reach crates.io, cargo's cache in the checkout (D24), and to deny reads of 14 private paths (D25)
 
 | | |
 |---|---|
 | **Date** | 2026-10-12 |
 | **Author / session** | Claude Code (Opus 5.5), in a session opened in Rikuri-PI (outside the sandbox: the sandbox protects its own settings file, so this change cannot be made from inside it); owner Henry |
 | **Branch** | sandbox/crates-io |
-| **Commits** | 35c4f30 (D24); 70186d9 (after verifier round 1: the test fix, D25's first five paths, wording); the commit after verifier round 2 (D25's nine more paths, wording) |
-| **Status** | IN PROGRESS — verifier round 1 FAIL (a vacuous test; wording) fixed with D25 added; round 2 FAIL on wording only, and D25 extended to fourteen paths by the owner; round 3 pending; the in-sandbox proof waits for B0 |
+| **Commits** | 35c4f30 (D24); 70186d9 (after verifier round 1: the test fix, D25's first five paths, wording); 7aafa9b (after round 2: D25's nine more paths, wording); the commit after round 3 (wording) |
+| **Status** | COMPLETE — verifier round 1 FAIL (a vacuous test; wording) fixed with D25 added; round 2 FAIL on wording only, D25 extended to fourteen paths by the owner; round 3 FAIL on wording only, corrected with no further round (the owner's stop rule). Not yet proven: the fetch and a denied path inside the sandbox (B0's first steps), the owner's merge |
 | **Change type** | ops (the session boundary) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -71,11 +71,11 @@
       owner chose to close it (D25, 2026-10-12, AskUserQuestion: "Yes, deny
       credential files (Recommended)"): `~/.ssh`, `~/.config/gh`,
       `~/.git-credentials`, `~/.docker` and `~/.claude/.credentials.json` are
-      added to `denyRead`. Verifier round 2 found nine more private folders
-      existing and readable (`~/.gnupg`, `~/.bitcoin`,
+      added to `denyRead`. Nine more private folders exist and were
+      readable: verifier round 2 found six (`~/.gnupg`, `~/.bitcoin`,
       `~/.local/share/keyrings`, `~/.config/google-chrome`,
-      `~/.config/chromium`; and, from the builder's wider check of usual
-      places, by type only, `~/.config/BraveSoftware`, `~/.config/Code`,
+      `~/.config/chromium`, `~/.config/Code`), and the builder's wider check
+      of usual places, by type only, three more (`~/.config/BraveSoftware`,
       `~/.config/Claude`, `~/.local/share/Trash`); the owner extended D25 to
       all nine (2026-10-12, AskUserQuestion: "Deny all 9 too
       (Recommended)"). Fourteen in all. `git push`, `fetch` and `pull` run
@@ -96,7 +96,9 @@
 `.gitignore` and `AGENTS.md` are protected. The settings and the check widen
 the sandbox's network by exactly two hosts, chosen by the owner; nothing
 else in the sandbox block changes, and the check still fails on any other
-difference; D25 adds five read denies, a narrowing. The test file changes
+difference; D25 adds fourteen read denies (five in 70186d9, nine in
+7aafa9b), a narrowing: each is a private path of the owner's, kept from
+sandboxed reads. The test file changes
 its fixture to the new block (necessary: the fixture is the expected block)
 and adds two refusal cases. Round 1's verifier found that the fixture change
 made an older case vacuous: the bare-`*` widening was a hard-coded list that,
@@ -175,14 +177,29 @@ line. AGENTS.md says the new rule where the sandbox is described.
       record, AGENTS.md and the PR; the test renamed
       `test_every_read_deny_must_stay` (it covers every deny now, not only
       the previous checkout's — a name change, no assertion changed).
-- [ ] Independent verification, round 3 (the nine added paths): pending.
+- [x] **Verifier, round 3: FAIL on wording only** (evidence in
+      `/home/junc/claude-wip/d24/verify3/`). Passed: the nine denies
+      identical in all three places, each path existing (`stat` type), each
+      removal caught by a mutant tolerating exactly that path; the rename
+      changed no assertion (same body by AST); the gate on 7aafa9b; CI on
+      7aafa9b. Failed: this record's risk note still said "five read
+      denies"; its title and the check's header comment still said
+      "credential files hidden". Nits: the attribution of the nine (six
+      were round 2's); the PR body's "denies reads" and "now fixed"; §5's
+      scrap list. All corrected here, in the check's comment and in the PR,
+      with no further round (the owner's stop rule: wording only). Left:
+      7aafa9b's commit message ("the record says what is set"), which
+      only a force-push could change.
 
 ## 5. Close Out
 - [x] Full gate green: all 7 steps on the current tree (`evidence/2026-10-12-sandbox-crates-io/gate3.out`).
-- [x] Scrap Sweep: the scratch projects live in the session's scratchpad
-      and in `/home/junc/claude-wip/d24/` (verify/, fix/), outside the
-      repository.
-- [ ] Reviewed per `REVIEW.md`: the risk note above.
+- [x] Scrap Sweep: nothing stray in the repository. Outside it: the
+      session's scratchpad (the cargo probes) and `/home/junc/claude-wip/d24/`
+      — the verifiers' `verify/`, `verify2/`, `verify3/`, the builder's
+      `fix/`, the gate outputs (copied into the evidence folder), `pr-body.md`
+      and `commit-msg-3.txt` (as published) — kept as evidence until merge.
+- [x] Reviewed per `REVIEW.md`: three verifier rounds; the risk note above
+      covers every protected path touched.
 - [x] Knowledge layer: AGENTS.md; no help page or runbook exists.
 - [x] Commit message explains why; record committed with the change.
 
@@ -203,4 +220,5 @@ line. AGENTS.md says the new rule where the sandbox is described.
             full gate after the fix round: all 7 steps passed (gate2.out)
             verifier round 2: FAIL on wording only; owner extended D25 to 14 paths;
             full gate: all 7 steps passed (gate3.out)
+            verifier round 3: FAIL on wording only; corrected, no further round
 ```

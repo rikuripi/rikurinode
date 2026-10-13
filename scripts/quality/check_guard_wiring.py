@@ -50,8 +50,8 @@ TOOLS = {"Bash", "Read", "Edit", "Write", "MultiEdit", "NotebookEdit", "Grep"}
 # hook folder, and hide the previous checkout's secrets. crates.io's index and
 # download host (owner, D24, 2026-10-12) let Rust sessions fetch crates; cargo's
 # cache stays inside the checkout (scripts/cargo.sh), so writes stay in the repo.
-# The owner's credential files are hidden from sandboxed commands (D25): a crate's
-# build script runs here, and reads are otherwise open.
+# Reads of fourteen private paths of the owner's are denied to sandboxed commands
+# (D25): a crate's build script runs here, and reads are otherwise open.
 SANDBOX = {
     "enabled": True,
     "failIfUnavailable": True,
