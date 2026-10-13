@@ -32,7 +32,7 @@ step "4/7 repository hygiene: nothing tracked that belongs on the machine"
 python3 scripts/quality/repo_hygiene.py .
 
 step "5/7 shell lint"
-shellcheck --severity=style scripts/quality/*.sh scripts/quality/hooks/*
+shellcheck --severity=style scripts/quality/*.sh scripts/quality/hooks/* scripts/cargo.sh
 
 step "6/7 whitespace errors in every tracked file, committed or not"
 git diff --check "$(git hash-object -t tree /dev/null)" HEAD

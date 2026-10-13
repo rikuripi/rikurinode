@@ -1,0 +1,7 @@
+=== the 'tolerate *' mutant of the check, against the old-tests
+Ran 33 tests in 0.048s
+OK (skipped=1)
+=== the 'tolerate *' mutant of the check, against the fixed-tests
+FAIL: test_documented_widenings_fail_in_either_file (test_guard_wiring.Wiring.test_documented_widenings_fail_in_either_file) (path=('sandbox', 'network', 'allowedDomains'), value=['github.com', 'api.github.com', '*.githubusercontent.com', 'index.crates.io', 'static.crates.io', '*'])
+Ran 33 tests in 0.054s
+FAILED (failures=1, skipped=1)
