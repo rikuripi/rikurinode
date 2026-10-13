@@ -47,7 +47,9 @@ TOOLS = {"Bash", "Read", "Edit", "Write", "MultiEdit", "NotebookEdit", "Grep"}
 # git's network commands leave it (SSH cannot use its proxy); each still passes
 # the guard and the permission flow. .git/hooks, .git/config and the named
 # .claude paths are the sandbox's own protected paths; the settings add the
-# hook folder, and hide the previous checkout's secrets.
+# hook folder, and hide the previous checkout's secrets. crates.io's index and
+# download host (owner, D24, 2026-10-12) let Rust sessions fetch crates; cargo's
+# cache stays inside the checkout (scripts/cargo.sh), so writes stay in the repo.
 SANDBOX = {
     "enabled": True,
     "failIfUnavailable": True,
@@ -57,7 +59,8 @@ SANDBOX = {
         "denyWrite": ["./scripts/quality/hooks"],
         "denyRead": ["/home/junc/rikuri/rikurinode/.env", "/home/junc/rikuri/rikurinode/data", "/run/rikuri"],
     },
-    "network": {"allowedDomains": ["github.com", "api.github.com", "*.githubusercontent.com"]},
+    "network": {"allowedDomains": ["github.com", "api.github.com", "*.githubusercontent.com",
+                                   "index.crates.io", "static.crates.io"]},
 }
 PERMISSION_KEYS = {"allow", "deny", "ask", "defaultMode", "disableBypassPermissionsMode"}
 WIDENING_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", "WebFetch", "Read"}

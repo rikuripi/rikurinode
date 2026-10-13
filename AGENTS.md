@@ -45,7 +45,10 @@ ported with their tests, not copied wholesale.
   shell command in a session opened here runs inside bubblewrap: it can
   write only inside this repository and the temporary folder, cannot reach
   a Unix socket (the Docker socket drives the live node) or a local port,
-  reaches GitHub's domains without a prompt and any other host only after
+  reaches GitHub's domains and crates.io's index and download hosts
+  (`index.crates.io`, `static.crates.io`; owner, D24, 2026-10-12: run cargo
+  as `scripts/cargo.sh`, which keeps its cache in the checkout) without a
+  prompt and any other host only after
   a prompt (`strictAllowlist`, which would refuse them, is ignored in
   project settings, per Claude Code's settings schema; in `auto` mode a
   command that does not list the host is refused, with no prompt), and cannot read

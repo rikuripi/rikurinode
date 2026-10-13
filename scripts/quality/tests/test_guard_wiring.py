@@ -41,7 +41,8 @@ SANDBOX = {"enabled": True, "failIfUnavailable": True, "allowUnsandboxedCommands
            "filesystem": {"denyWrite": ["./scripts/quality/hooks"],
                           "denyRead": ["/home/junc/rikuri/rikurinode/.env", "/home/junc/rikuri/rikurinode/data",
                                        "/run/rikuri"]},
-           "network": {"allowedDomains": ["github.com", "api.github.com", "*.githubusercontent.com"]}}
+           "network": {"allowedDomains": ["github.com", "api.github.com", "*.githubusercontent.com",
+                                          "index.crates.io", "static.crates.io"]}}
 
 
 def settings(**kw):
@@ -212,6 +213,9 @@ class Wiring(unittest.TestCase):
         widen = [(("sandbox", "network", "allowedDomains"), ["github.com", "api.github.com", "*.githubusercontent.com",
                                                              "*"]),
                  (("sandbox", "network", "allowedDomains"), ["github.com", "example.com"]),
+                 # D24 named two crates.io hosts, nothing wider: not its API, not a wildcard
+                 (("sandbox", "network", "allowedDomains"), SANDBOX["network"]["allowedDomains"] + ["crates.io"]),
+                 (("sandbox", "network", "allowedDomains"), SANDBOX["network"]["allowedDomains"] + ["*.crates.io"]),
                  (("sandbox", "network", "httpProxyPort"), 3128), (("sandbox", "network", "socksProxyPort"), 1080),
                  (("sandbox", "filesystem", "allowRead"), ["/home/junc/rikuri/rikurinode/.env"]),
                  (("sandbox", "filesystem", "allowRead"), ["/home/junc/rikuri/rikurinode/data"]),
