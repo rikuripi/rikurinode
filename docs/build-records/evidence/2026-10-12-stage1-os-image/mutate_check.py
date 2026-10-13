@@ -1,4 +1,4 @@
-"""Mutation run for image/tests/check_image_root.py (TEST-02: a check counts
+"""Mutation run for image/check_image_root.py (TEST-02: a check counts
 only after it has been seen to fail). Each mutant weakens one check in a copy
 of the checker; the tests must fail on every one.
     python3 mutate_check.py <repo root>      (run inside scripts/quality/safe-run.sh)
@@ -38,7 +38,7 @@ def main():
         tmp = tempfile.mkdtemp(prefix="mut-")
         try:
             shutil.copytree(src, os.path.join(tmp, "image"))
-            path = os.path.join(tmp, "image", "tests", "check_image_root.py")
+            path = os.path.join(tmp, "image", "check_image_root.py")
             text = open(path).read()
             if text.count(old) != 1:
                 print("BROKEN  %-32s (pattern found %d times)" % (name, text.count(old)))

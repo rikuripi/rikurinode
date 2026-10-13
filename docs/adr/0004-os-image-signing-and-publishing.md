@@ -31,7 +31,7 @@ registry needs a GitHub token stored on every node.
 - Nodes need no credentials to update, and checking a signature needs no
   network beyond the registry (so it should work over Tor; not yet tried).
 - Anyone can download the image: by rule it holds no secret
-  (`image/tests/check_image_root.py` refuses private keys and SSH host keys;
+  (`image/check_image_root.py` refuses private keys and SSH host keys;
   the gate's secret scan covers the files added to it). Making the GHCR
   package public cannot be undone.
 - Signing uses cosign's older format (`--new-bundle-format=false`) until the

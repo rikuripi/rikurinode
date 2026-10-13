@@ -125,6 +125,18 @@
       40 failures and 7 errors on the unfixed checker; one test per probe
       case (the table in `test_check_image_root.py` carries what greenboot
       reads from each) and per missed mutant P2 to P9; then the fix-lock.
+- [x] **The checker moved to `image/check_image_root.py` before the lock**
+      (owner, 2026-10-12, AskUserQuestion: "Move the checker out of
+      image/tests (Recommended)"). The guard's test globs (`*/tests/*`)
+      make every file under `image/tests/` read-only under the fix-lock: a
+      simulated Edit of the checker there was denied, the same edit at
+      `image/check_image_root.py` allowed. The checker is production code
+      (CI runs it on the real root), so it leaves the tests' folder; its
+      tests stay in `image/tests/`. Rejected: skipping the lock (the
+      tripwire off for the very fix it exists for); an exception in the
+      guard policy (the most work, on the shared policy). Protected path
+      changed for it, the risk note: `.github/workflows/image.yml` gains
+      only the checker's new path on its "Check the built root" step.
 - [ ] Root cause is a CLASS, named here:
 - [ ] Swept for siblings of the class (where else it lived):
 

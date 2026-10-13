@@ -6,8 +6,9 @@
 <root> is the image's filesystem, mounted read-only (.github/workflows/image.yml
 runs this on every build). Every finding is printed; any finding fails (exit 1).
 Lessons register PLAT-01: the host is defined by the image, and an image test
-asserts the shipped host configuration. Its tests (test_check_image_root.py) run
-in the full gate on fixture roots, so no image or container runs on this machine.
+asserts the shipped host configuration. Its tests (tests/test_check_image_root.py)
+run in the full gate on fixture roots, so no image or container runs on this
+machine.
 Record: docs/build-records/2026-10-12-stage1-os-image.md
 
 Paths are always read inside <root>: a link is never followed, since an absolute

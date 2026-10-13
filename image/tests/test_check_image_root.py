@@ -16,7 +16,7 @@ import unittest
 from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
+sys.path.insert(0, os.path.join(HERE, ".."))
 import check_image_root as cir  # noqa: E402
 
 SHIPPED_CONF = os.path.join(HERE, "..", "rootfs", "etc", "greenboot", "greenboot.conf")
