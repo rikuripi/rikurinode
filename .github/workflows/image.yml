@@ -26,7 +26,7 @@ concurrency:
 
 env:
   # The release image/Containerfile's base must be; the check fails otherwise.
-  FEDORA_RELEASE: "44"
+  FEDORA_RELEASE: "45"  # DRILL: the check must fail the job
   IMAGE: localhost/rikuri-os:ci
 
 jobs:
