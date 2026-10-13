@@ -28,15 +28,22 @@ own range of user IDs from that user's subordinate IDs (`userns=auto`).
 - The containers are user services: kept running after logout by systemd's
   lingering, and they cannot wait on system units (the plan's example,
   `network-online.target`, has a Quadlet workaround).
-- Container storage lives in the user's home unless moved; networking goes
-  through `pasta`; ports below 1024 need a kernel setting (the node's own
-  ports are above it).
+- Container storage lives in the user's home unless moved. Networking goes
+  through `pasta`: containers reach each other only with extra
+  configuration, and on rootless bridge networks port forwarding uses
+  `rootlessport` by default, which loses the client's address.
+- Ports below 1024 need a kernel setting: the node's own ports (8333, 9735,
+  10009, 9050) are above it, a web page on 80 or 443 is not.
+- Memory, CPU and process limits work through systemd's delegation to user
+  services (PLAT-04's budgets need them); I/O limits and CPU pinning need
+  one more setting.
 - The user's subordinate ID range must be large enough to divide, and an
   unsized `--userns=keep-id` cannot sit beside it.
 - Open, for the first container (stage 2): how each data volume's owner
   stays matched to its container's IDs when `userns=auto` picks the range.
-  Found by the plan's verifier (round 9); answered with a test before any
-  data is written.
+  Found by the plan's verifier (round 9) as a question for the owner; put
+  to the owner with its options and costs at stage 2, and held by a test
+  before any data is written.
 
 ## Rejected
 

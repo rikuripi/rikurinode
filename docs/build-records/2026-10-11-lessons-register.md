@@ -4,9 +4,9 @@
 |---|---|
 | **Date** | 2026-10-11 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
-| **Branch** | docs/lessons-register (2026-10-11, on the pre-GitHub root); re-landed on `main` as docs/plan-and-lessons (2026-10-12) |
+| **Branch** | docs/lessons-register (2026-10-11, on the pre-GitHub root); re-landed onto `main` 5630ea0 as docs/plan-and-lessons (2026-10-12; its merge Not yet proven) |
 | **Commits** | 32d0c58 on the old root; on `main`: its cherry-pick in the pull request that adds this line |
-| **Status** | COMPLETE — verifier rounds 1–10 FAIL, round 11 PASS, round 12 FAIL (two names in row 69 never expanded; the commit message's "every mutation … is kept"); round 13 answers them, with no check round after it (the owner's stop rule); re-landed on `main` 5630ea0 with the checker and the full gate green; CI and the owner's merge Not yet proven when this line was written |
+| **Status** | COMPLETE — verifier rounds 1–10 FAIL, round 11 PASS, round 12 FAIL (two names in row 69 never expanded; the commit message's "every mutation … is kept"); round 13 answers them, with no check round after it (the owner's stop rule); re-landed onto `main` 5630ea0 (branch docs/plan-and-lessons) with the checker and the full gate green; CI and the owner's merge Not yet proven when this line was written |
 | **Change type** | documentation (requirements) |
 
 ## 0. Intent
@@ -409,9 +409,15 @@
       misses. Receipts after the last edit (`mutations-round13*.out`): 264
       of 321 caught over ten sets.
 - [x] Verifier, round 13: not run. Round 12's findings were wording (two
-      names, one phrase); the owner's stop rule (2026-10-11, recorded in
+      names in the register, and two phrases: one in the register, one in
+      the commit message); the owner's stop rule (2026-10-11, recorded in
       the bootstrap record) fixes wording without a further check round.
-- [x] **Re-landed on `main`** (2026-10-12). The branch sat on the
+      Round 13 also changed test artefacts, as a tightening: it added
+      `mutate_register_v11.py` and moved v12's T69a and T69b anchors to the
+      full paths, both now CAUGHT (`mutations-round13-v12.out`). The
+      re-land's final check (the platform record's verifier entry) found
+      this record's wording faults, corrected.
+- [x] **Re-landed onto `main`** (2026-10-12). The branch sat on the
       pre-GitHub root (2075218), with no merge base with `main`; 32d0c58
       cherry-picked onto `main` 5630ea0 without conflict. The checker on
       the re-landed register, against the previous repository's HEAD
@@ -420,7 +426,7 @@
 
 ## 5. Close Out
 - [x] Full gate green: all 7 steps on the re-landed tree (2026-10-12,
-      `../2026-10-11-platform-plan/reland-gate.out`)
+      `evidence/2026-10-11-platform-plan/reland-gate.out`)
 - [x] Knowledge layer: N/A — no runtime behaviour.
 - [x] Commit message explains why; record committed with the change
 
@@ -453,6 +459,6 @@
             every miss a MISSED line (mutations-round11*.out); verifier: PASS;
             round 12: the same 238 of 288 (mutations-round12*.out); verifier:
             FAIL; round 13: 264 of 321 over ten sets (mutations-round13*.out)
-2026-10-12  re-landed on main 5630ea0; checker: 0 problems, identical to round 13's
+2026-10-12  re-landed onto main 5630ea0 (docs/plan-and-lessons); checker: 0 problems, identical to round 13's
             (register-check-reland.out); full gate: all 7 steps passed
 ```

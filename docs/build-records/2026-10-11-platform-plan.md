@@ -4,9 +4,9 @@
 |---|---|
 | **Date** | 2026-10-11 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
-| **Branch** | docs/platform-plan (2026-10-11, on the pre-GitHub root); re-landed on `main` as docs/plan-and-lessons (2026-10-12) |
+| **Branch** | docs/platform-plan (2026-10-11, on the pre-GitHub root); re-landed onto `main` 5630ea0 as docs/plan-and-lessons (2026-10-12; its merge Not yet proven) |
 | **Commits** | 1ec05a7 on the old root; on `main`: its cherry-pick and the D5 commit of the pull request that adds this line |
-| **Status** | COMPLETE — verifier round 9 PASS; D2, D3 and D5 decided (D5 on 2026-10-12, ADR 0003), D1 and D4 open; re-landed on `main` 5630ea0 with the full gate green; CI and the owner's merge Not yet proven when this line was written |
+| **Status** | COMPLETE — verifier round 9 PASS; D2, D3 and D5 decided (D5 on 2026-10-12, ADR 0003), D1 and D4 open; re-landed onto `main` 5630ea0 (branch docs/plan-and-lessons) with the full gate green; the branch's one final check FAIL on wording only, corrected without another round (the owner's stop rule); CI and the owner's merge Not yet proven when this line was written |
 | **Change type** | documentation (plan) |
 
 ## 0. Intent
@@ -298,25 +298,44 @@
       left out without a word; how data-volume ownership stays matched when
       `userns=auto` picks ranges is a question for the owner. Not yet
       proven: the gate on the final `main`.
-- [x] **Re-landed on `main`, and D5 decided** (2026-10-12). The branch sat
+- [x] **Re-landed onto `main`, and D5 decided** (2026-10-12). The branch sat
       on the pre-GitHub root (2075218), with no merge base with `main`;
       1ec05a7 cherry-picked onto `main` 5630ea0 without conflict, beside the
       lessons register's commit. The owner, asked why no node code existed
       after three days of process work, chose (AskUserQuestion): freeze
       guard work after the running review; D5 = "Rootless, range each
       (Recommended)"; the N150 is not ready, so stage 1 builds and tests the
-      image in CI first. D5 written into the plan (status, summary, §7) and
+      image in CI first (its drill on the N150, §8, still closes the
+      stage). D5 written into the plan (status, summary, §7) and
       ADR 0001, and as ADR 0003, whose consequences come from §7's D5 row
       and round 9's notes; round 9's data-volume ownership question is kept
-      in ADR 0003 as open for stage 2's first container. The README links
-      the ADRs and the register. Wording only, so no check round (the
-      owner's stop rule, 2026-10-11, recorded in the bootstrap record).
-      Gate: all 7 steps passed on this tree (`reland-gate.out`).
+      in ADR 0003 as an owner question for stage 2's first container. The
+      README links the ADRs and the register. Gate: all 7 steps passed on
+      this tree with the D5 edits not yet committed (`reland-gate.out`;
+      its history scan covered 34 commits, so not the D5 commit).
+- [x] **Verifier, the branch's one final check** (the owner's stop rule,
+      2026-10-11, recorded in the bootstrap record: one final check per
+      branch; wording findings fixed without another round): FAIL on
+      wording only. Passed: both cherry-picks byte-identical to the
+      originals; the gate at 5c5062f, all 7 steps, its scan covering the D5
+      commit (35 commits); the register checker identical to both
+      receipts; every local link; no scrap. Findings, all corrected here:
+      this entry claimed no check round was needed for new content; the
+      Knowledge-layer box was unchecked; "on `main`" read as merged; the
+      lessons record cited the gate receipt by a wrong relative path and
+      undercounted round 12's findings; ADR 0003 left out four of §7's
+      costs (a web page on 80 or 443, `pasta` and container-to-container
+      traffic, `rootlessport` losing the client's address, I/O limits and
+      CPU pinning) and turned round 9's owner question on data-volume
+      ownership into a test alone. Not yet proven: the owner's three
+      answers outside this session's transcript, CI on this branch, the
+      merge.
 
 ## 5. Close Out
 - [x] Full gate green: all 7 steps, 13:33 on round 9's tree, and on the
-      re-landed tree on `main` 5630ea0 (2026-10-12, `reland-gate.out`)
-- [ ] Knowledge layer: N/A — no behaviour, help page or runbook exists yet.
+      re-landed tree on top of `main` 5630ea0 (2026-10-12, `reland-gate.out`;
+      the verifier's run at 5c5062f)
+- [x] Knowledge layer: N/A — no behaviour, help page or runbook exists yet.
 - [x] Commit message explains why; record committed with the change.
 
 ## Skipped items — visible, never silent
@@ -328,6 +347,7 @@
 ## Evidence log
 ```
 2026-10-11  sources read: see platform-plan.md §9
-2026-10-12  re-landed on main 5630ea0; D5 decided (ADR 0003); full gate: all 7 steps passed
-            (evidence/2026-10-11-platform-plan/reland-gate.out)
+2026-10-12  re-landed onto main 5630ea0 (docs/plan-and-lessons); D5 decided (ADR 0003);
+            full gate: all 7 steps passed (evidence/2026-10-11-platform-plan/reland-gate.out);
+            verifier (final check): FAIL on wording only, corrected
 ```
