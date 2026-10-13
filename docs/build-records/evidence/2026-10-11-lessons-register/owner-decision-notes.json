@@ -1,0 +1,28 @@
+{
+ "_doc": "Section 3's notes and corrected rows, read by hand against their records (verifier rounds 1-6, 2026-10-11; row 43 added in round 7, row 3 in round 8, rows 10, 29, 33 and 95 in round 9). check_register.py fails on any difference: read the row again, then update this file.",
+ "notes": {
+  "1": "the record's summary, quoting the owner's spec",
+  "3": "the record does not say who set this rule; the harvest listed it as the owner's",
+  "4": "the record's summary",
+  "7": "the record's summary",
+  "9": "the record's wording: \"budget spent → skip that hypothesis … and a 24-hour rolling window\"",
+  "10": "the record's summary of the plan's decision; the plan, at 883d8285, reads: Q0 — Repair the live breakages by hand first: YES",
+  "11": "the record's summary",
+  "29": "“the heaviest container” is the session's wording, not the owner's; PLAT-04's Owner line gives it unquoted",
+  "33": "the text in brackets after Chosen is the option's description, the session's words; TEST-12's Owner line gives it unquoted",
+  "43": "the record bolds only the option labels, “MAs + returns backup:” and “funding: a second venue”; the rest of each is its own description",
+  "76": "two answers joined",
+  "78": "the owner's choice and the record's note joined",
+  "85": "the record's summary, with a quotation",
+  "92": "two answers joined",
+  "93": "answers to two questions joined",
+  "95": "the record's R9 paraphrase of owner answer 1, which its section 0 gives as “Hold it, show why”",
+  "106": "three answers joined",
+  "115": "the owner's words, then the session's summary",
+  "119": "corrected: the harvest read \"OK (55 s accepted, 2026-10-10)\", as if all of it were the owner's words",
+  "122": "the record's summary, with quotations"
+ },
+ "corrected_text": {
+  "119": "\"OK\" — the 55 s limit accepted, 2026-10-10"
+ }
+}

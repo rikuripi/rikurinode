@@ -1,0 +1,42 @@
+CAUGHT E1   expect CATCH     straight "…" between unmatched backtick runs (``` … `): the checker pairs them as a code span, CommonMark does not  (exit 1, 3 problem(s))
+            - requirement Port path not tracked at old HEAD:  "startup memory footprint scales with live mempool size and accumulated disk cache"
+            - Owner line: PLAT-04: a lone backtick in “- ``` "startup memory footprint scales with live mempool size and accumulated disk cache" ”
+            - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+           render: <ul> <li><strong>Owner:</strong> <ul> <li>``` &quot;startup memory footprint scales with live mempool size and accumulated disk cache&quot; ` — 2026-08-16-mempool-oom-recurrence.md</li> <li>First approval “1. Ok with your proposal” (alert only at &gt;=95% for 3 checks in
+CAUGHT E2   expect CATCH     the same with runs ` … ```   (exit 1, 3 problem(s))
+            - requirement Port path not tracked at old HEAD:  "startup memory footprint scales with live mempool size and accumulated disk cache"
+            - Owner line: PLAT-04: a lone backtick in “- ` "startup memory footprint scales with live mempool size and accumulated disk cache" ``”
+            - Owner line: PLAT-04: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md)
+           render: <ul> <li><strong>Owner:</strong> <ul> <li>` &quot;startup memory footprint scales with live mempool size and accumulated disk cache&quot; ``` — 2026-08-16-mempool-oom-recurrence.md</li> <li>First approval “1. Ok with your proposal” (alert only at &gt;=95% for 3 checks i
+CAUGHT E0   expect LIMIT     control: straight "…" inside a real code span (stated limit)  (exit 1, 1 problem(s))
+            - requirement Port path not tracked at old HEAD: "startup memory footprint scales with live mempool size and accumulated disk cache"
+           render: <ul> <li><strong>Owner:</strong> <ul> <li><code>&quot;startup memory footprint scales with live mempool size and accumulated disk cache&quot;</code> — 2026-08-16-mempool-oom-recurrence.md</li> <li>First approval “1. Ok with your proposal” (alert only at &gt;=95% for 3 check
+CAUGHT A1t  expect CATCH     HEAL-03's top-level Owner line: _'…'_ around the record's prose  (exit 1, 1 problem(s))
+            - Owner line: HEAL-03: “budget spent → skip that hypothesis and continue down the ladder” is the record's own prose, not words it quotes (2026-09-16-drb-attempt-budget-and-escalation.md)
+           render: <ul> <li><strong>Owner:</strong> <em>'budget spent → skip that hypothesis and continue down the ladder'</em> — 2026-09-16-drb-attempt-budget-and-escalation.md</li> </ul>
+CAUGHT D3b  expect CATCH     a field <strong>Owner:</strong> after PLAT-04's last field (not inside an Owner section)  (exit 1, 3 problem(s))
+            - line 984: an HTML tag the register does not use: <strong>
+            - line 984: an HTML tag the register does not use: </strong>
+            - Owner line: PLAT-04: a line at column 0 that is not one of the requirement's fields: - <strong>Owner:</strong> “startup memory footprint scales w
+           render: ot;runtime default heap too small for startup reindex&quot; from 2026-08-10-bip110-invalid-mark-leak.md was later superseded by 2026-08-16-mempool-oom-recurrence.md.</li> <li><strong>Owner:</strong> “startup memory footprint scales with live mempool size and accumulated disk cache” — 2026-08-16-mempool-oom-recurrence.md</li> </ul>
+CAUGHT D1b  expect CATCH     PLAT-04's own Owner label with a Cyrillic О, its first item the record's prose  (exit 1, 2 problem(s))
+            - line 974: characters outside the register's alphabet (U+041E)
+            - Owner line: PLAT-04: a line at column 0 that is not one of the requirement's fields: - **Оwner:**
+           render: <ul> <li><strong>Оwner:</strong> <ul> <li>“startup memory footprint scales with live mempool size and accumulated disk cache” — 2026-08-16-mempool-oom-recurrence.md</li> <li>First approval “1. Ok with your proposal” (alert only at &gt;=95% for 3 checks in a row;
+CAUGHT C4   expect CATCH     EVID-03's one-line Owner field wrapped so a column-0 line starts '#1' (lazy continuation), with the record's prose quoted  (exit 1, 1 problem(s))
+            - Owner line: EVID-03: “startup memory footprint scales with live mempool size and accumulated disk cache” is the record's own prose, not words it quotes (2026-08-16-mempool-oom-recurrence.md, 2026-09-30-dashboard-page-truth.md)
+           render: <ul> <li><strong>Owner:</strong> the owner, in #1 of the answers: “startup memory footprint scales with live mempool size and accumulated disk cache” — 2026-08-16-mempool-oom-recurrence.md; and “Yes, in fact, check all measurement on the Dashboard. Make sure every one of them is actuall
+CAUGHT E1t  expect CATCH     HEAL-03's top-level Owner line: straight "…" between unmatched backtick runs (``` … `)  (exit 1, 2 problem(s))
+            - Owner line: HEAL-03: a lone backtick in “``` "budget spent → skip that hypothesis and continue down the ladder" ` — 2026-09-16-drb-”
+            - Owner line: HEAL-03: “budget spent → skip that hypothesis and continue down the ladder” is the record's own prose, not words it quotes (2026-09-16-drb-attempt-budget-and-escalation.md)
+           render: <ul> <li><strong>Owner:</strong> ``` &quot;budget spent → skip that hypothesis and continue down the ladder&quot; ` — 2026-09-16-drb-attempt-budget-and-escalation.md</li> </ul>
+CAUGHT E2t  expect CATCH     HEAL-03's top-level Owner line: runs ` … ```  (exit 1, 2 problem(s))
+            - Owner line: HEAL-03: a lone backtick in “` "budget spent → skip that hypothesis and continue down the ladder" ``` — 2026-09-16-drb-”
+            - Owner line: HEAL-03: “budget spent → skip that hypothesis and continue down the ladder” is the record's own prose, not words it quotes (2026-09-16-drb-attempt-budget-and-escalation.md)
+           render: <ul> <li><strong>Owner:</strong> ` &quot;budget spent → skip that hypothesis and continue down the ladder&quot; ``` — 2026-09-16-drb-attempt-budget-and-escalation.md</li> </ul>
+MISSED E0t  expect LIMIT     control: HEAL-03, straight "…" inside a real code span (stated limit)  (exit 0, 0 problem(s))
+           render: <ul> <li><strong>Owner:</strong> <code>&quot;budget spent → skip that hypothesis and continue down the ladder&quot;</code> — 2026-09-16-drb-attempt-budget-and-escalation.md</li> </ul>
+CAUGHT S7   expect CATCH     row 3's Record(s) cell gains the record's prose in quotation marks as the owner's  (exit 1, 1 problem(s))
+            - owner decision row 3: its Records cell holds more than record names
+           render: eilings and bound the growth instead&quot;. <em>(the record does not say who set this rule; the harvest listed it as the owner's)</em></td> <td>2026-08-16-mempool-oom-recurrence.md — the owner: &quot;startup memory footprint scales with live mempool size and accumulated disk cache&quot;</td> <td>PLAT-04</td> <td>Current</td>
+register unchanged, sha256 9d177e57d18d41bb476640bbd04c056e76b5dba2db43a2f1696958f95a99eadb

@@ -1,0 +1,61 @@
+CAUGHT MP1  expect CATCH     requirement-lessons.json: lesson 0 also listed under a second requirement (JSON copy)  (exit 1, 4 problem(s))
+              - lesson mapping: missing [], duplicated [19]
+              - contents EVID: says 10 reqs / 57 lessons; mapping has 10 reqs / 58 lessons
+              - EVID-02 Why cites 4 records + 1 more = 5, but 6 records fed it
+              - coverage 2026-08-22-mempool-page-stale-explorer-and-zero-fees.md: says 5 lessons ['EVID-01', 'HEAL-10', 'LN-07', 'UPG-02', 'UPG-07']; mapping 6 ['EVID-01', 'EVID-02', 'HEAL-10', 'LN-07', 'UPG-02', 'UPG-07']
+CAUGHT MP2  expect CATCH     two requirement headings swapped (UPG-01 <-> UPG-02 titles; order differs from the mapping)  (exit 1, 5 problem(s))
+              - requirement ids/order differ between register and mapping
+              - UPG-02 Why cites records that did not feed it: ['2026-08-08-one-click-infra-upgrades.md', '2026-09-30-dashboard-page-truth.md', '2026-10-03-upgrades-cannot-break-a-service.md']
+              - UPG-02 Why cites 3 records + 0 more = 3, but 2 records fed it
+              - UPG-01 Why cites records that did not feed it: ['2026-08-22-mempool-page-stale-explorer-and-zero-fees.md', '2026-08-22-rollback-consolidation.md']
+              - UPG-01 Why cites 2 records + 0 more = 2, but 3 records fed it
+CAUGHT MP3  expect CATCH     a requirement id renamed: #### SEC-06 -> #### SEC-07  (exit 1, 2 problem(s))
+              - requirement ids/order differ between register and mapping
+              - a #### heading that is not a requirement: SEC-07 — The dependency audit cannot pass silently
+CAUGHT PT1  expect CATCH     Contents SEC row: 6 (SEC-01 to SEC-06) -> 7 (SEC-01 to SEC-07)  (exit 1, 1 problem(s))
+              - contents SEC: says 7 reqs / 16 lessons; mapping has 6 reqs / 16 lessons
+CAUGHT CV1  expect CATCH     Coverage row 2: 3 lessons -> 4  (exit 1, 1 problem(s))
+              - coverage 2026-08-08-sudo-rs-sudoers-wrappers.md: says 4 lessons ['EXEC-08', 'PLAT-01', 'TEST-07']; mapping 3 ['EXEC-08', 'PLAT-01', 'TEST-07']
+CAUGHT CV2  expect CATCH     Coverage row 2: one requirement dropped from 'Requirements fed'  (exit 1, 1 problem(s))
+              - coverage 2026-08-08-sudo-rs-sudoers-wrappers.md: says 3 lessons ['EXEC-08', 'PLAT-01']; mapping 3 ['EXEC-08', 'PLAT-01', 'TEST-07']
+CAUGHT CV3  expect CATCH     Coverage row 2: TEST-07 -> TEST-08  (exit 1, 1 problem(s))
+              - coverage 2026-08-08-sudo-rs-sudoers-wrappers.md: says 3 lessons ['EXEC-08', 'PLAT-01', 'TEST-08']; mapping 3 ['EXEC-08', 'PLAT-01', 'TEST-07']
+CAUGHT CV4  expect CATCH     Coverage: the last row (114) deleted  (exit 1, 1 problem(s))
+              - coverage has 113 rows for 114 records
+CAUGHT CR1  expect CATCH     EVID-01 Why: a cited record renamed to one that does not exist  (exit 1, 2 problem(s))
+              - cited record does not exist: 2026-09-26-health-exact-container-name.md
+              - EVID-01 Why cites records that did not feed it: ['2026-09-26-health-exact-container-name.md']
+CAUGHT CR2  expect CATCH     EVID-01 Why: a cited record replaced by an existing record that did not feed EVID-01  (exit 1, 1 problem(s))
+              - EVID-01 Why cites records that did not feed it: ['2026-08-08-one-click-infra-upgrades.md']
+CAUGHT CR3  expect CATCH     EVID-02 Why: (+1 more) -> (+2 more)  (exit 1, 1 problem(s))
+              - EVID-02 Why cites 4 records + 2 more = 6, but 5 records fed it
+CAUGHT CR4  expect CATCH     Gap G2: its record renamed to one that does not exist  (exit 1, 1 problem(s))
+              - cited record does not exist: 2026-09-16-backup-truth-and-alert.md
+CAUGHT CR5  expect CATCH     Coverage row 2: its record renamed to one that does not exist  (exit 1, 2 problem(s))
+              - cited record does not exist: 2026-08-08-sudo-rs-sudoers-wrapper.md
+              - coverage 2026-08-08-sudo-rs-sudoers-wrapper.md: says 3 lessons ['EXEC-08', 'PLAT-01', 'TEST-07']; mapping 0 []
+CAUGHT CR6  expect CATCH     EVID-03 Owner line: its record renamed to one that does not exist  (exit 1, 0 problem(s))
+         stderr: FileNotFoundError: [Errno 2] No such file or directory: '/home/junc/rikuri/rikurinode/docs/build-records/2026-09-30-dashboard-page-truths.md'
+CAUGHT S3a  expect CATCH     section 3 row 2: its Records cell names another existing record  (exit 1, 1 problem(s))
+              - owner decision row 2 cites 2026-08-08-one-click-infra-upgrades.md; the harvest has it from ['2026-08-10-crashloop-detection.md']
+CAUGHT S3b  expect CATCH     section 3 row 2: its Feeds cell HEAL-10 -> HEAL-09  (exit 1, 1 problem(s))
+              - owner decision row 2 feeds HEAL-09; the mapping says ['HEAL-10']
+CAUGHT S3c  expect CATCH     section 3 row 2: one word of the harvest's text changed  (exit 1, 1 problem(s))
+              - owner decision row 2 not verbatim from the harvest: '"nothing should fail quietly or be in a crash loop"'
+CAUGHT S4a  expect CATCH     section 4 row 90: its path renamed to one that does not exist  (exit 1, 1 problem(s))
+              - port path not tracked at old HEAD: scripts/rikuri-bluetooth-revival.sh
+CAUGHT S4b  expect CATCH     section 4 row 90: its test path renamed to one that does not exist  (exit 1, 1 problem(s))
+              - port test not tracked at old HEAD: dashboard/backend/src/tests/bluetoothRevival.test.ts (for `scripts/rikuri-bluetooth-revive.sh` and `systemd/rikuri-bluetooth-revive.service`)
+MISSED S4c  expect UNCLAIMED section 4's 'Explicitly' paragraph: its path renamed to one that does not exist  (exit 0, 0 problem(s))
+CAUGHT S4d  expect UNCLAIMED section 4 Totals line: 42 port with tests -> 43  (exit 1, 1 problem(s))
+              - port totals line says [90, 43, 45, 27, 3], rows give [90, 42, 45, 27, 3]
+CAUGHT PL1  expect CATCH     EVID-04 Port line: its main path renamed to one that does not exist  (exit 1, 1 problem(s))
+              - requirement Port path not tracked at old HEAD: dashboard/backend/src/utils/upgradeStateChecks.ts
+CAUGHT PL2  expect CATCH     EVID-01 Port sub-item: its main path renamed to one that does not exist  (exit 1, 1 problem(s))
+              - requirement Port path not tracked at old HEAD: dashboard/backend/src/tests/mempoolStalenessAndFee.test.ts
+MISSED PL3  expect UNCLAIMED EVID-04 Port line: its main path replaced by another path that exists  (exit 0, 0 problem(s))
+MISSED U1   expect UNCLAIMED EVID-01 Why: two fed records swapped (each incident now attributed to the other's record)  (exit 0, 0 problem(s))
+MISSED U2   expect UNCLAIMED Coverage intro: All 114 records -> All 115 records  (exit 0, 0 problem(s))
+MISSED U3   expect UNCLAIMED section 3 intro: (122) -> (123)  (exit 0, 0 problem(s))
+MISSED U4   expect UNCLAIMED Coverage: a second row 2 with wrong figures, written with two spaces after its first pipe  (exit 0, 0 problem(s))
+register unchanged, sha256 f5997a896ec0c4f61cec4c40275a486cb0c16ea89de1d7cf3f4a4d4363fc7c5c
