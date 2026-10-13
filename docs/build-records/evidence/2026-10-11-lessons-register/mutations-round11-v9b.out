@@ -1,0 +1,12 @@
+CAUGHT A1b  expect CATCH?  a carriage return (U+000D) followed by an indent inside PLAT-04's Rule line (CR is outside the claimed alphabet)  (exit 1, 1 problem(s))
+            - line 971: characters outside the register's alphabet (U+000D)
+           render: ever-higher ceilings; descriptor limits are explicit; whether the full explorer fits a memory tier is decided per node.\n(the owner)</li>\n</ul>\n
+CAUGHT A1c  expect CATCH?  CRLF line endings for the whole file  (exit 1, 1492 problem(s))
+            - coverage has 0 rows for 114 records
+            - line 1: characters outside the register's alphabet (U+000D)
+            - line 2: characters outside the register's alphabet (U+000D)
+            - line 3: characters outside the register's alphabet (U+000D)
+            - line 4: characters outside the register's alphabet (U+000D)
+CAUGHT A1d  expect CTRL    control: a tab (U+0009) inside PLAT-04's Rule line  (exit 1, 1 problem(s))
+            - line 971: characters outside the register's alphabet (U+0009)
+register unchanged, sha256 41447e47c46c52118aa68d569ced6f1f517db19a7f442523e38473bd97c5aa75

@@ -1,0 +1,11 @@
+requirements 107 lesson refs 475 distinct 475 index base 0
+records cited 114 in old repo 114 harvested 114
+coverage rows 114
+owner decision rows 122
+owner decision rows annotated: 20
+owner decisions without a quoted phrase (summaries): 84
+port rows 90
+port verdicts {'re-check': 45, 're-check Fedora/Pi': 27, 'with tests': 42, 'do not port': 3}
+records read for quotations 66 - parts skipped (odd quotation marks): 1
+
+0 problem(s)

@@ -1,0 +1,15 @@
+CAUGHT N0  expect CTRL   control: contents row SEC says 17 lessons  (exit 1, 1 problem(s))
+            - contents SEC: says 6 reqs / 17 lessons; mapping has 6 reqs / 16 lessons
+MISSED N1  expect COUNTS Source paragraph: 118 live incidents -> 119  (exit 0, 0 problem(s))
+MISSED N2  expect COUNTS Source paragraph: (122 distinct) -> (123 distinct)  (exit 0, 0 problem(s))
+MISSED N3  expect COUNTS Source paragraph: 114 build records -> 115  (exit 0, 0 problem(s))
+MISSED N4  expect COUNTS Contents Total row: **475** -> **476**  (exit 0, 0 problem(s))
+MISSED N5  expect COUNTS Contents: the SEC row deleted  (exit 0, 0 problem(s))
+MISSED N6  expect COUNTS Contents: SEC row's link text changed so the row no longer matches the pattern, and its count wrong  (exit 0, 0 problem(s))
+CAUGHT P0  expect CTRL   control: a Port sub-item's code path renamed  (exit 1, 1 problem(s))
+            - requirement Port path not tracked at old HEAD: dashboard/backend/src/services/btcSupplyX.ts
+MISSED P1  expect PORT   a test path in a requirement's Port line (UPG Port line, line 71) renamed to one that does not exist  (exit 0, 0 problem(s))
+MISSED P2  expect PORT   a test path in a requirement's Port sub-item renamed (btcSupply.test.ts -> btcSupplyX.test.ts)  (exit 0, 0 problem(s))
+CAUGHT P3  expect PORT   a second code path in a Port line, after the first (the 'and' list on line 54): serviceCard.ts -> serviceCards.ts  (exit 1, 1 problem(s))
+            - requirement Port path not tracked at old HEAD: dashboard/frontend/src/utils/serviceCards.ts
+register unchanged, sha256 4f26e63cdb1c40fb335fc212e77cfbb9369e403c19e65553d72937915a432e30
