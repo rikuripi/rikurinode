@@ -5,7 +5,7 @@
 | **Date** | 2026-10-12 |
 | **Author / session** | Claude Code (Fable 5.1), a session opened in the worktree `/home/junc/claude-wip/b0/rn` in `auto` mode, inside the sandbox; owner Henry |
 | **Branch** | b0/workspace (on `main` at 678b1b8 after PRs #4, #5 and #7 merged) |
-| **Commits** | one commit on `b0/workspace` holding the whole change and this record (its hash is the pull request's head; a fix round would add to it) |
+| **Commits** | 9f94898 on `b0/workspace` (the whole change and this record); a second commit records the owner's answers of 2026-10-13 (a fix round would add to it) |
 | **Status** | COMPLETE — verifier round 1 FAIL on wording only (W1–W4, corrected here, in AGENTS.md and in PR #7's record; no further round, the owner's stop rule); code and tests: no defect, three nits for the owner (Skipped items). Not yet proven: the gate in CI on the pull request |
 | **Change type** | feature (the first control plane code) |
 
@@ -116,14 +116,16 @@
       is **plain HTTP on loopback only until B0.2**, an assumption from the
       owner's split, stated in the daemon's start-up log line and held by
       a test that refuses any non-loopback address; reversible: B0.2
-      replaces the listener. Design rules: every dependency pinned,
+      replaces the listener (owner: "ok", 2026-10-13). Design rules: every dependency pinned,
       lockfile committed, runtime truth (the report is computed on each
       request, never cached). Security gates: the route carries no secret
       and no authority; it is open to any local process until the route
       policy lands (port 10, B0.3) — accepted for the skeleton, named here.
 - [x] Flagged concerns: the loopback assumption above (owner to confirm or
       change at review); the `multiple-versions = "deny"` ban may need
-      `skip` entries as the tree grows (each a reviewed change).
+      `skip` entries as the tree grows (each a reviewed change). **Owner,
+      2026-10-13: "ok" to both, and to leaving the verifier's three nits as
+      they are (Skipped items).**
 
 ## 1. Plan
 - [x] One sentence: add the Rust workspace with a loopback-only status
@@ -326,8 +328,9 @@ settings file changes.
   `[workspace.dependencies]` starts with `=` would hold it. **N2** with
   `RUST_LOG=off` a refused listen address exits 1 with nothing on stderr.
   **N3** the "is not an ip:port" message repeats the `RIKURI_LISTEN` value
-  verbatim (not a secret today). Owner: Henry. Reactivate: any of the
-  three on request; N2 and N3 with B0.2, where the listener changes.
+  verbatim (not a secret today). Owner: Henry — "ok", left as is
+  (2026-10-13). Reactivate: any of the three on request; N2 and N3 with
+  B0.2, where the listener changes.
 - A cargo cache force-added past `.gitignore` passes the hygiene check
   (`.cargo-home/`; PR #7's skipped item, re-seen by the verifier). Owner:
   Henry. Reactivate: a hygiene rule for `.cargo-home/` if the cache is
@@ -351,4 +354,6 @@ settings file changes.
             gate.out: full-gate: all 9 steps passed (a first run failed at step 6: CR in the probe output; not kept)
 2026-10-13  verifier round 1: FAIL on wording only (verifier-round1.md; verify-gate.out: all 9 steps;
             9 mutations, 8 caught, 1 missed = N1); W1–W4 corrected
+            committed 9f94898 on b0/workspace, pushed; the owner opens the pull request
+            owner: "ok" to the three choices (loopback until B0.2; deny with reasoned skips; N1–N3 left as is)
 ```
