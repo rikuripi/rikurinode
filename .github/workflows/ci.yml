@@ -2,8 +2,11 @@ name: CI
 
 # Runs scripts/quality/full-gate.sh, the same script developers run, so CI and
 # local results cannot drift. No step uses continue-on-error. Tools are pinned
-# and checksum-verified; actions are pinned by commit.
-# Record: docs/build-records/2026-10-10-bootstrap.md
+# and checksum-verified; actions are pinned by commit. The Rust toolchain comes
+# from rust-toolchain.toml through rustup, which checks every download against
+# the signed channel manifest.
+# Records: docs/build-records/2026-10-10-bootstrap.md,
+# docs/build-records/2026-10-12-b0-1-control-plane-workspace.md
 
 on:
   pull_request:
@@ -23,7 +26,7 @@ jobs:
   full-gate:
     name: Full gate (Ubuntu)
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -43,6 +46,15 @@ jobs:
           echo "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198  $RUNNER_TEMP/shellcheck.tar.xz" | sha256sum -c -
           tar -xJf "$RUNNER_TEMP/shellcheck.tar.xz" -C "$RUNNER_TEMP"
           sudo install -m 755 "$RUNNER_TEMP/shellcheck-v0.11.0/shellcheck" /usr/local/bin/shellcheck
+      - name: Install cargo-deny 0.20.2 (checksum-verified)
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/cargo-deny.tgz" \
+            https://github.com/EmbarkStudios/cargo-deny/releases/download/0.20.2/cargo-deny-0.20.2-x86_64-unknown-linux-musl.tar.gz
+          echo "9f12ed4c49936e09b48bf862b595cde2fe64fcbd9d74dfacac6131ca824c8d5f  $RUNNER_TEMP/cargo-deny.tgz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/cargo-deny.tgz" -C "$RUNNER_TEMP"
+          sudo install -m 755 "$RUNNER_TEMP/cargo-deny-0.20.2-x86_64-unknown-linux-musl/cargo-deny" /usr/local/bin/cargo-deny
+      - name: Install the pinned Rust toolchain (rust-toolchain.toml)
+        run: rustup toolchain install && rustc --version && cargo --version
       - name: Full gate
         # No live node on a CI runner: the test-safety layer may run with its
         # stand-ins only if this runner forbids user namespaces (said, and its

@@ -1,0 +1,10 @@
+# Pinned so local runs and CI gate identically: a floating `stable` adds lint
+# classes one side cannot reproduce. rustup reads this file from any folder of
+# the checkout and installs the toolchain if it is missing, checking each
+# download against the signed channel manifest. The full gate refuses any
+# other version. Bump deliberately, in its own change.
+# Record: docs/build-records/2026-10-12-b0-1-control-plane-workspace.md
+[toolchain]
+channel = "1.98.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

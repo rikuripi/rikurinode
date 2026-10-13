@@ -1,0 +1,39 @@
+== mutant 1: an unused variable in report(): clippy with warnings as errors must fail
+143:    let unused = 1;
+error: unused variable: `unused`
+error: could not compile `rikuri-control` (lib) due to 1 previous error
+error: could not compile `rikuri-control` (lib test) due to 1 previous error
+CAUGHT  clippy: unused variable (exit 101)
+== mutant 2: unknown ranked like healthy: the tests must fail
+87:        State::Unknown => 0,
+test status::tests::one_unknown_among_healthy_is_unknown ... FAILED
+thread 'status::tests::one_unknown_among_healthy_is_unknown' (573) panicked at crates/rikuri-control/src/status.rs:177:9:
+test result: FAILED. 13 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+CAUGHT  tests: unknown ranked as healthy (exit 101)
+== mutant 3: MIT dropped from the licence allow list: cargo deny must fail
+0
+error[rejected]: failed to satisfy license requirements
+error[rejected]: failed to satisfy license requirements
+error[rejected]: failed to satisfy license requirements
+CAUGHT  deny: a licence outside the allow list (exit 4)
+== mutant 4: the syn skip removed: cargo deny bans must fail
+0
+error[duplicate]: found 2 duplicate entries for crate 'syn'
+bans FAILED
+CAUGHT  deny: a duplicate crate version (exit 2)
+restored byte for byte:
+efd8451cd973a7fdce474134fcf85056ebbe751321522e5948300a404a7e6ec3  control-plane/crates/rikuri-control/src/status.rs
+0c8d94a76ce3a4ea817c9ad6790376529b21226c3dfb1edce7b6e6e07c71fc27  control-plane/deny.toml
+A  control-plane/Cargo.lock
+A  control-plane/Cargo.toml
+A  control-plane/apps/rikuri-control-plane/Cargo.toml
+A  control-plane/apps/rikuri-control-plane/src/main.rs
+A  control-plane/clippy.toml
+A  control-plane/crates/rikuri-control/Cargo.toml
+A  control-plane/crates/rikuri-control/src/http.rs
+A  control-plane/crates/rikuri-control/src/lib.rs
+A  control-plane/crates/rikuri-control/src/listen.rs
+A  control-plane/crates/rikuri-control/src/status.rs
+A  control-plane/crates/rikuri-control/tests/status_route.rs
+A  control-plane/deny.toml
+backups and the mutants' full output: /tmp/claude-1000/rikuri-mutants.cgRk1o
