@@ -51,12 +51,16 @@ ported with their tests, not copied wholesale.
   prompt and any other host only after
   a prompt (`strictAllowlist`, which would refuse them, is ignored in
   project settings, per Claude Code's settings schema; in `auto` mode a
-  command that does not list the host is refused, with no prompt), and cannot read
-  the previous checkout's `.env` and `data/` or `/run/rikuri`, or the owner's
-  credential files (`~/.ssh`, `~/.config/gh`, `~/.git-credentials`,
-  `~/.docker`, Claude Code's `~/.claude/.credentials.json`; owner, D25,
-  2026-10-12: a crate's build script runs inside the sandbox, and reads are
-  otherwise open). A plain `cargo` fails when it must download (the sandbox
+  command that does not list the host is refused, with no prompt), and is set
+  to deny reads of the previous checkout's `.env` and `data/`, `/run/rikuri`,
+  and fourteen private paths of the owner's that exist on this machine
+  (owner, D25, 2026-10-12: a crate's build script runs inside the sandbox,
+  and reads are otherwise open): `~/.ssh`, `~/.config/gh`,
+  `~/.git-credentials`, `~/.docker`, `~/.claude/.credentials.json`,
+  `~/.gnupg`, `~/.bitcoin`, `~/.local/share/keyrings`, the Chrome, Chromium
+  and Brave profiles under `~/.config`, `~/.config/Code`, `~/.config/Claude`
+  and `~/.local/share/Trash`. Any other file in the home folder stays
+  readable; a private path made later needs adding. A plain `cargo` fails when it must download (the sandbox
   refuses its write to `~/.cargo`), but builds quietly from crates already
   in that shared cache; use `scripts/cargo.sh`. The sandbox
   itself protects `.git/hooks`, `.git/config` and the paths it names under
@@ -110,10 +114,12 @@ ported with their tests, not copied wholesale.
   Code version, or the folder); the prompt for an unlisted host in the
   other modes; a local port named through the sandbox's proxy; the
   hook-folder forms under "What gets through the guard"; a session opened
-  in this folder itself; crates.io's two hosts and the D25 read denies
-  (proven only outside the sandbox: a crate fetched through a proxy that
-  allowed only the sandbox's hosts; the first sandboxed fetch and a refused
-  read of a credential file are B0's first steps). Inside the sandbox, paths it protects that do not
+  in this folder itself; crates.io's two hosts (shown only outside the
+  sandbox: a crate fetched through a proxy that allowed only the sandbox's
+  hosts) and the D25 read denies (not shown anywhere yet: a deny acts only
+  inside the sandbox); a sandboxed fetch and a credential path seen as the
+  sandbox's stand-in (by `stat` type, never its contents) are B0's first
+  steps. Inside the sandbox, paths it protects that do not
   exist here (`.bashrc`, `.mcp.json`, `.claude/skills`, …) are `/dev/null`
   placeholders: they show as untracked, and `git add --all` fails on them
   (stage by name); the one for `.claude/settings.local.json` cannot be

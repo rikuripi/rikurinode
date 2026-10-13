@@ -40,7 +40,16 @@
         "/home/junc/.config/gh",
         "/home/junc/.git-credentials",
         "/home/junc/.docker",
-        "/home/junc/.claude/.credentials.json"
+        "/home/junc/.claude/.credentials.json",
+        "/home/junc/.gnupg",
+        "/home/junc/.bitcoin",
+        "/home/junc/.local/share/keyrings",
+        "/home/junc/.config/google-chrome",
+        "/home/junc/.config/chromium",
+        "/home/junc/.config/BraveSoftware",
+        "/home/junc/.config/Code",
+        "/home/junc/.config/Claude",
+        "/home/junc/.local/share/Trash"
       ]
     },
     "network": {

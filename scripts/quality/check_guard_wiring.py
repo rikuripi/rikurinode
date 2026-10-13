@@ -60,10 +60,15 @@ SANDBOX = {
     "filesystem": {
         "denyWrite": ["./scripts/quality/hooks"],
         "denyRead": ["/home/junc/rikuri/rikurinode/.env", "/home/junc/rikuri/rikurinode/data", "/run/rikuri",
-                     # D25 (owner, 2026-10-12): the owner's credential files, so code a
-                     # crate runs at build time (or any sandboxed command) cannot read them
+                     # D25 (owner, 2026-10-12): the owner's credential files and other
+                     # private folders that exist on this machine, so code a crate runs
+                     # at build time (or any sandboxed command) cannot read them
                      "/home/junc/.ssh", "/home/junc/.config/gh", "/home/junc/.git-credentials",
-                     "/home/junc/.docker", "/home/junc/.claude/.credentials.json"],
+                     "/home/junc/.docker", "/home/junc/.claude/.credentials.json",
+                     "/home/junc/.gnupg", "/home/junc/.bitcoin", "/home/junc/.local/share/keyrings",
+                     "/home/junc/.config/google-chrome", "/home/junc/.config/chromium",
+                     "/home/junc/.config/BraveSoftware", "/home/junc/.config/Code",
+                     "/home/junc/.config/Claude", "/home/junc/.local/share/Trash"],
     },
     "network": {"allowedDomains": ["github.com", "api.github.com", "*.githubusercontent.com",
                                    "index.crates.io", "static.crates.io"]},

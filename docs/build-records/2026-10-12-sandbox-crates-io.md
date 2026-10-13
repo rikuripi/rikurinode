@@ -5,8 +5,8 @@
 | **Date** | 2026-10-12 |
 | **Author / session** | Claude Code (Opus 5.5), in a session opened in Rikuri-PI (outside the sandbox: the sandbox protects its own settings file, so this change cannot be made from inside it); owner Henry |
 | **Branch** | sandbox/crates-io |
-| **Commits** | 35c4f30 (D24); the fix round's commit after verifier round 1 (the test fix, D25, wording) |
-| **Status** | IN PROGRESS — verifier round 1 FAIL (a widening test went vacuous; claims past the evidence); fix round done with D25 added; verifier round 2 pending; the in-sandbox proof waits for B0 |
+| **Commits** | 35c4f30 (D24); 70186d9 (after verifier round 1: the test fix, D25's first five paths, wording); the commit after verifier round 2 (D25's nine more paths, wording) |
+| **Status** | IN PROGRESS — verifier round 1 FAIL (a vacuous test; wording) fixed with D25 added; round 2 FAIL on wording only, and D25 extended to fourteen paths by the owner; round 3 pending; the in-sandbox proof waits for B0 |
 | **Change type** | ops (the session boundary) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -15,8 +15,10 @@
       its download cache under `~/.cargo`, outside the repository.
 - [x] Outcome: Rust sessions can fetch crates from crates.io inside the
       sandbox, writing nothing outside the checkout (to be seen in B0's
-      first sandboxed fetch); and, added after verifier round 1 (D25),
-      sandboxed commands cannot read the owner's credential files.
+      first sandboxed fetch); and, added after verifier rounds 1 and 2 (D25),
+      the sandbox is set to deny reads of fourteen private paths of the
+      owner's (to be seen in B0's session); the rest of the home folder
+      stays readable.
 - [x] Who/what it affects: every session opened in this repository; CI
       unaffected (its runners already reach crates.io).
 - [x] Open questions: none left. Owner, 2026-10-12 (AskUserQuestion, D24):
@@ -69,13 +71,21 @@
       owner chose to close it (D25, 2026-10-12, AskUserQuestion: "Yes, deny
       credential files (Recommended)"): `~/.ssh`, `~/.config/gh`,
       `~/.git-credentials`, `~/.docker` and `~/.claude/.credentials.json` are
-      added to `denyRead`. `git push`, `fetch` and `pull` run outside the
-      sandbox, so they keep their credentials; `gh` inside the sandbox
-      already reported its token invalid (bootstrap round 18). Not listed:
-      `~/.netrc` and `~/.cargo/credentials.toml`, absent on this machine (a
-      deny on a missing path was not tried: the sandbox replaces some missing
-      protected paths with placeholders, and a failure there would stop every
-      command); a credential file made later needs adding.
+      added to `denyRead`. Verifier round 2 found nine more private folders
+      existing and readable (`~/.gnupg`, `~/.bitcoin`,
+      `~/.local/share/keyrings`, `~/.config/google-chrome`,
+      `~/.config/chromium`; and, from the builder's wider check of usual
+      places, by type only, `~/.config/BraveSoftware`, `~/.config/Code`,
+      `~/.config/Claude`, `~/.local/share/Trash`); the owner extended D25 to
+      all nine (2026-10-12, AskUserQuestion: "Deny all 9 too
+      (Recommended)"). Fourteen in all. `git push`, `fetch` and `pull` run
+      outside the sandbox, so they keep their credentials; `gh` inside the
+      sandbox already reported its token invalid (bootstrap round 18). Gaps:
+      any other file in the home folder stays readable; `~/.netrc` and
+      `~/.cargo/credentials.toml` are absent here and not listed (a deny on a
+      missing path was not tried: the sandbox replaces some missing protected
+      paths with placeholders, and a failure there would stop every
+      command); a private path made later needs adding.
 - [x] Verification: the gate (the check accepts the new block and refuses
       wider ones); the wrapper fetches into the checkout (proven outside the
       sandbox here); inside the sandbox — B0's first fetch, recorded there.
@@ -105,7 +115,12 @@ line. AGENTS.md says the new rule where the sandbox is described.
       cases, and the risk note.
 
 ## 3. Debug
-- [ ] N/A — no defect fixed.
+- [x] A test defect, fixed in the fix round after verifier round 1: the
+      bare-`*` widening case had gone vacuous. Reproduced with the
+      verifier's mutant (passes the old tests); class: a refusal case
+      written as a whole list instead of an addition to the current one;
+      siblings swept (`example.com`, `docker *`; round 2 scanned all 132
+      cases and found no other).
 
 ## 4. Verify
 - [x] Outside the sandbox (this session, 2026-10-12, a scratch git repository
@@ -117,7 +132,7 @@ line. AGENTS.md says the new rule where the sandbox is described.
       `cargo +1.98.1 --version` works with the moved cache.
 - [ ] Inside the sandbox: Not yet proven — B0's first `scripts/cargo.sh
       fetch` in a session opened in its worktree; B0's record carries it.
-- [x] Full gate: all 7 steps passed (`gate.out`); step 3's wiring tests include the two new refusal cases.
+- [x] Full gate: all 7 steps passed on each tree — 35c4f30 (`gate.out`), the fix round (`gate2.out`), after round 2 (`gate3.out`); step 3's wiring tests include the refusal cases.
 - [x] **Verifier, round 1: FAIL** (its evidence in
       `/home/junc/claude-wip/d24/verify/`). Passed: the block identical in
       settings, check and fixture, two hosts added and nothing else; the
@@ -139,10 +154,31 @@ line. AGENTS.md says the new rule where the sandbox is described.
       pass it ("Ran 33 tests … OK"); the fixed tests fail it on exactly the
       `*` case (`fix-red.out`); the real check passes the fixed tests.
       Wording corrected in this record, AGENTS.md, the PR. D25 added.
-- [ ] Independent verification, round 2: pending.
+- [x] **Verifier, round 2: FAIL on wording only** (evidence in
+      `/home/junc/claude-wip/d24/verify2/`). Passed: the rebuilt cases are
+      pure additions, each caught by a mutant tolerating exactly that
+      addition (`*`, `example.com`, `docker *`), vacuous at 35c4f30; all 132
+      cases scanned, no other mixed case; D25's five denies identical in
+      settings, check and fixture, each path existing, each removal caught;
+      the plain-cargo correction re-proven (an offline emulation: plain
+      cargo exit 101 on a needed download, the wrapper exit 0); the gate;
+      CI. Failed: the deny list described as "the owner's credential
+      files" while nine more private folders exist and stay readable; the
+      PR headline stating unproven sandbox behaviour; AGENTS.md calling the
+      D25 denies "proven only outside the sandbox" (a deny acts only
+      inside it). Nits: this §3 said N/A; §4/§5 cited the older gate
+      receipt; a test name out of date; 35c4f30's commit message keeps the
+      old plain-cargo claim (rewording it needs a force-push: left as is,
+      corrected here and in AGENTS.md).
+- [x] **After round 2:** the owner extended D25 to the nine (a code change:
+      the stop rule gives it a check round); wording corrected in this
+      record, AGENTS.md and the PR; the test renamed
+      `test_every_read_deny_must_stay` (it covers every deny now, not only
+      the previous checkout's — a name change, no assertion changed).
+- [ ] Independent verification, round 3 (the nine added paths): pending.
 
 ## 5. Close Out
-- [x] Full gate green: all 7 steps (`evidence/2026-10-12-sandbox-crates-io/gate.out`).
+- [x] Full gate green: all 7 steps on the current tree (`evidence/2026-10-12-sandbox-crates-io/gate3.out`).
 - [x] Scrap Sweep: the scratch projects live in the session's scratchpad
       and in `/home/junc/claude-wip/d24/` (verify/, fix/), outside the
       repository.
@@ -165,4 +201,6 @@ line. AGENTS.md says the new rule where the sandbox is described.
             verifier round 1: FAIL (vacuous `*` case; wording); fix: the mutant passes the old
             tests, fails the fixed ones on the `*` case (fix-red.out); D25 added
             full gate after the fix round: all 7 steps passed (gate2.out)
+            verifier round 2: FAIL on wording only; owner extended D25 to 14 paths;
+            full gate: all 7 steps passed (gate3.out)
 ```

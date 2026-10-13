@@ -42,7 +42,11 @@ SANDBOX = {"enabled": True, "failIfUnavailable": True, "allowUnsandboxedCommands
                           "denyRead": ["/home/junc/rikuri/rikurinode/.env", "/home/junc/rikuri/rikurinode/data",
                                        "/run/rikuri", "/home/junc/.ssh", "/home/junc/.config/gh",
                                        "/home/junc/.git-credentials", "/home/junc/.docker",
-                                       "/home/junc/.claude/.credentials.json"]},
+                                       "/home/junc/.claude/.credentials.json", "/home/junc/.gnupg",
+                                       "/home/junc/.bitcoin", "/home/junc/.local/share/keyrings",
+                                       "/home/junc/.config/google-chrome", "/home/junc/.config/chromium",
+                                       "/home/junc/.config/BraveSoftware", "/home/junc/.config/Code",
+                                       "/home/junc/.config/Claude", "/home/junc/.local/share/Trash"]},
            "network": {"allowedDomains": ["github.com", "api.github.com", "*.githubusercontent.com",
                                           "index.crates.io", "static.crates.io"]}}
 
@@ -172,7 +176,8 @@ class Wiring(unittest.TestCase):
         s["sandbox"]["filesystem"]["denyWrite"] = []
         self.assertTrue(any("scripts/quality/hooks" in p for p in problems(s)), problems(s))
 
-    def test_the_old_checkouts_secrets_must_be_unreadable(self):
+    def test_every_read_deny_must_stay(self):
+        # the previous checkout's secrets, and the owner's private folders (D25)
         for path in SANDBOX["filesystem"]["denyRead"]:
             s = settings()
             s["sandbox"]["filesystem"]["denyRead"].remove(path)
