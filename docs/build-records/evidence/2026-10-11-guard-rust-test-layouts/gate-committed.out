@@ -1,14 +1,14 @@
-# full gate at 14:47:10 on a private clone at 6410bb4 + round 5, every file committed (never pushed): guard.py 6531423f…, test_guard.py 0825965e…; safe-run; exit 0; lnd 2026-10-12T01:46:20.584320594Z -> 2026-10-12T01:46:20.584320594Z
+# full gate at 17:21:08 on a private clone at 86db3e9 + round 6, every file committed (never pushed): guard.py c884a868…, test_guard.py 42a7d741…; safe-run; exit 0; lnd 2026-10-12T01:46:20.584320594Z -> 2026-10-12T01:46:20.584320594Z
 == 1/7 pinned tools
 == 2/7 AI-session guard: wired to every tool, hooks on; policy as generated; every example and failure mode
-Ran 138 tests in 20.125s
+Ran 142 tests in 20.656s
 OK
 == 3/7 the quality tools' own tests (hygiene, guard wiring, guard policy, test-safety layer)
-Ran 61 tests in 12.771s
+Ran 61 tests in 12.984s
 OK
 == 4/7 repository hygiene: nothing tracked that belongs on the machine
 == 5/7 shell lint
 == 6/7 whitespace errors in every tracked file, committed or not
 == 7/7 secret scan of history
-2:47PM INF no leaks found
+5:21PM INF no leaks found
 full-gate: all 7 steps passed

@@ -1,0 +1,5 @@
+# Rikuri-PI round 6 red: the round-6 shared files, its settings without onFailure block at 16:18:47: Python 3.14.4; guard.py c884a868…, test_guard.py afe8dcde…, guard_base.py 1ef6f5cc…; safe-run; exit 1; lnd 2026-10-12T01:46:20.584320594Z -> 2026-10-12T01:46:20.584320594Z
+FAIL: test_the_guard_blocks_when_it_fails (test_guard.GenericPolicy.test_the_guard_blocks_when_it_fails)
+AssertionError: None != 'block' : {'type': 'command', 'command': 'python3 "$CLAUDE_PROJECT_DIR/.claude/hooks/guard.py"', 'timeout': 10}
+Ran 141 tests in 9.705s
+FAILED (failures=1)

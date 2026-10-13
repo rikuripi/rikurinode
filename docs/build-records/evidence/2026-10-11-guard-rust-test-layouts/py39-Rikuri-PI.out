@@ -1,3 +1,3 @@
-# sync Rikuri-PI round 5 (own policy, rule rebuilt linear) at 14:18:08: Python 3.9.25; guard.py 6531423f…, test_guard.py 0825965e…, guard_base.py 1ef6f5cc…; safe-run; exit 0; lnd 2026-10-12T01:46:20.584320594Z -> 2026-10-12T01:46:20.584320594Z
-Ran 138 tests in 9.880s
+# sync Rikuri-PI round 6 (own policy, rule rebuilt linear, onFailure block) at 16:50:45: Python 3.9.25; guard.py c884a868…, test_guard.py 42a7d741…, guard_base.py 1ef6f5cc…; safe-run; exit 0; lnd 2026-10-12T01:46:20.584320594Z -> 2026-10-12T01:46:20.584320594Z
+Ran 142 tests in 10.251s
 OK

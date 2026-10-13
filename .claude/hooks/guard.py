@@ -389,6 +389,12 @@ RUST_COMMENT_MARK = re.compile(r"/\*|\*/")
 RUST_SPACE = re.compile(r"[\t\n\v\f\r \x85\u200e\u200f\u2028\u2029]*")
 RUST_PATH = re.compile(r'#\s*(?:!\s*)?\[\s*path\s*=\s*"((?:\\.|[^"\\])*)"\s*\]\Z')
 RUST_MOD_WORD = re.compile(r"(?<!\w)mod(?!\w)")
+# At most this many distinct attributes apply to one declaration; past it one
+# RUST_TOO_MANY stands for the rest, and the declaration counts as test code
+# (the safe side). Verifier round 3, I1: 2,000 attributes on each of 2,000
+# declarations held a locked edit 13 s.
+RUST_MAX_ATTRS = 256
+RUST_TOO_MANY = "#[cfg(test)] /* more than %d attributes: counted as test code */" % RUST_MAX_ATTRS
 
 
 def rust_comment_end(text: str, pos: int) -> int:
@@ -416,24 +422,32 @@ def rust_attr_end(text: str, pos: int) -> int:
     return len(text)
 
 
-def rust_file_attrs(text: str) -> list:
-    """A Rust file's own inner attributes (`#![…]`): those before its first
-    item, with comments and Rust's whitespace (and a byte-order mark) between
-    them skipped, as rustc reads them."""
-    out, pos = [], 1 if text.startswith("\ufeff") else 0
+def rust_file_attrs(text: str, deadline: float = float("inf")) -> list:
+    """A Rust file's own inner attributes (`#![…]` outside every block),
+    wherever they stand: rustc rejects one after the file's first item, but
+    such a file can still be switched off, so each counts (verifier round 3,
+    I4: an item written above `#![cfg(test)]` made the file look partly
+    code, and its declaration could go). Past `deadline` it raises
+    _TooSlow."""
+    out, depth, pos = [], 0, 0
     while True:
+        if time.time() > deadline:
+            raise _TooSlow()
         m = RUST_SCAN.search(text, pos)
-        if m is None or RUST_SPACE.match(text, pos, m.start()).end() != m.start():
+        if m is None:
             return out
+        pos = m.end()
         if m.group("comment"):
-            pos = rust_comment_end(text, m.end())
-        elif m.group().startswith("//"):
-            pos = m.end()
-        elif m.group("attr") and m.group("inner"):
-            pos = rust_attr_end(text, m.end())
-            out.append(text[m.start():pos])
-        else:
-            return out  # the first item
+            pos = rust_comment_end(text, pos)
+        elif m.group("attr"):
+            end = rust_attr_end(text, pos)
+            if m.group("inner") and depth == 0:
+                out.append(text[m.start():end])
+            pos = end
+        elif m.group("open"):
+            depth += 1
+        elif m.group("close"):
+            depth = max(depth - 1, 0)
 
 
 def rust_file_modules(text: str, deadline: float = float("inf")) -> list:
@@ -444,9 +458,19 @@ def rust_file_modules(text: str, deadline: float = float("inf")) -> list:
     block around it, its own). A declaration is the word `mod`, a name and
     `;` (`{` for an inline module) with nothing but comments and Rust's
     whitespace between them (verifier round 1, D2: `mod /* c */ tests;`).
+    Each attribute is kept once, and at most RUST_MAX_ATTRS of them in scope.
     Past `deadline` it raises _TooSlow."""
     out, pending, frames, top, pos = [], [], [], [], 0
     state, name = 0, ""  # state 1: after the word `mod`; 2: after the module's name
+    held = 0  # attributes in scope: the file's, every open block's, the next item's
+
+    def keep(where: list, attr: str) -> None:
+        nonlocal held
+        if attr in where or RUST_TOO_MANY in where:
+            return
+        where.append(attr if held < RUST_MAX_ATTRS else RUST_TOO_MANY)
+        held += 1
+
     while True:
         if time.time() > deadline:
             raise _TooSlow()
@@ -463,11 +487,11 @@ def rust_file_modules(text: str, deadline: float = float("inf")) -> list:
             end = rust_attr_end(text, pos)
             attr, pos, state = text[m.start():end], end, 0
             if not m.group("inner"):  # `#[…]`: the next item's
-                pending.append(attr)
+                keep(pending, attr)
             elif not frames:  # `#![…]` at the top: the file's
-                top.append(attr)
+                keep(top, attr)
             else:  # `#![…]` in a block: its own; a module's `#![path]` names its folder
-                frames[-1][1].append(attr)
+                keep(frames[-1][1], attr)
                 inner_path = RUST_PATH.match(attr)
                 if inner_path and frames[-1][0] is not None:
                     frames[-1][0] = inner_path.group(1)
@@ -482,7 +506,9 @@ def rust_file_modules(text: str, deadline: float = float("inf")) -> list:
         if m.group("open"):
             path = next((p.group(1) for p in map(RUST_PATH.match, pending) if p), None)
             frames.append([(path or name) if state == 2 else None, pending])
+            pending = []  # now the block's: still in scope
         elif m.group("close"):
+            held -= len(frames[-1][1]) if frames else 0
             frames = frames[:-1]
         elif m.group("semi"):
             if state == 2:
@@ -493,6 +519,7 @@ def rust_file_modules(text: str, deadline: float = float("inf")) -> list:
             if not m.group().startswith("//"):
                 state = 0
             continue
+        held -= len(pending)
         pending, state = [], 0
 
 
@@ -538,13 +565,18 @@ def test_modules(root: str, rels: list, is_test, deadline: float = float("inf"))
         except (OSError, UnicodeDecodeError):
             continue
         if RUST_MOD_WORD.search(text):
-            decls[rel] = rust_file_modules(text, deadline)
+            marks: dict = {}  # each distinct attribute matched once (verifier round 3, I1)
+            decls[rel] = [(name, inline, path,
+                           any(marks[a] if a in marks else marks.setdefault(a, is_test(rel, a)) for a in attrs))
+                          for name, inline, path, attrs in rust_file_modules(text, deadline)]
     found, grew = {}, True
     while grew:
         grew = False
         for rel, mods in decls.items():
-            for name, inline, path, attrs in mods:
-                if rel not in found and not any(is_test(rel, a) for a in attrs):
+            for name, inline, path, marked in mods:
+                if time.time() > deadline:
+                    raise _TooSlow()
+                if rel not in found and not marked:
                     continue
                 places = [p for ps in module_files(rel, name, inline, path) for p in ps]
                 for child in places:
@@ -598,7 +630,7 @@ def test_file_declarations(rel: str, text: str, root: str, cfg: dict, deadline: 
                 raise _TooSlow()
             rules = inline_rules(p, cfg)
             try:
-                attrs = rust_file_attrs(read_text(os.path.join(root, p))) if rules else []
+                attrs = rust_file_attrs(read_text(os.path.join(root, p)), deadline) if rules else []
             except (OSError, UnicodeDecodeError):
                 continue
             if any(re.search(r["starts_at"], a, re.M) for a in attrs for r in rules):

@@ -1,7 +1,7 @@
-# Rikuri-PI main 1ea439d with the round-5 shared files but its rule NOT changed (the 2(a) config change left out) at 14:18:19: Python 3.14.4; guard.py 6531423f…, test_guard.py 0825965e…, guard_base.py 1ef6f5cc…; safe-run; exit 1; lnd 2026-10-12T01:46:20.584320594Z -> 2026-10-12T01:46:20.584320594Z
+# Rikuri-PI with the round-6 shared files and onFailure block, but its rule as on main 1ea439d at 16:50:57: Python 3.14.4; guard.py c884a868…, test_guard.py 42a7d741…, guard_base.py 1ef6f5cc…; safe-run; exit 1; lnd 2026-10-12T01:46:20.584320594Z -> 2026-10-12T01:46:20.584320594Z
 FAIL: test_inline_rules_find_a_tests_only_file (test_guard.GenericPolicy.test_inline_rules_find_a_tests_only_file)
 AssertionError: None != '//! Tests only.\n#![allow(unused)]\n#![c[82 chars]n}\n' : {'glob': '*.rs', 'starts_at': '^[ \\t\\f\\v\\r\u200b-\u200f\u2060\ufeff]*#\\s*\\[\\s*cfg\\s*\\(\\s*(?:test|(?:any|all)\\s*\\((?:.*[(,]\\s*)?(?<!not\\()test(?=\\s*[,)]).*\\))\\s*\\)\\s*\\]', 'attached_above': '^[ \\t\\f\\v\\r\u200b-\u200f\u2060\ufeff]*(#\\s*\\[|//|/\\*|\\*)', 'guarded_lines': 'cfg(?:_attr)?\\s*!?\\s*\\(.*\\btest\\b|macro_rules!\\s*(?:assert\\w*|debug_assert\\w*|panic|unreachable|todo)\\b'}
 FAIL: test_inline_rules_take_linear_time (test_guard.GenericPolicy.test_inline_rules_take_linear_time)
-AssertionError: 1.3144781589508057 not less than 0.25 : ('guarded_lines', 'cfg         ')
-Ran 138 tests in 10.801s
+AssertionError: 1.8801028728485107 not less than 0.25 : ('guarded_lines', 'cfg         ')
+Ran 142 tests in 11.516s
 FAILED (failures=2)

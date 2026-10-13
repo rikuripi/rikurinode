@@ -1,0 +1,9 @@
+# round 6 red (tests for verifier round 3's I1, I4 and the hook's onFailure; guard.py as committed in 86db3e9) at 16:15:50: Python 3.14.4; guard.py 6531423f…, test_guard.py afe8dcde…, guard_base.py 1ef6f5cc…; safe-run; exit 1; lnd 2026-10-12T01:46:20.584320594Z -> 2026-10-12T01:46:20.584320594Z
+FAIL: test_many_attributes_and_declarations_cannot_stall_the_hook (test_guard.TestModuleFiles.test_many_attributes_and_declarations_cannot_stall_the_hook)
+AssertionError: 41.39413547515869 not less than 4.0 : #![allow(unused)]
+FAIL: test_past_256_attributes_a_declaration_counts_as_test_code (test_guard.TestModuleFiles.test_past_256_attributes_a_declaration_counts_as_test_code)
+AssertionError: 'allow' != 'deny'
+FAIL: test_the_declaration_of_a_test_file_is_locked_in_its_parent (test_guard.TestModuleFiles.test_the_declaration_of_a_test_file_is_locked_in_its_parent)
+AssertionError: 'allow' != 'deny'
+Ran 141 tests in 63.549s
+FAILED (failures=3)

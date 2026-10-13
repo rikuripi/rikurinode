@@ -138,6 +138,19 @@ class GenericPolicy(unittest.TestCase):
                     re.search(r.get(key, ""), text, re.M)
                     self.assertLess(time.time() - t0, 0.25, (key, text[:12]))
 
+    def test_the_guard_blocks_when_it_fails(self):
+        # Owner, 2026-10-12 (verifier rounds 2 and 3): Claude Code lets a tool
+        # call through when its hook fails or runs out of time, unless the
+        # hook says "onFailure": "block" (Claude Code 2.1.295 or later). A
+        # stalled guard must close the gate, not open it.
+        with open(os.path.join(guard.ROOT, ".claude", "settings.json")) as f:
+            settings = json.load(f)
+        hooks = [h for group in settings.get("hooks", {}).get("PreToolUse", []) for h in group.get("hooks", [])
+                 if "guard.py" in h.get("command", "")]
+        self.assertTrue(hooks, "the guard is not wired as a PreToolUse hook in .claude/settings.json")
+        for h in hooks:
+            self.assertEqual(h.get("onFailure"), "block", h)
+
     def test_strictest_wins(self):
         self.assertEqual(verdict("Bash", {"command": "git push origin main; cat .env"}), "deny")
 
@@ -775,17 +788,26 @@ class TestModuleFiles(unittest.TestCase):
             with open(os.path.join(self.root, "src", "whole.rs"), "w") as f:
                 f.write(top + self.FILES["src/whole.rs"])
             self.assertEqual(self.v("Edit", drop), "deny", repr(top))
+        # Verifier round 3, I4: an item written above `#![cfg(test)]` (rustc
+        # then rejects the file) made it look partly code, and its declaration
+        # could go. Every inner attribute outside a block counts.
+        for top in ("use std::fmt;\n\n", "fn _x() {}\n\n", "/* { */\n"):
+            with open(os.path.join(self.root, "src", "whole.rs"), "w") as f:
+                f.write(top + self.FILES["src/whole.rs"])
+            self.assertEqual(self.v("Edit", drop), "deny", repr(top))
         # The module file's own rules say whether it is all tests: a rule that
         # names only src/lib.rs leaves src/whole.rs unlocked (the tripwire
         # names it), and its declaration with it.
         lib_only = dict(self.RUST, inline_tests=[dict(self.RUST["inline_tests"][0], glob="lib.rs")])
         self.assertEqual(self.v("Edit", drop, cfg=lib_only), "allow")
         # An outer `#[cfg(test)]` on a file's first item is that item's, not the
-        # file's: src/plain.rs stays production code, its declaration open.
-        with open(os.path.join(self.root, "src", "plain.rs"), "w") as f:
-            f.write("#[cfg(test)]\nfn t() {}\n" + self.FILES["src/plain.rs"])
-        self.assertEqual(self.v("Edit", {"file_path": "src/lib.rs", "old_string": "pub mod plain;\n",
-                                         "new_string": ""}), "allow")
+        # file's, and so is an inner one inside a block: src/plain.rs stays
+        # production code, its declaration open.
+        for body in ("#[cfg(test)]\nfn t() {}\n", "mod inner {\n    #![cfg(test)]\n}\n"):
+            with open(os.path.join(self.root, "src", "plain.rs"), "w") as f:
+                f.write(body + self.FILES["src/plain.rs"])
+            self.assertEqual(self.v("Edit", {"file_path": "src/lib.rs", "old_string": "pub mod plain;\n",
+                                             "new_string": ""}), "allow", body)
 
     def test_a_crafted_attribute_cannot_stall_the_hook(self):
         # Verifier round 2, F1: `#` and 120,000 spaces in a file above every
@@ -802,6 +824,48 @@ class TestModuleFiles(unittest.TestCase):
         self.assertEqual(self.v("Edit", self.changes("src/plain.rs")[0][1]), "allow")
         self.assertEqual(self.v("MultiEdit", crafted), "deny")
         self.assertLess(time.time() - t0, 4.0)
+
+    def test_many_attributes_and_declarations_cannot_stall_the_hook(self):
+        # Verifier round 3, I1: one allowed locked Write of a production file
+        # with 2,000 inner attributes and 2,000 `mod` lines made every later
+        # locked edit take 13 s — each declaration carried and matched all
+        # 2,000 attributes, again on every pass.
+        import time
+        for attr in ("#![allow(unused)]\n", "#![allow(unused_%d)]\n"):
+            with open(os.path.join(self.root, "zz.rs"), "w") as f:
+                f.write("".join(attr.replace("%d", str(i)) for i in range(2000))
+                        + "".join("mod a%06d;\n" % i for i in range(2000)))
+            t0 = time.time()
+            self.assertEqual(self.v("Edit", self.changes("src/tests.rs")[0][1]), "deny", attr)
+            self.assertEqual(self.v("Edit", self.changes("src/plain.rs")[0][1]), "allow", attr)
+            self.assertLess(time.time() - t0, 4.0, attr)
+
+    def test_past_256_attributes_a_declaration_counts_as_test_code(self):
+        # The cap that keeps I1 bounded errs on the safe side: with more than
+        # 256 distinct attributes in its scope, a declaration is test code.
+        os.makedirs(os.path.join(self.root, "src", "many"))
+        with open(os.path.join(self.root, "src", "many", "m.rs"), "w") as f:
+            f.write("pub fn m() {}\n")
+        change = {"file_path": "src/many/m.rs", "old_string": "pub fn m() {}\n", "new_string": "pub fn n() {}\n"}
+        for count, verdict in ((256, "allow"), (257, "deny")):
+            with open(os.path.join(self.root, "src", "many.rs"), "w") as f:
+                f.write("".join("#![allow(lint_%d)]\n" % i for i in range(count)) + "mod m;\n")
+            self.assertEqual(self.v("Edit", change), verdict, count)
+        # A repeated attribute counts once; those of a closed block, or of an
+        # item already declared, leave the scope.
+        before = ("#![allow(same)]\n" * 300, "".join("#[allow(x_%d)]\n" % i for i in range(200)) + "fn f() {}\n",
+                  "".join("#[allow(x_%d)]\n" % i for i in range(200)) + "use x;\n")
+        for text in before:
+            with open(os.path.join(self.root, "src", "many.rs"), "w") as f:
+                f.write(text + "".join("#![allow(y_%d)]\n" % i for i in range(100)) + "mod m;\n")
+            self.assertEqual(self.v("Edit", change), "allow", text[:30])
+
+    def test_the_scanners_keep_to_their_deadline(self):
+        # R12: past the deadline the scans stop (the hook then asks), however
+        # few declarations a file holds (verifier round 6's mutant E9).
+        for scan, text in ((guard.rust_file_modules, "mod a;\n" * 3), (guard.rust_file_attrs, "#![cfg(test)]\n")):
+            with self.assertRaises(guard._TooSlow):
+                scan(text, 0.0)
 
     def test_the_scanner_takes_linear_time(self):
         import time
