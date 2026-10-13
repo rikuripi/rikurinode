@@ -1,0 +1,31 @@
+== 1. legitimate use: start on loopback, GET /api/status, 404, 405, SIGTERM
+--- GET /api/status (status line, headers, body; HTTP's CR LF shown as LF):
+HTTP/1.1 200 OK
+content-type: application/json
+cache-control: no-store
+content-length: 600
+date: Tue, 13 Oct 2026 06:32:45 GMT
+
+{"observed_unix":1791873165,"overall":"unknown","control_plane":{"version":"0.1.0","pid":4,"started_unix":1791873164,"uptime_seconds":1},"components":{"os":{"state":"unknown","checked_unix":null,"detail":"not probed: no interface to this component exists yet"},"bitcoind":{"state":"unknown","checked_unix":null,"detail":"not probed: no interface to this component exists yet"},"lnd":{"state":"unknown","checked_unix":null,"detail":"not probed: no interface to this component exists yet"},"tor":{"state":"unknown","checked_unix":null,"detail":"not probed: no interface to this component exists yet"}}}
+--- GET /nope:
+404
+--- POST /api/status:
+405
+daemon exit=0
+--- daemon log:
+2026-10-13T06:32:44.660097Z  INFO rikuri_control_plane: control plane listening: plain HTTP on loopback until B0.2 brings TLS and sign-in bound=127.0.0.1:8080 version="0.1.0"
+2026-10-13T06:32:45.686393Z  INFO rikuri_control_plane: SIGTERM received: stopping
+2026-10-13T06:32:45.686995Z  INFO rikuri_control_plane: control plane stopped
+== 2. refused: a non-loopback address
+2026-10-13T06:32:45.692683Z ERROR rikuri_control_plane: control plane cannot continue error=RIKURI_LISTEN=0.0.0.0:8080 is not a loopback address: until TLS and sign-in exist, the control plane listens only on 127.0.0.0/8 or ::1
+exit=1
+== 3. refused: a host name
+2026-10-13T06:32:45.694824Z ERROR rikuri_control_plane: control plane cannot continue error=RIKURI_LISTEN="localhost:8080" is not an ip:port such as 127.0.0.1:8080
+exit=1
+== 4. a bad RUST_LOG is said, not swallowed; SIGINT stops it
+2026-10-13T06:32:45.697066Z ERROR rikuri_control_plane: RUST_LOG is not a valid filter; logging at info error=invalid filter directive
+2026-10-13T06:32:45.698471Z  INFO rikuri_control_plane: control plane listening: plain HTTP on loopback until B0.2 brings TLS and sign-in bound=127.0.0.1:8080 version="0.1.0"
+2026-10-13T06:32:46.699664Z  INFO rikuri_control_plane: SIGINT received: stopping
+2026-10-13T06:32:46.700386Z  INFO rikuri_control_plane: control plane stopped
+exit=0
+safe-run: no live node containers found here; the start-time check had nothing to compare

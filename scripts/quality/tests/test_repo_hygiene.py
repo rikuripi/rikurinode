@@ -92,6 +92,20 @@ class ForbiddenPaths(unittest.TestCase):
         self.assertAccepted("src/target/mod.rs")  # a module, not Cargo's root target/
         self.assertAccepted("docs/distribution.md")
 
+    def test_cargo_output_beside_any_manifest(self):
+        # The workspace sits in control-plane/, so its target/ is not at the root.
+        tracked = ["control-plane/Cargo.toml", "control-plane/target/debug/app",
+                   "control-plane/target/CACHEDIR.TAG", "control-plane/crates/x/src/target/mod.rs",
+                   "Cargo.toml", "target/release/app", "src/target/mod.rs", "docs/target/plan.md"]
+        found = rh.cargo_output(tracked)
+        self.assertEqual(sorted(p for p, _ in found),
+                         ["control-plane/target/CACHEDIR.TAG", "control-plane/target/debug/app",
+                          "target/release/app"])
+        self.assertTrue(all(why == rh.BUILD for _, why in found), found)
+        # a folder that only shares the name: no manifest beside it
+        self.assertEqual(rh.cargo_output(["control-plane/target/debug/app"]), [])
+        self.assertEqual(rh.cargo_output(["control-plane/Cargo.toml", "control-plane/src/target/mod.rs"]), [])
+
     def test_agent_state_and_models(self):
         for p in (".claude/state/fix-lock", ".claude/settings.local.json"):
             self.assertRefused(p, "local")
@@ -214,6 +228,15 @@ class WholeRepository(unittest.TestCase):
                                capture_output=True, text=True)
             self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
             self.assertIn("x.log", r.stdout)
+
+    def test_cargo_output_is_checked_through_the_command_line(self):
+        r = self.run_check({"control-plane/Cargo.toml": b"[workspace]\n",
+                            "control-plane/target/debug/app": b"\x7fELF\n"})
+        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        self.assertIn("control-plane/target/debug/app: build output", r.stdout)
+        r = self.run_check({"control-plane/Cargo.toml": b"[workspace]\n",
+                            "control-plane/src/target/mod.rs": b"pub struct Target;\n"})
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
 
     def test_pins_are_checked_through_the_command_line(self):
         r = self.run_check({"compose.yaml": b"services:\n  tor:\n    image: dockurr/tor:latest\n"})

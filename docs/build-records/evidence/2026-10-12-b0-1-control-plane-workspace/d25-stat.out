@@ -1,0 +1,8 @@
+D25 proof inside the sandbox (B0.1's second command, 2026-10-12 23:09 PDT, the same
+session). The file's type only, never its contents (owner, 2026-10-12).
+
+$ stat -c %F ~/.git-credentials
+character special file
+
+Outside the sandbox the path is a regular file (PR #7's record); inside, the
+sandbox's empty stand-in.

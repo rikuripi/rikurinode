@@ -13,7 +13,9 @@ Rikuri Node is a self-hosted Bitcoin and Lightning node for people who are not
 system administrators: a full node (x86, Intel N150) and a pruned node
 (Raspberry Pi 5, 8 GB), both on Fedora IoT, updated and rolled back as whole
 images. **Status: stage 1 (the OS image, `image/`, built and checked only in
-CI by `.github/workflows/image.yml`). No node software yet.**
+CI by `.github/workflows/image.yml`) and B0, the control plane's skeleton
+(`control-plane/`, Rust: a status route on loopback that reports every
+component as unknown; no TLS, sign-in or interface to the node yet).**
 
 ## Priorities (owner, 2026-10-10)
 
@@ -115,12 +117,15 @@ ported with their tests, not copied wholesale.
   Code version, or the folder); the prompt for an unlisted host in the
   other modes; a local port named through the sandbox's proxy; the
   hook-folder forms under "What gets through the guard"; a session opened
-  in this folder itself; crates.io's two hosts (shown only outside the
-  sandbox: a crate fetched through a proxy that allowed only the sandbox's
-  hosts) and the D25 read denies (not shown anywhere yet: a deny acts only
-  inside the sandbox); a sandboxed fetch and a credential path seen as the
-  sandbox's stand-in (by `stat` type, never its contents) are B0's first
-  steps. Inside the sandbox, paths it protects that do not
+  in this folder itself; thirteen of the fourteen D25 read denies (a deny
+  acts only inside the sandbox; one is shown, below). **Shown inside the
+  sandbox** by B0.1's session (2026-10-12, in a worktree, `auto` mode;
+  `docs/build-records/evidence/2026-10-12-b0-1-control-plane-workspace/d24-fetch.out`,
+  `d25-stat.out`): `scripts/cargo.sh fetch` of a pinned crate from
+  crates.io's two hosts into the checkout's `.cargo-home/`, nothing in
+  `git status`; and `~/.git-credentials` as the sandbox's stand-in (`stat
+  -c %F` prints "character special file"; its type only, never its
+  contents). Inside the sandbox, paths it protects that do not
   exist here (`.bashrc`, `.mcp.json`, `.claude/skills`, …) are `/dev/null`
   placeholders: they show as untracked, and `git add --all` fails on them
   (stage by name); the one for `.claude/settings.local.json` cannot be
@@ -349,11 +354,15 @@ is not done.
 
 ## Verification by maturity
 
-Now (stage 1): the full gate runs the guard tests, the quality tools' own
-tests and the OS image check's, the hygiene check, shell lint, a whitespace
-check and the secret scan of history. `.github/workflows/image.yml` builds
-the OS image and checks its root on pull requests that touch it; it is not a
-required check yet. The
-language's build, lint, type and test steps, the smoke script and the debt
-ratchet join with the first code. Pass, Fail and Not yet proven stay distinct;
+Now (stage 1 and B0): the full gate runs the guard tests, the quality tools'
+own tests and the OS image check's, the hygiene check, shell lint, a
+whitespace check, the secret scan of history and, since B0.1, the Rust
+steps: the toolchain (`rust-toolchain.toml`) and cargo-deny at their pinned
+versions, dependencies fetched as locked, `cargo fmt --check`, clippy on
+every target with warnings as errors, `cargo test` inside `safe-run.sh`,
+and `cargo deny` (licences, advisories, bans and sources,
+`control-plane/deny.toml`). `.github/workflows/image.yml` builds the OS
+image and checks its root on pull requests that touch it; it is not a
+required check yet. The smoke script and the debt ratchet (port 20) are
+still to come, with B0.3. Pass, Fail and Not yet proven stay distinct;
 nothing is called green until it has been observed.

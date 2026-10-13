@@ -1,0 +1,172 @@
+
+== 1/9 pinned tools
+
+== 2/9 AI-session guard: wired to the tools in its matcher, hooks on; policy as generated; every example and failure mode
+.claude/settings.local.json is /dev/null (the sandbox's placeholder): no local settings
+....usage: guard.py fix-lock on <build-record> | off [--session <id> | --global] | status
+.fix-lock NOT engaged — cannot read /tmp/claude-1000/tmptf86vrr6/guard-config.json: guard-config.json: 'fix_lock_preflight' must be a list of argv lists, e.g. [["node", "scripts/quality-ratchet.mjs"]]
+Nothing was changed. Fix it first, then engage.
+.fix-lock NOT engaged — preflight /usr/bin/python3 -c import sys; sys.exit(3) failed (exit 3):
+
+Nothing was changed. Fix it first, then engage.
+................................................................................usage: guard.py profile [stable | development]
+.....
+----------------------------------------------------------------------
+Ran 91 tests in 24.903s
+
+OK
+fix-lock ENGAGED for docs/build-records/a.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/b.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/x.md)
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/x.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/a.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+fix-lock released (docs/build-records/b.md)
+fix-lock released (docs/build-records/a.md)
+fix-lock released (docs/build-records/owner.md)
+fix-lock ENGAGED for docs/build-records/a.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/b.md (this session) — test files, inline tests and baselines are now read-only
+fix-lock ENGAGED for docs/build-records/owner.md (EVERY session (global lock)) — test files, inline tests and baselines are now read-only
+profile: stable
+profile: stable -> development
+profile: development -> stable
+
+== 3/9 the quality tools' own tests (hygiene, guard wiring, guard policy, test-safety layer), and the OS image check's
+............claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: permissions must be an object
+.claude/settings.local.json: permissions.allow must be a list of rules
+.claude/settings.local.json: env must be an object
+.claude/settings.local.json: hooks must be an object
+.claude/settings.local.json: hooks.PreToolUse must be a list
+.claude/settings.local.json: permissions.defaultMode ["default"] is not one this check allows (allowed: acceptEdits, default, manual, plan)
+.claude/settings.local.json: permissions.defaultMode {"default": true} is not one this check allows (allowed: acceptEdits, default, manual, plan)
+..claude/settings.local.json: apiKeyHelper is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: statusLine is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: fileSuggestion is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: enabledPlugins is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: extraKnownMarketplaces is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: enableAllProjectMcpServers is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: otelHeadersHelper is not a settings key this check knows to leave the guard and the sandbox alone
+.claude/settings.local.json: newKey is not a settings key this check knows to leave the guard and the sandbox alone
+.....claude/settings.local.json: the local settings may not add a PreToolUse hook
+.claude/settings.local.json: the local settings may not add a PreToolUse hook
+.claude/settings.local.json: a PermissionRequest hook could answer the guard's ask
+.claude/settings.local.json: a Stop hook is refused: only the guard's PreToolUse hook is wired here (a hook may run a command, a prompt, an agent, an HTTP request or an MCP tool)
+....claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: permissions.allow Edit(//home/junc/rikuri/**): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow WebFetch(domain:*): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+...claude/settings.local.json: env.CLAUDE_CODE_DISABLE_SANDBOX names the sandbox or hooks
+.claude/settings.local.json: env.SANDBOX_RUNTIME names the sandbox or hooks
+.claude/settings.local.json: env.CLAUDE_CODE_HOOKS names the sandbox or hooks
+...claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+.claude/settings.local.json: permissions.additionalDirectories is refused: it adds directories to the permission scope
+.....claude/settings.local.json: permissions.allow Edit: no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow Edit(//home/junc/**): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow Write(/tmp/**): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow MultiEdit(**): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow NotebookEdit(**): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow WebFetch: no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow WebFetch(domain:*): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+.claude/settings.local.json: permissions.allow Read(//home/junc/rikuri/**): no allow rule for Edit, MultiEdit, NotebookEdit, Read, WebFetch, Write here (the settings schema merges Edit allow rules into the sandbox's writable paths and WebFetch ones into its domains; the others are refused as a precaution)
+...claude/settings.local.json: disableAllHooks is set — no hook runs, the guard included
+.....claude/settings.local.json: the local settings may not set the sandbox (only .claude/settings.json does)
+./dev/null: cannot read the settings (Expecting value: line 1 column 1 (char 0))
+..............................................
+----------------------------------------------------------------------
+Ran 80 tests in 17.549s
+
+OK
+............................
+----------------------------------------------------------------------
+Ran 28 tests in 0.029s
+
+OK
+
+== 4/9 repository hygiene: nothing tracked that belongs on the machine
+
+== 5/9 shell lint
+
+== 6/9 whitespace errors in every tracked file, committed or not
+
+== 7/9 secret scan of history
+[90m11:54PM[0m [32mINF[0m [1m49 commits scanned.[0m
+[90m11:54PM[0m [32mINF[0m [1mscanned ~8489805 bytes (8.49 MB) in 505ms[0m
+[90m11:54PM[0m [32mINF[0m [1mno leaks found[0m
+
+== 8/9 Rust: dependencies as locked, formatted, clippy clean (warnings are errors), tests green inside the test-safety layer
+    Checking rikuri-control v0.1.0 (/home/junc/claude-wip/b0/rn/control-plane/crates/rikuri-control)
+    Checking rikuri-control-plane v0.1.0 (/home/junc/claude-wip/b0/rn/control-plane/apps/rikuri-control-plane)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.22s
+   Compiling rikuri-control v0.1.0 (/home/junc/claude-wip/b0/rn/control-plane/crates/rikuri-control)
+   Compiling rikuri-control-plane v0.1.0 (/home/junc/claude-wip/b0/rn/control-plane/apps/rikuri-control-plane)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.54s
+     Running unittests src/lib.rs (control-plane/target/debug/deps/rikuri_control-ec5b8c9d4808f43d)
+
+running 14 tests
+test listen::tests::errors_say_what_to_fix ... ok
+test listen::tests::names_and_fragments_are_refused ... ok
+test listen::tests::other_addresses_are_refused ... ok
+test listen::tests::the_default_is_loopback ... ok
+test status::tests::down_outranks_everything ... ok
+test status::tests::components_serialize_by_name ... ok
+test status::tests::no_components_is_unknown_not_healthy ... ok
+test status::tests::degraded_outranks_unknown_and_healthy ... ok
+test status::tests::all_healthy_is_healthy ... ok
+test status::tests::every_state_serializes_in_lowercase ... ok
+test status::tests::one_unknown_among_healthy_is_unknown ... ok
+test listen::tests::loopback_addresses_are_accepted ... ok
+test status::tests::the_report_before_any_probe_is_unknown_throughout ... ok
+test status::tests::unknown_serializes_as_the_word_with_a_null_time ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/status_route.rs (control-plane/target/debug/deps/status_route-02330becb42ebef7)
+
+running 5 tests
+test an_unknown_path_is_not_found ... ok
+test status_answers_only_get ... ok
+test status_is_never_cached ... ok
+test status_reports_unknown_as_unknown ... ok
+test serves_over_a_real_loopback_socket_and_stops_on_request ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (control-plane/target/debug/deps/rikuri_control_plane-c3e1e19b9a2044e0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests rikuri_control
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+safe-run: no live node containers found here; the start-time check had nothing to compare
+
+== 9/9 Rust dependencies: licences, advisories, bans and sources (control-plane/deny.toml)
+advisories ok, bans ok, licenses ok, sources ok
+
+full-gate: all 9 steps passed
+exit=0
