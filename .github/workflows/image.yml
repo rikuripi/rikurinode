@@ -1,0 +1,68 @@
+name: OS image
+
+# Builds the node's OS image (image/Containerfile) and checks it. bootc's own
+# lint runs inside the build; image/tests/check_image_root.py checks the built
+# root against what the node relies on (lessons register PLAT-01). The node and
+# this machine never build it: the image exists only here.
+# Not yet (later changes of stage 1): signing and publishing, booting it in a
+# VM, the rollback drill (on image changes and weekly, owner 2026-10-12).
+# Record: docs/build-records/2026-10-12-stage1-os-image.md
+
+on:
+  pull_request:
+    branches: [main]
+    paths: ["image/**", ".github/workflows/image.yml"]
+  push:
+    branches: [main]
+    paths: ["image/**", ".github/workflows/image.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # The release image/Containerfile's base must be; the check fails otherwise.
+  FEDORA_RELEASE: "44"
+  IMAGE: localhost/rikuri-os:ci
+
+jobs:
+  build:
+    name: Build and check the OS image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Probe - can this runner run a VM? (for the boot test to come; reports, never fails)
+        run: |
+          {
+            echo "### Runner probe"
+            if [ -e /dev/kvm ]; then
+              echo "- /dev/kvm: present ($(ls -l /dev/kvm))"
+            else
+              echo "- /dev/kvm: ABSENT"
+            fi
+            echo "- CPUs: $(nproc); memory: $(free -m | awk '/^Mem:/{print $2}') MiB"
+            echo "- free on /: $(df -h --output=avail / | tail -1 | tr -d ' '); on /mnt: $(df -h --output=avail /mnt | tail -1 | tr -d ' ')"
+            echo "- $(podman --version); $(python3 --version)"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Build (bootc container lint runs inside)
+        run: sudo podman build --pull=missing --tag "$IMAGE" image
+      - name: Check the built root
+        run: |
+          root="$(sudo podman image mount "$IMAGE")"
+          sudo python3 image/tests/check_image_root.py "$root" --fedora "$FEDORA_RELEASE"
+          sudo podman image unmount "$IMAGE"
+      - name: Record what was built
+        if: always()
+        run: |
+          {
+            echo "### Built"
+            sudo podman image inspect --format '- image: {{.Id}}, {{.Size}} bytes, created {{.Created}}' "$IMAGE" || echo "- no image"
+            sudo podman image inspect --format '- base: {{index .Labels "org.opencontainers.image.version"}}' "$IMAGE" || true
+          } | tee -a "$GITHUB_STEP_SUMMARY"
