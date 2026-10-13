@@ -50,6 +50,8 @@ credentials.json
 # Build output and dependencies
 node_modules/
 /target/
+# cargo's download cache, kept in the checkout (scripts/cargo.sh, D24)
+/.cargo-home/
 dist/
 __pycache__/
 *.pyc

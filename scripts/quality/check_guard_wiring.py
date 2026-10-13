@@ -47,7 +47,11 @@ TOOLS = {"Bash", "Read", "Edit", "Write", "MultiEdit", "NotebookEdit", "Grep"}
 # git's network commands leave it (SSH cannot use its proxy); each still passes
 # the guard and the permission flow. .git/hooks, .git/config and the named
 # .claude paths are the sandbox's own protected paths; the settings add the
-# hook folder, and hide the previous checkout's secrets.
+# hook folder, and hide the previous checkout's secrets. crates.io's index and
+# download host (owner, D24, 2026-10-12) let Rust sessions fetch crates; cargo's
+# cache stays inside the checkout (scripts/cargo.sh), so writes stay in the repo.
+# Reads of fourteen private paths of the owner's are denied to sandboxed commands
+# (D25): a crate's build script runs here, and reads are otherwise open.
 SANDBOX = {
     "enabled": True,
     "failIfUnavailable": True,
@@ -55,9 +59,19 @@ SANDBOX = {
     "excludedCommands": ["git push *", "git fetch *", "git pull *"],
     "filesystem": {
         "denyWrite": ["./scripts/quality/hooks"],
-        "denyRead": ["/home/junc/rikuri/rikurinode/.env", "/home/junc/rikuri/rikurinode/data", "/run/rikuri"],
+        "denyRead": ["/home/junc/rikuri/rikurinode/.env", "/home/junc/rikuri/rikurinode/data", "/run/rikuri",
+                     # D25 (owner, 2026-10-12): the owner's credential files and other
+                     # private folders that exist on this machine, so code a crate runs
+                     # at build time (or any sandboxed command) cannot read them
+                     "/home/junc/.ssh", "/home/junc/.config/gh", "/home/junc/.git-credentials",
+                     "/home/junc/.docker", "/home/junc/.claude/.credentials.json",
+                     "/home/junc/.gnupg", "/home/junc/.bitcoin", "/home/junc/.local/share/keyrings",
+                     "/home/junc/.config/google-chrome", "/home/junc/.config/chromium",
+                     "/home/junc/.config/BraveSoftware", "/home/junc/.config/Code",
+                     "/home/junc/.config/Claude", "/home/junc/.local/share/Trash"],
     },
-    "network": {"allowedDomains": ["github.com", "api.github.com", "*.githubusercontent.com"]},
+    "network": {"allowedDomains": ["github.com", "api.github.com", "*.githubusercontent.com",
+                                   "index.crates.io", "static.crates.io"]},
 }
 PERMISSION_KEYS = {"allow", "deny", "ask", "defaultMode", "disableBypassPermissionsMode"}
 WIDENING_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", "WebFetch", "Read"}
