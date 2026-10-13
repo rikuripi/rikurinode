@@ -1,0 +1,35 @@
+# OS image CI run 38328363342 (PR #5, commit c60c324), 2026-10-13T00:40Z.
+# From `gh run view --log`: blob-copy lines, step headers and echoed commands' env removed.
+2026-10-13T00:40:06.7772989Z ### Runner probe
+2026-10-13T00:40:06.7774641Z - /dev/kvm: present (crw-rw---- 1 root kvm 10, 232 Oct 13 00:39 /dev/kvm)
+2026-10-13T00:40:06.7823166Z - CPUs: 2; memory: 7938 MiB
+2026-10-13T00:40:06.7884061Z - free on /: 13G; on /mnt: 13G
+2026-10-13T00:40:06.8071112Z - podman version 4.9.3; Python 3.12.3
+2026-10-13T00:40:06.8197482Z sudo podman build --pull=missing --tag "$IMAGE" image
+2026-10-13T00:40:06.8708927Z STEP 1/3: FROM registry.fedoraproject.org/fedora-iot@sha256:29d16f4ccc5c86c84ba21aca0b7dcabfc4ecb2a79c9e51810f7838695f6be1c3
+2026-10-13T00:40:06.8920673Z Trying to pull registry.fedoraproject.org/fedora-iot@sha256:29d16f4ccc5c86c84ba21aca0b7dcabfc4ecb2a79c9e51810f7838695f6be1c3...
+2026-10-13T00:40:07.8240834Z Getting image source signatures
+2026-10-13T00:40:41.8465281Z Copying config sha256:980c66325dc8d40df7830875e640586e18edad7e56c81d06c8538f94c6be9ae5
+2026-10-13T00:40:41.8485114Z Writing manifest to image destination
+2026-10-13T00:40:42.0170176Z STEP 2/3: COPY rootfs/ /
+2026-10-13T00:40:52.0664389Z --> 9fb2efeda440
+2026-10-13T00:40:52.0951510Z STEP 3/3: RUN bootc container lint
+2026-10-13T00:40:53.3375246Z Checks passed: 14
+2026-10-13T00:40:53.3375922Z Checks skipped: 1
+2026-10-13T00:40:53.4225878Z COMMIT localhost/rikuri-os:ci
+2026-10-13T00:40:59.7326759Z --> f2e71bd4b7ea
+2026-10-13T00:40:59.7327654Z Successfully tagged localhost/rikuri-os:ci
+2026-10-13T00:41:00.1160841Z f2e71bd4b7eaa34f2cec7da8f6a22a78277bbe274b75e62d5e76710dea4d567b
+2026-10-13T00:41:00.1358439Z root="$(sudo podman image mount "$IMAGE")"
+2026-10-13T00:41:00.1358922Z sudo python3 image/tests/check_image_root.py "$root" --fedora "$FEDORA_RELEASE"
+2026-10-13T00:41:00.1359547Z sudo podman image unmount "$IMAGE"
+2026-10-13T00:41:00.3762360Z check_image_root: 0 finding(s) in /var/lib/containers/storage/overlay/50631dd94a38f9d663c3bf81d29a3753cec50b127841f2cfdb67b21070a5c971/merged (Fedora 44 expected)
+2026-10-13T00:41:00.4154703Z f2e71bd4b7eaa34f2cec7da8f6a22a78277bbe274b75e62d5e76710dea4d567b
+2026-10-13T00:41:00.4241765Z {
+2026-10-13T00:41:00.4241967Z   echo "### Built"
+2026-10-13T00:41:00.4242490Z   sudo podman image inspect --format '- image: {{.Id}}, {{.Size}} bytes, created {{.Created}}' "$IMAGE" || echo "- no image"
+2026-10-13T00:41:00.4243307Z   sudo podman image inspect --format '- base: {{index .Labels "org.opencontainers.image.version"}}' "$IMAGE" || true
+2026-10-13T00:41:00.4244202Z } | tee -a "$GITHUB_STEP_SUMMARY"
+2026-10-13T00:41:00.4419668Z ### Built
+2026-10-13T00:41:00.4821709Z - image: f2e71bd4b7eaa34f2cec7da8f6a22a78277bbe274b75e62d5e76710dea4d567b, 1458116810 bytes, created 2026-10-13 00:40:53.424861361 +0000 UTC
+2026-10-13T00:41:00.5264870Z - base: 44.20261012.0

@@ -1,0 +1,19 @@
+# Red drill, OS image run 38328553937 (draft PR #6, branch drill/image-red: FEDORA_RELEASE set to 45 on a 44 base), 2026-10-13T00:43Z.
+# From gh run watch and gh run view --log; colour codes removed.
+X Build and check the OS image in 58s (ID 115072804560)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Probe - can this runner run a VM? (for the boot test to come; reports, never fails)
+  ✓ Build (bootc container lint runs inside)
+  X Check the built root
+  ✓ Record what was built
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+
+ANNOTATIONS
+X Process completed with exit code 1.
+Build and check the OS image: .github#12
+
+2026-10-13T00:43:14.8241275Z FAIL usr/lib/os-release: VERSION_ID is '44', expected '45'
+2026-10-13T00:43:14.8243118Z check_image_root: 1 finding(s) in /var/lib/containers/storage/overlay/0881bc0221d581d447b3eb2fe009ab604722ac8bee19c6febad2d9b08f374fcc/merged (Fedora 45 expected)
+2026-10-13T00:43:14.8314631Z ##[error]Process completed with exit code 1.

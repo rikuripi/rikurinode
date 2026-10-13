@@ -6,7 +6,7 @@
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | stage1/os-image (on docs/plan-and-lessons, pull request #4, until it merges) |
 | **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS — built and tested locally where it can be (the checker, its tests, 14 of 14 mutants); the image build in CI Not yet proven |
+| **Status** | IN PROGRESS — the image builds and passes its checks in CI (run 38328363342), and a planted finding fails the job (red drill, run 38328553937); the runner can run VMs; verifier pending |
 | **Change type** | feature (the first node code: the operating system) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -114,7 +114,21 @@
       keys in the test fixtures. As the hook says, not allowlisted: the
       fixtures now assemble their PEM text at run time (`pem()`), and the
       tests and mutants were rerun (28 OK; 14 of 14).
-- [ ] Watched it work in the running system: the CI build — Not yet proven.
+- [x] Watched it work in CI (run 38328363342 on c60c324, 2026-10-13
+      00:40Z, 1 min 1 s; `ci-image-run1.out`): the base pulled by digest;
+      `bootc container lint` "Checks passed: 14, Checks skipped: 1"; the
+      checker on the real root: "0 finding(s)"; the image 1,458,116,810
+      bytes, base version 44.20261012.0. The other checks on #5 passed too
+      (Full gate, guard tests on Python 3.12 and 3.9).
+- [x] **The probe:** `/dev/kvm` is present on the private repository's
+      runner (2 CPUs, 7,938 MiB, 13 GB free on `/` and on `/mnt`, Podman
+      4.9.3) — the research could not confirm it. The VM boot test and the
+      rollback drill (changes 3 and 4) can run on GitHub's runners.
+- [x] **Red drill** (draft #6, closed; run 38328553937;
+      `ci-image-red-drill.out`): `FEDORA_RELEASE` set to 45 on the 44 base.
+      The job failed at "Check the built root" with "FAIL usr/lib/os-release:
+      VERSION_ID is '44', expected '45'" and exit code 1: a finding blocks
+      the job, not only the checker's tests.
 - [ ] Recovery path: N/A until change 4 (the rollback drill).
 - [x] Regression guard proven to fail: the mutants above.
 - [ ] Independent verification: pending.
@@ -149,4 +163,7 @@
             unit tests: Ran 28 tests, OK (safe-run.sh)
             mutants: 14 of 14 caught (mutants.out)
             full gate: all 7 steps passed (gate.out)
+2026-10-13  CI run 38328363342: lint 14 passed / 1 skipped; check 0 findings; KVM present
+            (ci-image-run1.out); red drill run 38328553937: job failed on the planted
+            finding (ci-image-red-drill.out)
 ```
