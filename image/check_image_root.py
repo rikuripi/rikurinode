@@ -14,9 +14,9 @@ Paths are always read inside <root>, and a link in any component of a path ends
 the read: an absolute link would point into the machine running the check, not
 into the image. The key scan prints what it read per tree and which trees it
 skipped (a link, absent), so an empty scan is visible in the CI log; an `etc`
-with nothing read is a finding. In the image, `opt`, `usr/local` and `root` are
-links into `var` (ostree's layout): they show as skipped, and their files are
-reached under `var`.
+with nothing read is a finding. In the image, `opt`, `usr/local` and `root`
+should be links into `var` (ostree's layout) and show as skipped, their files
+reached under `var`: CI's log on the real root shows whether they do.
 
 greenboot.conf is accepted in one form only, the one greenboot's INI reader
 (rust-ini, through the config crate) and this check read alike: printable ASCII

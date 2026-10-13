@@ -5,8 +5,8 @@
 | **Date** | 2026-10-12 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | stage1/os-image, pull request #5, merged into main on 2026-10-13 before its fix round; the fix round is the follow-up pull request from stage1/checker-fixes |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS — the image builds and passes its checks in CI (run 38328363342), and a planted finding fails the job (red drill, run 38328553937); `/dev/kvm` present on the runner (no VM started yet); verifier round 1 FAIL (code/test and wording); PR #5 merged 2026-10-13 before the fix round (owner: nothing runs the image yet, and the shipped `greenboot.conf` reads the same in the checker and in greenboot); **the fix round, F1 to F6, runs in a session opened in this worktree and lands as the follow-up pull request** |
+| **Commits** | PR #5, merged as 678b1b8. The fix round, on `stage1/checker-fixes`: a93133b (the failing tests, red), 2276986 (F6 wording), 2d7659e (the checker moved out of `image/tests/`), cd77e9e (the fix, under the lock), fc06a36 (the three tests after the release), and the close-out commit (this record, `gate2-steps.out` regenerated, the docstring) |
+| **Status** | IN PROGRESS — the image builds and passes its checks in CI (run 38328363342), and a planted finding fails the job (red drill, run 38328553937); `/dev/kvm` present on the runner (no VM started yet); verifier round 1 FAIL (code/test and wording); PR #5 merged 2026-10-13 before the fix round (owner: nothing runs the image yet, and the shipped `greenboot.conf` reads the same in the checker and in greenboot); the fix round, F1 to F6, built in a session opened in this worktree (five commits, §3 and the Commits row); **verifier round 2: F1 to F6 pass, every claim reproduced, nothing regressed; its verdict NOT YET PROVEN until CI's Full gate and the OS image workflow are seen on the follow-up pull request** (the branch is pushed by the owner: the build session's sandbox cannot reach the repository) |
 | **Change type** | feature (the first node code: the operating system) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -259,7 +259,8 @@
       did); no container, node-tool or previous-checkout command was run,
       and local tests ran only inside `safe-run.sh`. The fix round runs in a
       session opened in this worktree, where they apply.
-- [ ] **Fix round (round 2), the plan for the next session** — the owner's
+- [x] **Fix round (round 2), the plan** (done as written and in this order,
+      §3; the one addition, the checker's move, is the owner's) — the owner's
       stop rule: code/test findings are fixed with a test and checked again.
       Order: write the failing tests and commit them (red commit, the run
       recorded); `python3 .claude/hooks/guard.py fix-lock on
@@ -291,7 +292,47 @@
         KEY=VALUE" fail rather than crash; all mutants caught.
       - F6 wording: each item of finding 5, and REVIEW.md's risk note for
         the three protected paths in this record.
-- [ ] Diff matches the §1 plan: at close-out.
+- [x] **Verifier, round 2: F1 to F6 pass; verdict NOT YET PROVEN** until CI
+      is seen (2026-10-13; its own evidence in its session's temporary
+      folder, listed in its report, which goes into the pull request; round
+      1's probes reused unchanged). Reproduced, line for line: the §3 table
+      (the 678b1b8 checker on the 15 cases); the red run from a93133b's
+      tree (51 tests, 40 failures, 7 errors); 51 OK at cd77e9e; 31 of 33
+      there with exactly P1 and "greenboot binary not required" missed; 33
+      of 33 at HEAD; the test files of a93133b and cd77e9e differ only by
+      the import path, and fc06a36 only adds. Its rust-ini probe beside the
+      new checker on the 15 cases and 19 of its own: the checker passes
+      only the shipped file and five comment variants, each of which
+      greenboot reads as intended, and every case greenboot reads as
+      `disabled=[]` or a parse error is a finding (05, which greenboot
+      reads right by luck, is refused too). The link probe: `usr/local`
+      skipped as a link, nothing read through it; links inside `etc` to a
+      key outside, a folder outside and the machine's `/etc` not read.
+      Four mutants of its own (a tab allowed, several spaces between names,
+      `.pub` as a host key, the last-component-only link check of round 1)
+      all caught. Boundaries: a file of exactly 1,048,576 bytes read and
+      its key found, one byte more skipped and said; a FIFO where a file is
+      expected reported, no hang; `--fedora 45` on a 44 root; the ostree
+      layout on a fixture (`root`, `usr/local`, `opt` skipped as links, the
+      key under `var/roothome` found). Diff versus plan: all 18 changed
+      files inside §1's blast radius; the fix-lock window consistent with
+      the commits. Findings: (1) **Fail, evidence provenance:**
+      `gate2-steps.out`'s step 3 had run outside `safe-run.sh` (no
+      `safe-run:` line, and no `skipped=1`: that skip is for the mapped
+      root the layer gives). The file is regenerated with every step inside
+      the layer (§5); the outcomes are unchanged. (2) Not yet proven: CI's
+      Full gate and the image workflow on the pull request — the stricter
+      checker has not yet reported on the real root, nor its ostree notes;
+      the docstring, which stated the layout as fact, now says CI's log
+      shows it. (3) Not yet proven in that session: gate step 2 and the
+      wiring test (the same stale mount, §5). (4) Minor: the simulated Edit
+      denial under the lock (§3) and the two owner approvals have no
+      evidence file; only `fix-lock.log` and `guard-relaxed.log` record the
+      lock and its release — left as recorded. Under the owner's stop rule
+      none is a code or test finding: no further round.
+- [x] Diff matches the §1 plan: 18 files changed 678b1b8..HEAD, all inside
+      §1's blast radius (verifier round 2); the one deviation, the checker's
+      move out of `image/tests/`, is the owner's decision in §3.
 
 ## 5. Close Out
 - [x] Full gate green (locally, 2026-10-12): all 7 steps; step 3 ran the
@@ -305,16 +346,43 @@
       `test_this_repositorys_settings_pass` in step 3, read a stale file
       (git's copy is main's; the sandbox shows the old one and refuses to
       replace it). A session artefact, not a change: a session opened in
-      this worktree now reads the right file. Steps 1 and 3 to 7, run one
-      by one, pass (`gate2-steps.out`; the one failure in step 3 is that
-      same wiring test). **CI's gate on the pull request is the reference
-      run: not green until seen.**
-- [ ] Scrap Sweep:
-- [ ] Reviewed per `REVIEW.md`:
-- [ ] Lesson loop:
+      this worktree now reads the right file. Steps 1 and 3 to 7, and the
+      parts of step 2 that do not read the settings (the policy check; the
+      guard's 91 tests), run one by one inside `safe-run.sh`, pass
+      (`gate2-steps.out`, regenerated after verifier round 2: its first
+      version had run step 3 outside the layer; the one failure in step 3
+      is that same wiring test, beside the layer's `skipped=1`; the image
+      check's 54 tests OK). **CI's gate on the pull request is the
+      reference run: not green until seen.**
+- [x] Scrap Sweep: nothing to delete. The tree holds only the ignored
+      `.claude/state/` and `__pycache__`, and the sandbox's `/dev/null`
+      placeholders (untracked, not files); the verifier's probes stayed in
+      its temporary folder; the first `gate2-steps.out` was replaced, not
+      kept beside the new one. `image/tests/check_image_root.py` is gone by
+      the move, not as scrap.
+- [x] Reviewed per `REVIEW.md`: the three passes by verifier round 2 —
+      bugs (its own four mutants and the boundary runs, §4), security (the
+      refused forms and the link handling probed; a `PrivateKey =` outside
+      `etc/wireguard` not refused, as the docstring and ADR 0004 say),
+      compliance (the diff inside §1's blast radius). Important findings:
+      the evidence provenance, fixed (§5 above); none left under Skipped.
+- [x] Lesson loop: two first occurrences, recorded here and not yet a rule
+      (a rule follows the second). (1) `git switch -c` half-failed inside
+      an `&&` chain (the sandbox's mount of `.claude/settings.json` could
+      not be unlinked): the branch was made, HEAD stayed on
+      `stage1/os-image`, and the red commit landed there; seen in `git
+      log`, redone on the right branch, the old branch reset to its pushed
+      commit. Check branch and HEAD after every switch; do not hide a
+      switch in a chain. (2) The red commit's rewrite of the test file
+      dropped two of the original 28 tests; the mutant run found it, not
+      the builder. Diff the test names before and after a rewrite. The
+      wiring check's failure on the stale mount is a session artefact, not
+      a lesson for the rules.
 - [x] Knowledge layer: README and AGENTS.md status; plan §2 and §7; ADR
       0004. No help page or runbook exists yet.
-- [ ] Commit message explains why; record committed with the change.
+- [x] Commit message explains why: five commits, one per concern, each
+      with its why (the Commits row); the record is committed with the
+      change at each step and closed out in the last commit.
 
 ## Skipped items — visible, never silent
 - The image's own boot (greenboot passes, the DNS check skipped in its
@@ -345,4 +413,10 @@
             pass one by one (gate2-steps.out)
 2026-10-13  fix-lock released 00:16 (owner); three tests added: Ran 54 tests, OK
             (fix-tests2.out); mutants 33 of 33 caught (mutants3.out)
+2026-10-13  verifier round 2: F1 to F6 pass, every claim reproduced; verdict NOT YET
+            PROVEN until CI is seen (its report in the pull request; its evidence in
+            its session's temporary folder); finding 1 fixed: gate2-steps.out
+            regenerated with every step inside safe-run.sh (guard: Ran 91 tests, OK;
+            quality tools: Ran 78 tests, FAILED failures=1 the stale wiring test,
+            skipped=1; image check: Ran 54 tests, OK; steps 4 to 7 exit 0)
 ```
