@@ -4,7 +4,8 @@
 owner decisions (§7), seven are taken — D2, Podman with Quadlet; D3, Rust; D5,
 rootless with an ID range per container; D6 and D7, the OS image public on
 GitHub's registry and signed by a key in CI with an offline spare; D8, CI
-minutes; D9, Fedora's DNS boot check off (ADRs 0001 to 0004) — and two are
+minutes; D9, Fedora's DNS boot check off (D2, D3, D5, D6 and D7 have ADRs
+0001 to 0004; D8 and D9 are recorded in §7 only) — and two are
 open (D1, the Pi 5; D4, the first mainnet amount); nothing that depends on an
 open one is built. Facts about outside software were checked on
 2026-10-11 and carry their source (§9); re-check them before acting on them.
@@ -75,11 +76,13 @@ specifics re-verified rather than assumed (PLAT).
 
 Re-checked for stage 1 on 2026-10-12, with sources:
 `docs/build-records/evidence/2026-10-12-stage1-os-image/research.md`. Changes
-since: the greenboot report is still open with no reply, and a hang before
-userspace is never counted toward a rollback; Fedora 45 had 8 accepted
-blockers; the base image is pinned on registry.fedoraproject.org, because
-quay.io drops old digests within a day; keyless image signatures cannot be
-enforced on the node yet (D7).
+since: the greenboot report is still open with no reply; whether a kernel
+panic or a hang before userspace counts toward a rollback is not yet proven
+(greenboot 0.16.4's `detect_grub_fallback` reports a GRUB fallback after a
+panic; stage 1's change 4 drills it); Fedora 45 had 8 accepted blockers; the
+base image is pinned on registry.fedoraproject.org, because quay.io drops old
+digests within days (a 2026-09-22 digest was gone by 09-28); keyless image
+signatures cannot be enforced on the node yet (D7).
 
 ## 3. The two machines
 

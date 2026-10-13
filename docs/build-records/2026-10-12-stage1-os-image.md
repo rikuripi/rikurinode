@@ -4,9 +4,9 @@
 |---|---|
 | **Date** | 2026-10-12 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
-| **Branch** | stage1/os-image (on docs/plan-and-lessons, pull request #4, until it merges) |
+| **Branch** | stage1/os-image, pull request #5, merged into main on 2026-10-13 before its fix round; the fix round is the follow-up pull request from stage1/checker-fixes |
 | **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS — the image builds and passes its checks in CI (run 38328363342), and a planted finding fails the job (red drill, run 38328553937); `/dev/kvm` present on the runner (no VM started yet); **verifier round 1 FAIL (code/test and wording): fix round handed to a session opened in this worktree (owner, 2026-10-12)** |
+| **Status** | IN PROGRESS — the image builds and passes its checks in CI (run 38328363342), and a planted finding fails the job (red drill, run 38328553937); `/dev/kvm` present on the runner (no VM started yet); verifier round 1 FAIL (code/test and wording); PR #5 merged 2026-10-13 before the fix round (owner: nothing runs the image yet, and the shipped `greenboot.conf` reads the same in the checker and in greenboot); **the fix round, F1 to F6, runs in a session opened in this worktree and lands as the follow-up pull request** |
 | **Change type** | feature (the first node code: the operating system) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -36,7 +36,9 @@
       in CI); TEST-02 (a check counts only once seen to fail); D9 (the DNS
       check off, provably).
 - [x] Design: a Containerfile on `registry.fedoraproject.org/fedora-iot`
-      pinned by digest (quay.io drops old digests within a day — research);
+      pinned by digest (quay.io drops old digests within days: a 2026-09-22
+      digest was gone by 09-28, 404 on quay.io and 200 on
+      registry.fedoraproject.org when verifier round 1 looked);
       Fedora 44 while the pipeline is built, 45 after its release and a soak
       (plan §2; 45 had 8 open blockers); `RUN bootc container lint` as the
       last build step; host files under `image/rootfs/`; a Python checker run
@@ -59,7 +61,7 @@
 - [x] One sentence: build the OS image in CI from a pinned Fedora IoT base
       with the owner's greenboot settings, and fail the build if the image
       lacks what the node relies on.
-- [x] Blast radius: new `image/`, `.github/workflows/image.yml`, one line in
+- [x] Blast radius: new `image/`, `.github/workflows/image.yml`, two lines in
       `scripts/quality/full-gate.sh` (step 3 also runs the image check's
       tests); docs (plan §2 and §7, ADR 0004, README, AGENTS.md). No auth,
       funds or execution path; nothing irreversible (the GHCR package is not
@@ -100,6 +102,15 @@
       keys) and files over 1 MiB; the project's own additions are covered by
       the gate's secret scan. No signing or publishing yet: no credential in
       the workflow, `permissions: contents: read`.
+- [x] Protected paths changed, the written risk note REVIEW.md asks for
+      (added in the fix round; verifier round 1 found it missing):
+      `AGENTS.md` (the status line only; it changes no rule or gate);
+      `.github/workflows/image.yml` (a new workflow: it runs `sudo podman`
+      on GitHub's runner with `permissions: contents: read`, no secret and
+      no publish step, and it is not a required check, so a failure there
+      cannot block a merge until the owner makes it one);
+      `scripts/quality/full-gate.sh` (step 3 gains the image check's tests;
+      no step was removed or loosened, so the gate can only fail more).
 
 ## 3. Debug — the fix round (verifier round 1's findings 1 to 4)
 - [x] Reproduced before fixing (2026-10-12, the fix-round session, inside
@@ -135,8 +146,9 @@
       (Full gate, guard tests on Python 3.12 and 3.9).
 - [x] **The probe:** `/dev/kvm` is present on the private repository's
       runner (2 CPUs, 7,938 MiB, 13 GB free on `/` and on `/mnt`, Podman
-      4.9.3) — the research could not confirm it. The VM boot test and the
-      rollback drill (changes 3 and 4) can run on GitHub's runners.
+      4.9.3) — the research could not confirm it. Only the device was seen:
+      whether a VM boots there is not yet proven (change 3 shows it, and
+      change 4 needs it).
 - [x] **Red drill** (draft #6, closed; run 38328553937;
       `ci-image-red-drill.out`): `FEDORA_RELEASE` set to 45 on the 44 base.
       The job failed at "Check the built root" with "FAIL usr/lib/os-release:
