@@ -6,7 +6,7 @@
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
 | **Branch** | stage1/os-image (on docs/plan-and-lessons, pull request #4, until it merges) |
 | **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS — the image builds and passes its checks in CI (run 38328363342), and a planted finding fails the job (red drill, run 38328553937); the runner can run VMs; verifier pending |
+| **Status** | IN PROGRESS — the image builds and passes its checks in CI (run 38328363342), and a planted finding fails the job (red drill, run 38328553937); `/dev/kvm` present on the runner (no VM started yet); **verifier round 1 FAIL (code/test and wording): fix round handed to a session opened in this worktree (owner, 2026-10-12)** |
 | **Change type** | feature (the first node code: the operating system) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -131,7 +131,88 @@
       the job, not only the checker's tests.
 - [ ] Recovery path: N/A until change 4 (the rollback drill).
 - [x] Regression guard proven to fail: the mutants above.
-- [ ] Independent verification: pending.
+- [x] **Verifier, round 1: FAIL** (2026-10-12; its evidence outside the
+      repository, in `/home/junc/claude-wip/stage1/verify/`). Passed: the
+      gate (step 3 runs the image tests, locally and in CI); `image.yml`
+      (pinned, read-only, no secret, the red drill's failure in the real
+      log); the base digest (both registries, and the config blob's version
+      44.20261012.0 in the CI pull); the evidence files verbatim in the run
+      logs; no test loosened c60c324..HEAD. Failed:
+      1. **Code — the checker reads `greenboot.conf` differently from
+         greenboot.** Built from rust-ini 0.21.3's parser, config 0.15.13
+         and greenboot-rs 0.16.4's own code (`verify/ini-probe/`, 15 cases
+         in `cases/`): a comment indented by a space or a tab, a vertical
+         tab or NEL after a comment, a form feed after a value or before a
+         `#`, a trailing `\x1f` — the checker passes with 0 findings while
+         greenboot reads `DISABLED_HEALTHCHECKS` as empty (the DNS check
+         stays on, against D9). Python's `splitlines()`/`strip()` and its
+         indented-comment rule are wider than rust-ini's. The shipped file
+         reads the same in both.
+      2. **Code — "never follows a link" is false:** with `usr` a link out
+         of the root, the key scan walks `usr/local` through it
+         (`verify/linkprobe/usr_link.py`).
+      3. **Test — 7 proposed mutants missed** (P2 walk a linked top folder,
+         P3 read a linked file, P4 drop `var`, P5 drop `usr/local` and
+         `opt`, P6 `SECRET_MAX_BYTES = 1 << 10`, P7 a missing
+         `DISABLED_HEALTHCHECKS` unreported, P9 an unreadable file
+         unreported); three of the 14 committed mutants do not change the
+         verdict ("[section] allowed", "duplicate key allowed" — message
+         only; "not KEY=VALUE allowed" crashes instead of failing).
+      4. **Not yet proven / vacuous:** the scan reports no count, and in the
+         ostree layout `root`, `opt`, `usr/local` may be links skipped
+         silently; `GREENBOOT_MAX_BOOT_ATTEMPTS=3` is greenboot's default.
+         Unstated scan gaps: PGP `PRIVATE KEY BLOCK`, Tor
+         `hs_ed25519_secret_key`, WireGuard, age keys; `tmp`, `boot`.
+      5. **Wording:** "the runner can run VMs" (only `/dev/kvm` seen); quay.io
+         "within a day" (the cited case: a 2026-09-22 digest gone by 09-28;
+         the verifier saw it 404 on quay.io, 200 on registry.fedoraproject.org);
+         ADR 0004 "works over Tor" (not tried); research.md "a kernel panic
+         … never counted" (contested: greenboot 0.16.4's
+         `detect_grub_fallback` says it handles a panic); "refuses private
+         keys" (only PEM forms); the plan's "(ADRs 0001 to 0004)" covers D8
+         and D9, which have none; "one line" in `full-gate.sh` is two; and
+         REVIEW.md's written risk note for protected-path edits
+         (`AGENTS.md`, `.github/workflows/image.yml`,
+         `scripts/quality/full-gate.sh`) is missing.
+- [x] **Where the fix round runs** (owner, 2026-10-12, AskUserQuestion:
+      "Hand off to a node-repo session (Recommended)"). This change was
+      built from a session opened in Rikuri-PI, so the node repository's
+      guard, fix-lock and OS sandbox did not apply to it (Rikuri-PI's guard
+      did); no container, node-tool or previous-checkout command was run,
+      and local tests ran only inside `safe-run.sh`. The fix round runs in a
+      session opened in this worktree, where they apply.
+- [ ] **Fix round (round 2), the plan for the next session** — the owner's
+      stop rule: code/test findings are fixed with a test and checked again.
+      Order: write the failing tests and commit them (red commit, the run
+      recorded); `python3 .claude/hooks/guard.py fix-lock on
+      docs/build-records/2026-10-12-stage1-os-image.md`; fix in its own
+      commit; release the lock (the owner approves); verifier round 2.
+      - F1 parser: read bytes; allow only printable ASCII and `\n`; split on
+        `\n` only; blank lines exactly empty; a comment is `#` in column 0;
+        key lines exactly `GREENBOOT_MAX_BOOT_ATTEMPTS=[0-9]+` and
+        `DISABLED_HEALTHCHECKS=("name" "name" …)` or `=()`, names
+        `[A-Za-z0-9_.-]+`, one space between them, no other whitespace;
+        anything else is a finding. A test per verifier case (`verify/
+        ini-probe/cases/`): every case greenboot would read differently
+        must be a finding. Rename `test_shipped_conf_as_greenboot_reads_it`
+        (it tests the checker's parser, not greenboot's); greenboot's own
+        reading is proven in change 3 (its journal: "Skipping disabled
+        script: 01_repository_dns_check.sh").
+      - F2 links: a `_dir(root, rel)` helper (no link in any component) for
+        each scanned top; a test with `usr` linked out of the root, holding
+        a key: no finding from it, nothing read there.
+      - F3 not vacuous: print the files scanned per tree, and which tops
+        were skipped as links or absent; a finding if `etc` yields no
+        regular file.
+      - F4 scope: PGP `PRIVATE KEY BLOCK`; `AGE-SECRET-KEY-1`; Tor's
+        `hs_ed25519_secret_key` (by name, and its `== ed25519v1-secret`
+        header); WireGuard `PrivateKey` under `etc/wireguard`; add `tmp`
+        and `boot`. Say exactly which forms are refused.
+      - F5 tests and mutants: tests that catch P2 to P9; drop the two
+        message-only mutants from the set or say why they stay; make "not
+        KEY=VALUE" fail rather than crash; all mutants caught.
+      - F6 wording: each item of finding 5, and REVIEW.md's risk note for
+        the three protected paths in this record.
 - [ ] Diff matches the §1 plan: at close-out.
 
 ## 5. Close Out
