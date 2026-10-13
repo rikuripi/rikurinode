@@ -1,0 +1,15 @@
+CAUGHT  VARIANT_ID not checked
+CAUGHT  links followed
+CAUGHT  [section] allowed
+CAUGHT  not KEY=VALUE allowed
+CAUGHT  unknown key allowed
+CAUGHT  duplicate key allowed
+CAUGHT  bash-array form not required
+CAUGHT  expected values not compared
+CAUGHT  missing key not reported
+CAUGHT  disabled names not looked up
+CAUGHT  SSH host key allowed
+CAUGHT  private key not matched
+CAUGHT  exit 0 on findings
+CAUGHT  greenboot binary not required
+14 of 14 mutants caught

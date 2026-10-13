@@ -24,8 +24,9 @@ python3 scripts/quality/check_guard_wiring.py || fail "the guard is not wired (a
 python3 scripts/quality/guard_policy.py --check || fail "the guard policy was edited by hand (above)"
 python3 -m unittest discover -s .claude/hooks -p 'test_*.py'
 
-step "3/7 the quality tools' own tests (hygiene, guard wiring, guard policy, test-safety layer)"
+step "3/7 the quality tools' own tests (hygiene, guard wiring, guard policy, test-safety layer), and the OS image check's"
 python3 -m unittest discover -s scripts/quality/tests -p 'test_*.py'
+python3 -m unittest discover -s image/tests -p 'test_*.py'
 
 step "4/7 repository hygiene: nothing tracked that belongs on the machine"
 python3 scripts/quality/repo_hygiene.py .

@@ -12,7 +12,8 @@
 Rikuri Node is a self-hosted Bitcoin and Lightning node for people who are not
 system administrators: a full node (x86, Intel N150) and a pruned node
 (Raspberry Pi 5, 8 GB), both on Fedora IoT, updated and rolled back as whole
-images. **Status: bootstrap. There is no node code yet.**
+images. **Status: stage 1 (the OS image, `image/`, built and checked only in
+CI by `.github/workflows/image.yml`). No node software yet.**
 
 ## Priorities (owner, 2026-10-10)
 
@@ -348,9 +349,11 @@ is not done.
 
 ## Verification by maturity
 
-Now (bootstrap): the full gate runs the guard tests, the quality tools' own
-tests, the hygiene check, shell lint, a whitespace check and the secret scan
-of history. The
+Now (stage 1): the full gate runs the guard tests, the quality tools' own
+tests and the OS image check's, the hygiene check, shell lint, a whitespace
+check and the secret scan of history. `.github/workflows/image.yml` builds
+the OS image and checks its root on pull requests that touch it; it is not a
+required check yet. The
 language's build, lint, type and test steps, the smoke script and the debt
 ratchet join with the first code. Pass, Fail and Not yet proven stay distinct;
 nothing is called green until it has been observed.
