@@ -1,0 +1,35 @@
+CAUGHT  VARIANT_ID not checked
+CAUGHT  links followed
+MISSED  P1 any file type accepted as regular
+CAUGHT  control bytes allowed
+CAUGHT  indented comment allowed
+CAUGHT  padded blank line allowed
+CAUGHT  P8 not KEY=VALUE silently skipped
+CAUGHT  unknown key allowed
+CAUGHT  duplicate key allowed
+CAUGHT  DISABLED_HEALTHCHECKS form not checked
+CAUGHT  GREENBOOT_MAX_BOOT_ATTEMPTS form not checked
+CAUGHT  expected values not compared
+CAUGHT  missing key not reported
+CAUGHT  P7 DISABLED_HEALTHCHECKS absence not reported
+CAUGHT  disabled names not looked up
+MISSED  greenboot binary not required
+CAUGHT  P2 top folder reached through a link walked
+CAUGHT  P3 linked file in a scanned tree read
+CAUGHT  P4 var not scanned
+CAUGHT  P5 usr/local and opt not scanned
+CAUGHT  tmp and boot not scanned
+CAUGHT  P6 size cap 1 KiB
+CAUGHT  P9 unreadable file not reported
+CAUGHT  absent etc not reported
+CAUGHT  empty etc not reported
+CAUGHT  SSH host key allowed
+CAUGHT  Tor key name allowed
+CAUGHT  PEM private key not matched
+CAUGHT  PGP key block not matched
+CAUGHT  age key not matched
+CAUGHT  Tor header not matched
+CAUGHT  WireGuard key not matched
+CAUGHT  exit 0 on findings
+31 of 33 mutants caught
+safe-run: no live node containers found here; the start-time check had nothing to compare

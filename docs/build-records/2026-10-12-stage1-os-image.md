@@ -49,9 +49,9 @@
       supported way, and the VM test will show it was skipped); building on
       Fedora 45 now (pre-release); generic `fedora-bootc` (no greenboot).
 - [x] Policy applied: every behaviour-changing default went to the owner (D6
-      to D9); no secret in a public image (the checker refuses private keys
-      and SSH host keys in the writable trees; the gate's secret scan covers
-      `image/rootfs/`); the base and every action pinned.
+      to D9); no secret in a public image (the checker refuses the key forms
+      listed in §2, in the writable and local trees; the gate's secret scan
+      covers `image/rootfs/`); the base and every action pinned.
 - [x] Flagged concerns, routed: greenboot's open rollback bug (issue 217) and
       the uncounted hang before userspace mean rollback is unproven until the
       drill (change 4, then the N150); KVM on private runners is not
@@ -96,11 +96,18 @@
       the greenboot file is closed-world (only the two keys, once each, no
       `[section]`), because greenboot falls back to its defaults silently.
 - [x] Clean as you go: nothing replaced.
-- [x] Security question: the image will be public (D6) — the checker refuses
-      private keys and SSH host keys under `etc`, `root`, `var`, `usr/local`,
-      `opt`. Not scanned: Fedora's own files under `/usr` (they ship test
-      keys) and files over 1 MiB; the project's own additions are covered by
-      the gate's secret scan. No signing or publishing yet: no credential in
+- [x] Security question: the image will be public (D6) — the checker refuses,
+      under `etc`, `root`, `var`, `usr/local`, `opt`, `tmp` and `boot`,
+      exactly these forms (fix round, F4; before it, only the first two): a
+      PEM private key (`-----BEGIN … PRIVATE KEY-----`, PGP's `PRIVATE KEY
+      BLOCK` included); an SSH host key under `etc/ssh`, by name; a Tor
+      onion service key by name (`hs_ed25519_secret_key`) or any file with
+      Tor's `== ed25519v1-secret` header; an age secret key
+      (`AGE-SECRET-KEY-1…`); a `PrivateKey =` line in a file under
+      `etc/wireguard`. Not read: links (never), files over 1 MiB (counted
+      and printed per tree); not scanned: Fedora's own files under `/usr`
+      (they ship test keys); the project's own additions are covered by the
+      gate's secret scan. No signing or publishing yet: no credential in
       the workflow, `permissions: contents: read`.
 - [x] Protected paths changed, the written risk note REVIEW.md asks for
       (added in the fix round; verifier round 1 found it missing):
@@ -137,15 +144,45 @@
       guard policy (the most work, on the shared policy). Protected path
       changed for it, the risk note: `.github/workflows/image.yml` gains
       only the checker's new path on its "Check the built root" step.
-- [ ] Root cause is a CLASS, named here:
-- [ ] Swept for siblings of the class (where else it lived):
+- [x] Root cause is a CLASS: **a checker looser than the reader it stands
+      in for.** The checker read `greenboot.conf` with Python's
+      `splitlines()` and `strip()`, wider than rust-ini's line and comment
+      rules, so a file could pass here and read as "nothing disabled"
+      there. The fix reads bytes and accepts one form only, the one both
+      read alike, refusing everything else (F1). Second class: **a path
+      check that looks at the last component only** (`usr/local` reached
+      through a linked `usr`): one helper now lstat's every component, for
+      files and folders alike (F2). Third: **a scan that cannot be told
+      from an empty one** (F3): it prints what it read per tree and why a
+      tree was skipped, and fails on an `etc` with nothing read.
+- [x] Swept for siblings: every path the checker reads goes through
+      `_lstat_in`; `check_os_release` keeps its lenient reading on purpose
+      (Fedora's file, three fields compared by value, not a file another
+      program reads differently); the forms the scan refuses are listed in
+      its docstring and in ADR 0004 (F4). No other code reads a file for
+      another program yet (stage 1 has no node software).
 
 ## 4. Verify
-- [x] Unit tests: 28 in `image/tests/test_check_image_root.py`, all pass;
-      the committed `greenboot.conf` is checked as shipped.
+- [x] Unit tests: 28 in `image/tests/test_check_image_root.py` at PR #5;
+      51 after the fix round, all pass (`fix-tests.out`: "Ran 51 tests …
+      OK"), one per verifier probe case and per proposed mutant; the
+      committed `greenboot.conf` is checked as shipped. **Two of the 28
+      were lost in the red commit's rewrite** (`test_conf_missing`,
+      `test_greenboot_not_installed`; found by the mutant run below, not
+      by the builder) and go back in after the lock's release, with a
+      third for P1.
 - [x] Mutants (`mutate_check.py`): 14 of 14 caught (`mutants.out`). The
       first run had one mutant whose pattern matched twice and did not run;
       it was made specific and rerun.
+- [ ] Mutants after the fix (`mutants2.out`): 33 in the set (the round's
+      P1 to P9 and one per form the fix added; "[section] allowed" dropped
+      as message-only; "not KEY=VALUE" now skipped silently rather than
+      crashing, P8's form), **31 of 33 caught**. Missed: P1 (`_regular`
+      accepting any file type: no test puts a folder where a file is
+      expected, and the use that caught it at PR #5 is now `_dir`) and
+      "greenboot binary not required" (its test was lost, above). Both get
+      a test once the owner releases the lock; this box closes only when
+      the rerun reads 33 of 33.
 - [x] The pre-commit secret scan refused the first commit: two fake private
       keys in the test fixtures. As the hook says, not allowlisted: the
       fixtures now assemble their PEM text at run time (`pem()`), and the
@@ -167,7 +204,9 @@
       VERSION_ID is '44', expected '45'" and exit code 1: a finding blocks
       the job, not only the checker's tests.
 - [ ] Recovery path: N/A until change 4 (the rollback drill).
-- [x] Regression guard proven to fail: the mutants above.
+- [x] Regression guard proven to fail: the mutants above, and the fix
+      round's red run (`red-tests.out`: 40 failures and 7 errors on the
+      unfixed checker).
 - [x] **Verifier, round 1: FAIL** (2026-10-12; its evidence outside the
       repository, in `/home/junc/claude-wip/stage1/verify/`). Passed: the
       gate (step 3 runs the image tests, locally and in CI); `image.yml`
@@ -258,6 +297,16 @@
       unpinned base in `image/Containerfile`: a scratch copy with
       `FROM registry.fedoraproject.org/fedora-iot:44` gave "base image not
       pinned ('44' is a floating tag, not a version)".
+- [ ] Full gate, the fix round: locally it stops at step 2 (`gate2.out`).
+      This session's sandbox mounted `.claude/settings.json` as it was on
+      the old branch when the session opened, so the wiring check, and
+      `test_this_repositorys_settings_pass` in step 3, read a stale file
+      (git's copy is main's; the sandbox shows the old one and refuses to
+      replace it). A session artefact, not a change: a session opened in
+      this worktree now reads the right file. Steps 1 and 3 to 7, run one
+      by one, pass (`gate2-steps.out`; the one failure in step 3 is that
+      same wiring test). **CI's gate on the pull request is the reference
+      run: not green until seen.**
 - [ ] Scrap Sweep:
 - [ ] Reviewed per `REVIEW.md`:
 - [ ] Lesson loop:
@@ -284,4 +333,12 @@
 2026-10-13  CI run 38328363342: lint 14 passed / 1 skipped; check 0 findings; KVM present
             (ci-image-run1.out); red drill run 38328553937: job failed on the planted
             finding (ci-image-red-drill.out)
+2026-10-12  fix round (a session in this worktree): the verifier's probe cases through
+            its rust-ini probe and the checker (the §3 table); red run: Ran 51 tests,
+            failures=40, errors=7 (red-tests.out); checker moved to image/ (owner);
+            fix-lock engaged 23:53 (this session); after the fix: Ran 51 tests, OK
+            (fix-tests.out); mutants 31 of 33 caught (mutants2.out: P1 and "greenboot
+            binary not required" missed, tests to add after the release); local gate
+            stops at step 2 on the stale settings mount (gate2.out), steps 1 and 3 to 7
+            pass one by one (gate2-steps.out)
 ```

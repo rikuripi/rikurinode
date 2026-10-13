@@ -1,0 +1,25 @@
+== 1/7 pinned tools
+0.11.0
+8.30.1
+== 2/7 the parts of step 2 that do not read .claude/settings.json
+policy as generated
+profile: stable
+profile: stable -> development
+profile: development -> stable
+== 3/7
+Ran 78 tests in 17.602s
+
+FAILED (failures=1)
+Ran 51 tests in 0.073s
+
+OK
+== 4/7
+hygiene ok
+== 5/7
+shellcheck ok
+== 6/7
+whitespace ok
+== 7/7
+[90m11:59PM[0m [32mINF[0m [1m52 commits scanned.[0m
+[90m11:59PM[0m [32mINF[0m [1mscanned ~8560196 bytes (8.56 MB) in 658ms[0m
+[90m11:59PM[0m [32mINF[0m [1mno leaks found[0m
