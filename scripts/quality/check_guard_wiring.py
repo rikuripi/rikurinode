@@ -50,6 +50,8 @@ TOOLS = {"Bash", "Read", "Edit", "Write", "MultiEdit", "NotebookEdit", "Grep"}
 # hook folder, and hide the previous checkout's secrets. crates.io's index and
 # download host (owner, D24, 2026-10-12) let Rust sessions fetch crates; cargo's
 # cache stays inside the checkout (scripts/cargo.sh), so writes stay in the repo.
+# The owner's credential files are hidden from sandboxed commands (D25): a crate's
+# build script runs here, and reads are otherwise open.
 SANDBOX = {
     "enabled": True,
     "failIfUnavailable": True,
@@ -57,7 +59,11 @@ SANDBOX = {
     "excludedCommands": ["git push *", "git fetch *", "git pull *"],
     "filesystem": {
         "denyWrite": ["./scripts/quality/hooks"],
-        "denyRead": ["/home/junc/rikuri/rikurinode/.env", "/home/junc/rikuri/rikurinode/data", "/run/rikuri"],
+        "denyRead": ["/home/junc/rikuri/rikurinode/.env", "/home/junc/rikuri/rikurinode/data", "/run/rikuri",
+                     # D25 (owner, 2026-10-12): the owner's credential files, so code a
+                     # crate runs at build time (or any sandboxed command) cannot read them
+                     "/home/junc/.ssh", "/home/junc/.config/gh", "/home/junc/.git-credentials",
+                     "/home/junc/.docker", "/home/junc/.claude/.credentials.json"],
     },
     "network": {"allowedDomains": ["github.com", "api.github.com", "*.githubusercontent.com",
                                    "index.crates.io", "static.crates.io"]},

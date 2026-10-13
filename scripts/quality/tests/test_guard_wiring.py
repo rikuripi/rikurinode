@@ -40,7 +40,9 @@ SANDBOX = {"enabled": True, "failIfUnavailable": True, "allowUnsandboxedCommands
            "excludedCommands": ["git push *", "git fetch *", "git pull *"],
            "filesystem": {"denyWrite": ["./scripts/quality/hooks"],
                           "denyRead": ["/home/junc/rikuri/rikurinode/.env", "/home/junc/rikuri/rikurinode/data",
-                                       "/run/rikuri"]},
+                                       "/run/rikuri", "/home/junc/.ssh", "/home/junc/.config/gh",
+                                       "/home/junc/.git-credentials", "/home/junc/.docker",
+                                       "/home/junc/.claude/.credentials.json"]},
            "network": {"allowedDomains": ["github.com", "api.github.com", "*.githubusercontent.com",
                                           "index.crates.io", "static.crates.io"]}}
 
@@ -181,7 +183,7 @@ class Wiring(unittest.TestCase):
         # socket (the Docker socket drives the live node), or run unsandboxed
         widen = [("filesystem", "allowWrite", ["/home/junc/rikuri"]), ("filesystem", "disabled", True),
                  ("network", "allowUnixSockets", ["/var/run/docker.sock"]), ("network", "allowAllUnixSockets", True),
-                 ("network", "allowLocalBinding", True), (None, "excludedCommands", ["git push *", "docker *"]),
+                 ("network", "allowLocalBinding", True), (None, "excludedCommands", SANDBOX["excludedCommands"] + ["docker *"]),
                  (None, "enableWeakerNestedSandbox", True), (None, "enableWeakerNetworkIsolation", True)]
         for section, key, value in widen:
             s = settings()
@@ -210,9 +212,10 @@ class Wiring(unittest.TestCase):
     def test_documented_widenings_fail_in_either_file(self):
         # verifier round 9: each passed the check, as the project file and as
         # the local file (Claude Code 2.1.295's settings schema documents them)
-        widen = [(("sandbox", "network", "allowedDomains"), ["github.com", "api.github.com", "*.githubusercontent.com",
-                                                             "*"]),
-                 (("sandbox", "network", "allowedDomains"), ["github.com", "example.com"]),
+        # each a pure addition to the current list, so each fails for what it adds
+        # (round 1's verifier: a hard-coded list went stale when D24 added hosts)
+        widen = [(("sandbox", "network", "allowedDomains"), SANDBOX["network"]["allowedDomains"] + ["*"]),
+                 (("sandbox", "network", "allowedDomains"), SANDBOX["network"]["allowedDomains"] + ["example.com"]),
                  # D24 named two crates.io hosts, nothing wider: not its API, not a wildcard
                  (("sandbox", "network", "allowedDomains"), SANDBOX["network"]["allowedDomains"] + ["crates.io"]),
                  (("sandbox", "network", "allowedDomains"), SANDBOX["network"]["allowedDomains"] + ["*.crates.io"]),

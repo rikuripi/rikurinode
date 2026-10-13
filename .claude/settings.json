@@ -35,7 +35,12 @@
       "denyRead": [
         "/home/junc/rikuri/rikurinode/.env",
         "/home/junc/rikuri/rikurinode/data",
-        "/run/rikuri"
+        "/run/rikuri",
+        "/home/junc/.ssh",
+        "/home/junc/.config/gh",
+        "/home/junc/.git-credentials",
+        "/home/junc/.docker",
+        "/home/junc/.claude/.credentials.json"
       ]
     },
     "network": {
