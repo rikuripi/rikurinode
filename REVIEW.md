@@ -1,9 +1,11 @@
 # Review instructions
 
 How any review of a change to this repository is run: `/code-review`, the
-`verifier` subagent's report, a human reviewer, a PR bot. Referenced from
-AGENTS.md > Standard work. AGENTS.md > "Design rules" and "Security baseline"
-are the judgement this review applies.
+`verifier` subagent's report, a human reviewer, a PR bot. This is the review
+pass [AGENTS.md](AGENTS.md) §5.D requires: one pass after tests, then at most
+one follow-up on corrected findings; a review that would need a third round
+ends in `NEEDS_OWNER_DECISION` instead. AGENTS.md > "Design rules" and
+"Security baseline" are the judgement this review applies.
 
 ## Passes (run all three; tag every finding with its pass)
 
@@ -20,7 +22,8 @@ are the judgement this review applies.
   shell; network access beyond the allow-list; a restore that could bring
   back an old channel state.
 - **Compliance**: does the diff match the Build Record's Intent, Spec and
-  Plan? Plus the rules only this repository has:
+  Plan, and its Task Contract's Scope (AGENTS.md §1)? Work outside the Task
+  Contract is a finding. Plus the rules only this repository has:
   - **Claims match evidence**: a record, document or README that says
     something works or passed without linked evidence is **Important**. Pass,
     Fail and Not yet proven stay distinct.
@@ -54,4 +57,6 @@ observed green (the full gate in `.github/workflows/ci.yml`).
 ## Separation of duties
 
 The session that wrote a change does not approve it. Review findings are
-evidence in the Build Record; the owner decides.
+evidence in the Build Record; the owner decides. A review does not start
+work: findings outside the task go to the backlog or the owner (AGENTS.md
+§5.C), and the independent reviewer never fixes.
