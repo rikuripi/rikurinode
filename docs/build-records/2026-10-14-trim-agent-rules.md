@@ -5,7 +5,7 @@
 | **Date** | 2026-10-14 |
 | **Author / session** | Claude Code (Opus 5.5) for Henry Chen, from `~/claude-wip/trim-node/HANDOFF.md` |
 | **Branch** | `docs/trim-agent-rules`, worktree `/home/junc/claude-wip/trim-node/rn`, from `origin/main` `eb8b849` (PR #9 merged) |
-| **Commits** | (fill at close-out) |
+| **Commits** | `28810b3`, the change; a second commit records this row |
 | **Status** | DONE locally; CI on the PR Not yet proven |
 | **Change type** | ops (working rules) |
 
@@ -131,7 +131,8 @@ No defect fix. Repair cycle 1 of 2, after verifier pass 1 (`VERDICT: FAIL`, one 
 
 - [x] Scrap sweep: the tracked changes are the files in Scope. The mutation trial's scratch output is removed. Its cargo cache, `.cargo-home/` (86 MB, gitignored), stays in the worktree: `rm` was refused by the sandbox ("Read-only file system"), so it is the owner's to remove.
 - [x] Repair cycles: 1 of 2. Review rounds: 2 of 2.
-- [ ] Committed, pushed, PR opened:
+- [x] Committed `28810b3` (pre-commit hook: gitleaks "no leaks found") and pushed `docs/trim-agent-rules` to origin. `git -C <worktree> push` failed inside the sandbox ("Authentication failed"); `git push origin docs/trim-agent-rules`, run alone, succeeded.
+- [ ] PR opened: `gh` has no login inside the sandbox, so the owner opens it from https://github.com/rikuripi/rikurinode/pull/new/docs/trim-agent-rules with the body at `~/claude-wip/trim-node/pr-body.md`. CI is Not yet proven until its run is observed.
 
 ## Results and limitations
 
