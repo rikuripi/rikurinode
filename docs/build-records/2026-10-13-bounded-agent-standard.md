@@ -5,8 +5,8 @@
 | **Date** | 2026-10-13 |
 | **Author / session** | Claude Code (Opus 5.5) for Henry Chen, in the worktree `/home/junc/claude-wip/bounded-agents/rn` |
 | **Branch** | `docs/bounded-agent-standard`, from `main` `a064741` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN REVIEW — pull request open; CI not yet observed |
+| **Commits** | 594335a on `docs/bounded-agent-standard` (the whole change and this record); a second commit records CI on PR #9 |
+| **Status** | COMPLETE — verifier rounds FAIL, FAIL, then PASS in the third, narrow round the owner authorized; three nits for the owner (Skipped items). CI green on pull request #9 at 594335a: "Full gate (Ubuntu)" (CI run 38518343922, 1m 47s) and the guard tests on Python 3.9 and 3.12 (run 38518343919, 58s). Awaiting the owner's review and merge |
 | **Change type** | ops (agent rules and the documents that cite them; no code) |
 
 **Risk note (protected paths):** `AGENTS.md`, `CLAUDE.md`, `REVIEW.md`,
@@ -436,8 +436,13 @@ verifier's pass reproduced every one but the link check, see below):
 
 ## 5. Close Out
 
-- [ ] Full gate: CI's `Full gate (Ubuntu)` on the PR: Not yet proven at
-      this commit; recorded once observed.
+- [x] Full gate: CI's `Full gate (Ubuntu)` on the PR: seen green on pull
+      request #9 (opened by this session, 2026-10-13), commit 594335a —
+      "Full gate (Ubuntu)" succeeded (CI run 38518343922, "CI #26", job
+      115702117824, 1m 47s), and the guard and quality-tool tests on
+      Python 3.9 and 3.12 (run 38518343919, 58s; two warnings, both the
+      runner's Node.js 20 deprecation notice for `actions/setup-python`),
+      read from GitHub's pages in the owner's browser. **Pass**.
 - [x] Scrap Sweep: task-scoped. The task created this record and
       `docs/guard-and-sandbox.md`, both kept. Its scratch (assembly and
       check scripts, test outputs, the commit message) is in the
@@ -536,4 +541,5 @@ round 3
   guard state:             profile: development / fix-lock not engaged
 review rounds:             2 of 2 used; a third is the owner's decision
 third pass (owner):        VERDICT: PASS — no Important finding; 3 nits (backlog); guard tests 91 OK, quality tests 80 OK (skipped=1), wiring/policy/hygiene exit 0; AGENTS.md, reference and record sha256 unchanged by the pass
+PR #9 on 594335a:          CI run 38518343922 (Full gate (Ubuntu), 1m 47s) and run 38518343919 (guard tests, py3.9 and py3.12, 58s) completed successfully
 ```
