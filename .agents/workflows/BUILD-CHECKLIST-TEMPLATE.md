@@ -47,7 +47,7 @@
 ## 3. Debug (only if this change fixes a defect — else mark N/A)
 - [ ] Reproduced before fixing (how):
 - [ ] Failing test written and SEEN failing (red commit, or red run
-      recorded here); fix-lock engaged only if chosen (AGENTS.md §4); every
+      recorded here); fix-lock engaged only if chosen (AGENTS.md §6); every
       later test or baseline change has its reason here:
 - [ ] Root cause is a CLASS, named here:
 - [ ] Swept for siblings of the class (where else it lived):
