@@ -42,7 +42,9 @@ open one is built. Facts about outside software were checked on
   LND on a private test network → backup and a restore drill → updates and
   their rollback drill → the backend API → Lightning channel management,
   test-first, on test networks and then a capped mainnet amount → the
-  frontend → the sandboxed assistant.
+  frontend → the sandboxed assistant → the treasury and agent payments → the
+  marketplace (stages 9 and 10, planned 2026-10-17 in the
+  [agent payments and marketplace plan](agent-payments-and-marketplace-plan.md)).
 
 ## 1. What this plan answers
 
@@ -261,11 +263,21 @@ drill has been seen to pass.
 | 6 Updates | OS and component updates, the version rules of §4.2, migrations | A broken image; a broken component; an LND upgrade with a migration |
 | 7 Backend API and channel management | The control plane; channels, fees, rebalancing, node search, analytics | §6 steps 2 and 3 |
 | 8 Frontend, then the assistant | The UI; the planning-only assistant in a sandbox (OpenShell, AISecurity policy) | The sandbox boundary tests (gap G5) |
+| 9 Treasury and agent payments | The control plane as the treasury: owner-signed, revocable mandates for agents; the payment pipeline with reservations and the approval queue; invoices for sellers; the hash-chained ledger; reconciliation and the divergence alarm; the caps as settings ([agent payments and marketplace plan §5](agent-payments-and-marketplace-plan.md#5-stages-9-and-10)) | On a test network: a mandate pays within its allowance, waits above it, and is refused when revoked, forged, expired or replayed; a ledger-versus-LND disagreement suspends mandates and alerts; a reservation survives an update and rollback; the sandbox boundary test with an agent inside |
+| 10 Marketplace | A separable marketplace service, a client of the treasury: signed listings and reviews, reputation, discovery, auctions with hold-invoice collateral, selling through the treasury's invoices, help pages (same plan, §5) | Two nodes on a test network, one not a Rikuri node: publish, discover, buy, review; forged and replayed items refused; a wash-trading ring scored below the trusted tier; an auction settled; no path to LND but the treasury |
 
 What carries over from the previous repository: behaviour and test cases,
 not code — the 90 port candidates of the lessons register, each rewritten in
 Rust and re-checked for Fedora, the container runtime and the
 Pi where its verdict says so.
+
+Stages 9 and 10 were added on 2026-10-17 from the
+[agent payments and marketplace plan](agent-payments-and-marketplace-plan.md):
+the node as the treasury for the owner's agents, then a marketplace it can
+host, behind the security layer that plan describes. They start only after
+stage 8's drill, and their owner decisions (E1 to E10 there) are open. The
+previous repository's commerce code is harvested at module level in the
+lessons register's §7, with gap G12 for what it never proved.
 
 ## 9. Sources (read 2026-10-11)
 
