@@ -751,6 +751,7 @@ Sections after the requirements: [3. Owner decisions](#3-owner-decisions) · [4.
 - **Why:** after eight verifier rounds the command guard still listed forms it cannot see (pipes into `xargs`, code strings, paths built at run time) and called itself a tripwire, not a sandbox (2026-10-04-guard-secret-searches-and-inline-targets.md); a collector pulled GitHub issue text into the assistant's area, raising 20 injection warnings at every start, for no consumer (2026-10-04-remove-mcp-data-collector.md); the agent-gateway plan required read-only defaults and approval-queue projection (2026-09-20-agent-mcp-gateway.md).
 - **Tripwire:** A sandbox boundary test proving the assistant cannot read secret files by any command form (owed); a test that no exposed tool is both authoritative and dangerous (planned in the old repository, not built).
 - **Owner:** “4. remove collector and unused endpoints.” — 2026-10-04-remove-mcp-data-collector.md
+- **Superseded / caveat:** Clarified 2026-10-18 (owner, decision F3 of `docs/architecture/assistant-plan.md`): "private node data never goes to cloud models" stays the default, and the rule for chat and for every action. The owner may enable, off by default, a cloud model for the weekly reflection and for evaluation only; what leaves is redacted by the node's secret filter, bounded, and recorded before the send as a `data_egress` event the owner can see (that plan's contract B5). The code that implements the option is a high-risk change.
 
 #### AI-03 — The emergency stop stops everything and needs no password
 
