@@ -5,8 +5,8 @@
 | **Date** | 2026-10-17 |
 | **Author / session** | Claude Code (Fable 5.1), owner Henry Chen |
 | **Branch** | `docs/agent-payments-plan` |
-| **Commits** | none yet: the owner decides the commit and the pull request (Task Contract, Authority) |
-| **Status** | COMPLETE (verified; the commit and the pull request await the owner's word) |
+| **Commits** | `13bb618` (the change, on the owner's "Yes, commit and push", 2026-10-17); this record's update follows it; branch pushed to `origin/docs/agent-payments-plan` after that |
+| **Status** | COMPLETE (committed and pushed; the pull request is the owner's to open) |
 | **Change type** | feature (documentation only) |
 
 ## Task Contract
@@ -199,7 +199,14 @@ N/A — no defect fixed.
   and one follow-up (`PASS`); the Important finding fixed, the nits fixed in
   place, none skipped; repair cycles used: 1 of 2; review rounds: 2 of 2.
 - [x] Knowledge layer: n/a (no user-visible behaviour).
-- [ ] Commit: not before the owner says so (open; the owner's next word).
+- [x] Commit: on the owner's word ("Yes, commit and push", 2026-10-17):
+  `13bb618` carries the four files; the pre-commit hook's secret scan
+  reported "no leaks found"; this record's update is the next commit, and
+  the branch is pushed with `git push -u origin docs/agent-payments-plan`
+  as a command on its own. The pull request: the owner opens it from
+  https://github.com/rikuripi/rikurinode/pull/new/docs/agent-payments-plan
+  with the body at `~/claude-wip/agent-payments-plan/pr-body.md`. CI's full
+  gate on the PR is **Not yet proven** until its run is observed.
 
 ## Skipped items — visible, never silent
 
