@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | Accepted — owner, 2026-10-11 |
 | **Decision** | D2 of `docs/architecture/platform-plan.md` |
-| **Beside it** | D5, decided 2026-10-12: rootless, an ID range per container (ADR 0003) |
+| **Beside it** | D5, decided 2026-10-12: rootless, an ID range per container (ADR 0003); superseded 2026-10-17 by D13: rootful, an ID range per container (ADR 0007). The container images are bound to the OS image since D12 (ADR 0006), so the auto-update consequence below no longer applies. |
 
 ## Context
 
