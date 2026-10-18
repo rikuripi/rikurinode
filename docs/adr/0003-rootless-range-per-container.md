@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted — owner, 2026-10-12 (the plan's recommendation) |
+| **Status** | **Superseded** — by ADR 0007, owner, 2026-10-17 (rootful Podman, each container in its own ID range: bootc's bound images are rootful-only, and a pod's user namespace is pod-wide). Accepted 2026-10-12 (the plan's recommendation); the text below is kept as it was decided. |
 | **Decision** | D5 of `docs/architecture/platform-plan.md` |
 | **Beside it** | ADR 0001: Podman with Quadlet |
 
