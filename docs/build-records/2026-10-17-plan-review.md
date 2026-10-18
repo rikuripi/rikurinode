@@ -5,8 +5,8 @@
 | **Date** | 2026-10-17 (the review itself: 2026-10-16) |
 | **Author / session** | Claude Code (Fable 5.1) for Henry Chen, in the owner's desktop session |
 | **Branch** | `docs/plan-review-2026-10-16`, this checkout, from `main` `c235364` (PR #10 merged). The checkout had been left on another session's branch, `docs/agent-payments-plan` (pushed, its PR not yet open), with nothing uncommitted; that branch also touches `platform-plan.md` (14 lines) and the lessons register, so whichever PR lands second rebases. |
-| **Commits** | (fill at close-out) |
-| **Status** | DONE locally, uncommitted (the owner's word to commit is pending); CI on the pull request Not yet proven. The `NEEDS_OWNER_DECISION` on D11 and the D13 package was answered the same day ("D11. as you recommend. D13 Package R as you recommended") |
+| **Commits** | `86eea75`, the change (the pre-commit hook ran: gitleaks "no leaks found"); a second commit records this row and the push |
+| **Status** | DONE locally; committed and pushed on the owner's word ("Commit and push", 2026-10-17); CI on the pull request Not yet proven. The `NEEDS_OWNER_DECISION` on D11 and the D13 package was answered the same day ("D11. as you recommend. D13 Package R as you recommended") |
 | **Change type** | ops (architecture decisions and plan amendments; documentation only) |
 
 ## Task Contract
@@ -67,7 +67,7 @@ N/A: no defect fixed.
 - [ ] Reviewed per `REVIEW.md`: the owner's pull-request review.
 - [x] Lesson loop: N/A.
 - [x] Knowledge layer: the plan and the ADR are the knowledge layer for this change; no help page or runbook exists yet.
-- [ ] Commit message explains why; record committed with the change (waits for the owner's word).
+- [x] Commit message explains why; record committed with the change (`86eea75`, on the owner's word).
 
 ## Decisions of 2026-10-17
 
@@ -99,7 +99,7 @@ Package R also decides D14 (a private network with fixed addresses) and D12's me
 
 ## Skipped items — visible, never silent
 
-- §5's full-gate and commit boxes wait for the owner's word on committing; CI runs the gate on the pull request.
+- §5's full-gate box: not run locally (documentation only); CI runs the gate on the pull request, Not yet proven until seen green.
 - `AGENTS.md` §7's "Proposed, to be decided in the platform plan" line: the version half is decided by D12; the settings half waits for stage 6. A pointer edit there is high-risk tier (agent rules) and is not worth a task on its own; it goes with the next change to `AGENTS.md`.
 
 ## Evidence log
