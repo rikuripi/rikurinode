@@ -5,8 +5,8 @@
 | **Date** | 2026-10-18 |
 | **Author / session** | Claude Code (Fable 5.1) for Henry Chen, in the owner's desktop session |
 | **Branch** | `docs/security-plan-2026-10-18`, this checkout, stacked on `docs/assistant-plan-2026-10-18` at `5cc484d` (pushed, its pull request not yet open) because this change cites ADR 0008 and edits the assistant plan. Whichever pull request lands second rebases. No upstream entry (the sandbox refuses `.git/config` writes). |
-| **Commits** | (fill at close-out) |
-| **Status** | DONE locally, 2026-10-18: every "Done when" item holds (§4), the verifier passed with five nits, all fixed in place. Not committed, not pushed; CI Not yet proven |
+| **Commits** | `fd69a42`, the change (the pre-commit hook ran: gitleaks "no leaks found"); the next commit, this row and the push |
+| **Status** | DONE; committed and pushed on the owner's word ("Commit and push", 2026-10-18); the verifier passed with five nits, all fixed in place; CI on the pull request Not yet proven |
 | **Change type** | ops (threat model, architecture decision, plan amendments; documentation only) |
 
 ## Task Contract
@@ -69,11 +69,10 @@ N/A: no defect fixed.
 - [x] Reviewed per `REVIEW.md`: the verifier's three passes above, plus the author's own re-read. No Important finding; the five nits fixed in place.
 - [x] Lesson loop: N/A (no mistake made twice; the nits were wording).
 - [x] Knowledge layer: the threat model and the ADR are the knowledge for this change; the stage table carries the short form.
-- [ ] Commit message explains WHY; record committed with the change: on the owner's word.
+- [x] Commit message explains WHY; record committed with the change: `fd69a42` on the owner's word ("Commit and push", 2026-10-18).
 
 ## Skipped items — visible, never silent
 
-- §5 "Commit": the owner's standing rule; the commit and push follow the owner's word, and the Commits row is filled then.
 - §5 "Full gate": documentation-only change; the `AGENTS.md` §5 checks replace it locally and CI runs the gate on the pull request.
 
 ## Evidence log
