@@ -414,8 +414,10 @@ nothing until then.
   is kept by default (B2).
 - The gate's initial thresholds (C2) and the size of the reflection set (C6).
 - Whether whisper.cpp fits beside the model on the N150 (F5 B).
-- Which cloud provider and redaction filter the F3 option uses, decided when
-  its code is built; its Build Record is high-risk.
+- Which cloud provider the F3 option uses, decided when its code is built;
+  its Build Record is high-risk. The redaction filter is decided (2026-10-18,
+  ADR 0009): AISecurity's sensitive-data and key-filter detectors, linked as
+  a pinned crate; see the [threat model §7](../security/THREAT_MODEL.md#7-aisecuritys-place-s1).
 
 ## 7. Sources (read 2026-10-18)
 
