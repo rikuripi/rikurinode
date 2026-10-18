@@ -5,8 +5,8 @@
 | **Date** | 2026-10-18 |
 | **Author / session** | Claude Code (Fable 5.1) for Henry Chen, in the owner's desktop session |
 | **Branch** | `docs/assistant-plan-2026-10-18`, this checkout, from `main` `283dcb5` (PR #12 merged). The sandbox refuses writes to `.git/config` (a device sits at `.git/config.lock`), so the branch carries no upstream entry; a push names the remote and branch explicitly. |
-| **Commits** | none yet: the change sits uncommitted on the task branch until the owner says commit (standing rule) |
-| **Status** | DONE locally, 2026-10-18: every "Done when" item holds (§4). Not committed, not pushed; CI Not yet proven |
+| **Commits** | `8e7fee1`, the change (the pre-commit hook ran: gitleaks "no leaks found"); the next commit, this row and the push |
+| **Status** | DONE; committed and pushed on the owner's word ("Commit and push", 2026-10-18); CI on the pull request Not yet proven |
 | **Change type** | ops (architecture decision, plan and contracts; documentation only) |
 
 ## Task Contract
@@ -69,11 +69,10 @@ N/A: no defect fixed.
 - [x] Reviewed per `REVIEW.md`, its three passes (Bugs; Security & funds; Compliance) by the author on a full re-read of the two new documents: Bugs — three nits fixed in place (HEAL-07's "seven other approval stores" was quoted as "seven"; a sentence blamed PLAT-03 for retiring the TypeScript backend where D3 and D15 do; the TurboQuant status sentence now says the two status pages disagree); Security & funds — F3's caveat and B5 state default, scope, redaction and recording, and name the implementing code high-risk; no funds path, key or authority is created by a document; Compliance — the diff is the Task Contract's Scope and nothing else, every decision is exposed with its alternatives and costs, and every claim about the previous repository names its file or record, and §1 says "never measured", "not checkable" and "unwired" where the records show it. No Important finding.
 - [x] Lesson loop: N/A.
 - [x] Knowledge layer: the plan and the ADR are the knowledge for this change; no help page exists yet.
-- [ ] Commit message explains WHY; record committed with the change: on the owner's word.
+- [x] Commit message explains WHY; record committed with the change: `8e7fee1` on the owner's word ("Commit and push", 2026-10-18).
 
 ## Skipped items — visible, never silent
 
-- §5 "Commit": the owner's standing rule; the commit and push follow the owner's word, and the Commits row is filled then.
 - §5 "Full gate": documentation-only change; the §5 checks of `AGENTS.md` replace it locally and CI runs the gate on the pull request.
 
 ## Evidence log
