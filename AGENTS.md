@@ -153,7 +153,7 @@ The secret list is the guard's own. Node configs are tracked only as `*.conf.tem
 
 ### Security baseline
 
-From the owner's AI-security briefing (2026-10-10) and Rikuri-PI's adopted direction (AISecurity policy, OpenShell enforcement). These are requirements for code still to come; none of it exists yet:
+From the owner's AI-security briefing (2026-10-10) and Rikuri-PI's adopted direction (AISecurity policy, OpenShell enforcement). The node's [threat model](docs/security/THREAT_MODEL.md) (2026-10-18) maps them to each stage's controls and tests, and ADR 0009 fixes AISecurity's place: its detectors signal; systemd, Podman and the control plane enforce. These are requirements for code still to come; none of it exists yet:
 
 - **The assistant plans; it never holds authority.**
   - Hard limits are enforced outside the model.
@@ -204,6 +204,7 @@ Not yet part of it:
 | [Platform and architecture plan](docs/architecture/platform-plan.md) | Stages, architecture, the owner's decisions |
 | [ADRs](docs/adr/) | Accepted decisions |
 | [Lessons register](docs/requirements/lessons-register.md) | What the previous node taught, and the check each lesson needs |
+| [Threat model](docs/security/THREAT_MODEL.md) | Assets, trust assumptions, each threat's control, stage and test; the security slice of every stage; the advisory intake loop |
 | [REVIEW.md](REVIEW.md) | How every change is reviewed |
 
 Read only the parts your task needs. Documents state intent, not proof that something exists: check the tree.
