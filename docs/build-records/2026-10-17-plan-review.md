@@ -5,7 +5,7 @@
 | **Date** | 2026-10-17 (the review itself: 2026-10-16) |
 | **Author / session** | Claude Code (Fable 5.1) for Henry Chen, in the owner's desktop session |
 | **Branch** | `docs/plan-review-2026-10-16`, this checkout, from `main` `c235364` (PR #10 merged). The checkout had been left on another session's branch, `docs/agent-payments-plan` (pushed, its PR not yet open), with nothing uncommitted; that branch also touches `platform-plan.md` (14 lines) and the lessons register, so whichever PR lands second rebases. |
-| **Commits** | `86eea75`, the change (the pre-commit hook ran: gitleaks "no leaks found"); a second commit records this row and the push |
+| **Commits** | `86eea75`, the change (the pre-commit hook ran: gitleaks "no leaks found"); `d5a8dbb`, this row and the push; `d3385d3`, the merge of `origin/main` after PR #11 (agent payments) landed first — one conflict in the plan's stage table, rows 8 to 10, resolved by keeping this branch's row 8 and PR #11's rows 9 and 10 (markers 0, links 4/4, `git diff --cached --check` clean, `repo_hygiene.py` exit 0); a last commit records this |
 | **Status** | DONE locally; committed and pushed on the owner's word ("Commit and push", 2026-10-17); CI on the pull request Not yet proven. The `NEEDS_OWNER_DECISION` on D11 and the D13 package was answered the same day ("D11. as you recommend. D13 Package R as you recommended") |
 | **Change type** | ops (architecture decisions and plan amendments; documentation only) |
 
