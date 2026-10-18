@@ -1,18 +1,20 @@
 # Platform and architecture plan
 
 **Status: proposed, 2026-10-11; D5 to D9 decided 2026-10-12; D10 to D15
-decided 2026-10-17, D13 superseding D5.** Of its fifteen owner decisions
-(§7), thirteen are taken — D2, Podman with Quadlet; D3, Rust; D5, rootless
+decided 2026-10-17, D13 superseding D5; D16, the assistant, decided
+2026-10-18.** Of its sixteen owner decisions (§7), fourteen are taken — D2, Podman with Quadlet; D3, Rust; D5, rootless
 with an ID range per container, superseded by D13, rootful with an ID range
 per container; D6 and D7, the OS image public on GitHub's registry and signed
 by a key in CI with an offline spare; D8, CI minutes; D9, Fedora's DNS boot
 check off; D10, the setup page's connection; D11, accounts; D12, releases as
 tested sets bound to the OS image; D14, a private network with fixed
-addresses; D15, the frontend's shape (ADRs 0001 to 0007 and
-`docs/build-records/2026-10-17-plan-review.md`) — and two are open (D1, the
+addresses; D15, the frontend's shape; D16, the assistant's engine,
+learning, cloud, models and voice (ADRs 0001 to 0008,
+`docs/build-records/2026-10-17-plan-review.md` and
+`docs/build-records/2026-10-18-assistant-plan.md`) — and two are open (D1, the
 Pi 5; D4, the first mainnet amount); nothing that depends on an open one is
-built. Facts about outside software were checked on 2026-10-11 and
-2026-10-17 and carry their source (§9); re-check them before acting on them.
+built. Facts about outside software were checked on 2026-10-11,
+2026-10-17 and 2026-10-18 and carry their source (§9); re-check them before acting on them.
 
 ## In one page
 
@@ -271,6 +273,7 @@ and the backend refuses to run against a version it was not tested with.
 | D13 | Rootless or rootful, revisited as a package (D5, ADR 0003) | Two facts read on 2026-10-17 (§9) bind D5, D12's mechanism and D14 together: bound images are rootful-only, and a pod's user namespace is set "for all the containers in a pod", so one pod means one ID range shared by bitcoind, Tor and LND, not ADR 0003's range per container. **Package R: rootful Podman, a user-ID range per container** (`userns=auto`; D5's third option) — system Quadlet units; the container images bound to the OS image; a private bridge network with fixed addresses, so the range per container is kept and inbound peers' addresses are preserved; the control plane a system service under its own user with one small root helper for a fixed list of actions (`bootc` upgrade and rollback, hostname, the backup drive, reboot); greenboot sees the units directly; `OOMScoreAdjust` available; costs: Podman's own setup code runs as root, so a bug in it reaches the host (the container processes still run as unprivileged mapped IDs); ADR 0003 superseded by a dated ADR. **Package U: rootless, as decided** — the control plane applies release sets and keeps the images (D12's second mechanism); containers in one pod on pasta (one ID range per pod; pasta "preserves the original source IP address") or on a bridge network with a range per container (`rootlessport` "does not preserve client source IPs"; the pasta forwarder for it is experimental); the control plane a user service beside the units plus a root helper (the owner's "4. A"); greenboot asks the control plane; units kept alive by lingering; costs: more control-plane code on the rollback path, the rootless networking trade-offs, boot ordering through lingering. | **Decided: package R** (owner, 2026-10-17, "D13 Package R as you recommended"; ADR 0007 supersedes ADR 0003): the one-image, one-rollback model is only available rootful, and `userns=auto` keeps the separation between containers that ADR 0003 wanted |
 | D14 | Internal network (stage 2) | **One pod** (the owner's pick of 2026-10-17): bitcoind, Tor and LND on localhost; RPC, REST and ZMQ never leave it; the stale Tor address of the previous node cannot occur; costs: one ID range per pod (D13). **A private network with fixed addresses**: a range per container kept; the services bind to their fixed addresses and the Tor address never changes; costs: more network configuration (and, under a rootless runtime, its forwarding trade-offs). | **Decided: a private network with fixed addresses** (with package R; owner, 2026-10-17; ADR 0007) |
 | D15 | The frontend's technical shape | TypeScript stays the UI's language (D3). **Static files, built in CI and served by the Rust control plane**: no Node.js on the node, so PLAT-03's class (a runtime replaced under a native module) and PLAT-11's (a proxy site) cannot occur. **One typed contract**: the UI's API types generated from the Rust types in CI, so a renamed field fails the build; EVID-02's four-state status with an explicit `unknown` is a type the UI cannot coalesce to 0. **Render tests in CI** (TEST-10): phone, tablet and desktop widths, every theme variable defined, every text key present in every shipped language (the previous UI ships en, es, ja, zh, zh-TW). **Supply chain**: lockfile committed, installs with scripts off, a dependency audit that cannot pass silently (SEC-06), the Node toolchain pinned and present only in CI. **Sizing**: 61 of the register's 90 port candidates are TypeScript, about 12,000 lines, re-expressed in Rust with their tests; the previous backend is 172,000 lines, and "behaviour and tests, not code" is what keeps stage 7 from being that. The look: the owner wants it "a bit softer, fun" than the previous page, which was "clean, but a bit crowded and verbose"; a design system is the first UI slice's first step. | **Decided** (owner, 2026-10-17) |
+| D16 | The assistant: engine, learning loops, cloud tier, models on the node, voice | Five choices, each with its alternatives and their costs in the [assistant plan](assistant-plan.md) §2: F1 llama.cpp's official server image pinned by digest, not ik_llama.cpp and not the previous node's Lean_llama.cpp fork; F2 no behaviour-changing learning loop until a labelled evaluation exists, then reflection into a reviewed backlog; F3 no cloud model by default, an owner-enabled exception for reflection and evaluation only, redacted and recorded (AI-02's dated caveat); F4 one model with a grammar for both of its jobs, a second router model only if the gate says so; F5 speech-to-text on the phone first, whisper.cpp on the node later if memory allows, approval never by voice. | **Decided** (owner, 2026-10-18; ADR 0008 for the engine; `docs/build-records/2026-10-18-assistant-plan.md`) |
 
 Later, with their stage: how LND's wallet is unlocked after a reboot (a
 password stored on the node, or the owner unlocking it in the app — gap G9;
@@ -294,7 +297,7 @@ drill has been seen to pass.
 | 5 Backup and restore | Encrypted SCB to a UUID-identified destination; restore through the UI | Restore on clean hardware, test network |
 | 6 Updates | OS and component updates, the version rules of §4.2, migrations | A broken image; a broken component; an LND upgrade with a migration |
 | 7 Backend API and channel management | The control plane; channels, fees, rebalancing, node search, analytics | §6 steps 2 and 3 |
-| 8 Frontend, then the assistant | The full UI, grown from the setup slice of stage 1 and the wallet and restore screens of stages 4 and 5 (D15); the planning-only assistant in a sandbox (OpenShell, AISecurity policy) | The sandbox boundary tests (gap G5) |
+| 8 Frontend, then the assistant | The full UI, grown from the setup slice of stage 1 and the wallet and restore screens of stages 4 and 5 (D15); the planning-only assistant in a sandbox (OpenShell, AISecurity policy), built to the [assistant plan](assistant-plan.md) (D16): llama.cpp's server image pinned by digest (ADR 0008), one model chosen by the N150 measurement, the action templates stage 7 exposes, the AI event store and page, the evaluation gate | The sandbox boundary tests (gap G5); the evaluation gate green on the release's engine and model (assistant plan, contract C); one action template driven end to end on a test network, approved by step-up |
 | 9 Treasury and agent payments | The control plane as the treasury: owner-signed, revocable mandates for agents; the payment pipeline with reservations and the approval queue; invoices for sellers; the hash-chained ledger; reconciliation and the divergence alarm; the caps as settings ([agent payments and marketplace plan §5](agent-payments-and-marketplace-plan.md#5-stages-9-and-10)) | On a test network: a mandate pays within its allowance, waits above it, and is refused when revoked, forged, expired or replayed; a ledger-versus-LND disagreement suspends mandates and alerts; a reservation survives an update and rollback; the sandbox boundary test with an agent inside |
 | 10 Marketplace | A separable marketplace service, a client of the treasury: signed listings and reviews, reputation, discovery, auctions with hold-invoice collateral, selling through the treasury's invoices, help pages (same plan, §5) | Two nodes on a test network, one not a Rikuri node: publish, discover, buy, review; forged and replayed items refused; a wash-trading ring scored below the trusted tier; an auction settled; no path to LND but the treasury |
 
@@ -310,6 +313,14 @@ host, behind the security layer that plan describes. They start only after
 stage 8's drill, and their owner decisions (E1 to E10 there) are open. The
 previous repository's commerce code is harvested at module level in the
 lessons register's §7, with gap G12 for what it never proved.
+
+The assistant's shape was decided on 2026-10-18 in the
+[assistant plan](assistant-plan.md) (D16; ADR 0008 for the engine): the
+model has two jobs, classifying into typed intents and explaining from
+retrieved text; everything else is deterministic Rust. Stage 7 exposes the
+action templates it drives (that plan's contract A); stage 8 builds the
+rest. The previous repository's AI code is evidence and specification
+there, not a port.
 
 ## 9. Sources (read 2026-10-11)
 
