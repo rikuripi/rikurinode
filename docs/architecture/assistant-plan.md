@@ -430,7 +430,8 @@ nothing until then.
   once its retention and training terms are read and recorded; whether a
   bigger local model runs on an owner-run machine; and whether the review
   lane moves from approval of each send to an automatic weekly send after its
-  shadow period.
+  shadow period. Until the shadow period ends, the owner approves each send
+  (confirmed by the owner, 2026-10-20).
 
 ## 7. Sources (read 2026-10-18)
 

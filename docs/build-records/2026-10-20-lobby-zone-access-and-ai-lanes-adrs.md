@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Sonnet 5.5, desktop chat session) for Henry Chen |
 | **Branch** | `docs/adrs-0010-0014`, made in a cloud-session clone at `/home/claude/rikurinode` (the owner's Mac could not reach GitHub from that session) and stacked on `fix/rustsec-2026-0382` (pull request #18) so its CI can pass; the same files were first written uncommitted in the owner's checkout on the Mac, byte-identical (sha256 compared) |
 | **Commits** | `c8f3e82` (ADRs 0010 to 0014 and their two records), `2708860` (the plan, register and threat-model edits and their three records), `51e6692` (the verifier's first-pass corrections), the next commit (these rows); the pre-commit hook ran on each (gitleaks "no leaks found"). Committed, pushed and opened as a pull request on the owner's word ("commit, create branch, verify and make pull request", 2026-10-20) |
-| **Status** | DONE locally; the ADRs stay Proposed until the owner accepts them. One `verifier` pass over all five records of this branch: **FAIL** on one Important finding (threat model rows T20 to T24 and T26 read as adopted), fixed in `51e6692` with its nits; follow-up pass **PASS**. CI's `Full gate (Ubuntu)` Not yet proven when this row was written |
+| **Status** | COMPLETE; the ADRs stay Proposed until the owner accepts them. One `verifier` pass over all five records of this branch: **FAIL** on one Important finding (threat model rows T20 to T24 and T26 read as adopted), fixed in `51e6692` with its nits; follow-up pass **PASS**. CI seen green on pull request #19: run #48 `Full gate (Ubuntu)` on `5eee4c7`, 2026-10-20 20:27–20:29 UTC; merged by the owner as `3018f4f` at 20:37 UTC; `main` green after it (run #51) |
 | **Change type** | ops (architecture decisions; documentation only) |
 
 ## Task Contract
@@ -24,6 +24,8 @@
 - [x] **Who/what it affects:** nothing running; the later stages that build helpers, remote access and the assistant.
 - [x] **Open questions:** listed in each ADR's "Edits that follow" and in the plan document's open decisions (which remote path ships first, which helpers ship in version one, whether a bigger local model runs on an owner-run machine, the proposed SSH window and the per-send approval default).
 - [x] **Owner approved the intent:** "Ok, so we'll stay rootful, and make all the adjustments you just listed with report-card schema and F3 changes to the Rikuri Node Plan." then "Yes, draft the ADRs in repo format" (2026-10-20). ADR 0007 (rootful, a range per container) is re-confirmed by the first message and needs no edit.
+
+- [x] **Owner's answer on the two proposed defaults** (2026-10-20, after the merge of pull request #19): "1. SSH window OK with 1 hour default, 24 hours at most. Manual approval for each external AI send until finish of shadow period, OK." Recorded in ADR 0011, ADR 0012, the platform plan's D19 row and the assistant plan's §6 by a follow-up documentation pull request; ADRs 0010 to 0012 stay Proposed until the owner confirms their wording.
 
 ## 0b. Spec
 
@@ -59,14 +61,14 @@
 
 ## 5. Close Out
 
-- [ ] Full gate: Not yet proven (documentation-only: link and citation checks, `git diff --check`; CI runs the full gate on the pull request).
+- [x] Full gate: CI seen green on pull request #19: run #48 `Full gate (Ubuntu)` on `5eee4c7`, 2026-10-20 20:27–20:29 UTC; merged by the owner as `3018f4f` at 20:37 UTC; `main` green after it (run #51).
 - [x] Reviewed per `REVIEW.md`: the verifier's two passes above.
 - [ ] Knowledge layer updated: the follow-up edits listed in each ADR are not done.
 - [x] Commit: made and pushed; see the Commits row.
 
 ## Skipped items — visible, never silent
 
-- **Full gate:** CI's `Full gate (Ubuntu)` on the pull request, Not yet proven when this record was closed.
+- (none open: CI's full gate has since passed, see Status)
 - **Follow-up edits (platform plan D18 and D19, assistant plan F3 and B5, AI-02 caveat, threat model rows):** each is its own task by AGENTS.md §3.
 
 ## Evidence log

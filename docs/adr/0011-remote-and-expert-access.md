@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proposed — drafted 2026-10-20 from the owner's direction in chat ("Ok, so we'll stay rootful, and make all the adjustments you just listed with report-card schema and F3 changes to the Rikuri Node Plan."); Accepted when the owner confirms this wording in its Build Record |
+| **Status** | Proposed — drafted 2026-10-20 from the owner's direction in chat ("Ok, so we'll stay rootful, and make all the adjustments you just listed with report-card schema and F3 changes to the Rikuri Node Plan."); Accepted when the owner confirms this wording in its Build Record. Its default window was confirmed by the owner on 2026-10-20 ("1. SSH window OK with 1 hour default, 24 hours at most. Manual approval for each external AI send until finish of shadow period, OK."); the ADR as a whole stays Proposed |
 | **Decision** | D19, to be added to `docs/architecture/platform-plan.md` §7 |
 | **Supersedes** | Nothing. It settles the "later choice" that D11 and `docs/security/THREAT_MODEL.md` §8 ("Shell access") left open |
 | **Beside it** | ADR 0007 (the root helper's fixed list, rootful Podman), ADR 0009 (the threat model), ADR 0010 (the lobby zone) |
@@ -37,8 +37,9 @@ listed forms it cannot see, so it calls itself a tripwire and not a sandbox
   release set and its bound images; the latest audit events. It is a menu and
   not a shell, and it is the first thing the assistant's explanations point to.
 - **Expert shell: SSH, key-only, off by default.** The owner switches it on
-  in the app behind step-up, for a window that ends on its own. Proposed
-  defaults, both settings the owner can change: one hour, at most 24 hours. No
+  in the app behind step-up, for a window that ends on its own. Defaults,
+  confirmed by the owner on 2026-10-20 and both settings the owner can
+  change: one hour, at most 24 hours. No
   password login, ever (D11: a web form never sets a Linux credential).
 - **Only over a remote path, only while the window is open.** The SSH port
   is reachable through Tailscale or a Tor onion service, never from the open
