@@ -1,0 +1,64 @@
+== 1. first start: the identity and an armed claim code (masked)
+2026-10-20T03:43:50.878974Z  INFO rikuri_control_plane: node identity: compare the fingerprint with the one the browser shows instance=f4f09b79459de7f266aac5f3679dad16ec99cfcac725a928cac90d94fa9bb1d2 ca_fingerprint_sha256=1E:A6:45:86:DC:87:75:F0:77:5F:CE:DC:3F:2B:C3:2E:DF:0F:34:57:5E:BC:08:EF:7C:74:20:5D:6D:48:C3:28 ca_created=true server_certificate_issued=true
+2026-10-20T03:43:50.879028Z  INFO rikuri_control_plane: claim code armed: enter it on the setup page within 24 hours; twenty wrong tries retire it, and only `rikuri-control-plane rearm-claim` arms another claim_code=[CODE-1]
+2026-10-20T03:43:50.879090Z  INFO rikuri_control_plane: HTTPS listener: the API bound=127.0.0.1:18443 version="0.1.0"
+2026-10-20T03:43:50.879113Z  INFO rikuri_control_plane: plain listener: the CA certificate and a redirect, nothing else bound=127.0.0.1:18080
+== 2. the CA certificate in the clear, then the API over TLS from a client that trusts it
+HTTP/1.1 200 OK
+content-type: application/x-x509-ca-cert
+content-disposition: attachment; filename="rikuri-node-ca.crt"
+-----BEGIN CERTIFICATE-----
+-----END CERTIFICATE-----
+--- GET /api/setup:
+HTTP/1.1 200 OK
+cache-control: no-store
+{"claimed":false,"claim":"armed","ca_fingerprint_sha256":"1E:A6:45:86:DC:87:75:F0:77:5F:CE:DC:3F:2B:C3:2E:DF:0F:34:57:5E:BC:08:EF:7C:74:20:5D:6D:48:C3:28","names":["localhost","rikuri01.local"]}
+== 3. a client without the CA cannot complete the handshake
+curl: (60) SSL certificate OpenSSL verify result: unable to get local issuer certificate (20)
+curl exit=60 (60 is a certificate problem)
+== 4. the plain listener answers an API path with a redirect, never the API
+HTTP/1.1 308 Permanent Redirect
+location: https://127.0.0.1:18443/api/claim
+== 5. the console re-arms the claim (a new code, masked); the old one is dead
+rearm exit=0
+claim code: [CODE-2]
+enter it on the setup page within 24 hours; twenty wrong tries retire it
+--- the first code, refused (401):
+401
+== 6. the claim with the console's code: the owner is made and signed in
+HTTP/1.1 201 Created
+set-cookie: rikuri_session=[SESSION]; Path=/; Max-Age=2592000; HttpOnly; Secure; SameSite=Strict
+--- GET /api/setup after the claim:
+{"claimed":true,"claim":"done","ca_fingerprint_sha256":"1E:A6:45:86:DC:87:75:F0:77:5F:CE:DC:3F:2B:C3:2E:DF:0F:34:57:5E:BC:08:EF:7C:74:20:5D:6D:48:C3:28","names":["localhost","rikuri01.local"]}
+--- GET /api/session with the cookie (csrf masked):
+{"csrf_token":"[CSRF]","issued_unix":1792467832,"expires_unix":1795059832}
+--- DELETE /api/session without the CSRF token (403):
+403
+--- a second claim (409):
+409
+== 7. a Host that is not this node (421); the status open to loopback (200) and its first line
+421
+{"observed_unix":1792467832,"overall":"unknown","control_plane":{"version":"0.1....
+200
+== 8. the re-arm is refused once the node is claimed
+rearm-claim: the node is claimed: a claim code cannot be re-armed
+rearm exit=1
+== 9. the state folder: a 0700 folder of 0600 files
+drwx------
+-rw------- ca.crt.der
+-rw------- ca.key.der
+-rw------- node.json
+-rw------- owner.json
+-rw------- server.crt.der
+-rw------- server.json
+-rw------- server.key.der
+-rw------- sessions.json
+== 10. SIGTERM: a clean stop
+daemon exit=0
+2026-10-20T03:43:52.440096Z  INFO rikuri_control::serve: no longer accepting connections; letting those in flight finish
+2026-10-20T03:43:52.440713Z  INFO rikuri_control::serve: no longer accepting connections; letting those in flight finish
+2026-10-20T03:43:52.442046Z  INFO rikuri_control_plane: control plane stopped
+== 11. a bad listen address is refused before anything binds
+2026-10-20T03:43:52.451346Z ERROR rikuri_control_plane: control plane cannot continue error=RIKURI_LISTEN="localhost:1" is not an ip:port such as 127.0.0.1:8443
+exit=1
+safe-run: no live node containers found here; the start-time check had nothing to compare
