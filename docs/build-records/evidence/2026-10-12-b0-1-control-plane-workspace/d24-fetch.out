@@ -1,0 +1,29 @@
+D24 proof inside the sandbox (B0.1's first command, 2026-10-12 23:09 PDT, a session
+opened in the worktree /home/junc/claude-wip/b0/rn, auto mode).
+A scratch crate in the session's scratchpad pins one dependency (itoa = "=1.0.15");
+the wrapper runs from the checkout, so its cache lands in the checkout's .cargo-home/.
+
+$ cd /home/junc/claude-wip/b0/rn && scripts/cargo.sh fetch --manifest-path "$TMPDIR/d24-fetch-probe/Cargo.toml"; echo "exit=$?"
+    Updating crates.io index
+     Locking 1 package to latest compatible version
+      Adding itoa v1.0.15 (available: v1.0.18)
+ Downloading crates ...
+  Downloaded itoa v1.0.15
+exit=0
+
+$ ls -la .cargo-home; ls .cargo-home/registry; ls .cargo-home/registry/cache; ls .cargo-home/registry/cache/*
+total 68
+drwxrwxr-x 3 junc junc  4096 Oct 12 23:09 .
+drwxrwxr-x 8 junc junc  4096 Oct 12 23:09 ..
+-rw-r--r-- 1 junc junc 57344 Oct 12 23:09 .global-cache
+-rw-rw-r-- 1 junc junc     0 Oct 12 23:09 .package-cache
+-rw-rw-r-- 1 junc junc     0 Oct 12 23:09 .package-cache-mutate
+drwxrwxr-x 5 junc junc  4096 Oct 12 23:09 registry
+CACHEDIR.TAG
+cache
+index
+src
+index.crates.io-1949cf8c6b5b557f
+itoa-1.0.15.crate
+
+$ git status --short     (nothing from the fetch: .cargo-home/ is ignored)

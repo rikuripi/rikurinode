@@ -1,14 +1,25 @@
 # Platform and architecture plan
 
-**Status: proposed, 2026-10-11; D5 to D9 decided 2026-10-12.** Of its nine
-owner decisions (§7), seven are taken — D2, Podman with Quadlet; D3, Rust; D5,
-rootless with an ID range per container; D6 and D7, the OS image public on
-GitHub's registry and signed by a key in CI with an offline spare; D8, CI
-minutes; D9, Fedora's DNS boot check off (D2, D3, D5, D6 and D7 have ADRs
-0001 to 0004; D8 and D9 are recorded in §7 only) — and two are
-open (D1, the Pi 5; D4, the first mainnet amount); nothing that depends on an
-open one is built. Facts about outside software were checked on
-2026-10-11 and carry their source (§9); re-check them before acting on them.
+**Status: proposed, 2026-10-11; D5 to D9 decided 2026-10-12; D10 to D15
+decided 2026-10-17, D13 superseding D5; D16, the assistant, and D17,
+security built in, decided 2026-10-18.** Of its seventeen owner decisions
+(§7), fifteen are taken — D2, Podman with Quadlet; D3, Rust; D5, rootless
+with an ID range per container, superseded by D13, rootful with an ID range
+per container; D6 and D7, the OS image public on GitHub's registry and signed
+by a key in CI with an offline spare; D8, CI minutes; D9, Fedora's DNS boot
+check off; D10, the setup page's connection; D11, accounts; D12, releases as
+tested sets bound to the OS image; D14, a private network with fixed
+addresses; D15, the frontend's shape; D16, the assistant's engine,
+learning, cloud, models and voice; D17, security built in: the threat
+model, a security slice per stage, the advisory intake loop and AISecurity
+as a pinned dependency (ADRs 0001 to 0009,
+`docs/build-records/2026-10-17-plan-review.md`,
+`docs/build-records/2026-10-18-assistant-plan.md` and
+`docs/build-records/2026-10-18-security-plan.md`; D8 and D9 are recorded in
+§7 only) — and two are open (D1, the
+Pi 5; D4, the first mainnet amount); nothing that depends on an open one is
+built. Facts about outside software were checked on 2026-10-11,
+2026-10-17 and 2026-10-18 and carry their source (§9); re-check them before acting on them.
 
 ## In one page
 
@@ -20,9 +31,14 @@ open one is built. Facts about outside software were checked on
   its health checks, the node goes back to the previous image by itself.
 - **The node software runs in containers.** Bitcoin Core, LND and Tor run in
   containers that systemd starts, stops and watches — Podman with Quadlet
-  units (decision D2), rootless, each container in its own ID range
-  (decision D5) — each pinned
-  to an exact, verified build.
+  units (decision D2), rootful, each container in its own user-ID range
+  (decision D13, which superseded D5 on 2026-10-17) — each pinned to an
+  exact, verified build and bound to the OS image (D12).
+- **The node moves between release sets.** A release is one tested set: the
+  OS image with the control plane, the container images by digest, their
+  settings and migrations, proven together before a node sees it; a failed
+  set is undone by going back to the previous one (D12). No service is
+  upgraded on its own.
 - **The control plane decides; systemd enforces; the assistant only
   suggests.** systemd and Podman enforce limits, restarts and ordering. The
   control plane, written in Rust (decision D3), decides what "healthy" means
@@ -39,11 +55,20 @@ open one is built. Facts about outside software were checked on
 - **The Pi 5 could not run Fedora IoT in the latest images found** (March
   2026, §3.2): no Fedora IoT or bootc image for it, boot from an SD card
   only, no fan or thermal control. The N150 comes first.
+- **Security fits each stage.** The [threat model](../security/THREAT_MODEL.md) names the
+  assets, what is trusted and what is not, and maps every threat to a
+  control, a stage and a test; each stage row in §8 carries its security
+  slice; advisories are checked weekly and a critical one cuts a release set
+  within seven days, once the CI task lands; AISecurity's detectors are a pinned dependency that
+  signals while systemd, Podman and the control plane enforce (D17,
+  ADR 0009).
 - **Order of work:** the image and its rollback drill → Bitcoin Core → Tor →
   LND on a private test network → backup and a restore drill → updates and
   their rollback drill → the backend API → Lightning channel management,
   test-first, on test networks and then a capped mainnet amount → the
-  frontend → the sandboxed assistant.
+  frontend → the sandboxed assistant → the treasury and agent payments → the
+  marketplace (stages 9 and 10, planned 2026-10-17 in the
+  [agent payments and marketplace plan](agent-payments-and-marketplace-plan.md)).
 
 ## 1. What this plan answers
 
@@ -71,7 +96,7 @@ specifics re-verified rather than assumed (PLAT).
 | Bitcoin Core | 31.1 (2026-07-08) is the newest final release; 32.0 is in release-candidate testing (target date 2026-10-10, not yet on the release page on 10-11). The project maintains the newest three major versions. | Start on 31.x; move to 32.x after its first point release and our own soak. |
 | LND | v0.21.4-beta (2026-10-01) is the newest; v0.20.5-beta was released the same day. | Start on 0.21.x; every RPC the backend uses is tested against the pinned version, and the backend refuses an LND version it was not tested with. |
 | Tor | Relays and clients of 0.4.8 and older lost support on 2026-09-01, so 0.4.9 is the supported series. Arti, the Rust Tor, released 2.7.0 on 2026-10-01. | Use C Tor 0.4.9.x, which LND drives through Tor's control port; whether Arti can serve LND is checked before any switch. |
-| Podman | Podman's auto-update can roll a container back to its previous image when the restarted unit fails; a Quadlet unit with `Notify=healthy` is ready only once its health check passes. Fedora 45 ships Podman 6. | Container updates get the same "prove it or go back" rule as the OS whatever the runtime (§4.2); with Podman, its auto-update provides it. |
+| Podman | Podman's auto-update can roll a container back to its previous image when the restarted unit fails; a Quadlet unit with `Notify=healthy` is ready only once its health check passes. Fedora 45 ships Podman 6. | Container updates get the same "prove it or go back" rule as the OS (§4.2); since D12 (2026-10-17) the container images are bound to the OS image and go back with it, so auto-update is not used. |
 | NVIDIA OpenShell | Open source (Apache 2.0): runs each agent in its own sandbox without privileges, limits its files and network, filters its system calls, and brokers its requests to a supervisor. | The candidate boundary for the assistant (stage 8), alongside the AISecurity policy. |
 
 Re-checked for stage 1 on 2026-10-12, with sources:
@@ -149,6 +174,13 @@ proven by a drill before it is trusted.
   Tor finishes bootstrapping; the data disk is mounted by its UUID. If a
   required check fails three boots in a row, the node boots the previous
   image and says so on its status page and in an alert.
+- **How the checks see the node** (review of 2026-10-16). The required
+  checks ask the control plane's health endpoint on loopback and wait within
+  a bound; the control plane judges the units (system units since D13, so
+  the checks can also read them directly). bitcoind answering
+  "in warmup" counts as healthy, and the bound covers a chainstate replay
+  after an unclean stop, so a good image is never rolled back for a slow
+  bitcoind. The rollback drill includes an unclean stop.
 - `/etc` keeps the owner's changes (merged on update) and `/var` keeps all
   data: neither is rolled back.
 - **The rollback drill** ends every installation and runs again after each
@@ -163,13 +195,22 @@ proven by a drill before it is trusted.
   (Bitcoin Core's signed checksums, LND's signed manifest), pinned by
   digest. No third-party prebuilt images. The runtime is Podman (D2).
 - One bring-up path: systemd starts the units in dependency order (OWN-01).
-- **A component's version is machine state** (the open design rule in
-  AGENTS.md): the image ships a minimum version; an owner-approved upgrade in
-  the app raises it and records it in `/var`; an image update never lowers a
-  version the node already runs — the newer wins (the owner's choice for the
-  previous repository, 2026-10-10).
-- A component update is proven or undone: the new container must pass its
-  health check, or the previous image is restored.
+- **Releases are tested sets** (owner, 2026-10-17, D12; this replaces the
+  2026-10-10 rule that a component's version is machine state and the newer
+  wins, which served per-service upgrades). A release is the OS image with
+  the control plane, the container images by digest, their settings and any
+  migration, proven together in CI and on the N150. A node moves between
+  releases, never one service at a time: an adjustment one service needs for
+  another's new version ships in the same release. An in-app upgrade moves
+  the node to the next release and nothing else. The container images are
+  bound to the OS image (ADR 0006): pulled when the update is staged and
+  kept for the rollback deployment, so one update is one rollback and the
+  node boots without the network.
+- A release is proven or undone: the new set must pass its health checks
+  within the watch window (start period, interval times retries, a margin),
+  or the previous set is restored. Restarts are bounded and diagnosed before
+  a rollback; what cannot be repaired is reported with the exact failure,
+  and the node stays on the last good set (ADR 0005).
 - **Database migrations end automatic rollback.** Bitcoin Core and LND may
   upgrade their databases on first start; an older version must not run
   against a newer database. Before such an upgrade the node takes a backup
@@ -197,7 +238,7 @@ proven by a drill before it is trusted.
 | Bitcoin Core | 31.1, then 32.x after its first point release | both (pruned on the Pi tier) |
 | LND | 0.21.4-beta | both |
 | Tor | 0.4.9.x (C Tor) | both |
-| Container runtime | Podman with Quadlet, Fedora 45's (D2) | both |
+| Container runtime | Podman with Quadlet, Fedora 45's (D2); rootful, a user-ID range per container (D13) | both |
 | Control plane | Rust (D3), toolchain pinned; LND over its gRPC API, never linked in as a library | both |
 | Electrs and explorer | later, after the core | N150 only |
 
@@ -235,40 +276,66 @@ and the backend refuses to run against a version it was not tested with.
 | D2 | Container runtime | **Podman with Quadlet from the start** — part of Fedora IoT, run by systemd, update rollback built in; costs: the previous node's Docker know-how and scripts do not carry over as they are. **Docker first, Podman later** (the owner's earlier idea for Fedora CoreOS) — familiar; costs: Docker is added to the image, and the move to Podman later is work done twice. | **Decided: Podman from the start** (owner, 2026-10-11; ADR 0001) |
 | D3 | Backend language | **Rust** — the previous node's control plane is Rust (103 `.rs` files under `control-plane/` at its HEAD, 3bbbe392), and 12 of the lessons register's 90 port candidates come from it; it already uses LDK's `lightning` crate, and LDK is in the previous repository's plans; Rikuri-PI's foundation crates and gates can be shared; the compiler checks that a `match` over a closed set of cases — the assistant's action menu, the phase, wizard and upgrade state machines — handles every case, unless a catch-all arm is written; libraries such as `secrecy` keep secrets out of logs and debug output. Costs: slower compiles; LND's Rust clients are maintained by the community and trail LND — the previous node used `lnd_grpc_rust`, whose latest version (2.16.0) lacks calls LND 0.21.4 has (`XCreateAccount` and `SubmitPackage` in its wallet kit) — so this project generates its LND client from the pinned LND version's protocol files (that crate can also build from a chosen LND checkout) and keeps it current itself. **Go** — LND, Loop and Pool are Go, and Lightning Labs' `lndclient` follows LND's releases, though it too can trail (it has no `XCreateAccount`, which LND 0.21.4 has); costs: a third language beside Rust (Rikuri-PI) and TypeScript (the frontend), the compiler does not check that every case is handled, and `lndclient` brings LND's own code and some 190 dependencies inside the control plane's boundary (its `go.mod`). **TypeScript** — the previous node's dashboard backend, the source of 60 of the 90 port candidates; costs: it broke on runtime upgrades through native modules (PLAT-03); it stays the frontend's language. In every option the seed words and wallet password typed during setup pass through to LND and are not kept by the control plane; whether the wallet password is stored on the node to unlock LND after a reboot is decision G9's (below). Thin interfaces over systemd, Podman and LND keep each backend replaceable in tests (the analysis the owner shared on 2026-10-11 proposed them for systemd and LND, so the language stays swappable; this plan adds Podman, and uses them to fake each backend in tests). | **Decided: Rust** (owner, 2026-10-11; ADR 0002; this plan first recommended Go, without having checked the previous control plane's language and its LDK use) |
 | D4 | First mainnet amount (§6 step 3) | **A small fixed amount** for one or two channels (for example 0.01 BTC in all) — costs: that amount at risk in software proven only on test networks, plus on-chain fees to open and close. **A larger amount** for real routing (for example 0.05 BTC) — costs: more at risk before mainnet experience. **No mainnet yet**, a longer public-test-network soak — costs: channel management stays unproven under mainnet's real conditions. | A small fixed amount, decided when step 3 begins |
-| D5 | Rootless or rootful containers | **Rootless, one user** (Podman's default) — Podman and the containers run as an unprivileged user, so an escape gets that user, not root; but by default each container's root is that same user, which owns every container's data: an escape from the Tor container reaches LND's wallet files and Bitcoin Core's data. **Rootless, a range per container** (`userns=auto` from the user's subordinate IDs) — an escape gets an unprivileged ID that owns no other container's data; costs: the user's range must be large enough to divide, and an unsized `--userns=keep-id` cannot sit beside it. Costs of both rootless options: the services are user services, kept running after logout by systemd's lingering, and cannot wait for system units (Quadlet's example: `network-online.target`); container storage lives in the user's home unless moved; networking goes through `pasta` — containers reach each other only with extra configuration, and on rootless bridge networks port forwarding uses `rootlessport` by default, which loses the client's address; ports below 1024 need a kernel setting (the node's own ports — 8333, 9735, 10009, 9050 — are above it, a web page on 80 or 443 is not); memory, CPU and process limits work through the delegation systemd gives every user service (since systemd 252; Fedora 45 ships 262), which PLAT-04's budgets need, while I/O limits and CPU pinning need one more setting. **Rootful, a range per container** (`userns=auto` from the `containers` ranges) — the same separation between containers; cost: Podman itself runs as root, so a runtime bug reaches the whole host; benefit: ordinary system services, ordered like any other. In both range options the runtime's own account can reach every container's data — rootless Podman's user can read, change or remove anything its subordinate IDs own (`podman unshare`) — so a bug in Podman, or anything that drives it, reaches LND's wallet either way; the control plane's access to the runtime must stay narrow in every option (EXEC-08: no unrestricted container-runtime access, no root socket, control through a narrow, audited interface). **All three** need ID ranges in `/etc/subuid` and `/etc/subgid` and data volumes owned to match the IDs each container runs as. (The rootless tutorial's answer for a non-root image user, `--userns=keep-id`, runs that container as the shared user, so it gives up the separation the range options are for.) The lessons register lists rootless runtime access for the backend (EXEC-08) as a thing to re-check. | Rootless with a range per container: the same separation between containers as rootful, and a runtime bug stops at an unprivileged account (which still reaches every container's data) instead of the host — paid for with the user-service costs above. The owner's message of 2026-10-11 assumed rootless ("systemd and rootless Podman"), before these options were set out. **Decided: rootless, a range per container** (owner, 2026-10-12; ADR 0003) |
+| D5 | Rootless or rootful containers | **Rootless, one user** (Podman's default) — Podman and the containers run as an unprivileged user, so an escape gets that user, not root; but by default each container's root is that same user, which owns every container's data: an escape from the Tor container reaches LND's wallet files and Bitcoin Core's data. **Rootless, a range per container** (`userns=auto` from the user's subordinate IDs) — an escape gets an unprivileged ID that owns no other container's data; costs: the user's range must be large enough to divide, and an unsized `--userns=keep-id` cannot sit beside it. Costs of both rootless options: the services are user services, kept running after logout by systemd's lingering, and cannot wait for system units (Quadlet's example: `network-online.target`); container storage lives in the user's home unless moved; networking goes through `pasta` — containers reach each other only with extra configuration, and on rootless bridge networks port forwarding uses `rootlessport` by default, which loses the client's address; ports below 1024 need a kernel setting (the node's own ports — 8333, 9735, 10009, 9050 — are above it, a web page on 80 or 443 is not); memory, CPU and process limits work through the delegation systemd gives every user service (since systemd 252; Fedora 45 ships 262), which PLAT-04's budgets need, while I/O limits and CPU pinning need one more setting. **Rootful, a range per container** (`userns=auto` from the `containers` ranges) — the same separation between containers; cost: Podman itself runs as root, so a runtime bug reaches the whole host; benefit: ordinary system services, ordered like any other. In both range options the runtime's own account can reach every container's data — rootless Podman's user can read, change or remove anything its subordinate IDs own (`podman unshare`) — so a bug in Podman, or anything that drives it, reaches LND's wallet either way; the control plane's access to the runtime must stay narrow in every option (EXEC-08: no unrestricted container-runtime access, no root socket, control through a narrow, audited interface). **All three** need ID ranges in `/etc/subuid` and `/etc/subgid` and data volumes owned to match the IDs each container runs as. (The rootless tutorial's answer for a non-root image user, `--userns=keep-id`, runs that container as the shared user, so it gives up the separation the range options are for.) The lessons register lists rootless runtime access for the backend (EXEC-08) as a thing to re-check. | Rootless with a range per container: the same separation between containers as rootful, and a runtime bug stops at an unprivileged account (which still reaches every container's data) instead of the host — paid for with the user-service costs above. The owner's message of 2026-10-11 assumed rootless ("systemd and rootless Podman"), before these options were set out. **Decided: rootless, a range per container** (owner, 2026-10-12; ADR 0003). **Superseded** 2026-10-17 by D13, package R: rootful, a range per container (ADR 0007) |
 | D6 | Where the OS image is published | **A public package on GitHub's registry** — nodes update with no credentials; anyone can download the image, which holds no secret by rule; making it public cannot be undone. **A private package** — a token stored on every node: one stolen node leaks an account-wide token, and an expired one stops updates silently. **quay.io, public** — the same as the first, a second account to manage. | **Decided: public on GitHub's registry** (owner, 2026-10-12; ADR 0004) |
 | D7 | Who holds the image signing key | **A key in CI, usable only by `main`'s publish job, plus a spare kept offline** by the owner, its public half in every image — costs: a repository admin could misuse the CI key. **An offline key the owner uses for each release** — CI can never sign; costs: the owner at a command line for every release. Keyless signing is not an option yet: the node cannot enforce it (stage 1 research). | **Decided: CI key, `main` only, with an offline spare** (owner, 2026-10-12; ADR 0004) |
 | D8 | CI minutes for the OS image | **Private repository**: 2,000 free minutes a month on 2-CPU runners; the image builds on pull requests that touch it, and the VM rollback drill (an estimated 40–70 minutes) runs on image changes and once a week. **A public repository**: larger runners and unlimited minutes; costs: every build record, with details of the owner's machine and live node, becomes public. | **Decided: private; drill on image changes and weekly** (owner, 2026-10-12) |
 | D9 | Fedora IoT's DNS boot check | **Off**: an internet or ISP outage at an update's reboot must not roll a good update back; the node's own required checks (§4.1) replace it. **Kept**: fewer changes to Fedora's setup; costs: a network outage at reboot rolls the node back. | **Decided: off** (owner, 2026-10-12; `image/rootfs/etc/greenboot/greenboot.conf`) |
+| D10 | The setup page's connection (stage 1) | A browser trusts a certificate only when a CA it knows signed it, and no public CA signs a `.local` name. **A. A per-node certificate authority with a guided one-time install** — the node makes its own CA at first boot; the first setup screen, reached over plain HTTP, offers the certificate with a short per-device guide (Windows, macOS, iPhone, Android, Linux), then switches to HTTPS; fallback: accept the browser's warning once; costs: one extra screen and a step per device; no third party, works offline; the seed and the wallet password never cross the network in the clear. **B. Plain HTTP on the LAN** — costs: the seed and the password readable by any compromised device on the network. **C. The owner's own domain with ACME (DNS challenge)** — a certificate every browser trusts; costs: a domain, a DNS provider's API key, the internet, and the node's name in public certificate logs; a later opt-in, not the default. | **Decided: A** (owner, 2026-10-17, "1. A") |
+| D11 | Accounts (stage 1) | "Root is read-only" on Fedora IoT means the root *filesystem* (`/usr` immutable; `/etc` and `/var` persist and merge across updates), not the root user; accounts work normally. **Web sign-in only (recommended)** — `root` locked with no password and no SSH; a fixed system account runs the node; the owner signs in to the web page with a password set on the setup page; SSH off, enabled later under technical settings with a key; costs: an owner who wants a shell takes one more step; a web form never sets a Linux credential. **A Linux admin account made at setup** — a shell from day one; costs: a password SSH account on a funds device, set through a web form. | **Decided: web sign-in only** (owner, 2026-10-17, "D11. as you recommend") |
+| D12 | How releases are shipped (§4.2) | **Principle, decided:** a release is one tested set — the OS image with the control plane, the container images by digest, their settings and migrations — proven together in CI and on the N150; a node moves between sets, never one service at a time; a failed set is undone by going back to the previous one (owner, 2026-10-17: "if upgrade to latest fails, then use the one previous stable container. Any failure needs to be monitored and fix or rollback"; and on the previous node: "the current upgrade does separate upgrades for each services. But some upgrade require rikurinode to make adjustments … My running node can't recover consistently"). This supersedes the 2026-10-10 rule that a component's version is machine state and the newer wins. **Mechanism (decided with D13, package R):** **bound to the OS image** — bootc's logically bound images are pulled with `bootc upgrade` and "the logically bound images corresponding to rollback deployments will also be retained": one update, one rollback, boots without the network; costs: every release, even an LND patch, is an OS update with a reboot (LND stopped cleanly first); available only to rootful Podman ("rootless containers from these system stores are not supported"), and Anaconda does not support bound images, so the install media must copy them another way. **Applied by the control plane** — it pulls the next set before the switch, keeps the previous set until the next is proven, and refuses to start a set that is missing; costs: more control-plane code on the rollback path, which is where the previous node failed, and two mechanisms that must agree. | **Decided** (owner, 2026-10-17, "2 & 3. A"): tested sets, bound to the OS image (ADR 0006), with package R (D13) |
+| D13 | Rootless or rootful, revisited as a package (D5, ADR 0003) | Two facts read on 2026-10-17 (§9) bind D5, D12's mechanism and D14 together: bound images are rootful-only, and a pod's user namespace is set "for all the containers in a pod", so one pod means one ID range shared by bitcoind, Tor and LND, not ADR 0003's range per container. **Package R: rootful Podman, a user-ID range per container** (`userns=auto`; D5's third option) — system Quadlet units; the container images bound to the OS image; a private bridge network with fixed addresses, so the range per container is kept and inbound peers' addresses are preserved; the control plane a system service under its own user with one small root helper for a fixed list of actions (`bootc` upgrade and rollback, hostname, the backup drive, reboot); greenboot sees the units directly; `OOMScoreAdjust` available; costs: Podman's own setup code runs as root, so a bug in it reaches the host (the container processes still run as unprivileged mapped IDs); ADR 0003 superseded by a dated ADR. **Package U: rootless, as decided** — the control plane applies release sets and keeps the images (D12's second mechanism); containers in one pod on pasta (one ID range per pod; pasta "preserves the original source IP address") or on a bridge network with a range per container (`rootlessport` "does not preserve client source IPs"; the pasta forwarder for it is experimental); the control plane a user service beside the units plus a root helper (the owner's "4. A"); greenboot asks the control plane; units kept alive by lingering; costs: more control-plane code on the rollback path, the rootless networking trade-offs, boot ordering through lingering. | **Decided: package R** (owner, 2026-10-17, "D13 Package R as you recommended"; ADR 0007 supersedes ADR 0003): the one-image, one-rollback model is only available rootful, and `userns=auto` keeps the separation between containers that ADR 0003 wanted |
+| D14 | Internal network (stage 2) | **One pod** (the owner's pick of 2026-10-17): bitcoind, Tor and LND on localhost; RPC, REST and ZMQ never leave it; the stale Tor address of the previous node cannot occur; costs: one ID range per pod (D13). **A private network with fixed addresses**: a range per container kept; the services bind to their fixed addresses and the Tor address never changes; costs: more network configuration (and, under a rootless runtime, its forwarding trade-offs). | **Decided: a private network with fixed addresses** (with package R; owner, 2026-10-17; ADR 0007) |
+| D15 | The frontend's technical shape | TypeScript stays the UI's language (D3). **Static files, built in CI and served by the Rust control plane**: no Node.js on the node, so PLAT-03's class (a runtime replaced under a native module) and PLAT-11's (a proxy site) cannot occur. **One typed contract**: the UI's API types generated from the Rust types in CI, so a renamed field fails the build; EVID-02's four-state status with an explicit `unknown` is a type the UI cannot coalesce to 0. **Render tests in CI** (TEST-10): phone, tablet and desktop widths, every theme variable defined, every text key present in every shipped language (the previous UI ships en, es, ja, zh, zh-TW). **Supply chain**: lockfile committed, installs with scripts off, a dependency audit that cannot pass silently (SEC-06), the Node toolchain pinned and present only in CI. **Sizing**: 61 of the register's 90 port candidates are TypeScript, about 12,000 lines, re-expressed in Rust with their tests; the previous backend is 172,000 lines, and "behaviour and tests, not code" is what keeps stage 7 from being that. The look: the owner wants it "a bit softer, fun" than the previous page, which was "clean, but a bit crowded and verbose"; a design system is the first UI slice's first step. | **Decided** (owner, 2026-10-17) |
+| D16 | The assistant: engine, learning loops, cloud tier, models on the node, voice | Five choices, each with its alternatives and their costs in the [assistant plan](assistant-plan.md) §2: F1 llama.cpp's official server image pinned by digest, not ik_llama.cpp and not the previous node's Lean_llama.cpp fork; F2 no behaviour-changing learning loop until a labelled evaluation exists, then reflection into a reviewed backlog; F3 no cloud model by default, an owner-enabled exception for reflection and evaluation only, redacted and recorded (AI-02's dated caveat); F4 one model with a grammar for both of its jobs, a second router model only if the gate says so; F5 speech-to-text on the phone first, whisper.cpp on the node later if memory allows, approval never by voice. | **Decided** (owner, 2026-10-18; ADR 0008 for the engine; `docs/build-records/2026-10-18-assistant-plan.md`) |
+| D17 | Security built in: AISecurity's place, advisory intake, image scanning, the threat model | Four choices with their alternatives and costs in the [threat model](../security/THREAT_MODEL.md) and ADR 0009: S1 AISecurity's `security-core` linked as a Git dependency pinned by commit, features limited to the detectors, signals only, enforcement by systemd, Podman and the control plane (not a daemon beside it, not vendored, not deferred); S2 a weekly scheduled advisory audit in CI whose failure emails the owner, and a release cadence: a critical advisory cuts a set within 7 days, a high one within 30, at least one set a month (not quarterly; no dependency bots); S3 a scanner for the built images adopted after the inspection `AGENTS.md` §2 requires (not Fedora's advisories alone); S4 the threat model now, before stage 2 (not at stage 7). The CI parts are the next task, a control change. S5, disk encryption at rest, is open there. | **Decided** (owner, 2026-10-18, "do as you recommended"; ADR 0009; `docs/build-records/2026-10-18-security-plan.md`) |
 
 Later, with their stage: how LND's wallet is unlocked after a reboot (a
 password stored on the node, or the owner unlocking it in the app — gap G9;
 stage 4, where the wallet is created), whether settings changes reach a node
-only through tested updates (AGENTS.md's proposed rule; stage 6, which ships
-updates — though stages 1 and 2 already write settings; §4.2 covers versions
-only), and whether the two nodes exchange anything (gap G10; when a second
-node joins, D1).
+only through releases (D12 decides it for versions; AGENTS.md's proposed rule
+for settings is decided at stage 6, which ships updates — stages 1 and 2
+already write settings), and whether the two nodes exchange anything (gap
+G10; when a second node joins, D1).
 
 ## 8. Stages
 
 Each stage is a set of changes with build records; a stage closes when its
 drill has been seen to pass.
 
-| Stage | Delivers | Its drill |
-|---|---|---|
-| 1 Platform | The bootc image (x86_64; aarch64 too if D1 keeps the Pi), signed, built in CI; install media; first-boot setup without a command line; greenboot checks | The rollback drill (§4.1) on the N150 |
-| 2 Bitcoin Core | Verified build, container, health judge, sync progress, full/pruned settings per tier | Kill and restart during sync; disk full; power loss |
-| 3 Tor | Onion service for Bitcoin Core and LND; control-port authentication without a password file | Tor restart; onion reachability check |
-| 4 LND | Container; wallet creation in the app; SCB export | §6 step 1 in CI |
-| 5 Backup and restore | Encrypted SCB to a UUID-identified destination; restore through the UI | Restore on clean hardware, test network |
-| 6 Updates | OS and component updates, the version rules of §4.2, migrations | A broken image; a broken component; an LND upgrade with a migration |
-| 7 Backend API and channel management | The control plane; channels, fees, rebalancing, node search, analytics | §6 steps 2 and 3 |
-| 8 Frontend, then the assistant | The UI; the planning-only assistant in a sandbox (OpenShell, AISecurity policy) | The sandbox boundary tests (gap G5) |
+| Stage | Delivers | Its drill | Its security slice ([threat model §5](../security/THREAT_MODEL.md#5-the-security-slice-of-every-stage)) |
+|---|---|---|---|
+| 1 Platform | The bootc image (x86_64; aarch64 too if D1 keeps the Pi), signed, built in CI; install media; first-boot setup without a command line — the first UI slice: a setup page served by the control plane, reached as `rikurisetup.local`, that secures the connection (D10), names the node (`rikuri01.local` by default, numbered after the Rikuri nodes it finds on the network, or the owner's choice; the node's IP shown as the way in where `.local` does not resolve, as on many Android browsers), takes the owner's sign-in (D11) and gives the node its UUID, then a SetupHub that lists what remains and marks done only what the node's real state shows; input beside explanation, back and next; the wizard's state kept by the control plane, so a refresh or a crash resumes; built as D15 says; greenboot checks | The rollback drill (§4.1) on the N150, including an unclean stop | Image signed and verified before staging; no secret in the image; SELinux enforcing; inbound closed except the node's ports; the setup page's TLS and sign-in; no shell login by default. Tests: a tampered image refused; a wrong sign-in refused and rate-limited |
+| 2 Bitcoin Core | Verified build, container, health judge, sync progress, full/pruned settings per tier; the first Quadlet unit under ADR 0005 (static `rpcauth` credentials, limits in the unit, the internal network of D14) | Kill and restart during sync; disk full; power loss; a bitcoind restart with no dependant restarted | `rpcauth` per client, `rpcwhitelist`, RPC on the private network only; verified build; data owned by its range; limits in the unit. Tests: a whitelist refusal; the port unreachable from the LAN |
+| 3 Tor | Onion service for Bitcoin Core and LND; control-port authentication without a password file | Tor restart; onion reachability check | Control-port authentication without a password file; onion keys in Tor's range; no exit. Tests: unauthenticated control refused; keys unreadable from other containers |
+| 4 LND | Container; wallet creation in the app; SCB export | §6 step 1 in CI | Seed shown once, never stored readable; one macaroon per client with the least caveats, in the secrets store; TLS; wallet data in LND's range. Tests: a read macaroon cannot pay; the wallet path unreadable from Tor and the engine |
+| 5 Backup and restore | Encrypted SCB to a UUID-identified destination; restore through the UI | Restore on clean hardware, test network | SCB encrypted before it leaves; a UUID destination; the stale-backup alarm; no path restores `channel.db`. Tests: the restore drill; the alarm; a `channel.db` restore refused |
+| 6 Updates | OS and component updates, the version rules of §4.2, migrations | A broken image; a broken component; an LND upgrade with a migration | Signature and digest verification; downgrade refused; migrations end rollback; the advisory release cadence (threat model §6). Tests: tampered and downgraded sets refused |
+| 7 Backend API and channel management | The control plane; channels, fees, rebalancing, node search, analytics | §6 steps 2 and 3 | One authority; authentication fails closed; step-up and one approval store; no shell, a closed action enum; the redaction filter (ADR 0009); security health in the status API. Tests: the register's EXEC and SEC tripwires; mutants on refusal paths; a replay test |
+| 8 Frontend, then the assistant | The full UI, grown from the setup slice of stage 1 and the wallet and restore screens of stages 4 and 5 (D15); the planning-only assistant in a sandbox (OpenShell, AISecurity policy), built to the [assistant plan](assistant-plan.md) (D16): llama.cpp's server image pinned by digest (ADR 0008), one model chosen by the N150 measurement, the action templates stage 7 exposes, the AI event store and page, the evaluation gate | The sandbox boundary tests (gap G5); the evaluation gate green on the release's engine and model (assistant plan, contract C); one action template driven end to end on a test network, approved by step-up | Content security policy and session flags; the engine without egress; the sandbox boundary (G5); the emergency stop; metadata and LAN ranges refused in every fetch; injection probes in the eval gate. Tests: G5's list, the stop tests, a fetch-to-metadata test |
+| 9 Treasury and agent payments | The control plane as the treasury: owner-signed, revocable mandates for agents; the payment pipeline with reservations and the approval queue; invoices for sellers; the hash-chained ledger; reconciliation and the divergence alarm; the caps as settings ([agent payments and marketplace plan §5](agent-payments-and-marketplace-plan.md#5-stages-9-and-10)) | On a test network: a mandate pays within its allowance, waits above it, and is refused when revoked, forged, expired or replayed; a ledger-versus-LND disagreement suspends mandates and alerts; a reservation survives an update and rollback; the sandbox boundary test with an agent inside | The security layer of the agent payments plan §4.3; detectors' signals hold payments; the "who holds what" table enforced by deployment. Tests: that plan's drill |
+| 10 Marketplace | A separable marketplace service, a client of the treasury: signed listings and reviews, reputation, discovery, auctions with hold-invoice collateral, selling through the treasury's invoices, help pages (same plan, §5) | Two nodes on a test network, one not a Rikuri node: publish, discover, buy, review; forged and replayed items refused; a wash-trading ring scored below the trusted tier; an auction settled; no path to LND but the treasury | No path to LND but the treasury; signed listings; untrusted text never ingested into the assistant's stores (AI-02). Tests: that plan's drill |
 
 What carries over from the previous repository: behaviour and test cases,
 not code — the 90 port candidates of the lessons register, each rewritten in
 Rust and re-checked for Fedora, the container runtime and the
 Pi where its verdict says so.
+
+Stages 9 and 10 were added on 2026-10-17 from the
+[agent payments and marketplace plan](agent-payments-and-marketplace-plan.md):
+the node as the treasury for the owner's agents, then a marketplace it can
+host, behind the security layer that plan describes. They start only after
+stage 8's drill, and their owner decisions (E1 to E10 there) are open. The
+previous repository's commerce code is harvested at module level in the
+lessons register's §7, with gap G12 for what it never proved.
+
+The assistant's shape was decided on 2026-10-18 in the
+[assistant plan](assistant-plan.md) (D16; ADR 0008 for the engine): the
+model has two jobs, classifying into typed intents and explaining from
+retrieved text; everything else is deterministic Rust. Stage 7 exposes the
+action templates it drives (that plan's contract A); stage 8 builds the
+rest. The previous repository's AI code is evidence and specification
+there, not a port.
 
 ## 9. Sources (read 2026-10-11)
 
@@ -283,3 +350,11 @@ Pi where its verdict says so.
 - Tor: [0.4.8 support ends](https://www.securitylab.ru/news/574170.php); [Arti 2.7.0 released](https://blog.torproject.org/arti_2_7_0_released/).
 - Podman: [podman-auto-update](https://docs.podman.io/en/v5.8.2/markdown/podman-auto-update.1.html); [Quadlet units, `Notify=healthy`](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html).
 - NVIDIA OpenShell: [product page](https://www.nvidia.com/en-us/ai/openshell/); [developer guide](https://docs.nvidia.com/openshell/home).
+
+Read 2026-10-17, for D10 to D15 and ADR 0005
+(`docs/build-records/2026-10-17-plan-review.md`):
+
+- bootc: [logically bound images](https://bootc.dev/bootc/bootc-logically-bound-images.7.html) (pulled with `bootc upgrade`; "the logically bound images corresponding to rollback deployments will also be retained"; "rootless containers from these system stores are not supported"; Anaconda does not support them; stored under `/usr/lib/bootc/storage`).
+- Podman: [podman-pod-create](https://docs.podman.io/en/latest/markdown/podman-pod-create.1.html) (`--userns` "for all the containers in a pod"; pasta "preserves the original source IP address"; `rootlessport` "does not preserve client source IPs", its pasta setting experimental); [podman-systemd.unit](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html) (`Notify=healthy`, `HealthOnFailure`, `StopTimeout`, `Pod=`, `AutoUpdate`, `[Unit]` and `[Service]` passed through; user units wait on `podman-user-wait-network-online.service`).
+- Bitcoin Core: [JSON-RPC interface](https://github.com/bitcoin/bitcoin/blob/master/doc/JSON-RPC-interface.md) (the cookie "is the preferred RPC authentication method"; `rpcauth` from `share/rpcauth`; whitelists "should not be considered robust security boundaries"; RPC "does not use encryption").
+- LND: [`sample-lnd.conf` at v0.21.4-beta](https://github.com/lightningnetwork/lnd/blob/v0.21.4-beta/sample-lnd.conf) (`bitcoind.rpccookie`, `bitcoind.rpcpolling`); the previous repository's `docs/build-records/2026-09-26-lnd-rpccookie.md` (LND does not re-read a rotated cookie).

@@ -172,6 +172,21 @@ def check_file(path: str, data: bytes, size: int) -> list:
     return found
 
 
+def cargo_output(paths: list) -> list:
+    """(path, reason) for every path inside a `target` folder beside a tracked
+    Cargo.toml: that folder is Cargo's build output, wherever the workspace
+    sits. A folder named target elsewhere (a module under src/) is left alone."""
+    roots = {os.path.dirname(p) for p in paths if os.path.basename(p) == "Cargo.toml"}
+    found = []
+    for path in paths:
+        segs = path.split("/")
+        for i, seg in enumerate(segs[:-1]):
+            if seg == "target" and "/".join(segs[:i]) in roots:
+                found.append((path, BUILD))
+                break
+    return found
+
+
 # --- the git index ----------------------------------------------------------
 
 def tracked(repo: str):
@@ -209,7 +224,11 @@ def tracked(repo: str):
 def main(argv: list) -> int:
     repo = argv[1] if len(argv) > 1 else "."
     try:
-        offenders = [(p, why) for p, size, data in tracked(repo) for why in check_file(p, data, size)]
+        offenders, paths = [], []
+        for p, size, data in tracked(repo):
+            paths.append(p)
+            offenders.extend((p, why) for why in check_file(p, data, size))
+        offenders.extend(cargo_output(paths))
     except (RuntimeError, ValueError, OSError) as e:
         print("repo-hygiene: cannot check %s: %s" % (repo, e), file=sys.stderr)
         return 2

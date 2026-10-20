@@ -6,7 +6,7 @@
 | **Author / session** | Claude Code (Opus 5.5), in a session opened in Rikuri-PI (outside the sandbox: the sandbox protects its own settings file, so this change cannot be made from inside it); owner Henry |
 | **Branch** | sandbox/crates-io |
 | **Commits** | 35c4f30 (D24); 70186d9 (after verifier round 1: the test fix, D25's first five paths, wording); 7aafa9b (after round 2: D25's nine more paths, wording); the commit after round 3 (wording) |
-| **Status** | COMPLETE — verifier round 1 FAIL (a vacuous test; wording) fixed with D25 added; round 2 FAIL on wording only, D25 extended to fourteen paths by the owner; round 3 FAIL on wording only, corrected with no further round (the owner's stop rule). Not yet proven: the fetch and a denied path inside the sandbox (B0's first steps), the owner's merge |
+| **Status** | COMPLETE — verifier round 1 FAIL (a vacuous test; wording) fixed with D25 added; round 2 FAIL on wording only, D25 extended to fourteen paths by the owner; round 3 FAIL on wording only, corrected with no further round (the owner's stop rule). Merged as PR #7 (eff4ea9, 2026-10-12 22:50 PDT). The fetch and a denied path inside the sandbox: seen by B0.1's session, 2026-10-12 (§4) |
 | **Change type** | ops (the session boundary) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -132,8 +132,16 @@ line. AGENTS.md says the new rule where the sandbox is described.
       `index.crates.io-…`; `scripts/cargo.sh build --offline` exit 0; the
       index's `config.json`: `"dl": "https://static.crates.io/crates"`;
       `cargo +1.98.1 --version` works with the moved cache.
-- [ ] Inside the sandbox: Not yet proven — B0's first `scripts/cargo.sh
-      fetch` in a session opened in its worktree; B0's record carries it.
+- [x] Inside the sandbox — seen by B0.1's session (2026-10-12, a session
+      opened in a worktree of this repository, `auto` mode; its first two
+      commands; evidence
+      `evidence/2026-10-12-b0-1-control-plane-workspace/d24-fetch.out` and
+      `d25-stat.out`): `scripts/cargo.sh fetch` on a crate pinning
+      `itoa = "=1.0.15"` → "Downloaded itoa v1.0.15", exit 0, into the
+      checkout's `.cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/itoa-1.0.15.crate`,
+      nothing in `git status`; `stat -c %F ~/.git-credentials` → "character
+      special file" (the sandbox's stand-in; a regular file outside, above).
+      D24 and D25 act as set.
 - [x] Full gate: all 7 steps passed on each tree — 35c4f30 (`gate.out`), the fix round (`gate2.out`), after round 2 (`gate3.out`); step 3's wiring tests include the refusal cases.
 - [x] **Verifier, round 1: FAIL** (its evidence in
       `/home/junc/claude-wip/d24/verify/`). Passed: the block identical in
@@ -204,8 +212,7 @@ line. AGENTS.md says the new rule where the sandbox is described.
 - [x] Commit message explains why; record committed with the change.
 
 ## Skipped items — visible, never silent
-- The in-sandbox proof waits for B0's session (above): its first
-  `scripts/cargo.sh fetch`, and a refused read of a D25 path.
+- The in-sandbox proof: done by B0.1's session, 2026-10-12 (§4).
 - A cargo cache force-added past `.gitignore` passes the hygiene check
   (verifier round 1). Owner: Henry. Reactivate: with B0's gate, if the
   cache is ever seen staged.

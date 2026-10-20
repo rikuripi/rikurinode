@@ -1,7 +1,8 @@
-"""AGENTS.md > Deterministic gates, as tests: every command form it lists,
+"""docs/guard-and-sandbox.md, as tests: every command form it lists,
 against every path spelling it names, asks in both profiles; copying into
 scripts/quality asks in stable only; the lookalikes it leaves free stay free.
-A form added to AGENTS.md is added here, and the other way round.
+A form added to docs/guard-and-sandbox.md is added here, and the other way
+round.
 Record: docs/build-records/2026-10-10-bootstrap.md (rounds 8 and 10)
 """
 import os
@@ -15,7 +16,7 @@ import guard  # noqa: E402
 
 CFG = guard.load_config()
 
-# --- the path spellings AGENTS.md names ---------------------------------------------
+# --- the path spellings docs/guard-and-sandbox.md names -----------------------------
 OLD_FILES = ["/home/junc/rikuri/rikurinode/f", "~/rikuri/rikurinode/f", "~junc/rikuri/rikurinode/f",
              "$HOME/rikuri/rikurinode/f", "${HOME}/rikuri/rikurinode/f", "/home/*/rikuri/rikurinode/f",
              '"${HOME:?}/rikuri/rikurinode/f"', "${HOME%/}/rikuri/rikurinode/f"]
@@ -33,7 +34,7 @@ FOLDERS = ["scripts", "scripts/quality", ".git", "scripts/", "scripts/*", "scrip
            ":/scripts", "':(top)scripts/quality'", '"${PWD:?}/scripts"', '"${PWD%/}/.git"', "${PWD:?}/scripts/quality",
            "`pwd`/scripts"]
 
-# --- the forms AGENTS.md lists ----------------------------------------------------------
+# --- the forms docs/guard-and-sandbox.md lists ------------------------------------------
 FILE_FORMS = ["rm -f {t}", "rmdir {t}", "mv {t} /tmp/x", "rename s/a/b/ {t}", "shred -u {t}", "chmod -x {t}",
               "chown nobody {t}", "chgrp nobody {t}", "echo x | tee {t}", "touch {t}", "truncate -s0 {t}",
               "ln -sf /tmp/x {t}", "dd if=/tmp/x of={t}", "unlink {t}", "mkdir -p {t}", "patch {t} x.diff",
@@ -176,7 +177,7 @@ CONTINUED = ([f.format(t="\\\n" + "scripts/quality/hooks/pre-commit") for f in F
                 # inside quotes a backslash-newline stays in one segment (a code string)
                 "python3 -c 'import os; os.system(\"shred -u \\\nscripts/quality/hooks/pre-commit\")'"])
 CONTINUED_FREE = ["echo a \\\nb", "git commit -m x \\\n-m y", "grep -n x \\\ndocs/"]
-# the lookalikes and reads AGENTS.md leaves free
+# the lookalikes and reads docs/guard-and-sandbox.md leaves free
 FREE = ["cp /home/junc/rikuri/rikurinode/README.md docs/", "cat /home/junc/rikuri/rikurinode/README.md",
         "git -C /home/junc/rikuri/rikurinode log -1", "install -m 755 /home/junc/rikuri/rikurinode/x.sh scripts/",
         "rm -rf build/scripts", "rm -rf docs/.git", "rm -f .git/hooks.bak", "mkdir scripts", "touch docs/scripts",

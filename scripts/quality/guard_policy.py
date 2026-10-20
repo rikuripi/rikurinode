@@ -388,7 +388,8 @@ rule(r">\s*$",
      "so it cannot see where this one writes. Write `>` instead, or the owner approves")
 
 # --- the pre-commit gate -----------------------------------------------------------------
-# What always asks, each form listed here and in AGENTS.md, and nothing else:
+# What always asks, each form listed here and in docs/guard-and-sandbox.md,
+# and nothing else:
 # git's options, configuration commands and environment that bypass the local
 # hook or move core.hooksPath; a sparse checkout (the command, or
 # core.sparseCheckout, or read-tree); hiding the hook's files from git
@@ -402,8 +403,8 @@ rule(r">\s*$",
 # protected-path writes for scripts/quality and the hook paths only, read by
 # guard.py (PROTECTED_GLOBS): they ask in stable and are logged in
 # development. A tripwire on command text cannot list every way (verifier
-# rounds 3 to 7): the forms it misses are listed in AGENTS.md. The hook is
-# an early warning; the boundary is CI's full gate on every pull request to a
+# rounds 3 to 7): the forms it misses are listed in docs/guard-and-sandbox.md.
+# The hook is an early warning; the boundary is CI's full gate on every pull request to a
 # protected main.
 HOOK_NAMES = (r"(?:scripts" + SEP + r"quality" + SEP + r"hooks|\.git" + SEP + r"(?:config(?:\.worktree)?|hooks))"
               r"(?![\w.-])")

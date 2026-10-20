@@ -1,372 +1,192 @@
-# BUILD PROCEDURE — Standard Work for Every Project
+# BUILD PROCEDURE — Rikuri Node
 
-This document governs how software gets built here: planning, building,
-debugging, testing, review, and the periodic loops that keep a system honest
-over time. It is portable — copy it into any new project's repo and follow it
-from day one. AI assistants working in a repo containing this file are bound
-by it.
+How changes are built here: planning, building, debugging, testing, review, incidents and release. [`AGENTS.md`](../../AGENTS.md) governs how an agent carries out one assignment: the Task Contract, the limits of two repair cycles and two review rounds, the outcomes `DONE`, `BLOCKED` and `NEEDS_OWNER_DECISION`, and stopping. This document governs what each step must contain. Where the two differ on how many times to try, `AGENTS.md` applies. Where they differ on what counts as evidence, this document applies.
 
-The goal is Toyota-style quality: not "never make mistakes," but **a system
-where mistakes cannot travel** — every defect is caught by the nearest gate,
-made loud, and converted into a permanent tripwire.
+The goal is a system where mistakes cannot travel. Every defect is caught by the nearest gate, made loud, and turned into a check. The depth of each step follows the change's risk tier.
+
+This copy was condensed for Rikuri Node on 2026-10-13. It differs from the other repositories' BUILD-PROCEDURE.md, and Git history keeps the full earlier text. "rikurinode" below means the previous repository at `/home/junc/rikuri/rikurinode`.
 
 ---
 
-## The Five Laws (apply to every section below)
+## The Five Laws
 
-1. **Nothing is silent.** Every component either runs and is gated by a test,
-   or it is deleted. A fallback that engages is an ALERT, never just a save.
-   (Case study: a watchdog's primary restart path was dead for weeks while the
-   sudo fallback quietly recovered everything — the audit trail even recorded
-   the dead mechanism as having run.)
-2. **Stop the line.** A red gate (build, typecheck, test, smoke) halts all
-   other work until green. No "I'll fix it after this feature." No skipped,
-   excluded, or `@ts-nocheck`'d code without a counted, scheduled debt entry.
-3. **Standard work.** The checklists below are walked mechanically, every
-   time, regardless of how small the change feels. Quality must not depend on
-   anyone being sharp that day.
-4. **Alert on the absence of success, not just the presence of failure.**
-   Heartbeats over error handlers. "The upgrade checker must see a repo push
-   within 90 days or complain." (Case study: a pinned Docker repo died at
-   exactly the running version — the checker reported "up to date" for 18
-   months because it only compared against what the dead repo published.)
-5. **Encode every lesson as a gate.** A bug fixed is a bug class still alive.
-   Every incident ends with a tripwire — a test, a ratchet, a monitor, a
-   refusal-to-boot — that makes the whole CLASS impossible or loud.
+1. **Nothing is silent.** Every component runs and is gated by a test, or it is deleted. A fallback that engages is an alert, never just a save.
+2. **Stop the line.** A red required gate halts dependent work. It does not authorize unlimited repair: after the task's two repair cycles, report `BLOCKED` with the exact failure, and the owner decides. Never disable or weaken the check. Skipped or excluded code is counted, scheduled debt.
+3. **Standard work.** The Per-Change Loop applies to every change, at its tier's depth.
+4. **Alert on the absence of success.** Last-success times and heartbeats, not only error handlers.
+5. **Turn defects into tripwires.** Every fixed defect gets a regression test. A class-wide tripwire (a test, invariant, monitor, ratchet or refusal) follows the risk tier. Every incident ends with one.
 
 ---
 
 ## Phase 0 — Project Bootstrap (before the first feature)
 
-Do these once, at project start. A project without them is a prototype, not
-a product.
+A project is a prototype until it has:
 
-- [ ] **Version control** with a protected main branch; work happens on
-      branches; every merge has a green CI run.
-- [ ] **CI that actually gates**: build + typecheck + unit tests + lint +
-      secret scan, none marked continue-on-error. Prove it with a
-      **red-test drill**: plant a failing test, confirm CI goes red, remove it.
-- [ ] **Pre-commit hooks**: typecheck + secret scan (gitleaks or equivalent)
-      minimum.
-- [ ] **A smoke script** (`scripts/smoke.sh` or equivalent): one command that
-      probes every service, port, and page the system claims to provide, with
-      distinct content markers (not just "port answers"), and echoes the
-      active configuration. This is the session-exit gate forever after.
-- [ ] **A debt ratchet**: counted metrics that may only go down
-      (`@ts-nocheck` count, `any` count, TODO count, script-style tests…).
-      Baselines committed; CI fails on any rise.
-- [ ] **Secrets hygiene**: no secret in the repo, ever; secrets live in
-      env files/keychains outside the tree; document where each one lives.
-- [ ] **Version pinning policy**: every dependency and container image pinned
-      to an exact version. `:latest` and floating branch tags are forbidden —
-      a float is how a 3.5-year-old EOL Tor daemon hides in plain sight.
-- [ ] **Runtime truth over declared truth**: version/status displays must
-      probe the running process, never trust a tag, a cache, or a config.
+- a protected `main` with CI that gates: build, typecheck, tests, lint and secret scan, none allowed to fail, proven by a red-test drill;
+- a pre-commit hook with a secret scan;
+- a smoke script: one command that probes every service, port and page the system claims to provide, with distinct content markers (not only "the port answers"), and echoes the active configuration;
+- a debt ratchet with committed baselines;
+- no secret in the repository: secrets live outside the tree, and where each one lives is documented;
+- every dependency and image pinned, with lockfiles committed;
+- status and version shown from the running process.
+
+Here, the smoke script and the ratchet come with B0.3 (`AGENTS.md`, "Verification by maturity").
 
 ---
 
-## The Per-Change Loop (every feature, every fix — no exceptions)
+## Risk tiers
 
-**Every change gets a BUILD RECORD** — a visible, committed checklist, not a
-mental one. At PLAN time, copy `.agents/workflows/BUILD-CHECKLIST-TEMPLATE.md`
-to `docs/build-records/YYYY-MM-DD-<slug>.md`; check boxes AS the work happens,
-each with evidence; commit the record WITH the change. An unchecked box
-without a written SKIPPED-because entry means the change is not done — and
-"to save time" is not a reason. The records directory is the audit trail
-proving what was built and that it went through this procedure
-(see `docs/build-records/README.md`; exemplar:
-`docs/build-records/2026-08-08-one-click-infra-upgrades.md`).
+**High-risk** changes touch any of:
 
-### 0. INTENT + SPEC (before planning)
-- [ ] **Intent, in the owner's words, approved by the owner**: the problem,
-      the outcome, who/what it affects, open questions. The owner approves
-      the intent, not the code. A misunderstood intent built perfectly is
-      still a defect, and the most expensive kind.
-- [ ] **Spec**: requirements derived from the intent, the design, and policy
-      applied UP FRONT (the first principle, design rules, security gates),
-      not discovered in review. Concerns get flagged to the owner here.
-- [ ] Small change: one line each. Anything touching funds, auth, exec or
-      private data: never skipped.
+- funds, keys, seeds, macaroons or credentials;
+- anything that talks to bitcoind or LND;
+- backup, restore, update, rollback, migration or deletion;
+- the OS image, its signing or its boot checks;
+- a trust or security boundary: network exposure, authentication, the assistant's authority;
+- anything irreversible;
+- a control that enforces these: CI, the full gate, the sandbox settings, the guard and its policy, `safe-run.sh`, `REVIEW.md`, the verifier, and the agent rules themselves (`AGENTS.md`, `CLAUDE.md`, this procedure and its Build Record template).
 
-### 1. PLAN (before writing code)
-- [ ] State the change in one sentence. If you can't, split it.
-- [ ] Identify the blast radius: which modules, which data, which auth/funds/
-      exec paths does this touch? Anything irreversible?
-- [ ] **Characterize before you change**: read the current behavior and prove
-      your understanding (run it, log it, test it). Plans built on assumed
-      behavior produce fixes for bugs that don't exist and miss the ones that
-      do. (Case study: three "big delete" refactor phases found the deletions
-      already done — and one "dead" module that was load-bearing.)
-- [ ] Decide the verification BEFORE building: "I will know this works when
-      ___." If the answer is "it compiles," you don't have a plan yet.
-- [ ] Name the files that change, the order of work, and the riskiest step.
-      The bar: a fresh session could build it from the plan alone. Review
-      later checks the diff against this plan.
+**Routine** changes are everything else: other documentation and process text, tooling, tests, scaffolding, refactors that leave high-risk behaviour unchanged, messages and wording.
+
+How to tier a change:
+
+- The Task Contract's Scope names the tier.
+- When unsure, choose high-risk.
+- A routine change found to touch high-risk behaviour is re-tiered in its Build Record.
+- A change to a protected path (the paths listed in `.claude/hooks/guard-config.json`) gets its risk note whatever its tier.
+
+| Step | Routine | High-risk |
+| --- | --- | --- |
+| Intent and spec | The Task Contract's Outcome | The intent in the owner's words, approved by the owner; the spec applies the design rules and the security baseline up front |
+| Build Record | Brief: Task Contract, plan, verification, disposition | Full, with risk and negative-test evidence |
+| Tests during the work | Targeted tests, and a regression test for every defect fixed | The same, plus the boundary, recovery and failure tests the change affects |
+| Fix-lock | Opt-in; seldom worth it | Opt-in; worth engaging for a defect in high-risk code. It becomes the default before the first code that talks to LND or bitcoind, or handles keys, seeds or macaroons (`AGENTS.md` §6) |
+| Fix the class | A search of the module touched | One repository-wide search for the same pattern; directly affected siblings fixed, the rest to the backlog |
+| Class tripwire, beyond the regression test | Only for a defect seen twice | For the failure class, where practical |
+| Independent review | Documentation only: the `AGENTS.md` §5 checks and the owner's pull-request review, no verifier. Code: one verifier pass | One verifier pass, including the mutation run its instructions name |
+
+Either tier may get one follow-up pass on corrected findings.
+
+- **The review's finish line.** Severity is `REVIEW.md`'s: Important or nit. Only an Important finding fails a pass. Nits never fail a pass and never start another one: they are fixed in place or listed in the Build Record. A wording finding gets its fix, not a new gate. An overstated sentence is Important only when it claims a gate or stage result, a security or funds property, data integrity or completion that the evidence does not support.
+- **Test adequacy.** In routine code, a missing test is Important only when the change's own "Done when" depends on it.
+- **The mutation run (high-risk code).** The first verifier pass mutates the changed lines inside `safe-run.sh`: `cargo mutants` for Rust, a few hand mutations of the changed checks for other code, with the settings in `.claude/agents/verifier.md`.
+  - A surviving mutant in a refusal, validation, recovery, funds or integrity check is Important; other survivors are nits.
+  - The run surfaces the untested conditions the tool can reach in one pass, instead of one per round.
+  - It does not find missing rules; the reviewer finds those by reading the change against its Plan.
+- **The follow-up pass.** It checks the corrections and reruns that mutation scope; it does not search for new findings. A new Important finding it happens to see ends the task in `NEEDS_OWNER_DECISION`, and the owner decides whether it is fixed now, as its own task, or recorded as debt.
+- **Controls are adequate when they cover what the repository uses.** A gap for a form the repository does not contain is owned debt, not a new task.
+
+---
+
+## The Per-Change Loop (every change, at its tier's depth)
+
+One Build Record per change, from [BUILD-CHECKLIST-TEMPLATE.md](BUILD-CHECKLIST-TEMPLATE.md), at `docs/build-records/YYYY-MM-DD-<slug>.md`, begun during planning and committed with the change. An unchecked box without a written Skipped entry means the change is not done, and "to save time" is not a reason.
+
+### 1. PLAN
+- [ ] Task Contract, with the tier (`AGENTS.md` §3). A change you cannot state in one sentence gets split.
+- [ ] The blast radius: which modules, data, funds, keys or node paths it touches, and whether any of it is irreversible.
+- [ ] Characterize before changing: run or read the current behaviour; do not plan against assumed behaviour.
+- [ ] "I will know this works when ___". If the answer is "it compiles", there is no plan yet.
+- [ ] The files that change, the order of work and the riskiest step.
 
 ### 2. BUILD
 - [ ] Smallest coherent increment; one concern per commit.
-- [ ] New code meets the bar: typed (no new `any`/`@ts-nocheck`), validated
-      at its boundaries (schema-check every input that crosses a trust line),
-      size-capped (~800 LOC/file), documented where non-obvious.
-- [ ] **Clean as you go**: the old version of anything you replace is removed
-      in the same change. Scaffolding and probe scripts die with the session.
-- [ ] Security question, asked explicitly every time: *does this change touch
-      authentication, money, execution, or private data?* If yes: which
-      existing gate covers it, and is there a test proving the gate holds?
-      A hardening pass that breaks a legitimate path is also a defect —
-      check both directions. (Case study: a loginless-mode hardening
-      accidentally gated the login endpoint itself behind login.)
+- [ ] Typed code, with inputs validated at trust boundaries. Files over about 800 lines get a second look.
+- [ ] Clean as you go: the old version of anything replaced goes in the same change.
+- [ ] Ask whether the change touches authentication, money, execution or private data. If it does, it is high-risk; name the gate that covers it and the test that proves the gate. Hardening that breaks a legitimate path is also a defect, so check both directions.
 
-### 3. DEBUG (when something is wrong)
-- [ ] Reproduce first. A fix without a reproduction is a guess.
-- [ ] Write the failing test, SEE it fail, then engage the **fix-lock**
-      (`python3 .claude/hooks/guard.py fix-lock on <record>`). From then
-      on, test files and baselines are read-only to the AI session: the fix
-      goes in the code, not the test. So are tests written inside a
-      source file (Rust's `#[cfg(test)]` module, or a test-only helper
-      under `#[cfg(any(test, …))]`, from the marker to the end of the file,
-      together with the attribute and comment lines directly above it;
-      `inline_tests` in guard-config.json). An Edit to such a file must
-      match its text exactly and leave the tests unchanged. A shell write
-      to any file of that type (every `.rs` file) is refused while locked,
-      because it cannot be checked, so use Edit or Write. While locked,
-      production code may not start acting differently under test: lines
-      with `cfg(test)`, `cfg!(test)`, `cfg_attr(test, …)` or an
-      assert-macro shadow cannot be added, removed or changed. This is a
-      tripwire, not a wall. A disguised switch-off (an attribute on the code
-      line above, an inner `#![cfg]`, a changed `mod` line) shows as a drop
-      in the "N passed" count, so compare it before and after a fix. Other
-      disguised cheats are left to review. Releasing it (`fix-lock off`) needs
-      the owner, unless the repo's `guard-config.json` sets
-      `fix_lock_release_needs_owner: false` (rikurinode: the owner's choice,
-      2026-09-26). Either way, every release is logged to
-      `.claude/state/fix-lock.log`, and the verifier checks it against the
-      build record. The lock belongs to the session that took it (owner,
-      2026-10-03): it binds only that session, so sessions working one repo
-      never block each other; taken outside a session (the owner's terminal)
-      it is global and binds every session. `fix-lock off` releases only
-      your own; releasing another session's (`--session <id>`, `--global`)
-      always asks the owner.
-- [ ] Read the actual error/log — not what you expect it to say. The clue is
-      usually verbatim in there. (Case study: a "stuck" node was printing
-      `bad-version-reduced_data` — a consensus rejection, not a hang; every
-      restart-style "fix" would have been wrong.)
-- [ ] Fix the CLASS, not the instance: after the fix works, ask "where else
-      does this exact pattern exist?" and sweep. (Case study: one raw-template
-      copy bug appeared in three different install scripts.)
-- [ ] Before any state-changing remediation (restart, delete, config change):
-      does the evidence support THIS action, or does the symptom just
-      pattern-match a known failure?
+### 3. DEBUG
+- [ ] Reproduce first, and read the actual error or log.
+- [ ] Commit the failing test before the fix (`AGENTS.md` §5); the fix-lock is opt-in (`AGENTS.md` §6). While a session holds the lock:
+  - test files and baselines are read-only to it, and so are tests inside a source file (Rust's `#[cfg(test)]` module or a test-only helper, from the marker to the end of the file; `inline_tests` in `guard-config.json`). An Edit to such a file must leave the tests unchanged, and a shell write to any `.rs` file is refused, so use Edit or Write;
+  - lines with `cfg(test)`, `cfg!(test)`, `cfg_attr(test, …)` or an assert-macro shadow cannot be added, removed or changed;
+  - this is a tripwire, not a wall: compare the "N passed" count before and after the fix, since a disguised switch-off shows as a drop there; other disguised cheats are left to review;
+  - the lock binds only the session that took it (owner, 2026-10-03); taken in the owner's terminal it binds every session. `fix-lock off` releases only your own, every release is logged to `.claude/state/fix-lock.log`, and the verifier checks the log against the Build Record.
+- [ ] Fix the class at the tier's depth.
+- [ ] Before a restart, a delete or a config change, check that the evidence supports this action.
 
 ### 4. TEST / VERIFY
-- [ ] Unit tests for the logic you added — including the failure paths.
-      A test that only covers the happy path certifies nothing.
-- [ ] **Watch it actually work** in the running system — the real page, the
-      real endpoint, the real container. "Tests pass" and "it works" are
-      different claims; make both.
-- [ ] If the change alters recovery/fallback behavior: **trigger it**. A
-      recovery path that has never been exercised is a hope, not a feature.
-- [ ] Regression guard: for any bug you just fixed, prove the test fails on
-      the OLD code (revert briefly if needed). A guard that never failed
-      guards nothing.
-- [ ] **Independent verification**: the `verifier` subagent
-      (`.claude/agents/verifier.md`) runs the gate, exercises the change and
-      its neighbours, and reports against the plan. It never fixes. The
-      builder does not grade its own work.
+- [ ] Unit tests for the logic added, including its failure paths.
+- [ ] A regression test for a fixed bug, shown failing on the old code.
+- [ ] Watch it work through the real entry point, in a fixture or scratch environment, never on the live node.
+- [ ] A changed recovery or fallback path is triggered, in a fixture or scratch copy: one never exercised is a hope, not a feature.
+- [ ] High-risk only: test the boundary in both the allowed and the denied direction.
 
-### 5. CLOSE OUT (end of every change/session)
-- [ ] Run the full gate: build → typecheck → unit tests → ratchet → smoke.
-      All green or the session isn't over.
-- [ ] **The Scrap Sweep** (every session, no exceptions — see the taxonomy
-      below): `git status` plus a look at the working directories. Everything
-      present is the real change or a deliberate, load-bearing new file.
-- [ ] Update the knowledge layer IN THE SAME CHANGE: docs / RAG / runbooks /
-      user-facing help for whatever behavior changed. Stale docs are silent
-      failures too.
-- [ ] Review per `REVIEW.md` (bugs / security / plan-compliance passes).
-      Important findings are fixed or listed as Skipped.
-- [ ] Commit with a message that explains WHY (the incident, the class, the
-      decision) — the diff already shows the what.
-- [ ] Deploy = build: one scripted path from source to running system. Never
-      hand-copy artifacts; drift between source and running code is a
-      slow-motion outage.
+### 5. CLOSE OUT
+- [ ] Run the full gate (`scripts/quality/full-gate.sh`) once, at the acceptance boundary. Targeted checks are enough during the work. A documentation-only change runs the `AGENTS.md` §5 checks. A `BLOCKED` task ends with an honest report, not a green gate.
+- [ ] Scrap Sweep (below).
+- [ ] Help pages and runbooks updated in the same change (`AGENTS.md`, "Knowledge layer").
+- [ ] Review per `REVIEW.md`.
+- [ ] A commit message that explains why.
+- [ ] Deploy equals build: one scripted path from source to the running system, with no hand-copied artifacts.
 
 ---
 
-## The Scrap Taxonomy — what "clean" means, precisely
+## The Scrap Taxonomy (Scrap Sweep)
 
-Scrap is anything that helped you get to the change but is not the change.
-It is removed **the same session it was created** — scrap left overnight
-becomes "maybe load-bearing" by next week and permanent by next month. The
-rule in both directions: **if it's junk, dump it (prove it first — zero
-importers/callers/unit/systemd/runbook references); if it should exist, wire
-it in and gate it. "Sitting there quietly" is never a third state.**
+Scrap is anything that helped you reach the change but is not the change. Remove what this task created, in the same session:
 
-Delete on sight, every session:
-- [ ] **Scaffolding & probe scripts** — debug scripts, curl/test one-liners
-      saved as files, temporary harnesses. If it was the road to the fix and not
-      the fix, it dies with the session (scratchpad if worth keeping, never
-      the repo).
-- [ ] **One-shot scripts that have been applied** — migration/apply/fixup
-      scripts are DANGEROUS after they run: re-running them reinstalls the
-      old state. (Case study: an applied one-shot would have reinstalled a
-      renamed-away systemd unit; a different one actually DID install a raw
-      config template and silently killed the watchdog for four days.)
-      Their knowledge lives on in the commit message and runlog; the script
-      does not.
-- [ ] **The old version beside the new** — a replaced function, route, file,
-      or config left "just in case." The version control system is the
-      just-in-case; the working tree is not.
-- [ ] **Orphans** — code with zero reachable callers from real entry points.
-      Prove it (imports, shell scripts, systemd units, runbooks, tool
-      registrations, dynamic loading), then delete. Beware: a dead barrel
-      can re-export LIVE children — verify per child.
-- [ ] **Debug residue in real code** — console.log/print left from
-      diagnosis, commented-out blocks, temporarily-loosened checks,
-      `.skip`'d tests, hardcoded test values.
-- [ ] **Stray files** — `.bak`, `.old`, `.deleted`, editor swap/lock files
-      (these have leaked SECRETS from config dirs before), untracked files
-      nobody can name a purpose for, stale build artifacts (sweep with a
-      CLEAN build — stale artifacts make deleted code look alive).
-- [ ] **Stale state** — expired cache files, failure records from bugs since
-      fixed, stashes older than a day, branches whose work landed.
+- probe scripts and temporary harnesses;
+- applied one-shot scripts, which are dangerous to re-run;
+- the old version left beside the new;
+- debug residue and temporarily loosened checks;
+- stray files this task made (`.bak`, swap files, editor leftovers);
+- proven orphans, after checking imports, scripts, units, runbooks and dynamic loading.
 
-Quarantine is never a resting state: anything excluded from CI, `@ts-nocheck`'d,
-or `.skip`'d is a **counted, ratcheted, scheduled** debt with a named phase in
-which it becomes running-and-gated or deleted.
+Keep user data, reproducible migrations, rollback tools, fixtures and evidence.
+
+An untracked file this task did not create is reported, not deleted: age or an unknown purpose is not deletion authority.
+
+Other sessions' work, stale stashes, branches whose work landed and leftover worktrees are reported, not removed: the owner disposes (`AGENTS.md` §2).
+
+Anything excluded from CI or skipped is counted, scheduled debt with a named stage in which it is fixed or deleted.
 
 ---
 
-## Periodic Loops (calendar-driven, not mood-driven)
+## Periodic Loops (owner obligations)
 
-Silent failures are found by time and use, never by the build loop. Schedule
-these; do not rely on remembering.
+These are scheduled by the owner. They are never an agent's self-assigned work, and they never run against the live node without the owner's instruction. After each one, findings become fixes, and fixes become tripwires.
 
-### Weekly (~15 minutes)
-- [ ] Run smoke; skim service/upgrade/notification pages.
-- [ ] Grep logs for engaged FALLBACKS and repeated warnings — a fallback
-      firing weekly is a primary path dying quietly.
-- [ ] `git status` on all machines: no uncommitted drift older than a week.
-
-### Monthly (one session) — DRILL, on rotation
-Pick one; rotate through all of them over the quarter:
-- [ ] **Restart drill**: clean reboot; zero manual interventions allowed.
-- [ ] **Failover drill**: kill the primary of something (process, container,
-      config); verify detection, recovery, AND that the recovery was loud.
-- [ ] **Mode-switch drill**: exercise every supported configuration
-      round-trip (engines, networks, feature flags), verifying state and
-      funds/data integrity at each hop.
-- [ ] **Restore drill**: restore a real backup into a scratch environment.
-      An unrestored backup is Schrödinger's backup.
-After every drill: findings become fixes become tripwires (Law 5).
-
-### Quarterly (one to two sessions) — ADVERSARIAL REVIEW
-- [ ] **Security pass** over auth/funds/exec paths: walk every mutation route
-      and name its gate; try the obvious bypasses; verify rate limits and
-      lockouts fire.
-- [ ] **Dead-code sweep**: import-reachability from real entry points; every
-      orphan proven-then-deleted. Verify with a CLEAN build — stale build
-      artifacts hide deletions.
-- [ ] **Dependency & image audit**: every pin still from a LIVING source
-      (check last-publish dates, not just versions); EOL check on every
-      runtime (language, OS, daemons).
-- [ ] **Architecture check**: do the docs still describe the system? Is every
-      documented invariant still tested? One impl per concern still true?
-- [ ] **Fresh-eyes review**: automated multi-agent code review of recent
-      changes, plus — before any public exposure — a human external audit of
-      the security-critical paths.
+- **Weekly:** smoke run; a scan for engaged fallbacks and repeated warnings; no uncommitted drift older than a week.
+- **Monthly, rotating drills:**
+  - restart with zero manual steps;
+  - failover, where recovery must be loud;
+  - mode switch, with state and funds integrity checked at each hop;
+  - restore of a real backup into scratch.
+- **Quarterly:**
+  - a security pass over authentication, funds and execution paths;
+  - a dead-code sweep;
+  - a dependency and image audit (living sources, end-of-life dates);
+  - an architecture check of documents against tested invariants;
+  - a fresh-eyes review, plus a human external audit before any public exposure.
 
 ---
 
 ## Incident Procedure (when something breaks in production)
 
-1. **Stabilize** with the least destructive action that evidence supports.
-2. **Capture** the state before "fixing" erases it (logs, files, versions).
-3. **Root-cause to the class**: "the dashboard 502'd" is a symptom;
-   "compose-managed containers lose their network endpoint when the network
-   is recreated under them" is a class.
-4. **Tripwire it** (Law 5): a test, monitor, guard, or refusal that makes the
-   class loud or impossible.
-5. **Record it** where the next session will find it: incident log / runbook /
-   project memory — including what the false leads were.
-6. **Sweep for siblings**: the same class usually lives in more than one place.
+1. Stabilize with the least destructive action the evidence supports.
+2. Capture the state before fixing erases it.
+3. Find the cause down to its class, not just the symptom.
+4. Add a tripwire that makes the class loud or impossible.
+5. Record the incident, including the false leads, where the next session will find it.
+6. Sweep for siblings of the same class.
 
 ---
 
-## Working with AI Assistants (how this document gets enforced)
+## Working with AI Assistants
 
-- Point every AI session at this file; its checklists are binding.
-- Demand **verification, not claims**: "tests pass" must come with the test
-  run; "it works" must come with the probe of the running system.
-- The AI must report failures verbatim — a session that only reports
-  successes is hiding the interesting parts.
-- AI-written code follows the same ratchets, the same gates, the same
-  clean-as-you-go rule. Speed is not an exemption; it is the reason the
-  gates exist.
-- Multi-session hygiene: sessions do not commit each other's in-flight work;
-  uncommitted changes older than a day get dispositioned (finished, stashed,
-  or deleted), never left ambient.
+AI sessions follow `AGENTS.md`.
 
----
-
-## Deterministic gates: rules an AI session cannot skip
-
-Everything above is standard work, and standard work is advisory: an AI
-session can skip a checklist. So the rules whose violation is expensive or
-irreversible are enforced by a **PreToolUse hook**, not by prose.
-(Adopted from Anthropic's AI-Native SDLC Playbook, 2026-09-22: "skills are
-advisory; back critical policies with hooks.")
-
-`.claude/hooks/guard.py` (identical in every full-tier repo), wired by
-`.claude/settings.json`, policy in `.claude/hooks/guard-config.json`:
-
-| Rule | Decision |
-|---|---|
-| Reading a secret file (`.env`, keys, macaroons, cookies, tokens) | **deny**: contents never enter a transcript |
-| Any other command touching a secret file | **ask** |
-| `git push` force / delete / mirror / `+refspec` | **deny** |
-| `git push` to a protected branch (`main`) | **ask** |
-| Writing a protected path (per repo `protected_globs`: constitution, procedure, CI, git hooks, the guard itself; in rikurinode the owner released CI and the guard, 2026-09-26) | **ask** |
-| Funds / money-daemon / real-order commands (per-repo list) | **ask** |
-| Writing tests (test files, or the tests inside a source file) or baselines while the fix-lock is engaged | **deny** |
-| The guard itself fails (bad config, crash) | **ask**, with the error. Never fail-open |
-
-**Profiles (owner, 2026-09-27): how strict the guard is, switched with one command.**
-- `stable` asks at every **ask** row above. It is the default, suited to an
-  app that is close to done.
-- `development` keeps asking only before money moves (the funds rules marked
-  `always_ask`: sends, payments, channel and asset moves, live orders,
-  deleting wallet/chain/trade data) and before touching a secret file. Every
-  other ask is allowed and logged to `.claude/state/guard-relaxed.log`; the
-  agent's own auto mode (Claude Code, Codex) still judges it. **Deny** rows
-  never change.
-- Switch: `python3 .claude/hooks/guard.py profile development|stable`
-  (`profile` alone shows it; every switch is logged to
-  `.claude/state/profile.log`). Loosening to development asks the owner;
-  tightening to stable is always free.
-- All four full-tier repos are on `development` since 2026-09-27 (record:
-  rikurinode `docs/build-records/2026-09-27-guard-profiles.md`).
-
-- **Ask means the owner decides** (every ask in `stable`; only money and
-  secrets in `development`), in the UI, every time, including in auto
-  mode and even when the tool is pre-approved. Deny means no one does, from
-  inside a session. The owner runs it by hand.
-- **The guard is code, so it is gated like code**: `test_guard.py` replays
-  every worked example in the config plus generic and failure-mode cases.
-  CI runs it and smoke checks it is wired *and* green (absence of success
-  is the alarm).
-- **Bash matching is a tripwire, not a wall.** It catches the routine forms
-  and stays silent on routine work. A determined workaround gets past it,
-  which is why review and the owner remain above it.
-- **The lesson loop (Law 5, applied to the AI itself)**: a mistake the AI
-  makes twice becomes a line in CLAUDE.md. A rule it *breaks* becomes an
-  entry in `guard-config.json` with a worked example. Prose for judgement,
-  hooks for rules.
-- **Review policy lives in `REVIEW.md`** at the repo root: the passes,
-  what counts as Important, the nit cap, what not to report.
-- **Deferred, named:** CI evals that re-run real past tasks whenever
-  CLAUDE.md or `.claude/` changes. They cost API spend per run. Revisit when
-  a CLAUDE.md regression is observed twice.
+- **Rules that must not be skipped are enforced, not written down.** The rules whose violation is expensive or irreversible are enforced by Claude Code's sandbox and by the PreToolUse guard (`AGENTS.md`, "Deterministic gates"; detail in `docs/guard-and-sandbox.md`). Prose carries judgement; hooks carry rules.
+- **Ask means the owner decides**, in the UI, every time, even in auto mode and even when the tool is pre-approved. **Deny means no one does from inside a session**: the owner runs it by hand.
+- **The guard is code, gated like code.** `test_guard.py` replays every worked example in its policy plus generic and failure-mode cases, and the full gate runs it.
+- **The guard's lesson loop.** A rule an agent breaks becomes a guard entry with a worked example, but only when breaking it is expensive or irreversible, and only for forms the repository uses.
+- **Repeated mistakes.** A mistake an agent repeats becomes one line in `AGENTS.md`.
+- **Profiles.** The guard has two:
+  - `development` (current): asks only before money moves and secret files; other asks are allowed and logged.
+  - `stable`: asks at every gate.
+  - Switch with `python3 .claude/hooks/guard.py profile development|stable`. Loosening asks the owner; tightening is free.
+- **Deferred, named:** CI evals that re-run real past tasks whenever `AGENTS.md` or `.claude/` changes. Revisit when an instruction regression is seen twice.
 
 ---
 

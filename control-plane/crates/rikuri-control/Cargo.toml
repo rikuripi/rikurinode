@@ -1,0 +1,20 @@
+[package]
+name = "rikuri-control"
+description = "Rikuri Node's control plane: what the node reports and decides"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+axum.workspace = true
+serde.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+http-body-util.workspace = true
+serde_json.workspace = true
+tower.workspace = true
+
+[lints]
+workspace = true
