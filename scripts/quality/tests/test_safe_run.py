@@ -128,6 +128,38 @@ class Namespace(unittest.TestCase):
         finally:
             srv.close()
 
+    def test_loopback_is_up_inside(self):
+        # A listener inside the layer, on its own loopback, reached from inside:
+        # the control plane's integration tests depend on it (2026-10-20, a
+        # session without `ip` ran them with loopback down: NetworkUnreachable).
+        probe = ('import socket\n'
+                 's = socket.socket(); s.bind(("127.0.0.1", 0)); s.listen(1)\n'
+                 'try:\n'
+                 '    socket.create_connection(s.getsockname(), timeout=2); print("UP")\n'
+                 'except OSError as e: print("DOWN", e)\n')
+        r = run("python3 -c '%s'" % probe)
+        self.assertEqual(r.stdout.strip(), "UP", r.stdout + r.stderr)
+
+    def test_a_loopback_that_cannot_come_up_is_a_refusal(self):
+        # A stand-in `ip` that fails, first on PATH and confirmed to be what
+        # resolves: the layer must refuse before the command runs, not run it
+        # with loopback down (2026-10-20: the error was discarded).
+        d = tempfile.mkdtemp()
+        try:
+            fake = os.path.join(d, "ip")
+            with open(fake, "w") as f:
+                f.write('#!/bin/sh\necho "stand-in ip: cannot $*" >&2\nexit 1\n')
+            os.chmod(fake, 0o755)
+            env = dict(os.environ, PATH=d + os.pathsep + os.environ["PATH"])
+            self.assertEqual(shutil.which("ip", path=env["PATH"]), fake)
+            r = run("echo RAN", env)
+            self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+            self.assertNotIn("RAN", r.stdout)
+            self.assertIn("stand-in ip: cannot link set lo up", r.stderr)
+            self.assertIn("loopback", r.stderr)
+        finally:
+            shutil.rmtree(d)
+
     def test_processes_outside_cannot_be_signalled(self):
         # A process of our own outside the layer (never a live one). Its PID
         # number may exist inside as another process (PID namespaces count
