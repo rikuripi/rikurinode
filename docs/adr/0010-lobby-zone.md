@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proposed — drafted 2026-10-20 from the owner's direction in chat ("Ok, so we'll stay rootful, and make all the adjustments you just listed with report-card schema and F3 changes to the Rikuri Node Plan."); Accepted when the owner confirms this wording in its Build Record |
+| **Status** | Accepted — owner, 2026-10-20 ("accept all five."; record `docs/build-records/2026-10-20-accept-adrs-0010-0014.md`); drafted the same day from the owner's direction in chat ("Ok, so we'll stay rootful, and make all the adjustments you just listed with report-card schema and F3 changes to the Rikuri Node Plan.") |
 | **Decision** | D18, to be added to `docs/architecture/platform-plan.md` §7 |
 | **Supersedes** | Nothing. It adds a zone beside D14's private network (ADR 0007) |
 | **Beside it** | ADR 0005 (supervision), ADR 0006 (release sets), ADR 0007 (rootful Podman, a range per container, fixed addresses), ADR 0008 (the engine has no egress), ADR 0009 (the threat model), ADR 0012 (cloud model lanes) |

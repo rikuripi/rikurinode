@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proposed — drafted 2026-10-20 from the owner's direction in chat ("Yes, let's promote Nix-built images and Rusts runbook executor to ADRs."). It proposes an experiment; it becomes a decision only if the experiment passes its criteria and the owner accepts the result |
+| **Status** | Accepted — owner, 2026-10-20 ("accept all five."; record `docs/build-records/2026-10-20-accept-adrs-0010-0014.md`); drafted the same day from the owner's direction in chat ("Yes, let's promote Nix-built images and Rusts runbook executor to ADRs."). What is accepted is the experiment and its keep-or-drop criteria: Nix becomes the way images are built only if the experiment passes them and the owner accepts the result |
 | **Decision** | D20, to be added to `docs/architecture/platform-plan.md` §7 |
 | **Supersedes** | Nothing. If the experiment keeps, §4.2 of the plan ("built by this project from the upstream release binaries") is amended by dated clarification |
 | **Beside it** | ADR 0004 (image signing and publishing), ADR 0005 (probes and `Notify=healthy`), ADR 0006 (release sets bound to the image), ADR 0007 (rootful Podman), ADR 0009 (the threat model) |
