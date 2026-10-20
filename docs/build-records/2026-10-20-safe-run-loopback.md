@@ -43,33 +43,33 @@
 
 ## 2. Build
 
-- [ ] New code meets the bar:
-- [ ] Clean as you go:
-- [ ] Security question answered:
+- [x] New code meets the bar: one line in the inner script, in the same form as the `/run` refusal above it; `ip`'s own error now reaches stderr; the header comment says what happens.
+- [x] Clean as you go: the `2>/dev/null` that hid the error is gone; nothing else to remove.
+- [x] Security question answered: touches the test boundary, not auth, money or keys. A refusal is the safe direction: no command runs in a namespace whose state the layer did not set up. The no-namespace path is unchanged. Proof: the two tests, and the refusal observed end to end.
 
 ## 3. Debug
 
-- [ ] Reproduced before fixing:
-- [ ] Failing test written and SEEN failing:
-- [ ] Root cause is a CLASS:
-- [ ] Swept for siblings:
+- [x] Reproduced before fixing: on `main`, in this session, the control plane's `plain_listener` and `sign_in` suites failed with `NetworkUnreachable` through `safe-run.sh`, and `test_loopback_is_up_inside` failed with `DOWN [Errno 101] Network is unreachable`.
+- [x] Failing test written and SEEN failing: red commit `d750045`; on the old script `test_a_loopback_that_cannot_come_up_is_a_refusal` fails `AssertionError: 0 != 2 : RAN` (with and without the `ip` stand-in); fix-lock not engaged (opt-in), the red commit stands in for it.
+- [x] Root cause is a CLASS: a setup step whose failure is discarded (`2>/dev/null` with no exit-code check), so the layer reports success for an environment it did not build — the "nothing important fails silently" class.
+- [x] Swept for siblings: the other setup step in the inner script (`mount … /run`) already refuses; `mktemp` refuses (`|| exit 2`); `node_started` discards errors on purpose (no Docker means nothing to compare, and it says so). No other silent setup step in `safe-run.sh`.
 
 ## 4. Verify
 
-- [ ] Unit tests:
-- [ ] Watched it work:
-- [ ] Recovery/fallback path triggered:
-- [ ] Regression guard proven to FAIL on the old code:
+- [x] Unit tests: `test_safe_run.py` 16 OK with an `ip` stand-in for `link set lo up` first on `PATH` (this session has no iproute2); the gate's step 3 suites (`scripts/quality/tests`, OK, 1 skipped as before) and step 2's guard tests (OK).
+- [x] Watched it work: `scripts/quality/safe-run.sh echo RAN` without `ip` → `ip: command not found`, `safe-run: cannot bring loopback up inside the layer (is iproute2's ip installed?); refusing to run`, rc 2, nothing ran; the control plane's tests through the layer with loopback up: unit 104, `plain_listener` 3, `sign_in` 9, `status_route` 3, all ok; without `ip`, the same command is refused with rc 2.
+- [x] Recovery/fallback path triggered: the refusal path, above; no stand-in folder left behind (`rikuri-safe-bin.*`: 0).
+- [x] Regression guard proven to FAIL on the old code: the red commit, above.
 - [ ] Independent verification:
-- [ ] Diff matches the plan:
+- [x] Diff matches the plan: `safe-run.sh`, `test_safe_run.py` and this record.
 
 ## 5. Close Out
 
 - [ ] Full gate:
 - [ ] Scrap Sweep:
 - [ ] Reviewed per `REVIEW.md`:
-- [ ] Lesson loop:
-- [ ] Knowledge layer:
+- [x] Lesson loop: N/A (first occurrence; the class is an existing design rule).
+- [x] Knowledge layer: AGENTS.md ("no network but loopback") and README ("a private loopback") already describe the intended behaviour; the script's header now names the refusal.
 - [ ] Commit message explains why:
 
 ## Skipped items — visible, never silent
@@ -79,4 +79,21 @@
 ## Evidence log
 
 ```
+# red, old script (commit d750045), this session has no `ip`
+$ python3 -m unittest scripts.quality.tests.test_safe_run.Namespace
+FAIL: test_a_loopback_that_cannot_come_up_is_a_refusal   AssertionError: 0 != 2 : RAN
+FAIL: test_loopback_is_up_inside                         AssertionError: 'DOWN [Errno 101] Network is unreachable' != 'UP'
+# old script, `ip` stand-in for `link set lo up` first on PATH
+FAIL: test_a_loopback_that_cannot_come_up_is_a_refusal   AssertionError: 0 != 2 : RAN   (15 others OK)
+
+# green, fixed script
+$ shellcheck --severity=style scripts/quality/*.sh scripts/quality/hooks/* scripts/cargo.sh      -> rc 0 (0.11.0)
+$ scripts/quality/safe-run.sh echo RAN          (no ip)
+safe-run: line 2: ip: command not found
+safe-run: cannot bring loopback up inside the layer (is iproute2's ip installed?); refusing to run   -> rc 2
+$ PATH=<ip stand-in>:$PATH python3 -m unittest scripts.quality.tests.test_safe_run           -> Ran 16, OK
+$ PATH=<ip stand-in>:$PATH python3 -m unittest discover -s scripts/quality/tests -p 'test_*.py'  -> OK (skipped=1)
+$ python3 -m unittest discover -s .claude/hooks -p 'test_*.py'                                 -> OK
+$ PATH=<ip stand-in>:$PATH safe-run.sh cargo test --workspace ... (stable 1.97.0, --ignore-rust-version)
+unit 104 ok; plain_listener 3 ok; sign_in 9 ok; status_route 3 ok
 ```
