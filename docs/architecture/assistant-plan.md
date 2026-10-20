@@ -39,7 +39,9 @@ requirement, the register's AI and HEAL rules are the tests.
   control plane. The assistant is a front door to the same path the UI uses.
 - **Cloud is an owner-enabled exception** for reflection and evaluation
   only, off by default, redacted and recorded (F3). Chat and actions stay
-  local.
+  local. Amended 2026-10-20 (proposed, ADR 0012): three lanes by data
+  class, including a weekly performance review on a typed, sanitized
+  report card.
 - **Voice is the phone's job first** (F5); whisper.cpp on the node later, if
   the memory budget allows. Approval is never by voice.
 
@@ -165,7 +167,7 @@ Read by absolute path at its HEAD `3bbbe392`. The fork was read at
 |---|---|---|---|
 | F1 | Inference engine | **A. llama.cpp's official `server` image**, CPU build, pinned by digest in the release set: upstream releases, both architectures, the same pin path as every container; cost: no TQ4 cache compression, no ik_llama.cpp CPU kernels. **B. ik_llama.cpp** built in CI from a pinned commit: faster CPU kernels; cost: one maintainer, no release images to pin, a build pipeline of our own. **C. Keep Lean_llama.cpp:** cost: a rebase every few weeks on a moving upstream, model-architecture lag, the flash-attention trap, funds safety resting on a part-time fork. | **A** ("1. use llama.cpp"; ADR 0008). B is the measured fallback if A misses stage 8's speed budget on the N150. |
 | F2 | Learning loops in version one | **A. None:** deterministic reports; the model words them. **B. Port reflection once a labelled evaluation exists** (§4 C6); cost: the set must be built first. **C. Port as-is:** cost: unmeasured, needed a cloud tier, never reached review. | **B** ("port reflection once a labeled eval exits"). Until the set exists, A is what runs. |
-| F3 | Cloud model tier | **A. None** (AI-02 as written). **B. Owner-enabled, off by default, for reflection and evaluation only;** cost: compacted summaries and incident records leave the node while it is on, redacted, each send recorded. **C. Cloud for chat** as the previous node did; cost: node data leaves on every question. | **B** ("Owner enabled cloud: option for reflection and eval"). AI-02 carries a dated caveat. |
+| F3 | Cloud model tier | **A. None** (AI-02 as written). **B. Owner-enabled, off by default, for reflection and evaluation only;** cost: compacted summaries and incident records leave the node while it is on, redacted, each send recorded. **C. Cloud for chat** as the previous node did; cost: node data leaves on every question. | **B** ("Owner enabled cloud: option for reflection and eval"). AI-02 carries a dated caveat. **Amendment, 2026-10-20** (proposed; ADR 0012; the decided text stands): three lanes by data class. *Local* for chat, actions and anything touching node data; an owner-run machine on the owner's own network may serve it, recorded as such. *External public*, built from a template with no private fields. *External review*, which carries only a typed, sanitized weekly report card for a review of fees, rebalancing and profitability. Each is opt-in and off by default; every send goes through the AI relay in the lobby zone (platform plan D18) and is recorded first (B5); external answers are typed suggestions that Rust bounds-checks and the owner approves; none moves funds. |
 | F4 | Models on the node | **A. One model** with a grammar for both jobs; cost: if it classifies below the gate's floor, the fallback is B. **B. A second router model** as before: 1.2 GB more memory, one more artefact to pin and evaluate. | **A** ("One model if possible"), measured in stage 8. |
 | F5 | Voice input | **A. Phone-side speech-to-text,** text to the node; cost: on Android the recogniser may send audio to Google's servers. **B. whisper.cpp on the node:** cost: 75 MiB to 466 MiB of model and CPU time beside the LLM. **C. None.** | **A first, then B if enough RAM** ("First phone side; then whisper.cpp if enough RAM"). Approval is never by voice (§3.8). |
 
@@ -349,6 +351,12 @@ nothing until then.
   filter's version. It is written before the send by the one function that
   can send; a send without an event is impossible by construction, and a
   failed write refuses the send (SEC, "nothing fails silently").
+  *Amendment, 2026-10-20 (proposed; ADR 0012):* the purpose also takes
+  *performance review* and *public question*, with the lane. For the review
+  lane the event holds the exact payload, a `ReportCard` of schema version
+  `rikuri.report-card/1`, and whether the owner approved that send or the
+  weekly send was automatic. The one function that can send is the AI relay
+  of the lobby zone (platform plan D18).
 - **B6. Derived views, computed and never stored:** p50 and p95 latency,
   grounded rate, clarification rate, misroute rate (cards rejected),
   approval rate, and the running release's eval score. They are the AI page
@@ -403,7 +411,7 @@ nothing until then.
 | 7 Backend API and channel management | Runbooks as code (§3.4); the action templates and their regtest drill (contract A); the single approval store (HEAL-07). No model. |
 | 8 Frontend, then the assistant | The UI first (D15). Then: the engine container in the release set and the model by checksum (ADR 0008); the N150 measurement and the model choice (F4); the grammar classifier and the two-job harness (§3.2); retrieval from the shipped index (§3.5); the event store and the AI page (contract B); the evaluation gate in CI and the smoke on load (contract C); the sandbox boundary tests of gap G5; one template driven end to end through the assistant on a test network. |
 | 9 Treasury and agent payments | Mandates and the approval queue on the same templates; the ledger joins the store. |
-| After stage 8's drill | Phone-side voice (F5 A); the weekly report (§3.3); the cloud option's code, high-risk (F3); the reflection evaluation set, then reflection (F2, C6); whisper.cpp if the budget allows (F5 B). |
+| After stage 8's drill | Phone-side voice (F5 A); the weekly report (§3.3); the cloud option's code, high-risk (F3), and the review lane's report card and its shadow period (ADR 0012, proposed); the reflection evaluation set, then reflection (F2, C6); whisper.cpp if the budget allows (F5 B). |
 
 ## 6. Open items (not decisions yet)
 
@@ -418,6 +426,11 @@ nothing until then.
   its Build Record is high-risk. The redaction filter is decided (2026-10-18,
   ADR 0009): AISecurity's sensitive-data and key-filter detectors, linked as
   a pinned crate; see the [threat model §7](../security/THREAT_MODEL.md#7-aisecuritys-place-s1).
+- Proposed 2026-10-20 (ADR 0012): which provider serves the review lane,
+  once its retention and training terms are read and recorded; whether a
+  bigger local model runs on an owner-run machine; and whether the review
+  lane moves from approval of each send to an automatic weekly send after its
+  shadow period.
 
 ## 7. Sources (read 2026-10-18)
 
