@@ -51,6 +51,11 @@ print_stdout = "deny"
 todo = "deny"
 unimplemented = "deny"
 unwrap_used = "deny"
+# The no-process-spawn ban of clippy.toml, at `forbid` so that no #[allow] or
+# #[expect] in the source can switch it off (ADR 0005, ADR 0014).
+# Record: docs/build-records/2026-10-20-no-process-spawn.md
+disallowed_methods = "forbid"
+disallowed_types = "forbid"
 
 # argon2id at its real cost (19 MiB, two passes) is what the node runs; an
 # unoptimized build of it makes every test that hashes a password take a
