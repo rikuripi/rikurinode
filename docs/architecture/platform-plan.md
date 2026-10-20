@@ -15,7 +15,8 @@ model, a security slice per stage, the advisory intake loop and AISecurity
 as a pinned dependency (ADRs 0001 to 0009,
 `docs/build-records/2026-10-17-plan-review.md`,
 `docs/build-records/2026-10-18-assistant-plan.md` and
-`docs/build-records/2026-10-18-security-plan.md`) — and two are open (D1, the
+`docs/build-records/2026-10-18-security-plan.md`; D8 and D9 are recorded in
+§7 only) — and two are open (D1, the
 Pi 5; D4, the first mainnet amount); nothing that depends on an open one is
 built. Facts about outside software were checked on 2026-10-11,
 2026-10-17 and 2026-10-18 and carry their source (§9); re-check them before acting on them.
@@ -100,11 +101,13 @@ specifics re-verified rather than assumed (PLAT).
 
 Re-checked for stage 1 on 2026-10-12, with sources:
 `docs/build-records/evidence/2026-10-12-stage1-os-image/research.md`. Changes
-since: the greenboot report is still open with no reply, and a hang before
-userspace is never counted toward a rollback; Fedora 45 had 8 accepted
-blockers; the base image is pinned on registry.fedoraproject.org, because
-quay.io drops old digests within a day; keyless image signatures cannot be
-enforced on the node yet (D7).
+since: the greenboot report is still open with no reply; whether a kernel
+panic or a hang before userspace counts toward a rollback is not yet proven
+(greenboot 0.16.4's `detect_grub_fallback` reports a GRUB fallback after a
+panic; stage 1's change 4 drills it); Fedora 45 had 8 accepted blockers; the
+base image is pinned on registry.fedoraproject.org, because quay.io drops old
+digests within days (a 2026-09-22 digest was gone by 09-28); keyless image
+signatures cannot be enforced on the node yet (D7).
 
 ## 3. The two machines
 
