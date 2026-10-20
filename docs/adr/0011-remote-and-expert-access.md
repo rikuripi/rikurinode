@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proposed — drafted 2026-10-20 from the owner's direction in chat ("Ok, so we'll stay rootful, and make all the adjustments you just listed with report-card schema and F3 changes to the Rikuri Node Plan."); Accepted when the owner confirms this wording in its Build Record. Its default window was confirmed by the owner on 2026-10-20 ("1. SSH window OK with 1 hour default, 24 hours at most. Manual approval for each external AI send until finish of shadow period, OK."); the ADR as a whole stays Proposed |
+| **Status** | Accepted — owner, 2026-10-20 ("accept all five."; record `docs/build-records/2026-10-20-accept-adrs-0010-0014.md`); drafted the same day from the owner's direction in chat ("Ok, so we'll stay rootful, and make all the adjustments you just listed with report-card schema and F3 changes to the Rikuri Node Plan."); its defaults confirmed the same day ("1. SSH window OK with 1 hour default, 24 hours at most. Manual approval for each external AI send until finish of shadow period, OK.") |
 | **Decision** | D19, to be added to `docs/architecture/platform-plan.md` §7 |
 | **Supersedes** | Nothing. It settles the "later choice" that D11 and `docs/security/THREAT_MODEL.md` §8 ("Shell access") left open |
 | **Beside it** | ADR 0007 (the root helper's fixed list, rootful Podman), ADR 0009 (the threat model), ADR 0010 (the lobby zone) |
@@ -76,7 +76,7 @@ listed forms it cannot see, so it calls itself a tripwire and not a sandbox
 - Which remote path ships first (Tor, Tailscale or both) is left open; each
   is its own change with its own drill.
 - Edits that follow, each its own change: a D19 row in the platform plan §7;
-  threat model §8 (the "Shell access" bullet, decided once this ADR is accepted) and a row for a
+  threat model §8 (the "Shell access" bullet, decided by this ADR) and a row for a
   remote path as an attack surface.
 
 ## Rejected

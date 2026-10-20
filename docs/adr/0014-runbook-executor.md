@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proposed — drafted 2026-10-20 from the owner's direction in chat ("Yes, let's promote Nix-built images and Rusts runbook executor to ADRs."); Accepted when the owner confirms this wording in its Build Record |
+| **Status** | Accepted — owner, 2026-10-20 ("accept all five."; record `docs/build-records/2026-10-20-accept-adrs-0010-0014.md`); drafted the same day from the owner's direction in chat ("Yes, let's promote Nix-built images and Rusts runbook executor to ADRs.") |
 | **Decision** | D21, to be added to `docs/architecture/platform-plan.md` §7 |
 | **Supersedes** | Nothing. It makes ADR 0005's "the control plane decides" concrete and follows §3.4 of `docs/architecture/assistant-plan.md` ("a runbook is a Rust value") |
 | **Beside it** | ADR 0002 (the control plane is Rust), ADR 0005 (systemd enforces, the control plane decides), ADR 0006 (release sets), ADR 0007 (the root helper's fixed list), ADR 0011 (Diagnostics), ADR 0012 (the advisor's suggestions) |
@@ -69,7 +69,7 @@ and this ADR follows the repository and records why.
   run to completion in their own task. A wedged or looping service is
   diagnosed, with its state captured, before anything restarts it. When the
   budget is spent the owner is told once, deduplicated.
-- **Tiers (proposed; the repository has only HEAL-01's "tiered proposal"):**
+- **Tiers (new with this ADR; the repository had only HEAL-01's "tiered proposal"):**
 
   | Tier | Who decides | Examples |
   |---|---|---|
