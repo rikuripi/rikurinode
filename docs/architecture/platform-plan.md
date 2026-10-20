@@ -87,7 +87,7 @@ specifics re-verified rather than assumed (PLAT).
 
 | Item | Fact | Consequence |
 |---|---|---|
-| Fedora 45 | Final release targeted for 2026-10-20 (fallbacks 10-27, 11-03). | Build on Fedora 45 once released. Fedora releases are short-lived, so the image moves to each new release after a soak, by owner approval. |
+| Fedora 45 | Final release targeted for 2026-10-20 (fallbacks 10-27, 11-03). **2026-10-19:** the Go/No-Go of 2026-10-15 was a no-go (no release candidate published), so the target is 2026-10-27, with a Go/No-Go on 10-22 and a fallback of 11-03 (reported by the owner; checked against the public record, `docs/build-records/2026-10-19-b0-2-sign-in.md` §4). | Build on Fedora 45 once released. Fedora releases are short-lived, so the image moves to each new release after a soak, by owner approval. The image stays on its Fedora IoT 44 digest until then. |
 | Fedora IoT bootc | Fedora IoT can be built and updated as a bootable container image; base images are published on registry.fedoraproject.org and quay.io. | The node's OS is a Containerfile in this repository, built in CI. |
 | Image tooling | `bootc-image-builder`'s sources moved into `image-builder` (its migration notice, 2026-06-18); a Fedora IoT 44 bootc image build failed at its bootloader step in January 2026 (rawhide composes). | Pin the build tools by digest; build install media in CI; an install test on real hardware for every Fedora release. |
 | greenboot | An open bug report (2026-10-09; one user's, no maintainer reply yet): on a device installed from the stock Fedora IoT 44 image, the first update that fails its health checks never rolls back — greenboot 0.16.2 arms the rollback with a variable that 0.16.4 no longer reads. | Never trust rollback until it is drilled on the device: the install procedure ends with a deliberately broken update that must roll back by itself (§4.1). |
@@ -128,7 +128,7 @@ options:
 
 | Option | What it means | Cost |
 |---|---|---|
-| **A. Wait (recommended)** | Build and prove everything on the N150. Re-check the Pi 5 at each Fedora release (45 on 2026-10-20, 46 in spring 2027) against the checklist below; the image is built for aarch64 in CI too, so it is ready when the hardware is. | No pruned node until Fedora supports the Pi 5; no extra work now. |
+| **A. Wait (recommended)** | Build and prove everything on the N150. Re-check the Pi 5 at each Fedora release (45, targeted 2026-10-27 after the slip of 10-15; 46 in spring 2027) against the checklist below; the image is built for aarch64 in CI too, so it is ready when the hardware is. | No pruned node until Fedora supports the Pi 5; no extra work now. |
 | B. Raspberry Pi OS now | Debian-based, with full Pi 5 support (NVMe boot, fan control). | No image updates or automatic rollback — the update model this plan is built on would not apply; a second platform to maintain and test. |
 | C. Fedora Minimal now | The Fedora 44 Pi 5 Minimal image, updated package by package. | No image rollback, OS on an SD card, no fan control — not suitable for a 24/7 node. |
 | D. A second x86 mini PC for the pruned tier | The same image and tests as the N150, set to prune. | Buys hardware (a small N100/N150 box); the Pi 5 waits as in A. |
