@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Sonnet 5.5, desktop chat session) for Henry Chen |
 | **Branch** | `docs/adrs-0010-0014`, made in a cloud-session clone at `/home/claude/rikurinode` (the owner's Mac could not reach GitHub from that session) and stacked on `fix/rustsec-2026-0382` (pull request #18) so its CI can pass; the same files were first written uncommitted in the owner's checkout on the Mac, byte-identical (sha256 compared) |
 | **Commits** | `c8f3e82` (ADRs 0010 to 0014 and their two records), `2708860` (the plan, register and threat-model edits and their three records), `51e6692` (the verifier's first-pass corrections), the next commit (these rows); the pre-commit hook ran on each (gitleaks "no leaks found"). Committed, pushed and opened as a pull request on the owner's word ("commit, create branch, verify and make pull request", 2026-10-20) |
-| **Status** | DONE locally; the ADRs stay Proposed until the owner accepts them. One `verifier` pass over all five records of this branch: **FAIL** on one Important finding (threat model rows T20 to T24 and T26 read as adopted), fixed in `51e6692` with its nits; follow-up pass **PASS**. CI's `Full gate (Ubuntu)` Not yet proven when this row was written |
+| **Status** | COMPLETE; the ADRs stay Proposed until the owner accepts them. One `verifier` pass over all five records of this branch: **FAIL** on one Important finding (threat model rows T20 to T24 and T26 read as adopted), fixed in `51e6692` with its nits; follow-up pass **PASS**. CI seen green on pull request #19: run #48 `Full gate (Ubuntu)` on `5eee4c7`, 2026-10-20 20:27–20:29 UTC; merged by the owner as `3018f4f` at 20:37 UTC; `main` green after it (run #51) |
 | **Change type** | ops (plan amendment; documentation only) |
 
 ## Task Contract
@@ -57,13 +57,13 @@
 
 ## 5. Close Out
 
-- [ ] Full gate: Not yet proven (documentation-only; CI runs it on the pull request).
+- [x] Full gate: CI seen green on pull request #19: run #48 `Full gate (Ubuntu)` on `5eee4c7`, 2026-10-20 20:27–20:29 UTC; merged by the owner as `3018f4f` at 20:37 UTC; `main` green after it (run #51).
 - [x] Reviewed per `REVIEW.md`: the verifier's two passes above.
 - [x] Commit: made and pushed; see the Commits row.
 
 ## Skipped items — visible, never silent
 
-- **Full gate:** CI's `Full gate (Ubuntu)` on the pull request, Not yet proven when this record was closed.
+- (none open: CI's full gate has since passed, see Status)
 
 ## Evidence log
 

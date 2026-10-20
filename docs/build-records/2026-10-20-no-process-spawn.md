@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, cloud session linked to the owner's Mac) for Henry Chen |
 | **Branch** | `control/no-process-spawn`, from `main` at `adaf8c4`, in a clone at `/home/claude/rikurinode` in the cloud session (the owner's Mac cannot reach GitHub from that session) |
 | **Commits** | `a043f27` (the ban), `af3c6f4` (the `forbid` levels, repair cycle 1), the next commit (these rows); the pre-commit hook ran on each (gitleaks "no leaks found"). Stacked on `fix/rustsec-2026-0382` (pull request #18). Pushed and opened as a pull request on the owner's word ("commit, create branch, verify and make pull request", 2026-10-20) |
-| **Status** | DONE locally: first `verifier` pass FAIL (an item-level `#[allow]`/`#[expect]` lifted the ban), corrected with the owner's widening of Scope; follow-up pass PASS. CI's `Full gate (Ubuntu)` with toolchain 1.98.1 Not yet proven when this row was written |
+| **Status** | COMPLETE: first `verifier` pass FAIL (an item-level `#[allow]`/`#[expect]` lifted the ban), corrected with the owner's widening of Scope; follow-up pass PASS. CI seen green on pull request #20: run #49 `Full gate (Ubuntu)` on `a3a0922`, with the pinned toolchain 1.98.1, 2026-10-20 20:31–20:34 UTC, and run #52 on `f62a37c`, the owner's update-branch merge of `main`, 20:52–20:54 UTC; merged by the owner as `c3b4c70` at 22:16 UTC; `main` green after it (run #53) |
 | **Change type** | ops (a control: lint and dependency policy) |
 
 ## Task Contract
@@ -61,7 +61,7 @@
 
 ## 5. Close Out
 
-- [ ] Full gate: CI's `Full gate (Ubuntu)` on the pull request, Not yet proven when this record was closed.
+- [x] Full gate: CI seen green on pull request #20: run #49 `Full gate (Ubuntu)` on `a3a0922`, with the pinned toolchain 1.98.1, 2026-10-20 20:31–20:34 UTC, and run #52 on `f62a37c`, the owner's update-branch merge of `main`, 20:52–20:54 UTC; merged by the owner as `c3b4c70` at 22:16 UTC; `main` green after it (run #53).
 - [x] Scrap Sweep: scratch copies and their target directories removed; nothing else to remove.
 - [x] Reviewed per `REVIEW.md`: the verifier's two passes above.
 - [ ] Lesson loop: N/A
@@ -70,7 +70,7 @@
 
 ## Skipped items — visible, never silent
 
-- **Full gate run locally as one script:** not possible here. Step 1 refuses any cargo but 1.98.1, and the session's egress proxy refuses `static.rust-lang.org`, so rustup cannot install it. Steps 2 to 9 were run one by one with stable 1.97.0 and `--ignore-rust-version` (the crates declare `rust-version = 1.98`). CI's `Full gate (Ubuntu)` is the run that counts.
+- **Full gate run locally as one script:** not possible here. Step 1 refuses any cargo but 1.98.1, and the session's egress proxy refuses `static.rust-lang.org`, so rustup cannot install it. Steps 2 to 9 were run one by one with stable 1.97.0 and `--ignore-rust-version` (the crates declare `rust-version = 1.98`). CI's `Full gate (Ubuntu)` is the run that counts, and it passed (see Status).
 - **Advisories:** `cargo deny check` fails on `main` today with RUSTSEC-2026-0382 (rustls-webpki 0.103.15), not caused by this change; the owner chose a separate fix (`docs/build-records/2026-10-20-rustsec-2026-0382.md`), and this branch is stacked on it, so on this branch `advisories ok`.
 
 ## Evidence log
