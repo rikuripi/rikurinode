@@ -1,0 +1,9 @@
+
+== 1/7 pinned tools
+
+== 2/7 AI-session guard: wired to the tools in its matcher, hooks on; policy as generated; every example and failure mode
+.claude/settings.json: sandbox.filesystem.denyRead lacks "/home/junc/.bitcoin", "/home/junc/.claude/.credentials.json", "/home/junc/.config/BraveSoftware", "/home/junc/.config/Claude", "/home/junc/.config/Code", "/home/junc/.config/chromium", "/home/junc/.config/gh", "/home/junc/.config/google-chrome", "/home/junc/.docker", "/home/junc/.git-credentials", "/home/junc/.gnupg", "/home/junc/.local/share/Trash", "/home/junc/.local/share/keyrings", "/home/junc/.ssh"
+.claude/settings.json: sandbox.network.allowedDomains lacks "index.crates.io", "static.crates.io"
+.claude/settings.local.json is /dev/null (the sandbox's placeholder): no local settings
+full-gate: the guard is not wired (above)
+safe-run: no live node containers found here; the start-time check had nothing to compare

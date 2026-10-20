@@ -1,7 +1,7 @@
 name: OS image
 
 # Builds the node's OS image (image/Containerfile) and checks it. bootc's own
-# lint runs inside the build; image/tests/check_image_root.py checks the built
+# lint runs inside the build; image/check_image_root.py checks the built
 # root against what the node relies on (lessons register PLAT-01). The node and
 # this machine never build it: the image exists only here.
 # Not yet (later changes of stage 1): signing and publishing, booting it in a
@@ -56,7 +56,7 @@ jobs:
       - name: Check the built root
         run: |
           root="$(sudo podman image mount "$IMAGE")"
-          sudo python3 image/tests/check_image_root.py "$root" --fedora "$FEDORA_RELEASE"
+          sudo python3 image/check_image_root.py "$root" --fedora "$FEDORA_RELEASE"
           sudo podman image unmount "$IMAGE"
       - name: Record what was built
         if: always()

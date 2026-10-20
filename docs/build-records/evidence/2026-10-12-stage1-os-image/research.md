@@ -18,6 +18,9 @@ image digest and the greenboot configuration were re-read by the builder
   (rawhide), `latest` (= 44); rebuilt daily. **quay.io deletes old digests
   within a day; registry.fedoraproject.org keeps them** (a 2026-06-01 digest
   still pulls). See also https://github.com/phoban01/flintlock-runner/issues/85.
+  [Corrected 2026-10-12, verifier round 1: "within days", not "a day" — the
+  cited case is a 2026-09-22 digest gone by 09-28 (404 on quay.io, 200 on
+  registry.fedoraproject.org when the verifier looked).]
 - **Checked** (registry manifest request, 2026-10-12):
   `fedora-iot:44-x86_64` = `sha256:29d16f4ccc5c86c84ba21aca0b7dcabfc4ecb2a79c9e51810f7838695f6be1c3`
   (an OCI image manifest; version 44.20261012.0); `fedora-iot:44` = index
@@ -36,7 +39,10 @@ image digest and the greenboot configuration were re-read by the builder
   before `boot-complete.target`; a failed required check runs `red.d`, sets
   GRUB's `boot_counter` to `GREENBOOT_MAX_BOOT_ATTEMPTS` and reboots; when the
   counter runs out greenboot runs `bootc rollback`. **A kernel panic or a hang
-  before userspace is never counted.**
+  before userspace is never counted.** [Contested 2026-10-12, verifier round
+  1: greenboot 0.16.4's `detect_grub_fallback` (`src/main.rs`) reports a GRUB
+  fallback "e.g. due to kernel panic on the new one", so GRUB's own counter
+  may cover it. Not yet proven either way; stage 1's change 4 drills it.]
 - **Open bug, no maintainer reply:** https://github.com/fedora-iot/greenboot-rs/issues/217
   (2026-10-09): a device from the stock IoT 44 image (greenboot 0.16.2) arms
   rollback with a variable 0.16.4 no longer reads, so the first failed update

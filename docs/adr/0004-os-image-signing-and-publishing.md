@@ -29,11 +29,15 @@ registry needs a GitHub token stored on every node.
 ## Consequences
 
 - Nodes need no credentials to update, and checking a signature needs no
-  network beyond the registry (it works over Tor).
+  network beyond the registry (so it should work over Tor; not yet tried).
 - Anyone can download the image: by rule it holds no secret
-  (`image/tests/check_image_root.py` refuses private keys and SSH host keys;
-  the gate's secret scan covers the files added to it). Making the GHCR
-  package public cannot be undone.
+  (`image/check_image_root.py` refuses, in etc, root, var, usr/local, opt,
+  tmp and boot, these forms only: a PEM private key or PGP key block, an
+  SSH host key under etc/ssh, a Tor onion service or ed25519 secret key, an
+  age secret key, a WireGuard private key; files over 1 MiB and links are
+  not read, and Fedora's own files under /usr are not scanned; the gate's
+  secret scan covers the files added to it). Making the GHCR package
+  public cannot be undone.
 - Signing uses cosign's older format (`--new-bundle-format=false`) until the
   image library reads the new one, and CI verifies each signature with the
   node's own policy (skopeo or podman), not with `cosign verify`.

@@ -1,0 +1,618 @@
+FFFFFFE.EF.FFFFF....FFFFFFFFF..E..FFFFFFFFFFFFF....EFF.....EF...E.E.FF...F..
+======================================================================
+ERROR: test_a_link_in_a_top_folders_path_is_skipped (test_check_image_root.CheckImageRoot.test_a_link_in_a_top_folders_path_is_skipped)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 419, in test_a_link_in_a_top_folders_path_is_skipped
+    found, notes = self.root.check_with_notes()
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 133, in check_with_notes
+    return cir.check_root(self.path, release, note=notes.append), notes
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: check_root() got an unexpected keyword argument 'note'
+
+======================================================================
+ERROR: test_a_linked_top_folder_is_skipped (test_check_image_root.CheckImageRoot.test_a_linked_top_folder_is_skipped)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 409, in test_a_linked_top_folder_is_skipped
+    found, notes = self.root.check_with_notes()
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 133, in check_with_notes
+    return cir.check_root(self.path, release, note=notes.append), notes
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: check_root() got an unexpected keyword argument 'note'
+
+======================================================================
+ERROR: test_disabled_two_names (test_check_image_root.CheckImageRoot.test_disabled_two_names)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 244, in test_disabled_two_names
+    values, problems = cir.parse_greenboot_conf(
+                       ~~~~~~~~~~~~~~~~~~~~~~~~^
+        (A + '\nDISABLED_HEALTHCHECKS=("a.sh" "b-2_x.sh")\n').encode())
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/check_image_root.py", line 89, in parse_greenboot_conf
+    if not line or line.startswith(("#", ";")):
+                   ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+TypeError: a bytes-like object is required, not 'str'
+
+======================================================================
+ERROR: test_large_file_is_skipped_and_said (test_check_image_root.CheckImageRoot.test_large_file_is_skipped_and_said)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 379, in test_large_file_is_skipped_and_said
+    found, notes = self.root.check_with_notes()
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 133, in check_with_notes
+    return cir.check_root(self.path, release, note=notes.append), notes
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: check_root() got an unexpected keyword argument 'note'
+
+======================================================================
+ERROR: test_ostree_layout_is_scanned_through_var (test_check_image_root.CheckImageRoot.test_ostree_layout_is_scanned_through_var)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 435, in test_ostree_layout_is_scanned_through_var
+    found, notes = self.root.check_with_notes()
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 133, in check_with_notes
+    return cir.check_root(self.path, release, note=notes.append), notes
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: check_root() got an unexpected keyword argument 'note'
+
+======================================================================
+ERROR: test_scan_report_names_every_tree (test_check_image_root.CheckImageRoot.test_scan_report_names_every_tree)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 442, in test_scan_report_names_every_tree
+    found, notes = self.root.check_with_notes()
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 133, in check_with_notes
+    return cir.check_root(self.path, release, note=notes.append), notes
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: check_root() got an unexpected keyword argument 'note'
+
+======================================================================
+ERROR: test_shipped_conf_parses_to_the_expected_values (test_check_image_root.CheckImageRoot.test_shipped_conf_parses_to_the_expected_values)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 200, in test_shipped_conf_parses_to_the_expected_values
+    values, problems = cir.parse_greenboot_conf(shipped())
+                       ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/check_image_root.py", line 89, in parse_greenboot_conf
+    if not line or line.startswith(("#", ";")):
+                   ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+TypeError: a bytes-like object is required, not 'str'
+
+======================================================================
+FAIL: test_a_blank_line_is_exactly_empty (test_check_image_root.CheckImageRoot.test_a_blank_line_is_exactly_empty)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 228, in test_a_blank_line_is_exactly_empty
+    self.assertFinds("line 2: not KEY=VALUE")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'line 2: not KEY=VALUE', got []
+
+======================================================================
+FAIL: test_a_byte_outside_printable_ascii (test_check_image_root.CheckImageRoot.test_a_byte_outside_printable_ascii) (bytes='byte 0x0b')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 224, in test_a_byte_outside_printable_ascii
+    self.assertFinds("line 2: %s outside printable ASCII" % bytes_)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'line 2: byte 0x0b outside printable ASCII', got []
+
+======================================================================
+FAIL: test_a_byte_outside_printable_ascii (test_check_image_root.CheckImageRoot.test_a_byte_outside_printable_ascii) (bytes='byte 0x0d')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 224, in test_a_byte_outside_printable_ascii
+    self.assertFinds("line 2: %s outside printable ASCII" % bytes_)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'line 2: byte 0x0d outside printable ASCII', got []
+
+======================================================================
+FAIL: test_a_byte_outside_printable_ascii (test_check_image_root.CheckImageRoot.test_a_byte_outside_printable_ascii) (bytes='byte 0x09')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 224, in test_a_byte_outside_printable_ascii
+    self.assertFinds("line 2: %s outside printable ASCII" % bytes_)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'line 2: byte 0x09 outside printable ASCII', got []
+
+======================================================================
+FAIL: test_a_byte_outside_printable_ascii (test_check_image_root.CheckImageRoot.test_a_byte_outside_printable_ascii) (bytes='bytes 0xc2 0x85')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 224, in test_a_byte_outside_printable_ascii
+    self.assertFinds("line 2: %s outside printable ASCII" % bytes_)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'line 2: bytes 0xc2 0x85 outside printable ASCII', got []
+
+======================================================================
+FAIL: test_a_comment_starts_in_column_0 (test_check_image_root.CheckImageRoot.test_a_comment_starts_in_column_0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 214, in test_a_comment_starts_in_column_0
+    self.assertFinds("line 2: not KEY=VALUE")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'line 2: not KEY=VALUE', got []
+
+======================================================================
+FAIL: test_age_secret_key (test_check_image_root.CheckImageRoot.test_age_secret_key)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 332, in test_age_secret_key
+    self.assertFinds("root/.config/sops/age/keys.txt: holds an age secret key")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'root/.config/sops/age/keys.txt: holds an age secret key', got []
+
+======================================================================
+FAIL: test_attempts_is_digits_only (test_check_image_root.CheckImageRoot.test_attempts_is_digits_only) (value='3 ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 234, in test_attempts_is_digits_only
+    self.assertFinds("GREENBOOT_MAX_BOOT_ATTEMPTS is not digits only")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'GREENBOOT_MAX_BOOT_ATTEMPTS is not digits only', got []
+
+======================================================================
+FAIL: test_attempts_is_digits_only (test_check_image_root.CheckImageRoot.test_attempts_is_digits_only) (value=' 3')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 234, in test_attempts_is_digits_only
+    self.assertFinds("GREENBOOT_MAX_BOOT_ATTEMPTS is not digits only")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'GREENBOOT_MAX_BOOT_ATTEMPTS is not digits only', got []
+
+======================================================================
+FAIL: test_attempts_is_digits_only (test_check_image_root.CheckImageRoot.test_attempts_is_digits_only) (value='3 # three')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 234, in test_attempts_is_digits_only
+    self.assertFinds("GREENBOOT_MAX_BOOT_ATTEMPTS is not digits only")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'GREENBOOT_MAX_BOOT_ATTEMPTS is not digits only', got ["etc/greenboot/greenboot.conf: GREENBOOT_MAX_BOOT_ATTEMPTS is '3 # three', expected '3'"]
+
+======================================================================
+FAIL: test_attempts_is_digits_only (test_check_image_root.CheckImageRoot.test_attempts_is_digits_only) (value='three')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 234, in test_attempts_is_digits_only
+    self.assertFinds("GREENBOOT_MAX_BOOT_ATTEMPTS is not digits only")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'GREENBOOT_MAX_BOOT_ATTEMPTS is not digits only', got ["etc/greenboot/greenboot.conf: GREENBOOT_MAX_BOOT_ATTEMPTS is 'three', expected '3'"]
+
+======================================================================
+FAIL: test_attempts_is_digits_only (test_check_image_root.CheckImageRoot.test_attempts_is_digits_only) (value='')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 234, in test_attempts_is_digits_only
+    self.assertFinds("GREENBOOT_MAX_BOOT_ATTEMPTS is not digits only")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'GREENBOOT_MAX_BOOT_ATTEMPTS is not digits only', got ["etc/greenboot/greenboot.conf: GREENBOOT_MAX_BOOT_ATTEMPTS is '', expected '3'"]
+
+======================================================================
+FAIL: test_disabled_is_exactly_the_quoted_names_in_parentheses (test_check_image_root.CheckImageRoot.test_disabled_is_exactly_the_quoted_names_in_parentheses) (value='( "a.sh" )')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 241, in test_disabled_is_exactly_the_quoted_names_in_parentheses
+    self.assertFinds("DISABLED_HEALTHCHECKS is not exactly")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'DISABLED_HEALTHCHECKS is not exactly', got ["etc/greenboot/greenboot.conf: DISABLED_HEALTHCHECKS is ['a.sh'], expected ['01_repository_dns_check.sh']", "etc/greenboot/greenboot.conf: disabled check 'a.sh' is in none of usr/lib/greenboot/check/required.d, usr/lib/greenboot/check/wanted.d, etc/greenboot/check/required.d, etc/greenboot/check/wanted.d"]
+
+======================================================================
+FAIL: test_disabled_is_exactly_the_quoted_names_in_parentheses (test_check_image_root.CheckImageRoot.test_disabled_is_exactly_the_quoted_names_in_parentheses) (value='("a.sh"  "b.sh")')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 241, in test_disabled_is_exactly_the_quoted_names_in_parentheses
+    self.assertFinds("DISABLED_HEALTHCHECKS is not exactly")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'DISABLED_HEALTHCHECKS is not exactly', got ["etc/greenboot/greenboot.conf: DISABLED_HEALTHCHECKS is ['a.sh', 'b.sh'], expected ['01_repository_dns_check.sh']", "etc/greenboot/greenboot.conf: disabled check 'a.sh' is in none of usr/lib/greenboot/check/required.d, usr/lib/greenboot/check/wanted.d, etc/greenboot/check/required.d, etc/greenboot/check/wanted.d", "etc/greenboot/greenboot.conf: disabled check 'b.sh' is in none of usr/lib/greenboot/check/required.d, usr/lib/greenboot/check/wanted.d, etc/greenboot/check/required.d, etc/greenboot/check/wanted.d"]
+
+======================================================================
+FAIL: test_disabled_is_exactly_the_quoted_names_in_parentheses (test_check_image_root.CheckImageRoot.test_disabled_is_exactly_the_quoted_names_in_parentheses) (value='("a.sh" )')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 241, in test_disabled_is_exactly_the_quoted_names_in_parentheses
+    self.assertFinds("DISABLED_HEALTHCHECKS is not exactly")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'DISABLED_HEALTHCHECKS is not exactly', got ["etc/greenboot/greenboot.conf: DISABLED_HEALTHCHECKS is ['a.sh'], expected ['01_repository_dns_check.sh']", "etc/greenboot/greenboot.conf: disabled check 'a.sh' is in none of usr/lib/greenboot/check/required.d, usr/lib/greenboot/check/wanted.d, etc/greenboot/check/required.d, etc/greenboot/check/wanted.d"]
+
+======================================================================
+FAIL: test_disabled_is_exactly_the_quoted_names_in_parentheses (test_check_image_root.CheckImageRoot.test_disabled_is_exactly_the_quoted_names_in_parentheses) (value="('a.sh')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 241, in test_disabled_is_exactly_the_quoted_names_in_parentheses
+    self.assertFinds("DISABLED_HEALTHCHECKS is not exactly")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'DISABLED_HEALTHCHECKS is not exactly', got ['etc/greenboot/greenboot.conf: DISABLED_HEALTHCHECKS is ["\'a.sh\'"], expected [\'01_repository_dns_check.sh\']', 'etc/greenboot/greenboot.conf: disabled check "\'a.sh\'" is in none of usr/lib/greenboot/check/required.d, usr/lib/greenboot/check/wanted.d, etc/greenboot/check/required.d, etc/greenboot/check/wanted.d']
+
+======================================================================
+FAIL: test_disabled_is_exactly_the_quoted_names_in_parentheses (test_check_image_root.CheckImageRoot.test_disabled_is_exactly_the_quoted_names_in_parentheses) (value='(a.sh)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 241, in test_disabled_is_exactly_the_quoted_names_in_parentheses
+    self.assertFinds("DISABLED_HEALTHCHECKS is not exactly")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'DISABLED_HEALTHCHECKS is not exactly', got ["etc/greenboot/greenboot.conf: DISABLED_HEALTHCHECKS is ['a.sh'], expected ['01_repository_dns_check.sh']", "etc/greenboot/greenboot.conf: disabled check 'a.sh' is in none of usr/lib/greenboot/check/required.d, usr/lib/greenboot/check/wanted.d, etc/greenboot/check/required.d, etc/greenboot/check/wanted.d"]
+
+======================================================================
+FAIL: test_disabled_is_exactly_the_quoted_names_in_parentheses (test_check_image_root.CheckImageRoot.test_disabled_is_exactly_the_quoted_names_in_parentheses) (value='("a.sh")x')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 241, in test_disabled_is_exactly_the_quoted_names_in_parentheses
+    self.assertFinds("DISABLED_HEALTHCHECKS is not exactly")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'DISABLED_HEALTHCHECKS is not exactly', got ['etc/greenboot/greenboot.conf: line 2: DISABLED_HEALTHCHECKS is not ( "name" ... ); greenboot would disable nothing']
+
+======================================================================
+FAIL: test_disabled_is_exactly_the_quoted_names_in_parentheses (test_check_image_root.CheckImageRoot.test_disabled_is_exactly_the_quoted_names_in_parentheses) (value='("a b.sh")')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 241, in test_disabled_is_exactly_the_quoted_names_in_parentheses
+    self.assertFinds("DISABLED_HEALTHCHECKS is not exactly")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'DISABLED_HEALTHCHECKS is not exactly', got ["etc/greenboot/greenboot.conf: DISABLED_HEALTHCHECKS is ['a', 'b.sh'], expected ['01_repository_dns_check.sh']", "etc/greenboot/greenboot.conf: disabled check 'a' is in none of usr/lib/greenboot/check/required.d, usr/lib/greenboot/check/wanted.d, etc/greenboot/check/required.d, etc/greenboot/check/wanted.d", "etc/greenboot/greenboot.conf: disabled check 'b.sh' is in none of usr/lib/greenboot/check/required.d, usr/lib/greenboot/check/wanted.d, etc/greenboot/check/required.d, etc/greenboot/check/wanted.d"]
+
+======================================================================
+FAIL: test_disabled_is_exactly_the_quoted_names_in_parentheses (test_check_image_root.CheckImageRoot.test_disabled_is_exactly_the_quoted_names_in_parentheses) (value='("")')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 241, in test_disabled_is_exactly_the_quoted_names_in_parentheses
+    self.assertFinds("DISABLED_HEALTHCHECKS is not exactly")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'DISABLED_HEALTHCHECKS is not exactly', got ["etc/greenboot/greenboot.conf: DISABLED_HEALTHCHECKS is [], expected ['01_repository_dns_check.sh']"]
+
+======================================================================
+FAIL: test_disabled_is_exactly_the_quoted_names_in_parentheses (test_check_image_root.CheckImageRoot.test_disabled_is_exactly_the_quoted_names_in_parentheses) (value='"a.sh"')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 241, in test_disabled_is_exactly_the_quoted_names_in_parentheses
+    self.assertFinds("DISABLED_HEALTHCHECKS is not exactly")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'DISABLED_HEALTHCHECKS is not exactly', got ['etc/greenboot/greenboot.conf: line 2: DISABLED_HEALTHCHECKS is not ( "name" ... ); greenboot would disable nothing']
+
+======================================================================
+FAIL: test_etc_without_a_regular_file_is_a_finding (test_check_image_root.CheckImageRoot.test_etc_without_a_regular_file_is_a_finding)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 450, in test_etc_without_a_regular_file_is_a_finding
+    self.assertFinds("etc: skipped (absent)")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc: skipped (absent)', got ['etc/greenboot/greenboot.conf: missing, or not a regular file']
+
+======================================================================
+FAIL: test_every_probe_case_but_the_shipped_file_is_a_finding (test_check_image_root.CheckImageRoot.test_every_probe_case_but_the_shipped_file_is_a_finding) (case='03-indented-comment-space')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 209, in test_every_probe_case_but_the_shipped_file_is_a_finding
+    self.assertTrue(found, "%s passed with no finding; greenboot reads it as %s"
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    % (name, greenboot))
+                    ^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true : 03-indented-comment-space passed with no finding; greenboot reads it as disabled=[]: the comment and the next line became one key
+
+======================================================================
+FAIL: test_every_probe_case_but_the_shipped_file_is_a_finding (test_check_image_root.CheckImageRoot.test_every_probe_case_but_the_shipped_file_is_a_finding) (case='04-indented-comment-tab')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 209, in test_every_probe_case_but_the_shipped_file_is_a_finding
+    self.assertTrue(found, "%s passed with no finding; greenboot reads it as %s"
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    % (name, greenboot))
+                    ^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true : 04-indented-comment-tab passed with no finding; greenboot reads it as disabled=[]: the comment and the next line became one key
+
+======================================================================
+FAIL: test_every_probe_case_but_the_shipped_file_is_a_finding (test_check_image_root.CheckImageRoot.test_every_probe_case_but_the_shipped_file_is_a_finding) (case='05-indented-comment-with-colon')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 209, in test_every_probe_case_but_the_shipped_file_is_a_finding
+    self.assertTrue(found, "%s passed with no finding; greenboot reads it as %s"
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    % (name, greenboot))
+                    ^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true : 05-indented-comment-with-colon passed with no finding; greenboot reads it as as shipped, by luck: the comment became a key named '# owner'
+
+======================================================================
+FAIL: test_every_probe_case_but_the_shipped_file_is_a_finding (test_check_image_root.CheckImageRoot.test_every_probe_case_but_the_shipped_file_is_a_finding) (case='06-shipped-comment-indented')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 209, in test_every_probe_case_but_the_shipped_file_is_a_finding
+    self.assertTrue(found, "%s passed with no finding; greenboot reads it as %s"
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    % (name, greenboot))
+                    ^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true : 06-shipped-comment-indented passed with no finding; greenboot reads it as INI parse error, so greenboot's defaults: disabled=[]
+
+======================================================================
+FAIL: test_every_probe_case_but_the_shipped_file_is_a_finding (test_check_image_root.CheckImageRoot.test_every_probe_case_but_the_shipped_file_is_a_finding) (case='07-vt-after-comment')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 209, in test_every_probe_case_but_the_shipped_file_is_a_finding
+    self.assertTrue(found, "%s passed with no finding; greenboot reads it as %s"
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    % (name, greenboot))
+                    ^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true : 07-vt-after-comment passed with no finding; greenboot reads it as disabled=[]: the key was swallowed
+
+======================================================================
+FAIL: test_every_probe_case_but_the_shipped_file_is_a_finding (test_check_image_root.CheckImageRoot.test_every_probe_case_but_the_shipped_file_is_a_finding) (case='08-ff-after-value')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 209, in test_every_probe_case_but_the_shipped_file_is_a_finding
+    self.assertTrue(found, "%s passed with no finding; greenboot reads it as %s"
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    % (name, greenboot))
+                    ^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true : 08-ff-after-value passed with no finding; greenboot reads it as disabled=[]
+
+======================================================================
+FAIL: test_every_probe_case_but_the_shipped_file_is_a_finding (test_check_image_root.CheckImageRoot.test_every_probe_case_but_the_shipped_file_is_a_finding) (case='09-x1f-trailing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 209, in test_every_probe_case_but_the_shipped_file_is_a_finding
+    self.assertTrue(found, "%s passed with no finding; greenboot reads it as %s"
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    % (name, greenboot))
+                    ^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true : 09-x1f-trailing passed with no finding; greenboot reads it as disabled=[]
+
+======================================================================
+FAIL: test_every_probe_case_but_the_shipped_file_is_a_finding (test_check_image_root.CheckImageRoot.test_every_probe_case_but_the_shipped_file_is_a_finding) (case='10-crlf-shipped')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 209, in test_every_probe_case_but_the_shipped_file_is_a_finding
+    self.assertTrue(found, "%s passed with no finding; greenboot reads it as %s"
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    % (name, greenboot))
+                    ^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true : 10-crlf-shipped passed with no finding; greenboot reads it as as shipped
+
+======================================================================
+FAIL: test_every_probe_case_but_the_shipped_file_is_a_finding (test_check_image_root.CheckImageRoot.test_every_probe_case_but_the_shipped_file_is_a_finding) (case='11-spaces-inside-array')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 209, in test_every_probe_case_but_the_shipped_file_is_a_finding
+    self.assertTrue(found, "%s passed with no finding; greenboot reads it as %s"
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    % (name, greenboot))
+                    ^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true : 11-spaces-inside-array passed with no finding; greenboot reads it as as shipped
+
+======================================================================
+FAIL: test_every_probe_case_but_the_shipped_file_is_a_finding (test_check_image_root.CheckImageRoot.test_every_probe_case_but_the_shipped_file_is_a_finding) (case='14-nel-after-comment')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 209, in test_every_probe_case_but_the_shipped_file_is_a_finding
+    self.assertTrue(found, "%s passed with no finding; greenboot reads it as %s"
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    % (name, greenboot))
+                    ^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true : 14-nel-after-comment passed with no finding; greenboot reads it as disabled=[]: the key was swallowed
+
+======================================================================
+FAIL: test_every_probe_case_but_the_shipped_file_is_a_finding (test_check_image_root.CheckImageRoot.test_every_probe_case_but_the_shipped_file_is_a_finding) (case='15-leading-ff-before-comment')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 209, in test_every_probe_case_but_the_shipped_file_is_a_finding
+    self.assertTrue(found, "%s passed with no finding; greenboot reads it as %s"
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    % (name, greenboot))
+                    ^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true : 15-leading-ff-before-comment passed with no finding; greenboot reads it as INI parse error, so greenboot's defaults: disabled=[]
+
+======================================================================
+FAIL: test_every_scanned_tree (test_check_image_root.CheckImageRoot.test_every_scanned_tree)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 362, in test_every_scanned_tree
+    self.assertEqual(cir.SECRET_DIRS, ("etc", "root", "var", "usr/local", "opt", "tmp", "boot"))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: ('etc', 'root', 'var', 'usr/local', 'opt') != ('etc', 'root', 'var', 'usr/local', 'opt', 'tmp', 'boot')
+
+Second tuple contains 2 additional elements.
+First extra element 5:
+'tmp'
+
+- ('etc', 'root', 'var', 'usr/local', 'opt')
++ ('etc', 'root', 'var', 'usr/local', 'opt', 'tmp', 'boot')
+?                                          +++++++++++++++
+
+
+======================================================================
+FAIL: test_main_exit_codes (test_check_image_root.CheckImageRoot.test_main_exit_codes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 172, in test_main_exit_codes
+    self.assertIn("scan etc: 2 file(s) read", out.getvalue())
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'scan etc: 2 file(s) read' not found in "check_image_root: 0 finding(s) in /tmp/claude-1000/image-root-hmiszu6e (Fedora 44 expected)\nFAIL usr/lib/os-release: VERSION_ID is '44', expected '45'\ncheck_image_root: 1 finding(s) in /tmp/claude-1000/image-root-hmiszu6e (Fedora 45 expected)\ncheck_image_root: /tmp/claude-1000/image-root-hmiszu6e/nope is not a folder\n"
+
+======================================================================
+FAIL: test_not_a_bash_array (test_check_image_root.CheckImageRoot.test_not_a_bash_array)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 280, in test_not_a_bash_array
+    self.assertFinds("DISABLED_HEALTHCHECKS is not exactly")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'DISABLED_HEALTHCHECKS is not exactly', got ['etc/greenboot/greenboot.conf: line 2: DISABLED_HEALTHCHECKS is not ( "name" ... ); greenboot would disable nothing']
+
+======================================================================
+FAIL: test_pgp_private_key_block (test_check_image_root.CheckImageRoot.test_pgp_private_key_block)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 328, in test_pgp_private_key_block
+    self.assertFinds("root/.gnupg/secring.asc: holds a private key")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'root/.gnupg/secring.asc: holds a private key', got []
+
+======================================================================
+FAIL: test_tor_ed25519_secret_key_by_header (test_check_image_root.CheckImageRoot.test_tor_ed25519_secret_key_by_header)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 340, in test_tor_ed25519_secret_key_by_header
+    self.assertFinds("etc/tor/keys/renamed: a Tor ed25519 secret key (by its header)")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/tor/keys/renamed: a Tor ed25519 secret key (by its header)', got []
+
+======================================================================
+FAIL: test_tor_onion_service_key_by_name (test_check_image_root.CheckImageRoot.test_tor_onion_service_key_by_name)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 336, in test_tor_onion_service_key_by_name
+    self.assertFinds("var/lib/tor/node/hs_ed25519_secret_key: a Tor onion service's secret key (by its name)")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with "var/lib/tor/node/hs_ed25519_secret_key: a Tor onion service's secret key (by its name)", got []
+
+======================================================================
+FAIL: test_wireguard_private_key (test_check_image_root.CheckImageRoot.test_wireguard_private_key)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 345, in test_wireguard_private_key
+    self.assertFinds("etc/wireguard/wg0.conf: holds a WireGuard private key")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/junc/claude-wip/stage1/rn/image/tests/test_check_image_root.py", line 147, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/wireguard/wg0.conf: holds a WireGuard private key', got []
+
+----------------------------------------------------------------------
+Ran 51 tests in 0.066s
+
+FAILED (failures=40, errors=7)
+safe-run: no live node containers found here; the start-time check had nothing to compare
