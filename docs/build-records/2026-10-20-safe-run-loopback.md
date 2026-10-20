@@ -5,8 +5,8 @@
 | **Date** | 2026-10-20 |
 | **Author / session** | Claude (Opus 5.5, cloud session linked to the owner's Mac) for Henry Chen |
 | **Branch** | `fix/safe-run-loopback`, from `main` at `c3b4c70`, in a clone at `/home/claude/rikurinode` in the cloud session |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `d750045` (the red tests and this record), `cc6dd73` (the fix), the next commit (these rows); the pre-commit hook ran on each (gitleaks "no leaks found"). Pushed and opened as a pull request on the owner's word ("Record PR and safe-run.sh backlog item.", 2026-10-20) |
+| **Status** | DONE locally: one `verifier` pass **PASS**, no Important finding, 8 of 8 hand mutants killed; CI's `Full gate (Ubuntu)` on the pull request Not yet proven when this row was written |
 | **Change type** | fix (a control: the test-safety layer) |
 
 ## Task Contract
@@ -38,6 +38,7 @@
 - [x] **Blast radius:** the inner script of the namespace path; nothing irreversible.
 - [x] **Current behaviour characterized:** this cloud session has no `ip` binary. `scripts/quality/safe-run.sh python3 -c` with a listener on 127.0.0.1 inside the layer fails with `NetworkUnreachable`; on `main` the `plain_listener` (3) and `sign_in` (9) suites failed that way today (`docs/build-records/2026-10-20-rustsec-2026-0382.md`). With a stand-in for `ip link set lo up` first on `PATH`, they pass.
 - [x] **Files and order:** this record, the two tests (red commit), the fix (its own commit), the checks.
+- [x] **Protected-path risk note** (`scripts/quality` is listed in `.claude/hooks/guard-config.json`): the change makes the layer refuse in one more case and weakens nothing; the no-namespace path, the stand-ins and the start-time check are untouched. Worst case: a machine without iproute2 can no longer run tests through the layer until `ip` is installed, and the message says so.
 - [x] **Risks:** a test that fakes a failing `ip` could pass for the wrong reason (the fake not resolving), so it asserts the fake is what resolves; the refusal must not leave the stand-in folder behind.
 - [x] **Verification defined up front:** I will know this works when the refusal test is red on the old script and green on the new one, and the loopback test passes wherever `ip` works.
 
@@ -60,21 +61,23 @@
 - [x] Watched it work: `scripts/quality/safe-run.sh echo RAN` without `ip` → `ip: command not found`, `safe-run: cannot bring loopback up inside the layer (is iproute2's ip installed?); refusing to run`, rc 2, nothing ran; the control plane's tests through the layer with loopback up: unit 104, `plain_listener` 3, `sign_in` 9, `status_route` 3, all ok; without `ip`, the same command is refused with rc 2.
 - [x] Recovery/fallback path triggered: the refusal path, above; no stand-in folder left behind (`rikuri-safe-bin.*`: 0).
 - [x] Regression guard proven to FAIL on the old code: the red commit, above.
-- [ ] Independent verification:
+- [x] Independent verification: one `verifier` pass, **PASS**. It re-ran the red commit in a scratch copy (fails as recorded), found no test loosened (`git diff d750045 HEAD -- scripts/quality/tests` empty), exercised the real entry point with and without `ip`, and killed all 8 hand mutants of the changed line (drop the check, `exit 0`, `exit 1`, `|| true`, the check after `exec`, the message removed, `ip`'s error hidden, `lo down`). Three nits: the risk note was not labelled (fixed above); two for the backlog, below.
 - [x] Diff matches the plan: `safe-run.sh`, `test_safe_run.py` and this record.
 
 ## 5. Close Out
 
-- [ ] Full gate:
-- [ ] Scrap Sweep:
-- [ ] Reviewed per `REVIEW.md`:
+- [ ] Full gate: CI's `Full gate (Ubuntu)` on the pull request, Not yet proven when this record was closed. Locally: steps 2 to 6 green with `ip` present (the verifier's run); steps 1, 8 and 9 not run here (pinned toolchain unavailable; no Rust changed).
+- [x] Scrap Sweep: the verifier's scratch copies are deleted; nothing else to remove.
+- [x] Reviewed per `REVIEW.md`: the verifier's pass above.
 - [x] Lesson loop: N/A (first occurrence; the class is an existing design rule).
 - [x] Knowledge layer: AGENTS.md ("no network but loopback") and README ("a private loopback") already describe the intended behaviour; the script's header now names the refusal.
-- [ ] Commit message explains why:
+- [x] Commit message explains why: yes, each commit.
 
 ## Skipped items — visible, never silent
 
-- (none yet)
+- **Full gate as one script:** see Close Out; CI's run counts.
+- **Backlog nit 1:** on a machine without `ip`, `Namespace.setUp` reports "did not report namespace mode" and hides the layer's own refusal, so 12 failures do not point at iproute2. A follow-up could have `isolated()` surface the layer's stderr.
+- **Backlog nit 2 (predates this change):** a refusal (rc 2) cannot be told apart from a command that itself exits 2; the `/run` refusal has the same shape.
 
 ## Evidence log
 
