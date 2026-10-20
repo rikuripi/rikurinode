@@ -46,6 +46,14 @@ skip = [
     { crate = "syn@2.0.119", reason = "tracing-attributes 0.1.31 is still on syn 2" },
 ]
 
+# Tokio's process API spawns child processes; the control plane never does
+# (ADR 0005, ADR 0014). clippy.toml bans std's Command; this closes tokio's.
+# Record: docs/build-records/2026-10-20-no-process-spawn.md
+[[bans.features]]
+crate = "tokio"
+deny = ["process"]
+reason = "the control plane never spawns a process (ADR 0005, ADR 0014)"
+
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"

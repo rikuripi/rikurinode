@@ -1,2 +1,15 @@
 allow-unwrap-in-tests = true
 allow-expect-in-tests = true
+
+# The control plane never spawns a process: it acts through systemd, Tor's
+# control port and the root helper, never a shell or a child process
+# (ADR 0005, ADR 0014; the lessons register's EXEC-01; threat model T6).
+# Tokio's process API is closed in deny.toml, by denying its `process` feature.
+# Lifting either ban is its own control change.
+# Record: docs/build-records/2026-10-20-no-process-spawn.md
+disallowed-types = [
+    { path = "std::process::Command", reason = "the control plane never spawns a process (ADR 0005, ADR 0014)" },
+]
+disallowed-methods = [
+    { path = "std::process::Command::new", reason = "the control plane never spawns a process (ADR 0005, ADR 0014)" },
+]
