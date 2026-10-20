@@ -21,6 +21,9 @@ ignore = []
 allow = [
     "Apache-2.0",
     "BSD-3-Clause",
+    # ISC: ring's `untrusted` and `rustls-webpki` (B0.2, 2026-10-19). Permissive,
+    # functionally MIT; added for those crates, not as a general allowance.
+    "ISC",
     "MIT",
     "Unicode-3.0",
 ]

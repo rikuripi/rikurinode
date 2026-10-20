@@ -9,9 +9,11 @@ The design goal: a failed update must never cost the node or its funds.
 skeleton.** This repository holds the engineering process and its gates, the
 node's OS image ([image/](image/)), built and checked only in CI, and the
 first control plane code ([control-plane/](control-plane/)): a daemon that
-serves `GET /api/status` on loopback and reports every component as
-`unknown`, because nothing probes the node yet. Nothing here is ready to
-run on a node. The
+serves its API over HTTPS from a certificate authority it makes at first
+start, takes a claim code from the console to make the first person the
+owner, signs the owner in with a password and a revocable session, and
+reports every component as `unknown`, because nothing probes the node yet.
+Nothing here is ready to run on a node. The
 [platform and architecture plan](docs/architecture/platform-plan.md) says how
 the node will be built, and which decisions are still the owner's; its
 decisions are in [docs/adr/](docs/adr/). The
@@ -49,11 +51,20 @@ scripts/cargo.sh <cargo args>                     # cargo, with its cache in the
 The control plane (`control-plane/`, a Cargo workspace: the `rikuri-control`
 library and the `rikuri-control-plane` daemon) builds and tests with
 `scripts/cargo.sh … --manifest-path control-plane/Cargo.toml`; the gate runs
-its tests inside `safe-run.sh`. The daemon listens on `127.0.0.1:8080`
-(`RIKURI_LISTEN` overrides it; only a loopback address is accepted until TLS
-and sign-in exist) and logs to stderr at the level `RUST_LOG` sets (default
-`info`). On a machine with a live node, run it inside `safe-run.sh`, which
-gives it a private loopback.
+its tests inside `safe-run.sh`. The daemon serves its API over HTTPS on
+`127.0.0.1:8443` (`RIKURI_LISTEN`) with a certificate signed by the node's own
+CA, both made at first start under `RIKURI_STATE_DIR` (default
+`/var/lib/rikuri/control-plane`, a 0700 folder of 0600 files: the keys, the
+hashes of the claim code and the owner's password, the sessions). A plain
+listener (`RIKURI_HTTP_LISTEN`, off unless set) serves only the CA
+certificate at `/ca.crt` and a redirect to HTTPS. `RIKURI_NAMES` lists the
+names a request may use for the node (`localhost` always may); any other
+`Host` is refused. At its first start the daemon logs a claim code; the first
+person to send it with a password becomes the owner, and only
+`rikuri-control-plane rearm-claim`, run at the console, arms another once it
+expires or is retired. Logs go to stderr at the level `RUST_LOG` sets
+(default `info`). On a machine with a live node, run it inside `safe-run.sh`,
+which gives it a private loopback.
 
 Logs, runtime state, secrets and machine-specific settings never enter git.
 The gate and the pre-commit hook refuse them (AGENTS.md > Never in git).
