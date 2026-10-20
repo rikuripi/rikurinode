@@ -5,8 +5,8 @@
 | **Date** | 2026-10-20 |
 | **Author / session** | Claude (Opus 5.5, cloud session linked to the owner's Mac) for Henry Chen |
 | **Branch** | `control/no-process-spawn`, from `main` at `adaf8c4`, in a clone at `/home/claude/rikurinode` in the cloud session (the owner's Mac cannot reach GitHub from that session) |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `a043f27` (the ban), `af3c6f4` (the `forbid` levels, repair cycle 1), the next commit (these rows); the pre-commit hook ran on each (gitleaks "no leaks found"). Stacked on `fix/rustsec-2026-0382` (pull request #18). Pushed and opened as a pull request on the owner's word ("commit, create branch, verify and make pull request", 2026-10-20) |
+| **Status** | DONE locally: first `verifier` pass FAIL (an item-level `#[allow]`/`#[expect]` lifted the ban), corrected with the owner's widening of Scope; follow-up pass PASS. CI's `Full gate (Ubuntu)` with toolchain 1.98.1 Not yet proven when this row was written |
 | **Change type** | ops (a control: lint and dependency policy) |
 
 ## Task Contract
@@ -53,20 +53,20 @@
 
 ## 4. Verify
 
-- [x] Unit tests: N/A (configuration); the red and green runs below are its tests. `cargo test` was run for regressions: under plain `safe-run.sh`, `plain_listener` (3) and `sign_in` (9) fail with `NetworkUnreachable` on unmodified `main` too, because this session has no `ip` binary and `safe-run.sh`'s `ip link set lo up` fails silently (found by the RUSTSEC-2026-0382 verifier). With a stand-in for that one command first on `PATH`, every suite passes on this branch: 104 unit, `plain_listener` 3/3, `sign_in` 9/9, `status_route` 3/3.
+- [x] Unit tests: N/A (configuration); the red and green runs below are its tests. `cargo test` was run for regressions: under plain `safe-run.sh`, `plain_listener` (3) and `sign_in` (9) fail with `NetworkUnreachable` on unmodified `main` too (run in the builder's clone; the verifier reproduced it on `639da32`), because this session has no `ip` binary and `safe-run.sh`'s `ip link set lo up` fails silently (found by the RUSTSEC-2026-0382 verifier). With a stand-in for that one command first on `PATH`, every suite passes on this branch: 104 unit, `plain_listener` 3/3, `sign_in` 9/9, `status_route` 3/3.
 - [x] Watched it work: clippy green on the tree; cargo-deny `bans ok` on the tree.
-- [x] Regression guard proven to FAIL: scratch copies adding the same call under `#[allow(clippy::disallowed_methods, clippy::disallowed_types)]` and under `#[expect(...)]` fail with `error[E0453]: allow(clippy::disallowed_methods) incompatible with previous forbid` (and the same for `disallowed_types` and for `expect`); a scratch copy adding `std::process::Command::new("true")` fails clippy with both `disallowed_methods` and `disallowed_types`, each printing the ban's reason; a scratch copy enabling tokio's `process` feature fails `cargo deny check bans` with `feature-banned`. Both scratch copies were discarded.
-- [x] Independent verification: first `verifier` pass **FAIL**, one Important finding: an item-level `#[allow]` or `#[expect]` got past the clippy ban (rc 0), so the requirement above did not hold. Repair cycle 1: the `forbid` levels, with the owner's widening of Scope; the red runs above. The verifier also confirmed the ban catches import aliases, glob imports, test targets, `#[cfg(test)]` modules and the app crate, that tokio's `process` is refused from the workspace, a member manifest and `"full"`, and that no other safe spawning API is reachable (`libc` needs `unsafe`, which `unsafe_code = "forbid"` blocks). Nits fixed in place: the Evidence log's stale `advisories FAILED`. Follow-up pass: see the verifier's report below.
-- [x] Diff matches the plan: `clippy.toml`, `deny.toml` and this record, nothing else.
+- [x] Regression guard proven to FAIL: scratch copies adding the same call under `#[allow(clippy::disallowed_methods, clippy::disallowed_types)]` and under `#[expect(...)]` fail with `error[E0453]: allow(clippy::disallowed_methods) incompatible with previous forbid` (and the same for `disallowed_types` and for `expect`); a scratch copy adding `std::process::Command::new("true")` fails clippy with both `disallowed_methods` and `disallowed_types`, each printing the ban's reason; a scratch copy enabling tokio's `process` feature fails `cargo deny check bans` with `feature-banned`. All four scratch copies (the plain call, `#[allow]`, `#[expect]`, tokio's feature) were discarded.
+- [x] Independent verification: first `verifier` pass **FAIL**, one Important finding: an item-level `#[allow]` or `#[expect]` got past the clippy ban (rc 0), so the requirement above did not hold. Repair cycle 1: the `forbid` levels, with the owner's widening of Scope; the red runs above. The verifier also confirmed the ban catches import aliases, glob imports, test targets, `#[cfg(test)]` modules and the app crate, that tokio's `process` is refused from the workspace, a member manifest and `"full"`, and that no other safe spawning API is reachable (`libc` needs `unsafe`, which `unsafe_code = "forbid"` blocks). Nits fixed in place: the Evidence log's stale `advisories FAILED`. Follow-up pass: **PASS**, both Important findings fixed; the probes re-run (plain call, `#[allow]` and `#[expect]` on an item, `#[allow]` on a module and in the app crate) all fail; tests, fmt and `cargo deny` green; two wording nits fixed in place.
+- [x] Diff matches the plan: `clippy.toml`, `deny.toml`, `Cargo.toml` (after the owner widened the Scope) and this record, nothing else.
 
 ## 5. Close Out
 
-- [ ] Full gate:
-- [ ] Scrap Sweep:
-- [ ] Reviewed per `REVIEW.md`:
+- [ ] Full gate: CI's `Full gate (Ubuntu)` on the pull request, Not yet proven when this record was closed.
+- [x] Scrap Sweep: scratch copies and their target directories removed; nothing else to remove.
+- [x] Reviewed per `REVIEW.md`: the verifier's two passes above.
 - [ ] Lesson loop: N/A
 - [ ] Knowledge layer: N/A (no user-visible behaviour)
-- [ ] Commit message explains why:
+- [x] Commit message explains why: yes, each commit.
 
 ## Skipped items — visible, never silent
 
