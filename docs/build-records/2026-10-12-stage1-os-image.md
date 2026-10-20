@@ -4,9 +4,9 @@
 |---|---|
 | **Date** | 2026-10-12 |
 | **Author / session** | Claude Code (Opus 5.5); owner Henry |
-| **Branch** | stage1/os-image, pull request #5, merged into main on 2026-10-13 before its fix round; the fix round is the follow-up pull request from stage1/checker-fixes |
-| **Commits** | PR #5, merged as 678b1b8. The fix round, on `stage1/checker-fixes`: a93133b (the failing tests, red), 2276986 (F6 wording), 2d7659e (the checker moved out of `image/tests/`), cd77e9e (the fix, under the lock), fc06a36 (the three tests after the release), and the close-out commit (this record, `gate2-steps.out` regenerated, the docstring) |
-| **Status** | IN PROGRESS — the image builds and passes its checks in CI (run 38328363342), and a planted finding fails the job (red drill, run 38328553937); `/dev/kvm` present on the runner (no VM started yet); verifier round 1 FAIL (code/test and wording); PR #5 merged 2026-10-13 before the fix round (owner: nothing runs the image yet, and the shipped `greenboot.conf` reads the same in the checker and in greenboot); the fix round, F1 to F6, built in a session opened in this worktree (five commits, §3 and the Commits row); **verifier round 2: F1 to F6 pass, every claim reproduced, nothing regressed; its verdict NOT YET PROVEN until CI's Full gate and the OS image workflow are seen on the follow-up pull request** (the branch is pushed by the owner: the build session's sandbox cannot reach the repository) |
+| **Branch** | stage1/os-image, pull request #5, merged into main on 2026-10-13 before its fix round; the fix round was the follow-up pull request #15 from stage1/checker-fixes, merged 2026-10-19; this close-out of the record is on `stage1/record-close-out`, its own pull request (Claude Code, Fable 5.1, in the owner's desktop session) |
+| **Commits** | PR #5, merged as 678b1b8. The fix round, on `stage1/checker-fixes`: a93133b (the failing tests, red), 2276986 (F6 wording), 2d7659e (the checker moved out of `image/tests/`), cd77e9e (the fix, under the lock), fc06a36 (the three tests after the release), 6b51deb (the close-out of the fix round: this record, `gate2-steps.out` regenerated, the docstring), 9cc098b (main merged into the branch on 2026-10-19: 25 commits behind, one conflict in the plan's status line, resolved by keeping main's line plus the clause that D8 and D9 are recorded in §7 only); PR #15 merged as ab99913 |
+| **Status** | COMPLETE — change 1 of stage 1 is done. PR #5 (the image, built and checked in CI; run 38328363342, the red drill run 38328553937, `/dev/kvm` present on the runner) merged as 678b1b8 on 2026-10-13 before its fix round; the fix round, F1 to F6 (verifier round 2: pass, every claim reproduced), merged as ab99913 on 2026-10-19 through PR #15, whose CI was the proof the verdict waited for: CI run #40 `Full gate (Ubuntu)` and OS image run #8 both completed successfully on 9cc098b. Stage 1 is not closed: changes 2 to 6 and the §4.1 drill on the N150 remain |
 | **Change type** | feature (the first node code: the operating system) |
 
 ## 0. Intent — the owner's words, approved before design
@@ -340,7 +340,7 @@
       unpinned base in `image/Containerfile`: a scratch copy with
       `FROM registry.fedoraproject.org/fedora-iot:44` gave "base image not
       pinned ('44' is a floating tag, not a version)".
-- [ ] Full gate, the fix round: locally it stops at step 2 (`gate2.out`).
+- [x] Full gate, the fix round: locally it stops at step 2 (`gate2.out`).
       This session's sandbox mounted `.claude/settings.json` as it was on
       the old branch when the session opened, so the wiring check, and
       `test_this_repositorys_settings_pass` in step 3, read a stale file
@@ -353,7 +353,12 @@
       version had run step 3 outside the layer; the one failure in step 3
       is that same wiring test, beside the layer's `skipped=1`; the image
       check's 54 tests OK). **CI's gate on the pull request is the
-      reference run: not green until seen.**
+      reference run: not green until seen.** Seen on 2026-10-19, pull
+      request #15 at 9cc098b (main merged into the branch): CI run #40,
+      `Full gate (Ubuntu)`, completed successfully in 1 min 51 s; OS image
+      run #8, `Build and check the OS image`, completed successfully in
+      1 min 12 s; "No conflicts with base branch"; merged by the owner as
+      ab99913.
 - [x] Scrap Sweep: nothing to delete. The tree holds only the ignored
       `.claude/state/` and `__pycache__`, and the sandbox's `/dev/null`
       placeholders (untracked, not files); the verifier's probes stayed in
@@ -419,4 +424,10 @@
             regenerated with every step inside safe-run.sh (guard: Ran 91 tests, OK;
             quality tools: Ran 78 tests, FAILED failures=1 the stale wiring test,
             skipped=1; image check: Ran 54 tests, OK; steps 4 to 7 exit 0)
+2026-10-19  the branch pushed from the owner's desktop session (6b51deb; the owner: "I push, you open
+            the PR"); PR #15 opened; main merged into the branch (9cc098b: 25 commits behind, one
+            conflict, the plan's status line); CI on #15 at 9cc098b: CI run #40 Full gate (Ubuntu)
+            1 min 51 s and OS image run #8 1 min 12 s, both completed successfully (the Actions page,
+            read in the owner's browser); "No conflicts with base branch"; merged by the owner as
+            ab99913; this record closed out on stage1/record-close-out, its own pull request
 ```
