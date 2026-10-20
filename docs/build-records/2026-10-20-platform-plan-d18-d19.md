@@ -12,7 +12,7 @@
 ## Task Contract
 
 1. **Outcome:** the platform plan shows the two new proposed decisions (the lobby zone, remote and expert access) and the proposed F3 amendment, each pointing to its Proposed ADR, so the plan and the ADRs of `2026-10-20-lobby-zone-access-and-ai-lanes-adrs.md` agree.
-2. **Scope:** `docs/architecture/platform-plan.md` only: the status paragraph, one "In one page" bullet, the D16 row (a dated amendment sentence), new rows D18 and D19 in §7, the security slice of stages 5 and 8 in §8, and a dated block in §9. Tier: **high-risk** (security decisions in the plan; documentation only, so one verifier pass). **Not included:** the assistant plan's F3 and contract B5, the AI-02 caveat, the threat model's rows, README.md, any ADR text, code.
+2. **Scope:** `docs/architecture/platform-plan.md` only: the status paragraph, two "In one page" bullets (D18 and D19), the D16 row (a dated amendment sentence), new rows D18 and D19 in §7, the security slice of stages 5 and 8 in §8, and a dated block in §9. Tier: **high-risk** (security decisions in the plan; documentation only, so one verifier pass). **Not included:** the assistant plan's F3 and contract B5, the AI-02 caveat, the threat model's rows, README.md, any ADR text, code.
 3. **Done when:** D18 and D19 are marked proposed everywhere they appear and counted as open; the D16 text of 2026-10-18 is unchanged and the amendment is a dated addition; every claim names its ADR; `git diff --check` is clean; `repo_hygiene.py` exits 0; relative links resolve; the verifier's pass has no Important finding.
 4. **Authority:** edit the one file; read the repository. No commit, push, branch or PR; nothing running was touched.
 5. **Limits:** one task; two repair cycles; two review rounds. Budget: none configured.
@@ -27,7 +27,7 @@
 
 ## 0b. Spec
 
-- [x] **Requirements:** keep decided text intact (ADR history is by dated clarification, AGENTS.md §3 "Conflicts"); a proposed decision is never written as decided; the counts in the status paragraph stay true.
+- [x] **Requirements:** keep decided text intact (ADR history is by dated clarification, AGENTS.md §8 "Conflicts"); a proposed decision is never written as decided; the counts in the status paragraph stay true.
 - [x] **Design:** additions only, at the places the existing decisions use. Rejected: rewriting D16 (it was decided; the amendment is a dated sentence); marking D18 and D19 decided on the strength of the chat agreement (the ADRs are Proposed until the owner confirms their wording).
 - [x] **Policy applied:** the first principle (the SSH window and the per-send approval default are explicit, reversible owner choices); no protection is called proven.
 - [x] **Flagged concerns:** the status paragraph says "fifteen are taken"; it now says four are open, which is the honest count while D18 and D19 are Proposed.

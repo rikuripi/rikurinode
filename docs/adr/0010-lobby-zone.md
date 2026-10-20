@@ -85,8 +85,8 @@ from strangers, and the control plane is the node's one authority (ADR 0002).
 - The egress allowlist is a list to maintain. CDN-hosted APIs change
   addresses, so it is by hostname, and it is as strong as DNS and TLS.
 - Telegram and Discord still learn that a node exists and when it alerts.
-  Telegram's default chats are cloud chats, which are not end-to-end
-  encrypted, so message content is minimal by rule.
+  Telegram's cloud chats are not end-to-end encrypted (only secret chats
+  are), so message content is minimal by rule.
 - Edits that follow, each its own change: a D18 row in the platform plan §7
   and a line in stage 8's security slice; the threat model §3 ("not trusted"
   gains the helpers and the chat services) and §4 rows for a compromised
@@ -110,5 +110,5 @@ from strangers, and the control plane is the node's one authority (ADR 0002).
   AI-02, EXEC-04, EXEC-07, FUND-01 to FUND-04.
 - `docs/architecture/platform-plan.md`: §7 D14 and §8, stages 3, 5 and 8.
 - [Telegram, "End-to-End Encryption FAQ"](https://tsf.telegram.org/manuals/e2ee-simple):
-  cloud chats are the default and secret chats are device-specific. That the
+  cloud chats are not end-to-end encrypted; secret chats are device-specific. That the
   Bot API's messages are cloud chats is to be confirmed in the Build Record.

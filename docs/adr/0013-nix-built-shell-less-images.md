@@ -21,13 +21,14 @@ The idea the owner liked in the design discussion: an image with no shell and
 no package manager, holding only the program and what it needs, so that a
 breached container has nothing to run. Nix's `dockerTools.buildLayeredImage`
 builds an image from nothing and includes the runtime closure of the program
-it is given, so the contents are exactly that closure and can be listed with
-`nix path-info -r`. A Containerfile that copies a binary onto `scratch` can
+it is given, so the contents follow from the program's closure, which
+`nix path-info -r` lists; the experiment checks the image against that list. A Containerfile that copies a binary onto `scratch` can
 also be shell-less, but it has no automatic list of what the program pulls in.
 
 Prior art: nix-bitcoin, a collection of Nix packages and NixOS modules for
-Bitcoin nodes. Its last release, 0.0.139, was published on 13 August 2026 as
-its final one, and its maintainers invited forks; others relaunched it as
+Bitcoin nodes. Its last release, 0.0.139, was published in August 2026 as
+its final one; according to CriptoNoticias, its farewell invited forks, and
+others relaunched it as
 Bitcoinix on 14 October 2026, which describes itself as experimental. That
 last release fixed LND's admin macaroon being passed in curl's argument list,
 readable from `/proc` (the class of SEC-01). It is a source of ideas, not a

@@ -75,7 +75,7 @@ listed forms it cannot see, so it calls itself a tripwire and not a sandbox
 - Which remote path ships first (Tor, Tailscale or both) is left open; each
   is its own change with its own drill.
 - Edits that follow, each its own change: a D19 row in the platform plan §7;
-  threat model §8 (the "Shell access" bullet is decided) and a row for a
+  threat model §8 (the "Shell access" bullet, decided once this ADR is accepted) and a row for a
   remote path as an attack surface.
 
 ## Rejected
@@ -89,8 +89,8 @@ listed forms it cannot see, so it calls itself a tripwire and not a sandbox
 
 ## Sources (read 2026-10-20)
 
-- `docs/requirements/lessons-register.md`: EXEC-04, EXEC-05, EXEC-07,
-  EXEC-08, AI-02, SEC-01.
+- `docs/requirements/lessons-register.md`: EXEC-04, EXEC-07, EXEC-08,
+  AI-02, SEC-01.
 - `docs/architecture/platform-plan.md` §7 D10 and D11;
   `docs/security/THREAT_MODEL.md` §8.
 - [Tailscale, "Enabling HTTPS"](https://tailscale.com/docs/how-to/set-up-https-certificates):

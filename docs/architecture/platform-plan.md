@@ -380,5 +380,11 @@ Read 2026-10-20, for D18, D19 and the F3 amendment
 (`docs/build-records/2026-10-20-lobby-zone-access-and-ai-lanes-adrs.md`):
 
 - Tailscale: [Enabling HTTPS](https://tailscale.com/docs/how-to/set-up-https-certificates) (machine names and the tailnet DNS name are published in the Certificate Transparency ledger; only devices that run `tailscale cert` appear).
-- Telegram: [End-to-End Encryption FAQ](https://tsf.telegram.org/manuals/e2ee-simple) (cloud chats are the default; secret chats are device-specific). That Bot API messages are cloud chats is still to be confirmed.
+- Telegram: [End-to-End Encryption FAQ](https://tsf.telegram.org/manuals/e2ee-simple) (cloud chats are not end-to-end encrypted; secret chats are device-specific). That Bot API messages are cloud chats is still to be confirmed.
 - LND: [recovery.md](https://github.com/lightningnetwork/lnd/blob/master/docs/recovery.md) (the static channel backup is encrypted with a key derived from the seed; restoring from it closes the channels).
+
+Read 2026-10-20, for D20 and D21
+(`docs/build-records/2026-10-20-adrs-nix-images-and-runbook-executor.md`):
+the sources listed in ADR 0013 (nixpkgs `buildLayeredImage`, the nix-bitcoin
+0.0.139 release, the Bitcoinix relaunch) and ADR 0014 (the lessons register's
+HEAL and EXEC entries).
