@@ -6,7 +6,8 @@
 #
 #   1. Namespaces (unprivileged): a private mount namespace with an empty /run
 #      (no Docker, Podman or systemd socket), a private network with only
-#      loopback (no live service on 127.0.0.1), a private PID namespace (no
+#      loopback (no live service on 127.0.0.1; if loopback cannot be brought up,
+#      it refuses with exit 2), a private PID namespace (no
 #      process outside can be seen or signalled). The command runs as a mapped
 #      root inside, with no privilege outside.
 #   2. Stand-ins first on PATH that refuse (exit 126) for container, service and
@@ -44,7 +45,7 @@ before="$(node_started)"
 
 NS=(unshare --user --map-root-user --mount --net --pid --fork --mount-proc)
 inner='mount -t tmpfs -o mode=755 none /run || { echo "safe-run: cannot hide /run" >&2; exit 2; }
-ip link set lo up 2>/dev/null
+ip link set lo up || { echo "safe-run: cannot bring loopback up inside the layer (is iproute2'"'"'s ip installed?); refusing to run" >&2; exit 2; }
 exec "$@"'
 if [ -z "${SAFE_RUN_FORCE_NO_NAMESPACE:-}" ] && "${NS[@]}" true 2>/dev/null; then
   PATH="$bin:$PATH" SAFE_RUN_BIN="$bin" DOCKER_HOST="unix:///nonexistent/rikuri-safe-run.sock" SAFE_RUN_MODE="namespace" \
