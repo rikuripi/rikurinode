@@ -25,6 +25,8 @@
 - [x] **Open questions:** listed in each ADR's "Edits that follow" and in the plan document's open decisions (which remote path ships first, which helpers ship in version one, whether a bigger local model runs on an owner-run machine, the proposed SSH window and the per-send approval default).
 - [x] **Owner approved the intent:** "Ok, so we'll stay rootful, and make all the adjustments you just listed with report-card schema and F3 changes to the Rikuri Node Plan." then "Yes, draft the ADRs in repo format" (2026-10-20). ADR 0007 (rootful, a range per container) is re-confirmed by the first message and needs no edit.
 
+- [x] **Owner's answer on the two proposed defaults** (2026-10-20, after the merge of pull request #19): "1. SSH window OK with 1 hour default, 24 hours at most. Manual approval for each external AI send until finish of shadow period, OK." Recorded in ADR 0011, ADR 0012, the platform plan's D19 row and the assistant plan's §6 by a follow-up documentation pull request; ADRs 0010 to 0012 stay Proposed until the owner confirms their wording.
+
 ## 0b. Spec
 
 - [x] **Requirements:** the repository's ADR shape (status table, Context, Decision, Consequences, Rejected, Sources); the owner's words quoted; alternatives with their costs; proposed defaults marked as the owner's reversible settings (AGENTS.md §6); no behaviour or rule is recorded as Accepted without the owner's confirmation.

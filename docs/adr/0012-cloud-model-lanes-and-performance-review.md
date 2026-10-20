@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proposed — drafted 2026-10-20 from the owner's direction in chat ("Ok, so we'll stay rootful, and make all the adjustments you just listed with report-card schema and F3 changes to the Rikuri Node Plan."); Accepted when the owner confirms this wording in its Build Record |
+| **Status** | Proposed — drafted 2026-10-20 from the owner's direction in chat ("Ok, so we'll stay rootful, and make all the adjustments you just listed with report-card schema and F3 changes to the Rikuri Node Plan."); Accepted when the owner confirms this wording in its Build Record. Its per-send approval default was confirmed by the owner on 2026-10-20 ("1. SSH window OK with 1 hour default, 24 hours at most. Manual approval for each external AI send until finish of shadow period, OK."); the ADR as a whole stays Proposed |
 | **Decision** | F3 of `docs/architecture/assistant-plan.md` §2, amended; D16 of `docs/architecture/platform-plan.md` §7; the dated caveat on AI-02 in the lessons register |
 | **Supersedes** | Nothing. F3's alternatives A to C stand as written; this is a dated clarification of the option chosen on 2026-10-18 ("Owner enabled cloud: option for reflection and eval") |
 | **Beside it** | ADR 0008 (the inference engine), ADR 0009 (the redaction filter), ADR 0010 (the AI relay in the lobby zone) |
@@ -96,9 +96,10 @@ enum Suggestion {
 - **Every external send goes through the AI relay** (ADR 0010) and is
   recorded before it leaves as a `data_egress` event holding the exact payload
   (assistant plan contract B5). Each lane is opted into separately. The
-  proposed default is that the owner sees and approves each send; moving the
-  review lane to automatic weekly sends is a later owner choice, made after
-  its shadow period.
+  owner sees and approves each send until the review lane's shadow period
+  ends (confirmed by the owner, 2026-10-20); moving the review lane to
+  automatic weekly sends is a later owner choice, made after its shadow
+  period.
 - **External models get no tools, no secrets and no access to the node.**
   Their answers are labelled as external wherever shown.
 - **Rust checks every suggestion:** inside `Bounds`, within the step size,
