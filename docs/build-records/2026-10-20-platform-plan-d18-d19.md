@@ -4,9 +4,9 @@
 |---|---|
 | **Date** | 2026-10-20 |
 | **Author / session** | Claude (Sonnet 5.5, desktop chat session) for Henry Chen |
-| **Branch** | None created. The edit is uncommitted in this checkout, on top of `main` (AGENTS.md §2); the branch, commit and pull request are the owner's call |
-| **Commits** | None |
-| **Status** | IN PROGRESS: edited; verifier pass Not yet run; CI Not yet proven |
+| **Branch** | `docs/adrs-0010-0014`, made in a cloud-session clone at `/home/claude/rikurinode` (the owner's Mac could not reach GitHub from that session) and stacked on `fix/rustsec-2026-0382` (pull request #18) so its CI can pass; the same files were first written uncommitted in the owner's checkout on the Mac, byte-identical (sha256 compared) |
+| **Commits** | `c8f3e82` (ADRs 0010 to 0014 and their two records), `2708860` (the plan, register and threat-model edits and their three records), `51e6692` (the verifier's first-pass corrections), the next commit (these rows); the pre-commit hook ran on each (gitleaks "no leaks found"). Committed, pushed and opened as a pull request on the owner's word ("commit, create branch, verify and make pull request", 2026-10-20) |
+| **Status** | DONE locally; the ADRs stay Proposed until the owner accepts them. One `verifier` pass over all five records of this branch: **FAIL** on one Important finding (threat model rows T20 to T24 and T26 read as adopted), fixed in `51e6692` with its nits; follow-up pass **PASS**. CI's `Full gate (Ubuntu)` Not yet proven when this row was written |
 | **Change type** | ops (plan amendment; documentation only) |
 
 ## Task Contract
@@ -53,17 +53,17 @@
 ## 4. Verify
 
 - [ ] Checks: see the Evidence log.
-- [ ] Independent verification: `verifier` pass, Not yet run.
+- [x] Independent verification: one `verifier` pass over the five records of this branch, FAIL on one Important finding (T20 to T24 and T26 not marked Proposed), corrected in `51e6692` with the nits; follow-up pass PASS. Backlog nit: none open in this record.
 
 ## 5. Close Out
 
 - [ ] Full gate: Not yet proven (documentation-only; CI runs it on the pull request).
-- [ ] Reviewed per `REVIEW.md`: Not yet run.
-- [ ] Commit: not made.
+- [x] Reviewed per `REVIEW.md`: the verifier's two passes above.
+- [x] Commit: made and pushed; see the Commits row.
 
 ## Skipped items — visible, never silent
 
-- **Verifier pass, review, commit, full gate:** need a branch and the owner's go-ahead (AGENTS.md §2).
+- **Full gate:** CI's `Full gate (Ubuntu)` on the pull request, Not yet proven when this record was closed.
 
 ## Evidence log
 

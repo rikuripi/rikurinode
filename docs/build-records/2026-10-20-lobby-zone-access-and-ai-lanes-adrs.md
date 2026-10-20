@@ -4,9 +4,9 @@
 |---|---|
 | **Date** | 2026-10-20 |
 | **Author / session** | Claude (Sonnet 5.5, desktop chat session) for Henry Chen |
-| **Branch** | None created. The four files are uncommitted and untracked on `main` in this checkout; the branch, commit and pull request are the owner's call (AGENTS.md §2) |
-| **Commits** | None |
-| **Status** | IN PROGRESS: drafted; Proposed, not Accepted; verifier pass Not yet run; CI Not yet proven |
+| **Branch** | `docs/adrs-0010-0014`, made in a cloud-session clone at `/home/claude/rikurinode` (the owner's Mac could not reach GitHub from that session) and stacked on `fix/rustsec-2026-0382` (pull request #18) so its CI can pass; the same files were first written uncommitted in the owner's checkout on the Mac, byte-identical (sha256 compared) |
+| **Commits** | `c8f3e82` (ADRs 0010 to 0014 and their two records), `2708860` (the plan, register and threat-model edits and their three records), `51e6692` (the verifier's first-pass corrections), the next commit (these rows); the pre-commit hook ran on each (gitleaks "no leaks found"). Committed, pushed and opened as a pull request on the owner's word ("commit, create branch, verify and make pull request", 2026-10-20) |
+| **Status** | DONE locally; the ADRs stay Proposed until the owner accepts them. One `verifier` pass over all five records of this branch: **FAIL** on one Important finding (threat model rows T20 to T24 and T26 read as adopted), fixed in `51e6692` with its nits; follow-up pass **PASS**. CI's `Full gate (Ubuntu)` Not yet proven when this row was written |
 | **Change type** | ops (architecture decisions; documentation only) |
 
 ## Task Contract
@@ -54,19 +54,19 @@
 ## 4. Verify
 
 - [ ] Links, `git diff --check` and hygiene: see the Evidence log.
-- [ ] Independent verification: `verifier` pass, Not yet run.
+- [x] Independent verification: one `verifier` pass over the five records of this branch, FAIL on one Important finding (T20 to T24 and T26 not marked Proposed), corrected in `51e6692` with the nits; follow-up pass PASS. Backlog nit: none open in this record.
 - [ ] Diff matches the §1 plan: yes; one extra file, this record, as the procedure requires.
 
 ## 5. Close Out
 
 - [ ] Full gate: Not yet proven (documentation-only: link and citation checks, `git diff --check`; CI runs the full gate on the pull request).
-- [ ] Reviewed per `REVIEW.md`: Not yet run.
+- [x] Reviewed per `REVIEW.md`: the verifier's two passes above.
 - [ ] Knowledge layer updated: the follow-up edits listed in each ADR are not done.
-- [ ] Commit: not made.
+- [x] Commit: made and pushed; see the Commits row.
 
 ## Skipped items — visible, never silent
 
-- **Verifier pass, review, commit, full gate:** not done; they need the owner's go-ahead to commit and a branch (AGENTS.md §2). Next step for whoever takes the branch.
+- **Full gate:** CI's `Full gate (Ubuntu)` on the pull request, Not yet proven when this record was closed.
 - **Follow-up edits (platform plan D18 and D19, assistant plan F3 and B5, AI-02 caveat, threat model rows):** each is its own task by AGENTS.md §3.
 
 ## Evidence log
@@ -78,7 +78,7 @@ Checks run 2026-10-20 on the uncommitted files (documentation only):
 - `python3 scripts/quality/repo_hygiene.py .`: exit 0.
 - Relative links and backticked repository paths in the four files: 0 broken.
 - Every lesson ID the ADRs cite (EVID-05, EVID-06, HEAL-09, UPG-04, AI-02,
-  EXEC-04, EXEC-05, EXEC-07, EXEC-08, SEC-01, FUND-01 to FUND-04) exists in
+  EXEC-04, EXEC-07, EXEC-08, SEC-01, FUND-01 to FUND-04) exists in
   the lessons register, and the claims drawn from them were re-read against
   their entries.
 - Quoted plan text (D10, D11, F2, F3, B5, threat model §8) re-read against the
