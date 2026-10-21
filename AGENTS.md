@@ -186,7 +186,8 @@ Now (stage 1 and B0), the full gate runs:
 
 - the guard tests, the quality tools' own tests and the OS image check's;
 - the hygiene check, shell lint, a whitespace check and the secret scan of history;
-- since B0.1, the Rust steps: the toolchain (`rust-toolchain.toml`) and cargo-deny at their pinned versions, dependencies fetched as locked, `cargo fmt --check`, clippy on every target with warnings as errors, `cargo test` inside `safe-run.sh`, and `cargo deny` (licences, advisories, bans and sources, `control-plane/deny.toml`).
+- since B0.1, the Rust steps: the toolchain (`rust-toolchain.toml`) and cargo-deny at their pinned versions, dependencies fetched as locked, `cargo fmt --check`, clippy on every target with warnings as errors, `cargo test` inside `safe-run.sh`, and `cargo deny` (licences, advisories, bans and sources, `control-plane/deny.toml`);
+- since 2026-10-21 (S2), a last step that only warns: when the weekly advisory audit's latest successful run on `main` is older than eight days, failed, or cannot be read (`scripts/quality/advisory_audit_age.py`). The audit itself, `.github/workflows/advisory-audit.yml`, runs weekly outside the gate: cargo-deny for RustSec and `scripts/quality/osv_audit.py` for OSV over every locked crate and every pinned action.
 
 Pass, Fail and Not yet proven stay distinct; nothing is called green until it has been observed.
 

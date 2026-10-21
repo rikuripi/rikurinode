@@ -147,7 +147,7 @@ Anything excluded from CI or skipped is counted, scheduled debt with a named sta
 
 These are scheduled by the owner. They are never an agent's self-assigned work, and they never run against the live node without the owner's instruction. After each one, findings become fixes, and fixes become tripwires.
 
-- **Weekly:** smoke run; a scan for engaged fallbacks and repeated warnings; no uncommitted drift older than a week.
+- **Weekly:** smoke run; a scan for engaged fallbacks and repeated warnings; no uncommitted drift older than a week; the advisory audit's last run on `main` green and no older than eight days (`Advisory audit (weekly)` on the Actions page; the full gate warns otherwise), with each finding disposed into a Build Record: a bump, an `ignore` entry with its reason and removal date in `control-plane/deny.toml`, or a release set within the cadence of the threat model §6.
 - **Monthly, rotating drills:**
   - restart with zero manual steps;
   - failover, where recovery must be loud;
