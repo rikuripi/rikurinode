@@ -5,8 +5,11 @@ name: CI
 # and checksum-verified; actions are pinned by commit. The Rust toolchain comes
 # from rust-toolchain.toml through rustup, which checks every download against
 # the signed channel manifest.
+# The token reads this repository and its Actions runs (actions: read), so the
+# gate's last step can see when the weekly advisory audit last succeeded.
 # Records: docs/build-records/2026-10-10-bootstrap.md,
-# docs/build-records/2026-10-12-b0-1-control-plane-workspace.md
+# docs/build-records/2026-10-12-b0-1-control-plane-workspace.md,
+# docs/build-records/2026-10-21-weekly-advisory-audit.md
 
 on:
   pull_request:
@@ -17,6 +20,7 @@ on:
 
 permissions:
   contents: read
+  actions: read # the audit's runs, for full-gate.sh step 10 (advisory_audit_age.py)
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -61,4 +65,5 @@ jobs:
         # namespace tests are reported as skipped).
         env:
           SAFE_RUN_ALLOW_NO_NAMESPACE: "1"
+          GITHUB_TOKEN: ${{ github.token }} # read-only here; step 10 lists the audit's runs
         run: scripts/quality/full-gate.sh

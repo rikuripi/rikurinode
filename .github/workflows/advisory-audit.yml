@@ -1,0 +1,62 @@
+name: Advisory audit (weekly)
+
+# Advisories appear on their own clock, not the code's. ci.yml's cargo-deny
+# runs only on a pull request or a push to main, so an advisory published
+# between pushes stays unseen (threat model §6, decision S2). The previous
+# node's audit read RustSec alone while GitHub listed advisories it lacked and
+# printed "clean" with cargo missing (lessons register SEC-06), and its weekly
+# workflow lived on a non-default branch and never ran once (TEST-05).
+# This one runs from main every week and on demand: the pinned cargo-deny for
+# RustSec and yanked crates, then scripts/quality/osv_audit.py for OSV (RustSec
+# and GitHub's advisories merged) over every locked crate and every action
+# pinned in these workflows, with exit codes that tell clean (0), findings (1)
+# and could-not-audit (2) apart. A failed scheduled run emails the user who
+# last changed the cron line below: keep that the owner. The full gate warns
+# when the last success on main is older than eight days
+# (scripts/quality/advisory_audit_age.py). The pull_request trigger covers only
+# this audit's own inputs, so a lockfile change is audited before it merges.
+# Tools and actions are pinned as in ci.yml; a test keeps the cargo-deny lines
+# identical (scripts/quality/tests/test_workflows.py).
+# Record: docs/build-records/2026-10-21-weekly-advisory-audit.md
+
+on:
+  schedule:
+    - cron: '0 8 * * 2' # Tuesdays 08:00 UTC (owner default, 2026-10-21)
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/advisory-audit.yml
+      - control-plane/Cargo.lock
+      - control-plane/deny.toml
+      - scripts/quality/osv_audit.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: advisory-audit-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  audit:
+    name: Advisory audit (cargo-deny and OSV)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install cargo-deny 0.20.2 (checksum-verified)
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/cargo-deny.tgz" \
+            https://github.com/EmbarkStudios/cargo-deny/releases/download/0.20.2/cargo-deny-0.20.2-x86_64-unknown-linux-musl.tar.gz
+          echo "9f12ed4c49936e09b48bf862b595cde2fe64fcbd9d74dfacac6131ca824c8d5f  $RUNNER_TEMP/cargo-deny.tgz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/cargo-deny.tgz" -C "$RUNNER_TEMP"
+          sudo install -m 755 "$RUNNER_TEMP/cargo-deny-0.20.2-x86_64-unknown-linux-musl/cargo-deny" /usr/local/bin/cargo-deny
+      - name: Install the pinned Rust toolchain (rust-toolchain.toml)
+        run: rustup toolchain install && rustc --version && cargo --version
+      - name: RustSec advisories and yanked crates (cargo-deny, control-plane/deny.toml)
+        run: scripts/cargo.sh deny --manifest-path control-plane/Cargo.toml --locked check advisories
+      - name: OSV advisories for every locked crate and every pinned action
+        run: python3 scripts/quality/osv_audit.py
