@@ -5,7 +5,7 @@
 | **Date** | 2026-10-21 |
 | **Author / session** | Claude (Fable 5.1, desktop app; handed off from the session that pulled `main`) for Henry Chen |
 | **Branch** | `ci/weekly-advisory-audit`, from `main` at `c070a98`, in the main checkout `/home/junc/rikuripi/rikurinode` |
-| **Commits** | the change and this record in one commit; the close-out commit that follows names its hash and the push |
+| **Commits** | `fa05cf6` (the change and this record), the next commit (these rows); the pre-commit hook ran on each (gitleaks "no leaks found"). Pushed as `ci/weekly-advisory-audit` on the owner's word ("Yes, if the follow-up passes", 2026-10-21); the owner opens the pull request from the compare URL |
 | **Status** | COMPLETE locally; CI on the pull request not yet proven. First `verifier` pass FAIL (OA7, AGE4, the T8 claim), repair cycle 1, follow-up pass PASS (2026-10-21) |
 | **Change type** | ops (a control: CI and the full gate) |
 
