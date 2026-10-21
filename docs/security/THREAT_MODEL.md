@@ -100,8 +100,8 @@ the few controls this repository already runs for its own development.
 | T5 | An unauthenticated, replayed or forged API action | Authentication fails closed (EXEC-05); step-up and one approval store with expiry and the instance hash (HEAL-07; assistant plan A4); origin checks; constant-time comparison (EXEC-07) | 7 | The register's tripwires as tests; a replay test | Not yet proven |
 | T6 | An external value reaches a shell or a command line | No shell anywhere; argv only; a closed action enum; no credential on a command line (EXEC-01, ADR 0005) | 7 | The AI-01 probe class rewritten for the new executor; `cargo mutants` on the refusal paths | Not yet proven |
 | T7 | A tampered, partial or downgraded update | The signature is verified before staging; sets by digest; a set with a missing part refuses to start; downgrade refused (UPG-07, UPG-09); migrations end automatic rollback | 6 | The stage 6 drill: a broken image, a tampered manifest, a downgrade attempt | Not yet proven |
-| T8 | A malicious or vulnerable dependency or image | Every dependency and image pinned, lockfiles committed; cargo-deny; verified upstream builds; no third-party prebuilt node images (plan §4.2); the engine image by digest after the gate (ADR 0008) | all; CI | The gate on every pull request; the weekly audit and the image scan (§6, S2, S3) | Partly in place: cargo-deny and gitleaks on pull requests and pushes to `main`; nothing scheduled |
-| T9 | A known vulnerability stays unpatched on a node | The intake loop (§6): sources, the weekly audit, the release cadence | process | TEST-05's stale-run warning; every release's Build Record names the advisories it carries | Not in place |
+| T8 | A malicious or vulnerable dependency or image | Every dependency and image pinned, lockfiles committed; cargo-deny; verified upstream builds; no third-party prebuilt node images (plan §4.2); the engine image by digest after the gate (ADR 0008) | all; CI | The gate on every pull request; the weekly audit and the image scan (§6, S2, S3) | In place for the control plane's crates and CI's actions since 2026-10-21: cargo-deny on pull requests and pushes to `main`, and the weekly audit (`.github/workflows/advisory-audit.yml`: cargo-deny for RustSec, `scripts/quality/osv_audit.py` for OSV's merged crates.io and GitHub Actions advisories); its run on the pull request and its first scheduled run are owed, not yet seen. The image scan waits for S3 |
+| T9 | A known vulnerability stays unpatched on a node | The intake loop (§6): sources, the weekly audit, the release cadence | process | TEST-05's stale-run warning; every release's Build Record names the advisories it carries | Partly in place: the weekly audit and the gate's stale-run warning (full gate step 10) since 2026-10-21; the release cadence applies from the first release set |
 | T10 | Prompt injection through retrieved text, a peer alias, an invoice memo or a help page | Model output is data; typed intents under a grammar; templates fill from the owner's words and Rust's recommendations only; AISecurity's prompt-injection detector as a signal that holds the turn | 8 | The eval gate's injection probes (assistant plan C1); a held turn is an event | Not yet proven |
 | T11 | The assistant or an agent gains authority | The sandbox boundary (G5); no key, macaroon or signing in any sandbox; one executor; every funds move through the approval store; the emergency stop cancels in-flight calls (AI-01 to AI-03) | 8, 9 | The sandbox boundary tests; the stop tests | Not yet proven |
 | T12 | An agent or the assistant reaches cloud metadata, the LAN or an arbitrary host | Egress denied by default; an allow-list per mandate; every fetch in the control plane refuses 169.254.0.0/16, the RFC 1918 ranges and loopback except its own API; no URL shorteners, no open resolvers (baseline; the owner's note of 2026-10-12) | 8, 9 | Network tests from inside the sandbox; a fetch-to-metadata test | Not yet proven |
@@ -145,18 +145,20 @@ already run (§9).
 
 ## 6. Keeping up: the intake loop (S2, S3)
 
-Advisories appear on their own clock, not the code's. Today every check in
-CI runs on a pull request or a push to `main` and nothing is scheduled, which is the
-failure the lessons register records in SEC-06 and TEST-05 and which
-AISecurity fixed with a weekly workflow. The loop below is decided (S2, S3);
-its CI parts are the next task, a control change.
+Advisories appear on their own clock, not the code's. Until 2026-10-21 every
+check in CI ran on a pull request or a push to `main` and nothing was
+scheduled, which is the failure the lessons register records in SEC-06 and
+TEST-05 and which AISecurity fixed with a weekly workflow. The loop below is
+decided (S2, S3); its CI parts for the dependencies landed on 2026-10-21
+(`docs/build-records/2026-10-21-weekly-advisory-audit.md`); the image scan
+waits for S3's inspection.
 
 **Sources, and who reads them**
 
 | Source | Covers | Read by |
 |---|---|---|
-| RustSec and GitHub's advisories through a merged source (OSV), per SEC-06 | The control plane's Cargo dependencies, including `security-core` and its tree | The weekly CI audit (today: cargo-deny reads RustSec only, on pull requests and pushes to `main`) |
-| GitHub's advisories for the actions CI uses | The build pipeline | The weekly CI audit |
+| RustSec and GitHub's advisories through a merged source (OSV), per SEC-06 | The control plane's Cargo dependencies, including `security-core` and its tree | The weekly CI audit (`advisory-audit.yml`, Tuesdays 08:00 UTC and on demand): cargo-deny for RustSec, and `scripts/quality/osv_audit.py` for OSV, which merges RustSec and GitHub's advisories, over every locked crate; cargo-deny also on every pull request |
+| GitHub's advisories for the actions CI uses | The build pipeline | The weekly CI audit's OSV query over every action the workflows pin, by the version its pin's comment names; an action not pinned to a commit, or without its version, is could-not-audit |
 | Fedora's security advisories for the packages in the pinned base image; a scan of the built images (S3) | The OS image and the container images | The image workflow after a build, weekly on a schedule; the scanner is adopted only after the inspection AGENTS.md §2 requires (source, provenance, licence, maintenance, dependency tree, side effects) and runs in CI only, never on a node |
 | Bitcoin Core's security advisories and release notes; LND's releases and security notices; Tor's announcements; Podman's and the kernel's advisories; llama.cpp's releases | The node's services | The owner's weekly loop until UPG-05's release-notes reader exists on the node |
 | AISecurity's own weekly audit | The detectors' tree | AISecurity's CI, emailing the owner |
@@ -165,9 +167,13 @@ its CI parts are the next task, a control change.
 **Cadence and alarm**
 
 - A scheduled weekly CI run of the dependency audit against the merged
-  source, and of the image scan, with a failure that emails the owner (as
-  AISecurity's `supply-chain-weekly.yml` does). The local gate warns when
-  the last scheduled run is older than eight days (TEST-05).
+  source (in place since 2026-10-21: Tuesdays 08:00 UTC and on demand, with
+  exit codes that tell clean, findings and could-not-audit apart; a failed
+  run emails the owner, as AISecurity's `supply-chain-weekly.yml` does, to
+  the account that last changed the workflow's cron line), and of the image
+  scan once S3's scanner is adopted. The full gate's step 10 warns, and never
+  fails, when the audit's last successful run on `main` is older than eight
+  days, failed, or cannot be read (TEST-05).
 - **The release cadence for advisories,** an explicit and reversible owner
   setting, chosen here as the default: a critical advisory in bitcoind, LND,
   Tor, Podman, the kernel or the control plane's dependencies cuts a release
@@ -176,8 +182,8 @@ its CI parts are the next task, a control change.
   than a month on a node. Each release's Build Record names the advisories it
   carries. Costs: a monthly reboot for every node (every release reboots,
   ADR 0006), and the owner's time.
-- The owner's weekly loop in `BUILD-PROCEDURE.md` gains the advisory check
-  when the CI task lands; the quarterly audit stays for end-of-life dates.
+- The owner's weekly loop in `BUILD-PROCEDURE.md` gained the advisory check
+  on 2026-10-21; the quarterly audit stays for end-of-life dates.
 - Dependency bots opening pull requests are not used: a pin would change on
   a bot's clock and each bump is a supply-chain event. Bumps are deliberate,
   weekly, with the audit's evidence in a Build Record.
@@ -261,7 +267,9 @@ sandbox and `safe-run.sh` for AI sessions; on pull requests and pushes to
 `main`, gitleaks over the history, the hygiene check, ShellCheck, `cargo fmt`,
 clippy, `cargo test` inside `safe-run.sh`, cargo-deny (RustSec advisories,
 bans, licences, sources), the guard's tests, and the image's build and
-check. Nothing runs on a schedule. No node exists yet (stage 1 and B0), so
+check. Since 2026-10-21 the advisory audit is scheduled weekly (Tuesdays
+08:00 UTC; its first run is owed) and the gate warns when its last success is
+stale; nothing else runs on a schedule. No node exists yet (stage 1 and B0), so
 every row of §4 is Not yet proven, and the security slice of every stage is
 owed by that stage. Evidence from other repositories, such as Rikuri-PI's
 OpenShell receipt of 2026-09-28, supports continued qualification and proves

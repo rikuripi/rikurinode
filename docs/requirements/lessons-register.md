@@ -728,7 +728,7 @@ Sections after the requirements: [3. Owner decisions](#3-owner-decisions) · [4.
 - **Why:** the audit printed "dep-audit clean" and exited 0 with cargo missing from PATH, and read only RustSec while GitHub listed advisories it lacked (2026-09-28-dep-audit-sees-what-github-sees.md); 315 alerts came from 14 lockfiles, two of them read by nothing, and none of the three criticals was in code running on the node (2026-09-28-runtime-dependency-vulnerabilities.md).
 - **Tripwire:** Hermetic black-box tests with fake tools and a fake advisory server (13 of 15 red on the old script); run on every push.
 - **Owner:** “fix the audit as well” (2026-09-28) — 2026-09-28-dep-audit-sees-what-github-sees.md
-- **Port:** `scripts/dep-audit/run.js` and `scripts/dep-audit/allowlist.json` (tests: scripts/dep-audit/run.test.js) — Port with tests.
+- **Port:** `scripts/dep-audit/run.js` and `scripts/dep-audit/allowlist.json` (tests: scripts/dep-audit/run.test.js) — Port with tests. Re-expressed 2026-10-21 as `scripts/quality/osv_audit.py` (tests: `scripts/quality/tests/test_osv_audit.py`), run weekly by `.github/workflows/advisory-audit.yml` beside cargo-deny; the allow-list is `control-plane/deny.toml`'s `ignore` list, matched by alias (`docs/build-records/2026-10-21-weekly-advisory-audit.md`).
 
 <a id="ai"></a>
 ### AI — The assistant and its knowledge layer
@@ -865,7 +865,7 @@ Sections after the requirements: [3. Owner decisions](#3-owner-decisions) · [4.
 
 - **Rule:** CI installs every workspace package's locked dependencies from a fresh clone; the local gate fails when the branch's latest CI run is red, warns when it cannot tell, and accepts only a run for the current commit (re-querying before reporting failure); every scheduled gate is monitored for a recent successful run; the gate records which check failed, with its evidence; deploys are gated on the test runner's own exit code; every change is followed by the full gate, not a chosen subset.
 - **Why:** CI was red for 7 weeks and nothing said so (2026-09-23-ci-shared-deps.md); a weekly audit lived on a non-default branch and never ran once (2026-09-28-runtime-dependency-vulnerabilities.md); the backend was deployed with a failing suite because the pipeline's status was that of `tail` (2026-09-26-mempool-api-memory.md); a one-word knowledge edit broke an unrelated ranking test (2026-10-02-channel-backup-after-open-close.md) (+3 more).
-- **Tripwire:** A CI-status check with FAIL and WARN drills; a "scheduled gate ran within 8 days" check (proposed); a deploy script that runs the gate under pipefail.
+- **Tripwire:** A CI-status check with FAIL and WARN drills; a "scheduled gate ran within 8 days" check (in place since 2026-10-21: full gate step 10, `scripts/quality/advisory_audit_age.py`, warning only; `docs/build-records/2026-10-21-weekly-advisory-audit.md`); a deploy script that runs the gate under pipefail.
 - **Owner:** “Yes, go ahead with both 1 and 2 first” (2026-09-28) — (1) make cleanup/main the default branch, (2) fix the real runtime list as one tracked change — 2026-09-28-runtime-dependency-vulnerabilities.md
 
 #### TEST-06 — Commit exactly what was tested
