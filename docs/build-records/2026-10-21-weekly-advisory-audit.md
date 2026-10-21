@@ -5,8 +5,8 @@
 | **Date** | 2026-10-21 |
 | **Author / session** | Claude (Fable 5.1, desktop app; handed off from the session that pulled `main`) for Henry Chen |
 | **Branch** | `ci/weekly-advisory-audit`, from `main` at `c070a98`, in the main checkout `/home/junc/rikuripi/rikurinode` |
-| **Commits** | `fa05cf6` (the change and this record), the next commit (these rows); the pre-commit hook ran on each (gitleaks "no leaks found"). Pushed as `ci/weekly-advisory-audit` on the owner's word ("Yes, if the follow-up passes", 2026-10-21); the owner opens the pull request from the compare URL |
-| **Status** | COMPLETE locally; CI on the pull request not yet proven. First `verifier` pass FAIL (OA7, AGE4, the T8 claim), repair cycle 1, follow-up pass PASS (2026-10-21) |
+| **Commits** | `fa05cf6` (the change and this record), `76f744c` (the close-out rows), and this commit on `docs/close-out-2026-10-21` (CI seen, after the merge); the pre-commit hook ran on each (gitleaks "no leaks found"). Pushed as `ci/weekly-advisory-audit` on the owner's word ("Yes, if the follow-up passes", 2026-10-21); pull request #25 opened and merged by the owner as `e83d1b3`; the close-out branch pushed on the owner's word ("Yes, push a close-out branch", 2026-10-21) |
+| **Status** | COMPLETE. First `verifier` pass FAIL (OA7, AGE4, the T8 claim), repair cycle 1, follow-up pass PASS (2026-10-21). CI seen green on pull request #25: `Full gate (Ubuntu)` runs #63 and #64, the guard job (Python 3.9 and 3.12) runs #29 and #30, and `Advisory audit (weekly)` runs #1 and #2, on `76f744c` and on the owner's update-branch merge `533ee8c`; merged by the owner as `e83d1b3` on 2026-10-21 13:57 -0700; `main` green after it (CI run #65, guard run #31). The first scheduled run is owed (Tuesday 2026-10-27 08:00 UTC, or earlier by `workflow_dispatch`) |
 | **Change type** | ops (a control: CI and the full gate) |
 
 ## Task Contract
@@ -54,7 +54,7 @@
 ## 4. Verify
 
 - [x] **Unit tests:** three new files, 50 tests (`test_osv_audit.py` 28, `test_advisory_audit_age.py` 14, `test_workflows.py` 8), each failure path a case: the three exit codes, an answer of the wrong shape, a floating or unversioned pin, both range boundaries and the `v` prefix, the alias match and the unmatched entry, the no-token, bad-status, unreachable, no-run, failed-run and stale-run warnings at seven, eight and nine days, and the workflows' pins, permissions and triggers. The quality tools' suite: 132 tests, OK (Evidence log).
-- [x] **Watched it work:** the real OSV query over this lockfile and these workflows, 129 crates and 2 actions (5 pins), clean, rc 0; the age check here without a token (the warning, rc 0) and with a bad token (HTTP 401 named, rc 0). Not yet watched: the audit workflow in CI and the age check with CI's token, both on the pull request once the owner opens it; until the first scheduled run on `main` after the merge, CI's gate will warn "no completed scheduled or dispatched run", which is the expected first state.
+- [x] **Watched it work:** the real OSV query over this lockfile and these workflows, 129 crates and 2 actions (5 pins), clean, rc 0; the age check here without a token (the warning, rc 0) and with a bad token (HTTP 401 named, rc 0). Watched after the merge, through the owner's Chrome on 2026-10-21: the audit workflow green on pull request #25 (runs #1 and #2), and the age check with CI's real token on `main` (CI run #65, gate log lines 597 to 600): `full-gate: warning: advisory audit: no completed scheduled or dispatched run of advisory-audit.yml on main`, then `full-gate: all 10 steps passed`, the expected first state until the first scheduled or dispatched run.
 - [x] **Recovery/fallback path live:** could-not-audit (rc 2) on a scratch copy with a floating tag and on one with the version comment removed; the two warnings above.
 - [x] **Regression guard proven to FAIL:** eight hand mutants of the two scripts, one line each, every one killed by the tests (Evidence log), and the two red runs. The old tree has no audit and no warning, so there is no older code to run the guards against.
 - [x] **Independent verification:** first `verifier` pass (2026-10-21) **FAIL**, three Important findings: (1) OA7, a mutant matching every `ignore` entry to every finding survived, because no test had a finding beside an unrelated entry; (2) AGE4, a mutant warning only on a `failure` conclusion survived, because no test used `cancelled`, `timed_out`, `skipped` or a null conclusion; (3) the threat model's T8 cell claimed the audit "seen green on its pull request" before any pull request existed. Its other 18 mutants were killed; its real-entry-point runs (a real finding, an alias match, an unrelated entry, the two refusals, the age warnings) agreed with this record. Five nits and two more. **Repair cycle 1:** a test for each survivor (`test_an_unrelated_entry_does_not_suppress_a_finding`, `test_any_conclusion_but_success_warns`), both mutants re-run and killed; T8 and §9 reworded as owed. Nits fixed in place: both fetchers turn `http.client.HTTPException` into could-not-audit or a warning (tests through a mocked `urlopen` and a fake fetcher); a missing workflows folder is could-not-audit, not "0 actions" (test); the origin test reads whatever origin the clone has, so a fork passes; the age message prints days with two decimals ("8.01 days old, older than the 8-day limit"); an advisory id of an unexpected form is refused before it is put in a URL (test). Recorded, not changed: the token's reach in CI (owner default b, its cost now in §0); the nine-day-old run through GitHub stays Not yet proven until a token exists (its judgement is tested with a fixture and held by mutants AGE1, AGE3 and M5). **Follow-up pass:** **PASS** (2026-10-21): the three corrections checked, the first pass's twenty mutants rerun and all killed (OA7 and AGE4 by their new tests), the gate rerun by the verifier rc 0 with 138 quality-tool tests; CI stays Not yet proven until the pull request.
@@ -62,7 +62,7 @@
 
 ## 5. Close Out
 
-- [x] **Full gate green, locally:** `scripts/quality/full-gate.sh` on the staged change, 2026-10-21, rc 0, `full-gate: all 10 steps passed` (Evidence log): the guard's 91 tests, the quality tools' 132 (50 new) and the image check's 54 all OK; hygiene, ShellCheck, whitespace and the secret scan clean; Rust with the pinned 1.98.1 (step 1 refuses any other): fetch as locked, fmt, clippy with warnings as errors, `cargo test` inside `safe-run.sh` (104 unit, `plain_listener` 3, `sign_in` 9, `status_route` 3; the layer saw no live container to compare); `cargo deny`: advisories, bans, licenses and sources ok; step 10 printed its no-token warning and the gate went on; rerun after repair cycle 1, rc 0 again (138 quality-tool tests). **CI: not yet proven** (`Full gate (Ubuntu)`, the guard job on Python 3.9 and 3.12, and the new `Advisory audit (weekly)` job all wait for the pull request).
+- [x] **Full gate green, locally:** `scripts/quality/full-gate.sh` on the staged change, 2026-10-21, rc 0, `full-gate: all 10 steps passed` (Evidence log): the guard's 91 tests, the quality tools' 132 (50 new) and the image check's 54 all OK; hygiene, ShellCheck, whitespace and the secret scan clean; Rust with the pinned 1.98.1 (step 1 refuses any other): fetch as locked, fmt, clippy with warnings as errors, `cargo test` inside `safe-run.sh` (104 unit, `plain_listener` 3, `sign_in` 9, `status_route` 3; the layer saw no live container to compare); `cargo deny`: advisories, bans, licenses and sources ok; step 10 printed its no-token warning and the gate went on; rerun after repair cycle 1, rc 0 again (138 quality-tool tests). **CI seen green on pull request #25** (see Status): the gate, the guard job on Python 3.9 and 3.12, and the audit job, twice each, and `main` green after the merge; the gate's step 10 on `main` with CI's token printed the "no completed scheduled or dispatched run" warning and the gate passed.
 - [x] **Scrap Sweep:** the scratch copies for the two red runs and the eight mutants removed; the gate's output kept in the session's scratchpad, outside the repository; nothing else to remove.
 - [x] **Reviewed per `REVIEW.md`:** the `verifier`'s first pass FAIL, the repair above, the follow-up pass PASS. No Important finding open; the nits fixed in place or recorded in §4.
 - [x] **Lesson loop:** N/A (no rule broken, no repeated mistake).
@@ -71,8 +71,8 @@
 
 ## Skipped items — visible, never silent
 
-- **Full gate in CI**, the guard job on Python 3.9 and 3.12, and the `Advisory audit (weekly)` job on the pull request: not yet proven; they run once the owner opens the pull request. Owner: Henry.
-- **The age check with a real token**: not run here (the sandbox has none); CI's gate on the pull request is its first real run, and until the first scheduled run on `main` it will warn "no completed scheduled or dispatched run", the expected first state. The nine-day-old run named in "Done when" was therefore shown through the test fixture and the mutants, not through GitHub (the verifier's nit 5).
+- **The first scheduled run** of `advisory-audit.yml` on `main`: owed (Tuesday 2026-10-27 08:00 UTC, or earlier by `workflow_dispatch` from the Actions page); until then CI's gate warns "no completed scheduled or dispatched run". Owner: Henry.
+- **The age check against a nine-day-old or failed run through GitHub**: not yet seen; the nine-day-old run named in "Done when" was shown through the test fixture and the mutants (AGE1, AGE3, AGE4, M5), not through GitHub (the verifier's nit 5). It is seen the first time a scheduled run is missed or fails.
 
 ## Evidence log
 
@@ -146,4 +146,15 @@ osv-audit: asked OSV about 129 crates and 2 actions (5 pins): 0 findings, 1 igno
 # the full gate, rerun on the repaired change
 Ran 91 tests, OK (guard); Ran 138 tests, OK (quality tools); Ran 54 tests, OK (image check); Rust suites and cargo deny as before
 full-gate: all 10 steps passed                                         -> rc 0
+
+# CI, seen through the owner's Chrome on 2026-10-21 (the API needs a token the sandbox does not have)
+pull request #25, 3 commits (fa05cf6, 76f744c, the owner's update-branch merge 533ee8c of main with pull request #24)
+  on open:        CI #63 2m 16s · AI-session guard and quality tools #29 1m 12s · Advisory audit (weekly) #1 21s   all "completed successfully"
+  on synchronize: CI #64 2m 2s  · guard #30 1m 15s                               · Advisory audit (weekly) #2 24s   all "completed successfully"
+merged by the owner as e83d1b3, 2026-10-21 13:57 -0700
+main after the merge: CI #65 1m 53s (run 39674731930, job 119481475136) and guard #31 1m 11s, both successful
+CI #65, the gate's log, lines 597-600:
+  == 10/10 the weekly advisory audit's last run on main (TEST-05: warns when older than eight days, failed or unreadable; never fails the gate)
+  full-gate: warning: advisory audit: no completed scheduled or dispatched run of advisory-audit.yml on main
+  full-gate: all 10 steps passed
 ```
