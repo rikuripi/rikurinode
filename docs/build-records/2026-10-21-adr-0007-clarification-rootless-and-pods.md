@@ -5,7 +5,7 @@
 | **Date** | 2026-10-21 |
 | **Author / session** | Claude (Fable 5.1, desktop app session on the Ryzen) for Henry Chen |
 | **Branch** | `docs/adr-0007-clarification` (renamed on the owner's word from the app's `worktree-docs+adr-0007-clarification`), from `main` at `c070a98`, in the worktree the app made at `/home/junc/rikuripi/rikurinode/.claude/worktrees/docs+adr-0007-clarification` (isolation: the main checkout holds another session's branch, `ci/weekly-advisory-audit`). Pushed and handed to the owner as a compare link on the owner's word ("Yes, on branch docs/adr-0007-clarification", 2026-10-21) |
-| **Commits** | (fill at close-out) |
+| **Commits** | `395b90c` (the change and this record), the next commit (these rows); the pre-commit hook ran on each (gitleaks "no leaks found") |
 | **Status** | DONE locally: the §5 checks pass (Evidence log). Commit, push and CI's `Full gate (Ubuntu)` on the pull request Not yet proven, pending the owner's word |
 | **Change type** | ops (documentation only: a dated clarification of an accepted decision) |
 
