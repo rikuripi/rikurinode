@@ -5,8 +5,9 @@ decided 2026-10-17, D13 superseding D5; D16, the assistant, and D17,
 security built in, decided 2026-10-18; D18, the lobby zone, D19, remote
 and expert access, an amendment to F3 (D16) in ADR 0012, D20, Nix-built
 images as one experiment, and D21, the runbook executor, proposed and
-decided 2026-10-20.** Of its twenty-one owner decisions
-(§7), nineteen are taken — D2, Podman with Quadlet; D3, Rust; D5, rootless
+decided 2026-10-20; D22, the boot-cause record and UPS support in stage 1,
+decided 2026-10-21.** Of its twenty-two owner decisions
+(§7), twenty are taken — D2, Podman with Quadlet; D3, Rust; D5, rootless
 with an ID range per container, superseded by D13, rootful with an ID range
 per container; D6 and D7, the OS image public on GitHub's registry and signed
 by a key in CI with an offline spare; D8, CI minutes; D9, Fedora's DNS boot
@@ -16,8 +17,10 @@ addresses; D15, the frontend's shape; D16, the assistant's engine,
 learning, cloud, models and voice; D17, security built in: the threat
 model, a security slice per stage, the advisory intake loop and AISecurity
 as a pinned dependency; D18 to D21, the lobby zone, remote and expert
-access, Nix-built images as one experiment and the runbook executor
+access, Nix-built images as one experiment and the runbook executor; D22,
+the boot-cause record and UPS support in stage 1
 (ADRs 0001 to 0014,
+`docs/build-records/2026-10-21-boot-cause-and-ups.md` for D22,
 `docs/build-records/2026-10-17-plan-review.md`,
 `docs/build-records/2026-10-18-assistant-plan.md` and
 `docs/build-records/2026-10-18-security-plan.md` and
@@ -25,7 +28,7 @@ access, Nix-built images as one experiment and the runbook executor
 recorded in §7 only) — and two are open (D1, the
 Pi 5; D4, the first mainnet amount); nothing that depends on an open one is
 built. Facts about outside software were checked on 2026-10-11,
-2026-10-17, 2026-10-18 and 2026-10-20 and carry their source (§9); re-check them before acting on them.
+2026-10-17, 2026-10-18, 2026-10-20 and 2026-10-21 and carry their source (§9); re-check them before acting on them.
 
 ## In one page
 
@@ -106,7 +109,7 @@ specifics re-verified rather than assumed (PLAT).
 | Fedora 45 | Final release targeted for 2026-10-20 (fallbacks 10-27, 11-03). **2026-10-19:** the Go/No-Go of 2026-10-15 was a no-go (no release candidate published), so the target is 2026-10-27, with a Go/No-Go on 10-22 and a fallback of 11-03 (reported by the owner; checked against the public record, `docs/build-records/2026-10-19-b0-2-sign-in.md` §4). | Build on Fedora 45 once released. Fedora releases are short-lived, so the image moves to each new release after a soak, by owner approval. The image stays on its Fedora IoT 44 digest until then. |
 | Fedora IoT bootc | Fedora IoT can be built and updated as a bootable container image; base images are published on registry.fedoraproject.org and quay.io. | The node's OS is a Containerfile in this repository, built in CI. |
 | Image tooling | `bootc-image-builder`'s sources moved into `image-builder` (its migration notice, 2026-06-18); a Fedora IoT 44 bootc image build failed at its bootloader step in January 2026 (rawhide composes). | Pin the build tools by digest; build install media in CI; an install test on real hardware for every Fedora release. |
-| greenboot | An open bug report (2026-10-09; one user's, no maintainer reply yet): on a device installed from the stock Fedora IoT 44 image, the first update that fails its health checks never rolls back — greenboot 0.16.2 arms the rollback with a variable that 0.16.4 no longer reads. | Never trust rollback until it is drilled on the device: the install procedure ends with a deliberately broken update that must roll back by itself (§4.1). |
+| greenboot | An open bug report (2026-10-09; one user's, no maintainer reply yet): on a device installed from the stock Fedora IoT 44 image, the first update that fails its health checks never rolls back — greenboot 0.16.2 arms the rollback with a variable that 0.16.4 no longer reads. | Never trust rollback until it is drilled on the device: the install procedure ends with a deliberately broken update that must roll back by itself (§4.1). **2026-10-21:** three more open reports on Fedora 44 bootc with greenboot 0.16.4, the newest release (2026-08-18), none with a maintainer reply, and a proposed fix for #217 by a regular contributor (#221, a pull request). The unit that arms rollback does its work only when stopped, and on hosts without a separate `/boot` mount nothing stops it at shutdown, so rollback is never armed (#218; the unit read at `v0.16.4` and on `main` lacks the `Conflicts=` that ostree's own finalize unit carries, read, not run; commenters show a separate `/boot` mount makes it run). An update that fails to apply at shutdown rolls the healthy running image back (#219; reproduced with a full `/boot` and a forced finalize failure; a power cut is named, not reproduced). `/boot` on a software mirror reboots a failing update forever (#220). A maintainer's issue says the default health checks do not fit bootc (#212). Whether stage 1's drill fails on the stock setup depends on the N150's install layout, and the drill decides it. D22's rule covers #219's case: an update that was never applied never rolls the running image back. |
 | Raspberry Pi 5 | Peter Robinson published Fedora 44 images for the Pi 5 in March 2026 (Minimal, Workstation, KDE), on his blog, for testing. With them: boot from microSD only, no USB or NVMe boot; no thermal (fan) control, audio or NVMe; no IoT or bootc image. An investigation closed 2026-10-10 found no published `fedora-bootc` image booting on a Pi; `bootupd` does not manage the Pi's firmware or U-Boot. | §3.2: owner decision D1; re-check at Fedora 45. |
 | Bitcoin Core | 31.1 (2026-07-08) is the newest final release; 32.0 is in release-candidate testing (target date 2026-10-10, not yet on the release page on 10-11). The project maintains the newest three major versions. | Start on 31.x; move to 32.x after its first point release and our own soak. |
 | LND | v0.21.4-beta (2026-10-01) is the newest; v0.20.5-beta was released the same day. | Start on 0.21.x; every RPC the backend uses is tested against the pinned version, and the backend refuses an LND version it was not tested with. |
@@ -196,12 +199,65 @@ proven by a drill before it is trusted.
   "in warmup" counts as healthy, and the bound covers a chainstate replay
   after an unclean stop, so a good image is never rolled back for a slow
   bitcoind. The rollback drill includes an unclean stop.
+- **Why the node restarted** (D22). A machine cannot record its own power
+  cut, so the cause is worked out at the next boot from what was written
+  before it. The control plane writes a heartbeat to `/var` every minute
+  and, before every shutdown it orders, the reason. At each boot it records
+  one cause from the evidence: a clean shutdown (the persistent journal shows
+  it complete); a shutdown ordered by the UPS (its reason written first); a
+  power cut (no shutdown after the last heartbeat, which dates it to within
+  a minute); a kernel crash (a pstore record); a hang reset by the hardware
+  watchdog; an update applied, or rolled back (bootc's and greenboot's
+  records). Evidence that fits none is recorded as unknown. The owner sees
+  one sentence on the status page and in an alert, for example "Power was
+  lost around 14:02; the node restarted at 14:40; your funds and data were
+  not affected."
+- **The rollback rule** (D22). An update that was never applied, for any
+  cause (a power cut or a UPS shutdown while it is applied, a full `/boot`,
+  an ostree error), never rolls the running image back: the node stays on
+  it, records why, and stages the update again once; a second failure is
+  reported to the owner (greenboot's open report #219, §2). After the new
+  image has booted and until its checks pass, a kernel crash, a watchdog
+  reset or a failed check counts against it, and a shutdown the UPS ordered
+  does not. A power cut in that window counts only when it happens twice in
+  a row, because a frozen node that its owner unplugs looks the same as a
+  power cut. An unknown cause counts against the update: staying on a broken
+  image is worse than a rollback the owner can retry. After a release that
+  migrated data, none of these rolls back automatically: ADR 0006's rule
+  ("Migrations end automatic rollback") holds and the owner is told. The
+  record informs greenboot and never replaces its boot counter; greenboot
+  counts every boot that does not report success, so it must be told which
+  boots not to count. How is decided by the stage 1 change that builds it,
+  against the reports of §2.
+- **A UPS, when one is connected** (D22). A UPS that reports over USB is
+  found without setup, and the status page shows it with its charge. On
+  battery the node alerts with the time left; at low battery, or after a
+  bounded time on battery, it stops the node's units in order (LND before
+  bitcoind, once they exist), writes the reason and shuts down. After a UPS
+  shutdown the node's units start again only once the UPS reports enough
+  charge for another clean shutdown, so a low battery cannot cycle the node.
+  A UPS that flaps or reports falsely orders a bounded number of shutdowns
+  and is then reported, not obeyed. No update is applied while the UPS
+  reports battery power or a low charge; it waits for mains power (owner,
+  2026-10-21), so a new image's first boot never meets services held back
+  for charge. Without a UPS none of this runs. Every
+  node, with or without one, must start by itself when power returns: the
+  setup page explains the N150 firmware's power-on-after-power-loss setting
+  once, and checks it where the firmware lets Linux read it. The UPS service
+  listens on loopback at most, never on the LAN. Network UPS Tools is the
+  candidate; its source and its Fedora packaging are checked before
+  adoption, like any third-party code.
 - `/etc` keeps the owner's changes (merged on update) and `/var` keeps all
   data: neither is rolled back.
 - **The rollback drill** ends every installation and runs again after each
   Fedora release change: a deliberately broken update is staged and must roll
   back by itself, with the node's data intact and the event reported. It is
-  how the greenboot report of §2 would be caught.
+  how the greenboot report of §2 would be caught. It also cuts the power
+  while an update is applied and while the new image first boots, and makes
+  an update fail to apply at shutdown, and checks that a good update
+  survives each (staged again, or kept), that the running image is never
+  rolled back for an update that was not applied, and that each boot's
+  cause is recorded correctly (D22).
 
 ### 4.2 Layer 2 — the node software
 
@@ -308,6 +364,7 @@ and the backend refuses to run against a version it was not tested with.
 | D19 | A shell, remote paths and diagnostics (the "later choice" of D11) | **No terminal in the web UI; a Diagnostics page of typed read-only actions; key-only SSH, off by default, enabled behind step-up for a window that ends on its own (one hour, at most 24: confirmed by the owner, 2026-10-20), reachable only over Tailscale or a Tor onion service; remote web UI paths optional and off by default;** costs: experts lose a web terminal, and a key and a window are to be managed. **A filtered web terminal:** a command filter is a tripwire, not a boundary (EXEC-04, AI-02). **A full web terminal behind a password and 2FA:** a root-equivalent path behind one sign-in. **SSH always on from the LAN.** | **Decided** (owner, 2026-10-20; ADR 0011; same record; the window's defaults confirmed the same day) |
 | D20 | How the service images are built (stage 2; §4.2) | **One experiment on bitcoind first: an image built by Nix from nothing**, holding only the program, its runtime closure and one exec-form probe, contents listed by `nix path-info -r` and refused if they hold a shell, package manager, coreutils or curl; nixpkgs pinned by commit; Nix as a build tool only, never on the node; kept for every image only if all of ADR 0013's criteria hold (contents, the stage 2 drills, health without a shell, bound to the image, provenance under §4.2, repeatable builds, cost, the adoption inspection); costs: a second toolchain for one maintainer, no `exec` into a container, and patching an upstream binary to run from nothing changes the bytes its signature covered. **Fallback: a Containerfile from `scratch`** with the binary, the probe and the same contents check; costs: no automatic closure listing. **Shell-bearing base images:** a shell and a package manager in every container. | **Decided: the experiment** (owner, 2026-10-20; ADR 0013; same record); Nix itself only if the experiment keeps |
 | D21 | How the control plane repairs (stages 2 to 7; ADR 0005) | **Typed Rust runbooks over a closed action enum, compiled into the image:** each with an issue type, a precheck, one action, a validate probe, an undo, a budget and a tier; every action one call through systemd, Tor's control port or the root helper, never a shell (`std::process::Command` banned by clippy, a control change still to make); attempts recorded before acting and budgeted (HEAL-03); tier 4 effects (moving funds, deleting or restoring channel data, downgrading LND, disabling SELinux, the firewall or signature checks) not expressible; read-only credentials only; costs: a runbook change is a release, not a fix on a node. **Runbooks as YAML or TOML data:** gives up the compiler's exhaustive check and needs its own validator (HEAL-04). **Shell scripts or a generic command action with an allowlist:** EXEC-01, EXEC-04, AI-02. | **Decided** (owner, 2026-10-20; ADR 0014; same record) |
+| D22 | Why the node restarted, and a UPS (§4.1) | **Both in stage 1, beside the rollback they protect:** the boot-cause record, its rollback rule and UPS support built and drilled with stage 1's rollback; costs: a larger stage 1; more code on the rollback path; a UPS service in the image (run as root, reading a new USB device); only the UPS models at hand can be drilled. **The boot-cause record in stage 1, the UPS later:** costs: until then every power cut is an unclean stop. **Both later:** costs: stage 1's drill cannot tell a power cut from a failed update, and greenboot's open reports (§2) show where that leads. | **Decided: both in stage 1** (owner, 2026-10-21, "can we just include boot-cause rule and UPS support as stage one? If they are all about reboot and rollback."; `docs/build-records/2026-10-21-boot-cause-and-ups.md`); no update applied on battery (owner, 2026-10-21, option B of the same record) |
 
 Later, with their stage: how LND's wallet is unlocked after a reboot (a
 password stored on the node, or the owner unlocking it in the app — gap G9;
@@ -324,7 +381,7 @@ drill has been seen to pass.
 
 | Stage | Delivers | Its drill | Its security slice ([threat model §5](../security/THREAT_MODEL.md#5-the-security-slice-of-every-stage)) |
 |---|---|---|---|
-| 1 Platform | The bootc image (x86_64; aarch64 too if D1 keeps the Pi), signed, built in CI; install media; first-boot setup without a command line — the first UI slice: a setup page served by the control plane, reached as `rikurisetup.local`, that secures the connection (D10), names the node (`rikuri01.local` by default, numbered after the Rikuri nodes it finds on the network, or the owner's choice; the node's IP shown as the way in where `.local` does not resolve, as on many Android browsers), takes the owner's sign-in (D11) and gives the node its UUID, then a SetupHub that lists what remains and marks done only what the node's real state shows; input beside explanation, back and next; the wizard's state kept by the control plane, so a refresh or a crash resumes; built as D15 says; greenboot checks | The rollback drill (§4.1) on the N150, including an unclean stop | Image signed and verified before staging; no secret in the image; SELinux enforcing; inbound closed except the node's ports; the setup page's TLS and sign-in; no shell login by default. Tests: a tampered image refused; a wrong sign-in refused and rate-limited |
+| 1 Platform | The bootc image (x86_64; aarch64 too if D1 keeps the Pi), signed, built in CI; install media; first-boot setup without a command line — the first UI slice: a setup page served by the control plane, reached as `rikurisetup.local`, that secures the connection (D10), names the node (`rikuri01.local` by default, numbered after the Rikuri nodes it finds on the network, or the owner's choice; the node's IP shown as the way in where `.local` does not resolve, as on many Android browsers), takes the owner's sign-in (D11) and gives the node its UUID, then a SetupHub that lists what remains and marks done only what the node's real state shows; input beside explanation, back and next; the wizard's state kept by the control plane, so a refresh or a crash resumes; built as D15 says; greenboot checks; the boot-cause record, its rollback rule and UPS support (D22, §4.1) | The rollback drill (§4.1) on the N150, including an unclean stop, a power cut while an update is applied and while the new image first boots, and an update that fails to apply; a UPS going on battery and to low battery shuts the node down cleanly, with the cause recorded | Image signed and verified before staging; no secret in the image; SELinux enforcing; inbound closed except the node's ports; the setup page's TLS and sign-in; no shell login by default; the UPS service on loopback at most. Tests: a tampered image refused; a wrong sign-in refused and rate-limited; the UPS service unreachable from the LAN; a flapping or false UPS obeyed a bounded number of times |
 | 2 Bitcoin Core | Verified build, container, health judge, sync progress, full/pruned settings per tier; the first Quadlet unit under ADR 0005 (static `rpcauth` credentials, limits in the unit, the internal network of D14) | Kill and restart during sync; disk full; power loss; a bitcoind restart with no dependant restarted | `rpcauth` per client, `rpcwhitelist`, RPC on the private network only; verified build; data owned by its range; limits in the unit; if D20's experiment runs, the image's contents checked for no shell or package manager. Tests: a whitelist refusal; the port unreachable from the LAN; the contents check |
 | 3 Tor | Onion service for Bitcoin Core and LND; control-port authentication without a password file | Tor restart; onion reachability check | Control-port authentication without a password file; onion keys in Tor's range; no exit. Tests: unauthenticated control refused; keys unreadable from other containers |
 | 4 LND | Container; wallet creation in the app; SCB export | §6 step 1 in CI | Seed shown once, never stored readable; one macaroon per client with the least caveats, in the secrets store; TLS; wallet data in LND's range. Tests: a read macaroon cannot pay; the wallet path unreadable from Tor and the engine |
@@ -390,3 +447,8 @@ Read 2026-10-20, for D20 and D21
 the sources listed in ADR 0013 (nixpkgs `buildLayeredImage`, the nix-bitcoin
 0.0.139 release, the Bitcoinix relaunch) and ADR 0014 (the lessons register's
 HEAL and EXEC entries).
+
+Read 2026-10-21, for D22 and §2's greenboot row
+(`docs/build-records/2026-10-21-boot-cause-and-ups.md`):
+
+- greenboot: [rollback trigger never runs at shutdown](https://github.com/fedora-iot/greenboot-rs/issues/218); [a healthy host rolled back when finalize-staged fails](https://github.com/fedora-iot/greenboot-rs/issues/219); [boot counter on md RAID1](https://github.com/fedora-iot/greenboot-rs/issues/220); [a fix proposed for #217, a pull request](https://github.com/fedora-iot/greenboot-rs/pull/221); [default health checks and bootc](https://github.com/fedora-iot/greenboot-rs/issues/212); [releases](https://github.com/fedora-iot/greenboot-rs/releases) (v0.16.4, 2026-08-18); [the rollback trigger unit at v0.16.4](https://github.com/fedora-iot/greenboot-rs/blob/v0.16.4/usr/lib/systemd/system/greenboot-set-rollback-trigger.service); [ostree's finalize-staged unit](https://github.com/ostreedev/ostree/blob/main/src/boot/ostree-finalize-staged.service) (`Conflicts=final.target`).
