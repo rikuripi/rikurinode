@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/ci-vm-drill`, from `main` at `7c135cf`, in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Status** | PAUSED for `docs/build-records/2026-10-22-greenboot-218.md` (owner, 2026-10-22: "Fix in image first"); development runs used: 2 of 10 |
 | **Change type** | feature (CI; a control change, authorized as its own task) |
 
 ## Task Contract
@@ -82,3 +82,5 @@ Development runs (cap 10):
 2. [39710186883](https://github.com/rikuripi/rikurinode/actions/runs/39710186883): first boot PASS; case 1 **Fail, greenboot-rs #218 on bootc's own layout**. `bootc install to-disk` makes no `/boot` partition (BIOS boot, EFI, root: `00-install.out`); `/boot` is a read-only bind of the root (`/dev/vda3[/boot]`, `findmnt`). At shutdown the trigger unit's `ExecStop=` never ran ("Setting rollback trigger": 0 lines); the broken image failed on four boots, then greenboot logged "Boot counter exhausted but no next-deployment-id set - manual intervention required" and the node stayed on the broken update. Also seen: SELinux denials for `bootupctl` reading `/sysroot/.bootc-aleph.json` on each boot (bootupd; not this task's).
 
 **Stopped for the owner (2026-10-22):** the fix lies in the image, outside this task's Scope.
+
+**Owner's decision (2026-10-22):** "Fix in image first (Recommended)": pause this task; a separate task fixes #218 in the image, red-first with run 2 as its red evidence; then this task resumes.
