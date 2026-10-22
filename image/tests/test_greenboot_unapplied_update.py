@@ -205,7 +205,7 @@ class Run(unittest.TestCase):
 
     def test_clears_and_records_when_never_applied(self):
         run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, self.status(dep(OLD, booted=True)))
-        rc = m.main(run=run, record_path=self.record, now=lambda: "2026-10-22T00:00:00Z")
+        rc = m.main(run=run, record_path=self.record, now=lambda: "2026-10-22T00:00:00Z", mountinfo=lambda: MI_RW)
         self.assertEqual(rc, 0)
         self.assertIn([m.GRUB2_EDITENV, m.GRUBENV, "unset", "greenboot_next_deployment_id"], self.calls)
         with open(self.record) as f:
@@ -216,32 +216,32 @@ class Run(unittest.TestCase):
 
     def test_appends_to_the_record(self):
         run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, self.status(dep(OLD, booted=True)))
-        m.main(run=run, record_path=self.record, now=lambda: "t1")
-        m.main(run=run, record_path=self.record, now=lambda: "t2")
+        m.main(run=run, record_path=self.record, now=lambda: "t1", mountinfo=lambda: MI_RW)
+        m.main(run=run, record_path=self.record, now=lambda: "t2", mountinfo=lambda: MI_RW)
         with open(self.record) as f:
             self.assertEqual(len(f.read().splitlines()), 2)
 
     def test_leaves_the_trigger_when_on_trial(self):
         run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, self.status(dep(NEW, booted=True), dep(OLD)))
-        self.assertEqual(m.main(run=run, record_path=self.record), 0)
+        self.assertEqual(m.main(run=run, record_path=self.record, mountinfo=lambda: MI_RW), 0)
         self.assertFalse(any(c[2] == "unset" for c in self.calls if len(c) > 2))
         self.assertFalse(os.path.exists(self.record))
 
     def test_no_trigger_reads_no_deployments(self):
         run = self.runner("boot_success=1\n", "unused")
-        self.assertEqual(m.main(run=run, record_path=self.record), 0)
+        self.assertEqual(m.main(run=run, record_path=self.record, mountinfo=lambda: MI_RW), 0)
         self.assertNotIn([m.RPM_OSTREE, "status", "--json"], self.calls)
 
     def test_unreadable_status_leaves_the_trigger(self):
         run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, "not json")
-        self.assertEqual(m.main(run=run, record_path=self.record), 0)
+        self.assertEqual(m.main(run=run, record_path=self.record, mountinfo=lambda: MI_RW), 0)
         self.assertFalse(any(len(c) > 2 and c[2] == "unset" for c in self.calls))
 
     def test_failing_grubenv_read_leaves_everything(self):
         def run(argv):
             self.calls.append(argv)
             return 1, ""
-        self.assertEqual(m.main(run=run, record_path=self.record), 0)
+        self.assertEqual(m.main(run=run, record_path=self.record, mountinfo=lambda: MI_RW), 0)
         self.assertEqual(len(self.calls), 1)
 
     def test_failing_rpm_ostree_with_readable_output_leaves_the_trigger(self):
@@ -255,7 +255,7 @@ class Run(unittest.TestCase):
             if argv == [m.RPM_OSTREE, "status", "--json"]:
                 return 1, status
             raise AssertionError("unexpected command %r" % (argv,))
-        self.assertEqual(m.main(run=run, record_path=self.record), 0)
+        self.assertEqual(m.main(run=run, record_path=self.record, mountinfo=lambda: MI_RW), 0)
         self.assertFalse(any(len(c) > 2 and c[2] == "unset" for c in self.calls))
         self.assertFalse(os.path.exists(self.record))
 
@@ -263,7 +263,7 @@ class Run(unittest.TestCase):
         def run(argv):
             self.calls.append(argv)
             return 1, "greenboot_next_deployment_id=%s\n" % NEW
-        self.assertEqual(m.main(run=run, record_path=self.record), 0)
+        self.assertEqual(m.main(run=run, record_path=self.record, mountinfo=lambda: MI_RW), 0)
         self.assertEqual(len(self.calls), 1)
 
     def test_read_only_boot_is_remounted_around_the_one_write(self):
@@ -304,7 +304,7 @@ class Run(unittest.TestCase):
 
     def test_failed_unset_is_reported_and_not_recorded(self):
         run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, self.status(dep(OLD, booted=True)), unset_rc=1)
-        self.assertEqual(m.main(run=run, record_path=self.record), 1)
+        self.assertEqual(m.main(run=run, record_path=self.record, mountinfo=lambda: MI_RW), 1)
         self.assertFalse(os.path.exists(self.record))
 
 
