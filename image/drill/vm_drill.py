@@ -31,6 +31,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -49,6 +50,7 @@ MARKER = "/var/drill-marker"
 NEVER_APPLIED = "was never applied"
 DNS_SKIPPED = "Skipping disabled script: 01_repository_dns_check.sh"
 ROLLED_BACK = "Boot counter exhausted and next-deployment-id is set - initiating rollback"
+TRIGGER_STOPPED = re.compile(r"Stopped [^\n]*Greenboot Rollback trigger")
 
 
 class DrillFailure(Exception):
@@ -91,11 +93,13 @@ def ssh_argv(key: str, port: int, command: str) -> list:
 
 def _deployment(text: str, which: str):
     try:
-        entry = json.loads(text)["status"][which]
-        image = entry["image"]
-        return image["image"]["image"], image["imageDigest"]
+        image = json.loads(text)["status"][which]["image"]
+        ref, digest = image["image"]["image"], image["imageDigest"]
     except (ValueError, KeyError, TypeError):
         return None
+    if not (isinstance(ref, str) and ref and isinstance(digest, str) and digest):
+        return None
+    return ref, digest
 
 
 def booted(text: str):
@@ -105,6 +109,14 @@ def booted(text: str):
 
 def rollback(text: str):
     return _deployment(text, "rollback")
+
+
+def trigger_stopped(serial: str, offset: int) -> bool:
+    """True once the serial console, after `offset` (its length before this
+    reboot), shows greenboot's rollback trigger stopped: the trigger has run,
+    and finalize, ordered after it, is next. Colour codes may sit inside the
+    line; the pattern spans them."""
+    return bool(TRIGGER_STOPPED.search(serial[offset:]))
 
 
 def containerfile_broken(base: str) -> str:
@@ -196,6 +208,8 @@ class Drill:
 
     def reboot(self) -> str:
         old = self.boot_id()
+        if not old:
+            raise DrillFailure("cannot read the boot id before rebooting")
         self.vm("systemctl reboot", check=False, timeout=30)
         return old
 
@@ -273,22 +287,27 @@ class Drill:
         except subprocess.TimeoutExpired:
             return ""
 
-    def never_applied(self, case: str, name: str) -> None:
+    def record_lines(self) -> int:
+        return len((self.vm("cat /var/lib/rikuri/update-not-applied", check=False) or "").splitlines())
+
+    def never_applied(self, case: str, name: str, lines_before: int) -> None:
         digest = self.booted_digest()
         journal = self.journal("-b")
         grubenv = self.vm("grub2-editenv /boot/grub2/grubenv list", check=False) or ""
         record = self.vm("cat /var/lib/rikuri/update-not-applied", check=False) or ""
-        stays = digest == self.installed[1]
+        stays = digest is not None and digest == self.installed[1]
+        new_line = len(record.splitlines()) > lines_before
         self.keep("%s-boot.out" % name, "\n".join([self.status(), grubenv, record, journal]))
         old = self.reboot()
         self.wait_up(old_boot=old)
-        still = self.booted_digest() == self.installed[1]
+        after = self.booted_digest()
+        still = after is not None and after == self.installed[1]
         self.check(case, stays and still and NEVER_APPLIED in journal
-                   and "greenboot_next_deployment_id" not in grubenv and record.strip() != "",
+                   and "greenboot_next_deployment_id" not in grubenv and new_line,
                    "on the installed image: %s, after one more reboot: %s; 'never applied' logged: %s; "
-                   "trigger cleared: %s; recorded: %s" % (stays, still, NEVER_APPLIED in journal,
-                                                          "greenboot_next_deployment_id" not in grubenv,
-                                                          record.strip() != ""))
+                   "trigger cleared: %s; a new record line: %s" % (stays, still, NEVER_APPLIED in journal,
+                                                                   "greenboot_next_deployment_id" not in grubenv,
+                                                                   new_line))
 
     def write_in_vm(self, path: str, text: str) -> None:
         p = subprocess.run(ssh_argv(self.key, PORT, "mkdir -p %s && cat > %s" % (os.path.dirname(path), path)),
@@ -301,31 +320,34 @@ class Drill:
         self.vm("systemctl daemon-reload")
 
     def case2b(self) -> None:
+        lines = self.record_lines()
         self.switch("a")
         self.set_dropin(FINALIZE_FAILS)
         old = self.reboot()
         self.wait_up(old_boot=old)
-        self.never_applied("case 2b, finalize fails", "03-case2b")
+        self.never_applied("case 2b, finalize fails", "03-case2b", lines)
+
+    def serial_text(self) -> str:
+        serial = os.path.join(self.workdir, "serial-%d.log" % self.starts)
+        return self.run(["cat", serial], check=False, sudo=True).stdout or ""
 
     def case3(self) -> None:
+        lines = self.record_lines()
         self.switch("b")
         self.set_dropin(FINALIZE_HOLDS)
+        offset = len(self.serial_text())
         self.reboot()
-        serial = os.path.join(self.workdir, "serial-%d.log" % self.starts)
-        seen = None
-        try:
-            seen = wait_until(lambda: "Finalize Staged" in (self.run(["cat", serial], check=False, sudo=True).stdout
-                                                             or ""), timeout=POWER_CUT_AFTER_S * 2, interval=2,
-                              what="finalize's stop on the serial console")
-        except DrillFailure:
-            pass
-        time.sleep(5)
-        self.log("finalize's stop %s on the serial console; cutting the power"
-                 % ("seen" if seen else "not seen within %ds" % (POWER_CUT_AFTER_S * 2)))
+        # Deterministic: the trigger has stopped in this shutdown, and finalize,
+        # ordered after it, is held by the drop-in's sleep; cut within the hold.
+        wait_until(lambda: trigger_stopped(self.serial_text(), offset), timeout=POWER_CUT_AFTER_S * 4,
+                   interval=1, what="greenboot's rollback trigger to stop in this shutdown")
+        time.sleep(2)
+        self.log("the rollback trigger stopped in this shutdown (serial console); finalize is held; "
+                 "cutting the power")
         self.kill_vm()
         self.start_vm()
         self.wait_up(timeout=900)
-        self.never_applied("case 3, a power cut during the update", "04-case3")
+        self.never_applied("case 3, a power cut during the update", "04-case3", lines)
 
     def post_mortem(self) -> None:
         """What the VM can still say after a failure: every boot's greenboot and check lines."""
