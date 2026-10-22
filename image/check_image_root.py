@@ -63,6 +63,11 @@ GREENBOOT_EXPECTED = {
 UNAPPLIED_CHECK = "usr/libexec/rikuri/greenboot-unapplied-update"
 UNAPPLIED_DROPIN = "usr/lib/systemd/system/greenboot-healthcheck.service.d/50-rikuri-unapplied-update.conf"
 UNAPPLIED_EXEC = "ExecStartPre=-/" + UNAPPLIED_CHECK
+# greenboot-rs #218: the rollback trigger runs at every shutdown only when its
+# unit conflicts with and precedes final.target, whatever the /boot layout.
+# Record: docs/build-records/2026-10-22-greenboot-218.md
+TRIGGER_DROPIN = "usr/lib/systemd/system/greenboot-set-rollback-trigger.service.d/50-rikuri-run-at-shutdown.conf"
+TRIGGER_LINES = ("Conflicts=final.target", "Before=final.target")
 # The one form of a line read alike by greenboot and this check (the docstring).
 PRINTABLE_LINE = re.compile(rb"^[\x20-\x7e]*$")
 KEY_LINE = re.compile(rb"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
@@ -253,6 +258,25 @@ def check_unapplied_update(root: str) -> list:
     return found
 
 
+def check_trigger_at_shutdown(root: str) -> list:
+    text = _read(root, TRIGGER_DROPIN)
+    if text is None:
+        return ["%s: missing, or not a regular file (on a layout without a /boot partition a broken "
+                "update would never roll back, greenboot-rs #218)" % TRIGGER_DROPIN]
+    section, seen = None, set()
+    for line in text.splitlines():
+        line = line.strip()
+        if line.startswith("[") and line.endswith("]"):
+            section = line
+        elif section == "[Unit]" and line in TRIGGER_LINES:
+            seen.add(line)
+    missing = [line for line in TRIGGER_LINES if line not in seen]
+    if missing:
+        return ["%s: does not order greenboot's rollback trigger against shutdown (missing under "
+                "[Unit]: %s)" % (TRIGGER_DROPIN, ", ".join(missing))]
+    return []
+
+
 def secret_forms(rel: str, data: bytes) -> list:
     """Why a file's contents may not be in a public image, if they may not."""
     found = []
@@ -318,6 +342,7 @@ def check_no_private_keys(root: str, note=lambda line: None) -> list:
 
 def check_root(root: str, release: str, note=lambda line: None) -> list:
     return (check_os_release(root, release) + check_greenboot(root) + check_unapplied_update(root)
+            + check_trigger_at_shutdown(root)
             + check_no_private_keys(root, note))
 
 
