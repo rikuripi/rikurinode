@@ -96,7 +96,14 @@ class Booted(unittest.TestCase):
         self.assertEqual(d.rollback(text), ("localhost/rikuri-os:broken", "sha256:" + "b" * 64))
 
     def test_unreadable_status_gives_none(self):
-        for text in ("", "nope", "{}", '{"status": {"booted": null}}', '{"status": 3}'):
+        # Verifier I2: a status without a digest must not read as (ref, None),
+        # or "still on the installed image" becomes None == None.
+        no_digest = json.dumps({"status": {"booted": {"image": {"image": {"image": "localhost/rikuri-os:ci"}}}}})
+        null_image = json.dumps({"status": {"booted": {"image": None}}})
+        bad_digest = json.dumps({"status": {"booted": {"image": {"image": {"image": "x"}, "imageDigest": 5}}}})
+        no_ref = json.dumps({"status": {"booted": {"image": {"image": {}, "imageDigest": DIGEST}}}})
+        for text in ("", "nope", "{}", '{"status": {"booted": null}}', '{"status": 3}',
+                     no_digest, null_image, bad_digest, no_ref):
             with self.subTest(text=text):
                 self.assertIsNone(d.booted(text))
                 self.assertIsNone(d.rollback(text))
@@ -128,7 +135,36 @@ class CaseInputs(unittest.TestCase):
         self.assertTrue(d.DROPIN.startswith("/run/systemd/system/ostree-finalize-staged.service.d/"))
 
 
+class SerialConsole(unittest.TestCase):
+    """Verifier I1: case 3 cuts the power only once the trigger has stopped
+    in *this* shutdown, read from the serial log after the reboot's offset."""
+    EARLIER = ("[  OK  ] Stopped greenboot-set-rollback-trigger.service - Greenboot Rollback trigger.\r\n"
+               "         Stopping ostree-finalize-staged.service - OSTree Finalize Staged Deployment...\r\n")
+    NOW = ("\x1b[0;32m  OK  \x1b[0m] Stopped \x1b[0;1;39mgreenboot-set-rollback-trigger.service\x1b[0m"
+           " - Greenboot Rollback trigger.\r\n")
+
+    def test_earlier_shutdowns_before_the_offset_do_not_count(self):
+        text = self.EARLIER + "boot again\r\n"
+        self.assertFalse(d.trigger_stopped(text, offset=len(text)))
+        self.assertFalse(d.trigger_stopped(text + "Starting something\r\n", offset=len(text)))
+
+    def test_the_trigger_stopping_after_the_offset_counts(self):
+        text = self.EARLIER + "boot again\r\n"
+        self.assertTrue(d.trigger_stopped(text + self.NOW, offset=len(text)))
+
+    def test_finalize_alone_does_not_count(self):
+        text = "x" * 10
+        self.assertFalse(d.trigger_stopped(text + "Stopping ostree-finalize-staged.service - OSTree Finalize "
+                                                  "Staged Deployment...\r\n", offset=len(text)))
+
+
 class WaitUntil(unittest.TestCase):
+    def test_false_or_empty_values_keep_waiting(self):
+        values = iter([False, "", 0, [], "done"])
+        clock = iter(range(100))
+        self.assertEqual(d.wait_until(lambda: next(values), timeout=50, interval=1,
+                                      clock=lambda: next(clock), sleep=lambda s: None), "done")
+
     def test_returns_the_first_true_value(self):
         values = iter([None, None, "ok"])
         clock = iter(range(100))
