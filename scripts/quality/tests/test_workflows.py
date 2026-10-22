@@ -139,6 +139,9 @@ class Image(unittest.TestCase):
         self.assertIn("image=true", lines)
         self.assertIn("image=false", lines)
         self.assertIn("^(image/|\\.github/workflows/image\\.yml$)", lines)
+        # A pipe into grep -q can fail under GitHub's `bash -e -o pipefail` and
+        # skip the drill wrongly; the match reads a here-string instead.
+        self.assertNotRegex(lines, r"\|\s*grep -q")
 
 
 class Gate(unittest.TestCase):

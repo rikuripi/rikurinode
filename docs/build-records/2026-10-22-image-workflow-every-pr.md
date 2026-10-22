@@ -24,3 +24,7 @@
 - **Rejected:** a third-party path-filter action (adoption inspection, another pinned dependency); keeping the path filter and adding a stub workflow of the same job names (two workflows to keep in step).
 
 ## Evidence log
+
+- Red: `c27d9f9`, three tests in `scripts/quality/tests/test_workflows.py` failing (no path filter; build and drill gated on `changes`; only a pull request can skip), the other 8 passing.
+- The decision script, taken from the workflow (`ruby -e YAML.load_file`) and run in scratch git repositories: docs only → `image=false`; `image/Containerfile`, `.github/workflows/image.yml` → `image=true`; `.github/workflows/ci.yml` → `image=false`; an unreadable base → `image=true`; a push → `image=true`.
+- **A hazard found and closed before CI:** GitHub runs steps with `bash -e -o pipefail`; the first draft matched with `printf … | grep -q`. With the image file listed first among 20,001 changed files, that draft decided `image=false` three times in three (grep exits at its first match, printf dies on the closed pipe, pipefail fails the condition), which would have skipped the drill on an image change. The match now reads a here-string (`grep -qE … <<< "$changed"`): `image=true` three times in three on the same diff, and a test forbids a pipe into `grep -q` in that job (a test added after the red commit, for this reason).
