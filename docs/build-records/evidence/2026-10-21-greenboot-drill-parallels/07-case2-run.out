@@ -1,0 +1,87 @@
++ sudo -n bootc switch --transport containers-storage localhost/rikuri-os:good3
++ tail -2
+  Version: 44.20261021.0
+  Digest: sha256:a8e9ebf12467b8ca02cc6bd38d66f91123cf19c49be6a97c2d1de7f6f7c5b087
++ sudo -n bootc status --format humanreadable
++ head -4
+  Staged image: containers-storage:localhost/rikuri-os:good3
+        Digest: sha256:a8e9ebf12467b8ca02cc6bd38d66f91123cf19c49be6a97c2d1de7f6f7c5b087 (arm64)
+       Version: 44.20261021.0 (2026-10-21T10:53:54Z)
+
+++ df --output=avail -B1 /boot
+++ tail -1
++ AV=1698447360
++ FILL=1698418688
++ sudo -n fallocate -l 1698418688 /boot/drill-fill
++ df -B1K /boot
+Filesystem     1K-blocks    Used Available Use% Mounted on
+/dev/sda2        1992552 1871288        24 100% /boot
++ sudo -n systemctl reboot
++ journalctl --list-boots --no-pager
++ tail -3
+ -2 3adb00a424c242268d82021eb5e8eac9 Thu 2026-10-22 12:43:17 +13 Wed 2026-10-21 23:54:06 +13
+ -1 06f15cf184a44cdda19b1d04cf8c5c83 Thu 2026-10-22 12:54:12 +13 Wed 2026-10-21 23:54:50 +13
+  0 2f4ed5a4219b49beae3b9a7252ffce0e Thu 2026-10-22 12:54:56 +13 Wed 2026-10-21 23:55:32 +13
++ sudo -n bootc status --format humanreadable
+● Booted image: containers-storage:localhost/rikuri-os:good3
+        Digest: sha256:a8e9ebf12467b8ca02cc6bd38d66f91123cf19c49be6a97c2d1de7f6f7c5b087 (arm64)
+       Version: 44.20261021.0 (2026-10-21T10:53:54Z)
+
+  Rollback image: containers-storage:localhost/rikuri-os:good2
+          Digest: sha256:5a216136f093671a68f650352767aaaa68c09aad5a6c35b1ba2059a2da95a4a3 (arm64)
+         Version: 44.20261021.0 (2026-10-21T10:40:10Z)
++ sudo -n grub2-editenv /boot/grub2/grubenv list
+boot_success=1
++ df -B1K /boot
+Filesystem     1K-blocks    Used Available Use% Mounted on
+/dev/sda2        1992552 1871288        24 100% /boot
+== previous boot: finalize and trigger
++ echo '== previous boot: finalize and trigger'
++ sudo -n journalctl -b -1 --no-pager -o short-monotonic
++ grep -E 'ostree-finalize|ostree\[|greenboot\[|rollback'
++ grep -v -E 'running (required|wanted)|success!|watchdog'
++ cut -c1-220
++ tail -25
+[   37.175987] rikuri-drill ostree[1185]: Copying /etc changes: 9 modified, 1 removed, 35 added
+[   37.196264] rikuri-drill ostree[1185]: Refreshing SELinux policy
+[   38.636831] rikuri-drill ostree[1185]: Refreshed SELinux policy in 1440 ms
+[   38.645368] rikuri-drill ostree[1185]: Finalized deployment
+[   38.663929] rikuri-drill ostree[1185]: bootfs is sufficient for calculated new size: 0 bytes
+[   38.664513] rikuri-drill ostree[1185]: Starting syncfs for system repo
+[   38.666508] rikuri-drill ostree[1185]: Completed syncfs() for system repo in 2 ms
+[   38.666518] rikuri-drill ostree[1185]: Starting freeze/thaw cycle for boot
+[   38.682031] rikuri-drill ostree[1185]: Completed freeze/thaw cycle for boot in 15 ms
+[   38.682671] rikuri-drill ostree[1185]: Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0
+[   38.682244] rikuri-drill ostree[1185]: Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0
+[   38.682989] rikuri-drill ostree[1185]: Finished writing deployment
+[   39.365703] rikuri-drill ostree[1185]: Starting syncfs for system repo
+[   39.384585] rikuri-drill ostree[1185]: Completed syncfs() for system repo in 19 ms
+[   39.389284] rikuri-drill ostree[1185]: Cleanup complete
+[   39.396503] rikuri-drill systemd[1]: ostree-finalize-staged.service: Deactivated successfully.
+[   39.397574] rikuri-drill systemd[1]: Stopped ostree-finalize-staged.service - OSTree Finalize Staged Deployment.
+[   39.396461] rikuri-drill audit[1]: SERVICE_STOP pid=1 uid=0 auid=4294967295 ses=4294967295 subj=system_u:system_r:init_t:s0 msg='unit=ostree-finalize-staged comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? add
+[   39.398360] rikuri-drill systemd[1]: ostree-finalize-staged.service: Consumed 2.125s CPU time over 6.517s wall clock time, 102.3M memory peak.
+[   39.399954] rikuri-drill kernel: audit: type=1131 audit(1792580090.799:265): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=system_u:system_r:init_t:s0 msg='unit=ostree-finalize-staged comm="systemd" exe="/usr/lib/sy
+[   39.399904] rikuri-drill systemd[1]: Stopping ostree-finalize-staged-hold.service - Hold /boot Open for OSTree Finalize Staged Deployment...
+[   39.401351] rikuri-drill systemd[1]: ostree-finalize-staged-hold.service: Deactivated successfully.
+[   39.401574] rikuri-drill systemd[1]: Stopped ostree-finalize-staged-hold.service - Hold /boot Open for OSTree Finalize Staged Deployment.
+[   39.399462] rikuri-drill audit[1]: SERVICE_STOP pid=1 uid=0 auid=4294967295 ses=4294967295 subj=system_u:system_r:init_t:s0 msg='unit=ostree-finalize-staged-hold comm="systemd" exe="/usr/lib/systemd/systemd" hostname=
+[   39.404265] rikuri-drill kernel: audit: type=1131 audit(1792580090.802:266): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=system_u:system_r:init_t:s0 msg='unit=ostree-finalize-staged-hold comm="systemd" exe="/usr/l
+== this boot: greenboot
++ echo '== this boot: greenboot'
++ grep -E 'greenboot\[|bootc\['
++ sudo -n journalctl -b 0 --no-pager -o short-monotonic
++ cut -c1-200
++ grep -v -E 'running (required|wanted)|success!|watchdog|Skipping disabled|update_platforms|connecting with|ostree.fedoraproject|/boot is already|Initial /boot'
++ sed -E 's/imageDigest.*$/…/'
+[    7.020319] rikuri-drill greenboot[859]: none
+[    7.235024] rikuri-drill greenboot[846]:  INFO  greenboot::handler > System detected as bootc (status.booted.image: {"architecture":"arm64","image":{"image":"localhost/rikuri-os:good3","transport":
+[    7.389638] rikuri-drill greenboot[846]:  INFO  greenboot          > Kernel booted successfully, disarming GRUB fallback before healthchecks
+[    7.421257] rikuri-drill greenboot[846]:  INFO  greenboot::grub    > Clear grubenv: fallback
+[    7.626400] rikuri-drill greenboot[846]:  WARN  greenboot::greenboot > wanted script runner error:
+[    7.626875] rikuri-drill greenboot[846]:  INFO  greenboot            > greenboot health-check passed.
+[    7.673063] rikuri-drill greenboot[846]:  INFO  greenboot::grub      > Set grubenv: boot_success=1
+[    7.710795] rikuri-drill greenboot[846]:  INFO  greenboot::grub      > Clear grubenv: boot_counter
+[    7.781364] rikuri-drill greenboot[846]:  INFO  greenboot::grub      > Clear grubenv: greenboot_next_deployment_id
++ cat /var/drill-marker
+drill marker written 2026-10-21T10:39:49Z on rikuri-os:good

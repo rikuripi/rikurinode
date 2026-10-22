@@ -1,0 +1,42 @@
+enp0s5           UP             10.37.129.3/24
+10.37.129.0/24 dev enp0s5 proto kernel scope link src 10.37.129.3 metric 100
+blocked: https://registry.fedoraproject.org (curl exit 7)
+blocked: https://1.1.1.1 (curl exit 7)
+blocked: http://10.211.55.1 (curl exit 7)
+blocked: http://10.211.55.9 (curl exit 7)
+ping blocked: 10.211.55.1
+ping blocked: 10.211.55.9
+ping blocked: 8.8.8.8
+2620:52:6:1121:bead:cafe:feed:fed6 fedoraproject.org
+2620:52:6:1161::36 fedoraproject.org
+2620:52:6:1161::37 fedoraproject.org
+2600:1f14:fad:5c02:eb33:e938:35cc:965b fedoraproject.org
+2600:1f18:568d:172c:c09d:4e53:a997:e8a fedoraproject.org
+2600:1f18:568d:1784:11d9:5f7d:2ffd:94d7 fedoraproject.org
+2604:1580:fe00:0:dead:beef:cafe:fed1 fedoraproject.org
+2605:bc80:3010:600:dead:beef:cafe:fed9 fedoraproject.org
+2606:f640:6000:651::7 fedoraproject.org
+2606:f640:6000:651::8 fedoraproject.org
+2620:52:6:1121:bead:cafe:feed:fed5 fedoraproject.org
+DNS RESOLVES
+drill marker written 2026-10-21T10:39:49Z on rikuri-os:good
++ ip -6 -brief addr show
+lo               UNKNOWN        ::1/128
+enp0s5           UP             fdb2:2c26:f4e4:1:593a:ed8b:26b:d18/64 fe80::d85:ccb0:3291:d9c8/64
++ ip -6 route
+fdb2:2c26:f4e4:1::/64 dev enp0s5 proto ra metric 100 pref medium
+fe80::/64 dev enp0s5 proto kernel metric 1024 pref medium
++ resolvectl status --no-pager
++ grep -E 'DNS Servers|Current DNS'
+Current DNS Server: 10.37.129.1
+       DNS Servers: 10.37.129.1
++ resolvectl query --cache=no fedoraproject.org
++ tail -2
+-- Data is authenticated: no; Data was acquired via local or encrypted transport: no
+-- Data from: network
++ curl -6 -s -m 5 -o /dev/null https://fedoraproject.org
+IPv6 blocked (curl exit 7)
++ echo 'IPv6 blocked (curl exit 7)'
++ ping -6 -c1 -W2 2620:52:6:1161::36
+ping6 blocked
++ echo 'ping6 blocked'

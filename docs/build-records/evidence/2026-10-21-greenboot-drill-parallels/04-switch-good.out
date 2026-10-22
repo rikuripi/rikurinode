@@ -1,0 +1,38 @@
++ sudo -n podman run --rm localhost/rikuri-os:good rpm -q greenboot bootc rpm-ostree ostree bootupd grub2-common
+greenboot-0.16.4-0.fc44.aarch64
+bootc-1.17.1-1.fc44.aarch64
+rpm-ostree-2026.3-2.fc44.aarch64
+ostree-2026.4-1.fc44.aarch64
+bootupd-0.3.2-1.fc44.aarch64
+grub2-common-2.12-66.fc44.noarch
++ sudo -n podman run --rm localhost/rikuri-os:good cat /usr/lib/systemd/system/greenboot-set-rollback-trigger.service
+[Unit]
+Description=Greenboot Rollback trigger
+DefaultDependencies=no
+After=ostree-finalize-staged.service rpm-ostreed.service
+RequiresMountsFor=/boot
+ConditionPathExists=/run/ostree-booted
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStop=/usr/libexec/greenboot/greenboot set-rollback-trigger
+PrivateMounts=yes
+
+[Install]
+RequiredBy=ostree-finalize-staged.service
++ sudo -n bootc switch --transport containers-storage localhost/rikuri-os:good
++ tail -5
+layers already present: 0; layers needed: 67 (2.0 GB)
+Deploying...done (2 seconds)
+Queued for next boot: ostree-unverified-image:containers-storage:localhost/rikuri-os:good
+  Version: 44.20261021.0
+  Digest: sha256:a2562a956bd16ee8bed71bf01208b04c754c2d3dfdc33177d15d2dc9c55d9d81
++ sudo -n bootc status --format humanreadable
++ head -20
+  Staged image: containers-storage:localhost/rikuri-os:good
+        Digest: sha256:a2562a956bd16ee8bed71bf01208b04c754c2d3dfdc33177d15d2dc9c55d9d81 (arm64)
+       Version: 44.20261021.0 (2026-10-21T10:38:12Z)
+
+● Booted ostree
+           Commit: 9927129bba1220bb14b87702588f391a5227e900be900757308133c150ffadf3

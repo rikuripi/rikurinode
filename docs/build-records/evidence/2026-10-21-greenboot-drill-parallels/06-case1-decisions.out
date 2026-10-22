@@ -1,0 +1,82 @@
+== boot -4
+[    7.394518] rikuri-drill greenboot[857]: none
+[    7.531066] rikuri-drill greenboot[839]:  INFO  greenboot::handler > System detected as bootc (status.booted.image: {"architecture":"arm64","image":{"image":"localhost/rikuri-os:broken","transport"
+[    7.638869] rikuri-drill greenboot[839]:  INFO  greenboot          > Kernel booted successfully, disarming GRUB fallback before healthchecks
+[    7.657656] rikuri-drill greenboot[839]:  INFO  greenboot::grub    > Clear grubenv: fallback
+[    7.665096] rikuri-drill greenboot[839]:  ERROR greenboot::greenboot > required script error:
+[    7.665096] rikuri-drill greenboot[839]:  ERROR greenboot::greenboot > required script /etc/greenboot/check/required.d/99-drill-fail.sh failed!
+[    7.665096] rikuri-drill greenboot[839]: drill: deliberate required-check failure
+[    7.665096] rikuri-drill greenboot[839]:  ERROR greenboot            > Greenboot error: required health-check failed, skipping remaining scripts
+[    7.682664] rikuri-drill greenboot[839]:  INFO  greenboot::grub      > Set grubenv: boot_success=0
+[    7.696991] rikuri-drill greenboot[839]:  INFO  greenboot            > First health check failure, setting boot counter to 3
+[    7.717645] rikuri-drill greenboot[839]:  INFO  greenboot::grub      > boot_counter does not exists
+[    7.717645] rikuri-drill greenboot[839]:  INFO  greenboot::grub      > setting boot counter
+[    7.729963] rikuri-drill greenboot[839]:  INFO  greenboot::grub      > Set grubenv: boot_counter=3
+[    7.745445] rikuri-drill greenboot[839]:  INFO  greenboot::handler   > restarting the system
+[    7.754151] rikuri-drill greenboot[839]: Error: greenboot healthcheck failed
+== boot -3
+[    5.806299] rikuri-drill greenboot[849]: none
+[    5.958891] rikuri-drill greenboot[833]:  INFO  greenboot::handler > System detected as bootc (status.booted.image: {"architecture":"arm64","image":{"image":"localhost/rikuri-os:broken","transport"
+[    6.065034] rikuri-drill greenboot[833]:  ERROR greenboot::greenboot > required script error:
+[    6.065034] rikuri-drill greenboot[833]:  ERROR greenboot::greenboot > required script /etc/greenboot/check/required.d/99-drill-fail.sh failed!
+[    6.065034] rikuri-drill greenboot[833]: drill: deliberate required-check failure
+[    6.065034] rikuri-drill greenboot[833]:  ERROR greenboot            > Greenboot error: required health-check failed, skipping remaining scripts
+[    6.078315] rikuri-drill greenboot[833]:  INFO  greenboot::grub      > Set grubenv: boot_success=0
+[    6.101297] rikuri-drill greenboot[833]:  INFO  greenboot            > Boot counter is 2, rebooting to try again
+[    6.113018] rikuri-drill greenboot[833]:  INFO  greenboot::handler   > restarting the system
+[    6.122082] rikuri-drill greenboot[833]: Error: greenboot healthcheck failed
+== boot -2
+[    6.459466] rikuri-drill greenboot[842]: none
+[    6.588342] rikuri-drill greenboot[830]:  INFO  greenboot::handler > System detected as bootc (status.booted.image: {"architecture":"arm64","image":{"image":"localhost/rikuri-os:broken","transport"
+[    6.694133] rikuri-drill greenboot[830]:  ERROR greenboot::greenboot > required script error:
+[    6.694133] rikuri-drill greenboot[830]:  ERROR greenboot::greenboot > required script /etc/greenboot/check/required.d/99-drill-fail.sh failed!
+[    6.694133] rikuri-drill greenboot[830]: drill: deliberate required-check failure
+[    6.694133] rikuri-drill greenboot[830]:  ERROR greenboot            > Greenboot error: required health-check failed, skipping remaining scripts
+[    6.714146] rikuri-drill greenboot[830]:  INFO  greenboot::grub      > Set grubenv: boot_success=0
+[    6.732016] rikuri-drill greenboot[830]:  INFO  greenboot            > Boot counter is 1, rebooting to try again
+[    6.751868] rikuri-drill greenboot[830]:  INFO  greenboot::handler   > restarting the system
+[    6.765523] rikuri-drill greenboot[830]: Error: greenboot healthcheck failed
+== boot -1
+[    6.452339] rikuri-drill greenboot[850]: none
+[    6.594800] rikuri-drill greenboot[847]:  INFO  greenboot::handler > System detected as bootc (status.booted.image: {"architecture":"arm64","image":{"image":"localhost/rikuri-os:broken","transport"
+[    6.702009] rikuri-drill greenboot[847]:  ERROR greenboot::greenboot > required script error:
+[    6.702009] rikuri-drill greenboot[847]:  ERROR greenboot::greenboot > required script /etc/greenboot/check/required.d/99-drill-fail.sh failed!
+[    6.702009] rikuri-drill greenboot[847]: drill: deliberate required-check failure
+[    6.702009] rikuri-drill greenboot[847]:  ERROR greenboot            > Greenboot error: required health-check failed, skipping remaining scripts
+[    6.713397] rikuri-drill greenboot[847]:  INFO  greenboot::grub      > Set grubenv: boot_success=0
+[    6.750317] rikuri-drill greenboot[847]:  INFO  greenboot            > Boot counter exhausted and next-deployment-id is set - initiating rollback
+[    6.761835] rikuri-drill greenboot[847]:  INFO  greenboot::handler   > Greenboot will now attempt to rollback to a previous deployment.
+[    6.809738] rikuri-drill greenboot[847]:  INFO  greenboot::handler   > System detected as bootc (status.booted.image: {"architecture":"arm64","image":{"image":"localhost/rikuri-os:broken","transpor
+[    6.809813] rikuri-drill greenboot[847]:  INFO  greenboot::handler   > Deployment manager 'bootc' detected, attempting rollback.
+[    6.848433] rikuri-drill bootc[894]: Rolling back to image: sha256:a2562a956bd16ee8bed71bf01208b04c754c2d3dfdc33177d15d2dc9c55d9d81
+[    6.865176] rikuri-drill bootc[894]: bootfs is sufficient for calculated new size: 0 bytes
+[    6.865430] rikuri-drill bootc[894]: Starting syncfs for system repo
+[    6.879233] rikuri-drill bootc[894]: Completed syncfs() for system repo in 14 ms
+[    6.879240] rikuri-drill bootc[894]: Starting freeze/thaw cycle for boot
+[    6.895460] rikuri-drill bootc[894]: Completed freeze/thaw cycle for boot in 16 ms
+[    6.895922] rikuri-drill bootc[894]: Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0
+[    6.897370] rikuri-drill bootc[894]: Starting syncfs for system repo
+[    6.911151] rikuri-drill bootc[894]: Completed syncfs() for system repo in 14 ms
+[    7.705104] rikuri-drill bootc[894]: Freed objects: 951.6 MB
+[    7.711111] rikuri-drill greenboot[894]: Next boot: rollback deployment
+[    7.713607] rikuri-drill greenboot[847]:  INFO  greenboot            > Rollback successful
+[    7.749359] rikuri-drill greenboot[847]:  INFO  greenboot::grub      > Clear grubenv: boot_counter
+[    7.778632] rikuri-drill greenboot[847]:  INFO  greenboot::grub      > Clear grubenv: greenboot_next_deployment_id
+[    7.778632] rikuri-drill greenboot[847]:  INFO  greenboot::handler   > restarting the system
+[    7.783449] rikuri-drill greenboot[847]: Error: greenboot healthcheck failed
+== boot 0
+[    5.972026] rikuri-drill greenboot[850]: none
+[    6.150822] rikuri-drill greenboot[843]:  INFO  greenboot::handler > System detected as bootc (status.booted.image: {"architecture":"arm64","image":{"image":"localhost/rikuri-os:good","transport":"
+[    6.150822] rikuri-drill greenboot[843]:  INFO  greenboot          > FALLBACK BOOT DETECTED! Default bootc deployment has been rolled back.
+[    6.203343] rikuri-drill greenboot[843]:  INFO  greenboot::handler > System detected as bootc (status.booted.image: {"architecture":"arm64","image":{"image":"localhost/rikuri-os:good","transport":"
+[   11.531822] rikuri-drill greenboot[843]:  WARN  greenboot::greenboot > wanted script runner error:
+[   11.532937] rikuri-drill greenboot[843]:  INFO  greenboot            > greenboot health-check passed.
+[   11.588557] rikuri-drill greenboot[843]:  INFO  greenboot::handler   > System detected as bootc (status.booted.image: {"architecture":"arm64","image":{"image":"localhost/rikuri-os:good","transport"
+[   11.623856] rikuri-drill greenboot[843]:  INFO  greenboot::grub      > Set grubenv: boot_success=1
+[   11.662889] rikuri-drill greenboot[843]:  INFO  greenboot::grub      > Clear grubenv: boot_counter
+[  575.978716] rikuri-drill sudo[3317]:    drill : PWD=/var/home/drill ; USER=root ; COMMAND=/usr/sbin/journalctl -b -5 --no-pager -o short-monotonic -t greenboot -u greenboot-set-rollback-trigger -u
+[  576.033479] rikuri-drill sudo[3328]:    drill : PWD=/var/home/drill ; USER=root ; COMMAND=/usr/sbin/journalctl -b -4 --no-pager -o short-monotonic -t greenboot -u greenboot-set-rollback-trigger -u
+[  576.058249] rikuri-drill sudo[3338]:    drill : PWD=/var/home/drill ; USER=root ; COMMAND=/usr/sbin/journalctl -b -3 --no-pager -o short-monotonic -t greenboot -u greenboot-set-rollback-trigger -u
+[  576.085691] rikuri-drill sudo[3348]:    drill : PWD=/var/home/drill ; USER=root ; COMMAND=/usr/sbin/journalctl -b -2 --no-pager -o short-monotonic -t greenboot -u greenboot-set-rollback-trigger -u
+[  576.112496] rikuri-drill sudo[3358]:    drill : PWD=/var/home/drill ; USER=root ; COMMAND=/usr/sbin/journalctl -b -1 --no-pager -o short-monotonic -t greenboot -u greenboot-set-rollback-trigger -u
+[  576.141675] rikuri-drill sudo[3368]:    drill : PWD=/var/home/drill ; USER=root ; COMMAND=/usr/sbin/journalctl -b 0 --no-pager -o short-monotonic -t greenboot -u greenboot-set-rollback-trigger -u g

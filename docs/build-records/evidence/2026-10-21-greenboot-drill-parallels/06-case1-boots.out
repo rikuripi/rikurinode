@@ -1,0 +1,7 @@
+boot_success=1
+reboot requested 23:42:19
+--- 23:43:28 new boot
+BOOT 3adb00a4-24c2-4226-8d82-021eb5e8eac9
+booted: localhost/rikuri-os:good
+boot_success=0
+activating

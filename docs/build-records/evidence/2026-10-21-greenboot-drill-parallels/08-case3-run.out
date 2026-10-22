@@ -1,0 +1,84 @@
++ sudo -n bootc switch --transport containers-storage localhost/rikuri-os:good4
++ tail -1
+  Digest: sha256:2b62a3689c3d451126f219502c4121b70cc998aac5621344c566f3a66873a97d
++ sudo -n bootc status --format humanreadable
++ head -6
+  Staged image: containers-storage:localhost/rikuri-os:good4
+        Digest: sha256:2b62a3689c3d451126f219502c4121b70cc998aac5621344c566f3a66873a97d (arm64)
+       Version: 44.20261021.0 (2026-10-21T10:55:52Z)
+
+● Booted image: containers-storage:localhost/rikuri-os:good2
+        Digest: sha256:5a216136f093671a68f650352767aaaa68c09aad5a6c35b1ba2059a2da95a4a3 (arm64)
++ sudo -n grub2-editenv /boot/grub2/grubenv list
+boot_success=1
++ sync
+power cut at 23:58:10
+Stopping the VM...
+The VM has been forcibly stopped
+Starting the VM...
+The VM has been successfully started.
++ journalctl --list-boots --no-pager
++ tail -3
+ -2 fec19ff1724e43fda48b8e6576ba8376 Thu 2026-10-22 12:56:08 +13 Wed 2026-10-21 23:57:04 +13
+ -1 a6222e0e4be9415199a582d026246a8e Thu 2026-10-22 12:57:10 +13 Wed 2026-10-21 23:58:11 +13
+  0 0ae3498cca1a4e5eb942b269c35568b5 Thu 2026-10-22 12:58:21 +13 Wed 2026-10-21 23:59:01 +13
++ sudo -n bootc status --format humanreadable
+● Booted image: containers-storage:localhost/rikuri-os:good4
+        Digest: sha256:2b62a3689c3d451126f219502c4121b70cc998aac5621344c566f3a66873a97d (arm64)
+       Version: 44.20261021.0 (2026-10-21T10:55:52Z)
+
+  Rollback image: containers-storage:localhost/rikuri-os:good2
+          Digest: sha256:5a216136f093671a68f650352767aaaa68c09aad5a6c35b1ba2059a2da95a4a3 (arm64)
+         Version: 44.20261021.0 (2026-10-21T10:40:10Z)
++ sudo -n grub2-editenv /boot/grub2/grubenv list
+boot_success=1
+== killed boot: last lines
++ echo '== killed boot: last lines'
++ sudo -n journalctl -b -1 --no-pager -o short-monotonic
++ grep -v -E 'audit|BPF'
++ tail -12
++ cut -c1-200
+[   59.891462] rikuri-drill ostree[1193]: Refreshing SELinux policy
+[   61.074322] rikuri-drill ostree[1193]: Refreshed SELinux policy in 1183 ms
+[   61.079279] rikuri-drill ostree[1193]: Finalized deployment
+[   61.092308] rikuri-drill ostree[1193]: bootfs is sufficient for calculated new size: 0 bytes
+[   61.092674] rikuri-drill ostree[1193]: Starting syncfs for system repo
+[   61.096458] rikuri-drill ostree[1193]: Completed syncfs() for system repo in 4 ms
+[   61.096506] rikuri-drill ostree[1193]: Starting freeze/thaw cycle for boot
+[   61.115412] rikuri-drill ostree[1193]: Completed freeze/thaw cycle for boot in 19 ms
+[   61.115902] rikuri-drill ostree[1193]: Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0
+[   61.115553] rikuri-drill ostree[1193]: Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0
+[   61.115922] rikuri-drill ostree[1193]: Finished writing deployment
+[   61.677415] rikuri-drill ostree[1193]: Starting syncfs for system repo
+== killed boot: trigger and finalize
++ echo '== killed boot: trigger and finalize'
++ sudo -n journalctl -b -1 --no-pager -o short-monotonic
++ grep -E 'Setting rollback|next_deployment|ostree-finalize-staged|ostree\['
++ tail -8
++ cut -c1-200
+[   61.092674] rikuri-drill ostree[1193]: Starting syncfs for system repo
+[   61.096458] rikuri-drill ostree[1193]: Completed syncfs() for system repo in 4 ms
+[   61.096506] rikuri-drill ostree[1193]: Starting freeze/thaw cycle for boot
+[   61.115412] rikuri-drill ostree[1193]: Completed freeze/thaw cycle for boot in 19 ms
+[   61.115902] rikuri-drill ostree[1193]: Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0
+[   61.115553] rikuri-drill ostree[1193]: Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0
+[   61.115922] rikuri-drill ostree[1193]: Finished writing deployment
+[   61.677415] rikuri-drill ostree[1193]: Starting syncfs for system repo
+== this boot: greenboot
++ echo '== this boot: greenboot'
++ grep -E 'greenboot\[|bootc\['
++ sudo -n journalctl -b 0 --no-pager -o short-monotonic
++ grep -v -E 'running (required|wanted)|success!|watchdog|Skipping disabled|update_platforms|connecting with|ostree.fedoraproject|/boot is already|Initial /boot'
++ sed -E 's/imageDigest.*$/…/'
++ cut -c1-200
+[    7.517014] rikuri-drill greenboot[861]: none
+[    7.774127] rikuri-drill greenboot[844]:  INFO  greenboot::handler > System detected as bootc (status.booted.image: {"architecture":"arm64","image":{"image":"localhost/rikuri-os:good4","transport":
+[    7.939754] rikuri-drill greenboot[844]:  INFO  greenboot          > Kernel booted successfully, disarming GRUB fallback before healthchecks
+[    7.978517] rikuri-drill greenboot[844]:  INFO  greenboot::grub    > Clear grubenv: fallback
+[    8.194644] rikuri-drill greenboot[844]:  WARN  greenboot::greenboot > wanted script runner error:
+[    8.194644] rikuri-drill greenboot[844]:  INFO  greenboot            > greenboot health-check passed.
+[    8.216789] rikuri-drill greenboot[844]:  INFO  greenboot::grub      > Set grubenv: boot_success=1
+[    8.228818] rikuri-drill greenboot[844]:  INFO  greenboot::grub      > Clear grubenv: boot_counter
+[    8.262468] rikuri-drill greenboot[844]:  INFO  greenboot::grub      > Clear grubenv: greenboot_next_deployment_id
+drill marker written 2026-10-21T10:39:49Z on rikuri-os:good
++ cat /var/drill-marker

@@ -1,0 +1,43 @@
+ -5 4df0953fa082421a99f40cf664ebb98d Thu 2026-10-22 12:40:48 +13 Wed 2026-10-21 23:42:24 +13
+ -4 2ca4bbf3daab4ec5bf318aac8ff80e5d Thu 2026-10-22 12:42:30 +13 Wed 2026-10-21 23:42:37 +13
+ -3 ac281fd5a11d40509701f69c303bd8ad Thu 2026-10-22 12:42:42 +13 Wed 2026-10-21 23:42:47 +13
+ -2 7e76490bb0ab4a208b62a776d1b460ef Thu 2026-10-22 12:42:54 +13 Wed 2026-10-21 23:43:00 +13
+ -1 8ef411f1b78d4f6a9390ea4db80aff35 Thu 2026-10-22 12:43:05 +13 Wed 2026-10-21 23:43:12 +13
+  0 3adb00a424c242268d82021eb5e8eac9 Thu 2026-10-22 12:43:17 +13 Wed 2026-10-21 23:52:52 +13
+===== boot -5
+[   92.212207] rikuri-drill greenboot[1151]: none
+[   92.385018] rikuri-drill greenboot[1143]:  INFO  greenboot::handler > System detected as bootc (status.booted.image: {"architecture":"arm64","image":{"image":"localhost/rikuri-os:good","transport":"containers-storage"},"imageDigest":"sha256:a2562a956bd16ee8bed71bf01208b04c754c2d3dfdc33177d15d2dc9c55d9d81","timestamp":"2026-10-21T10:38:12.282594582Z","version":"44.20261021.0"})
+[   92.441548] rikuri-drill greenboot[1143]:  INFO  greenboot          > Setting rollback trigger for deployment: sha256:46aaa8c2e96cc1b6865760f67993b39191eb6f53f697bc2baf8530909b629573
+[   92.486568] rikuri-drill greenboot[1143]:  INFO  greenboot::grub    > Set grubenv: greenboot_next_deployment_id=sha256:46aaa8c2e96cc1b6865760f67993b39191eb6f53f697bc2baf8530909b629573
+[   92.520671] rikuri-drill greenboot[1143]:  INFO  greenboot::grub    > Set grubenv: fallback=1
+[   92.520671] rikuri-drill greenboot[1143]:  INFO  greenboot          > Rollback trigger set successfully.
+[    0.836413] localhost kernel: secureboot: Secure boot disabled
+[    0.862387] localhost kernel: integrity: secureboot mode disabled
+[    6.607949] localhost systemd[1]: selinux-autorelabel-mark.service - Mark the need to relabel after reboot skipped, unmet condition check ConditionSecurity=!selinux
+===== boot -4
+-- No entries --
+[    0.785810] localhost kernel: secureboot: Secure boot disabled
+[    0.806825] localhost kernel: integrity: secureboot mode disabled
+[    6.745339] localhost systemd[1]: selinux-autorelabel-mark.service - Mark the need to relabel after reboot skipped, unmet condition check ConditionSecurity=!selinux
+===== boot -3
+-- No entries --
+[    0.686965] localhost kernel: secureboot: Secure boot disabled
+[    0.704749] localhost kernel: integrity: secureboot mode disabled
+[    5.164828] localhost systemd[1]: selinux-autorelabel-mark.service - Mark the need to relabel after reboot skipped, unmet condition check ConditionSecurity=!selinux
+===== boot -2
+-- No entries --
+[    1.018821] localhost kernel: secureboot: Secure boot disabled
+[    1.066768] localhost kernel: integrity: secureboot mode disabled
+[    5.916358] localhost systemd[1]: selinux-autorelabel-mark.service - Mark the need to relabel after reboot skipped, unmet condition check ConditionSecurity=!selinux
+===== boot -1
+-- No entries --
+[    0.931553] localhost kernel: secureboot: Secure boot disabled
+[    0.950206] localhost kernel: integrity: secureboot mode disabled
+[    5.851408] localhost systemd[1]: selinux-autorelabel-mark.service - Mark the need to relabel after reboot skipped, unmet condition check ConditionSecurity=!selinux
+===== boot 0
+-- No entries --
+[    0.763115] localhost kernel: secureboot: Secure boot disabled
+[    0.777507] localhost kernel: integrity: secureboot mode disabled
+[    5.409674] localhost systemd[1]: selinux-autorelabel-mark.service - Mark the need to relabel after reboot skipped, unmet condition check ConditionSecurity=!selinux
+
+drill marker written 2026-10-21T10:39:49Z on rikuri-os:good

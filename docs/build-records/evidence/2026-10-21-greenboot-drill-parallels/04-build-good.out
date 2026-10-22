@@ -1,0 +1,28 @@
++ B=registry.fedoraproject.org/fedora-iot@sha256:d862d94f86d4ebb72bb95d8c333bdbfcf1c95d07e11350b2a2eab3e34cec1421
++ skopeo inspect --config docker://registry.fedoraproject.org/fedora-iot@sha256:d862d94f86d4ebb72bb95d8c333bdbfcf1c95d07e11350b2a2eab3e34cec1421
++ python3 -c 'import sys,json; d=json.load(sys.stdin); print(d["architecture"], d["config"]["Labels"].get("org.opencontainers.image.version"))'
+arm64 44.20261021.0
++ sudo -n podman build --from registry.fedoraproject.org/fedora-iot@sha256:d862d94f86d4ebb72bb95d8c333bdbfcf1c95d07e11350b2a2eab3e34cec1421 -t localhost/rikuri-os:good image/
++ tail -15
+Copying blob sha256:516a198e68286edb749fb68bdf949547411872a14ddabad0a19d2a0beaff3e43
+Copying blob sha256:04d01dbffc10bdd46559417dcbd683406b9ed03c6cd90ef72a184766f376663e
+Copying blob sha256:a186bb14c01aa70f5dfa03c096066531fcf3c4e6b25f2ecda4421f49445276ec
+Copying blob sha256:9dad063a624b62064bf25dbbc2e802e472d636056f661f2a0be73efd8a4da98b
+Copying config sha256:dfbb367c88edd8495ed63da7786401a63f076e641441312252c91b58544bec3d
+Writing manifest to image destination
+STEP 2/3: COPY rootfs/ /
+--> b09d17f97bf6
+STEP 3/3: RUN bootc container lint
+Checks passed: 14
+Checks skipped: 1
+COMMIT localhost/rikuri-os:good
+--> a088040c8798
+Successfully tagged localhost/rikuri-os:good
+a088040c8798a2e348b326aa8603d0a4226e5bfeb70cf4cdb9f9628e5893f292
+
+real	3m29.062s
+user	0m36.445s
+sys	0m48.966s
++ sudo -n podman images --format '{{.Repository}}:{{.Tag}} {{.ID}} {{.Size}}'
+localhost/rikuri-os:good a088040c8798 2.05 GB
+registry.fedoraproject.org/fedora-iot:<none> dfbb367c88ed 2.05 GB
