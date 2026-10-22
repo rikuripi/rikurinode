@@ -23,6 +23,8 @@ SHIPPED_CONF = os.path.join(HERE, "..", "rootfs", "etc", "greenboot", "greenboot
 # D22 against greenboot-rs #219 (docs/build-records/2026-10-22-d22-unapplied-update.md).
 UNAPPLIED_CHECK = "usr/libexec/rikuri/greenboot-unapplied-update"
 UNAPPLIED_DROPIN = "usr/lib/systemd/system/greenboot-healthcheck.service.d/50-rikuri-unapplied-update.conf"
+# greenboot-rs #218 (docs/build-records/2026-10-22-greenboot-218.md).
+TRIGGER_DROPIN = "usr/lib/systemd/system/greenboot-set-rollback-trigger.service.d/50-rikuri-run-at-shutdown.conf"
 
 
 def shipped_file(rel) -> bytes:
@@ -110,6 +112,8 @@ class Root:
         self.write_bytes(cir.GREENBOOT_CONF, shipped())
         self.write_bytes(UNAPPLIED_CHECK, shipped_file(UNAPPLIED_CHECK), mode=0o755)
         self.write_bytes(UNAPPLIED_DROPIN, shipped_file(UNAPPLIED_DROPIN))
+        if os.path.exists(os.path.join(HERE, "..", "rootfs", TRIGGER_DROPIN)):
+            self.write_bytes(TRIGGER_DROPIN, shipped_file(TRIGGER_DROPIN))
         self.write("etc/ssh/sshd_config", "PermitRootLogin no\n")
 
     def _fresh(self, rel):
@@ -248,6 +252,25 @@ class CheckImageRoot(unittest.TestCase):
             with self.subTest(why=why):
                 self.root.write(UNAPPLIED_DROPIN, text)
                 self.assertFinds(UNAPPLIED_DROPIN + ": does not run")
+
+    # --- the rollback trigger runs at every shutdown (#218) -----------------
+    def test_trigger_dropin_missing(self):
+        self.root.remove(TRIGGER_DROPIN)
+        self.assertFinds(TRIGGER_DROPIN + ": missing")
+
+    def test_trigger_dropin_as_link_does_not_count(self):
+        self.root.link(TRIGGER_DROPIN, "/dev/null")
+        self.assertFinds(TRIGGER_DROPIN + ": missing")
+
+    def test_trigger_dropin_must_conflict_with_and_precede_final_target(self):
+        for text, why in (("[Unit]\nConflicts=final.target\n", "no Before="),
+                          ("[Unit]\nBefore=final.target\n", "no Conflicts="),
+                          ("[Service]\nConflicts=final.target\nBefore=final.target\n", "outside [Unit]"),
+                          ("[Unit]\nConflicts=shutdown.target\nBefore=shutdown.target\n", "another target"),
+                          ("[Unit]\n# Conflicts=final.target\n# Before=final.target\n", "commented out")):
+            with self.subTest(why=why):
+                self.root.write(TRIGGER_DROPIN, text)
+                self.assertFinds(TRIGGER_DROPIN + ": does not order")
 
     # --- greenboot.conf in the one form greenboot and the check read alike (F1)
     def test_shipped_conf_parses_to_the_expected_values(self):
