@@ -17,8 +17,14 @@ one state only, and every other state is left to greenboot:
   is not the one the trigger names  ->  the update was never applied: clear.
 
   booted image is the one named     ->  the update is on trial: leave.
-  booted deployment not the default ->  GRUB fell back: leave.
+  booted deployment not the default ->  GRUB fell back, or a deployment is
+                                        staged ahead of it: leave.
   anything unreadable or ambiguous  ->  unknown: leave.
+
+greenboot names the update by its image digest (sha256:<64 hex>) when the
+booted system is a container image, and by the staged ostree checksum
+otherwise. Only the digest form is compared; a checksum equal to the booted
+deployment's is an update on trial, and any other checksum is unknown.
 
 It runs two fixed commands by absolute path, never a shell, takes no input
 from the network or a user, and logs every decision to the journal. A clear is
@@ -31,6 +37,7 @@ from __future__ import annotations
 import datetime
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -39,6 +46,8 @@ GRUBENV = "/boot/grub2/grubenv"
 RPM_OSTREE = "/usr/bin/rpm-ostree"
 TRIGGER = "greenboot_next_deployment_id"
 DIGEST = "container-image-reference-digest"
+CHECKSUM = "checksum"
+IMAGE_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 RECORD = "/var/lib/rikuri/update-not-applied"
 TIMEOUT_S = 60
 
@@ -86,13 +95,18 @@ def decide(trigger, deployments):
     if len(booted) != 1:
         return "none", "unknown: %d deployments marked booted" % len(booted)
     index = booted[0]
+    if deployments[index].get(CHECKSUM) == trigger:
+        return "none", "update %s booted and is on trial; greenboot decides" % trigger
+    if not IMAGE_DIGEST.fullmatch(trigger):
+        return "none", "unknown: the trigger %r is not an image digest; greenboot decides" % trigger
     digest = deployments[index].get(DIGEST)
     if not digest:
         return "none", "unknown: the booted deployment has no image digest"
     if digest == trigger:
         return "none", "update %s booted and is on trial; greenboot decides" % trigger
     if index != 0:
-        return "none", "booted deployment %d is not the default: GRUB fell back; greenboot decides" % index
+        return "none", ("booted deployment %d is not the default (GRUB fell back, or a deployment "
+                        "is staged ahead of it); greenboot decides" % index)
     return "clear", ("update %s was never applied: the default deployment %s booted unchanged"
                      % (trigger, digest))
 

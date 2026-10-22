@@ -101,8 +101,9 @@ class Decide(unittest.TestCase):
         # ostree checksum when the booted system is not a container image.
         csum = "1" * 64
         booted = dict(dep(OLD, booted=True), checksum=csum)
-        action, _ = m.decide(csum, [booted, dep(OLDER)])
+        action, reason = m.decide(csum, [booted, dep(OLDER)])
         self.assertEqual(action, "none")
+        self.assertIn("on trial", reason)
 
     def test_trigger_that_is_not_an_image_digest_is_unknown(self):
         # The same mode after an applied update to a container image: the
