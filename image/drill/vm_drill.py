@@ -148,7 +148,8 @@ class Drill:
 
     def run(self, argv, check=True, timeout=600, stdin=None, sudo=False):
         argv = (["sudo", "-n"] if sudo else []) + argv
-        p = subprocess.run(argv, stdin=stdin, capture_output=True, text=True, timeout=timeout, check=False)
+        p = subprocess.run(argv, stdin=stdin, capture_output=True, text=True, errors="replace",
+                           timeout=timeout, check=False)
         if check and p.returncode != 0:
             raise DrillFailure("%s exited %d: %s" % (argv[:4], p.returncode, (p.stderr or p.stdout)[-2000:]))
         return p
@@ -258,7 +259,7 @@ class Drill:
         # Four boots of the broken image, then greenboot's rollback and a boot of the installed image.
         wait_until(lambda: (lambda s: booted(s) and booted(s)[1] == self.installed[1]
                             and (rollback(s) or ("", ""))[0] == "localhost/rikuri-os:broken")(self.status_quiet()),
-                   timeout=1200, interval=10, what="the broken update to roll back")
+                   timeout=600, interval=10, what="the broken update to roll back")
         self.wait_up(old_boot=old)
         everything = self.journal("--grep 'greenboot|rikuri-unapplied-update|bootc'")
         self.keep("02-case1.out", self.journal("--list-boots") + "\n" + everything + "\n" + self.status())
@@ -291,7 +292,7 @@ class Drill:
 
     def write_in_vm(self, path: str, text: str) -> None:
         p = subprocess.run(ssh_argv(self.key, PORT, "mkdir -p %s && cat > %s" % (os.path.dirname(path), path)),
-                           input=text, capture_output=True, text=True, timeout=60, check=False)
+                           input=text, capture_output=True, text=True, errors="replace", timeout=60, check=False)
         if p.returncode != 0:
             raise DrillFailure("writing %s in the VM: %s" % (path, p.stderr))
 
@@ -326,6 +327,17 @@ class Drill:
         self.wait_up(timeout=900)
         self.never_applied("case 3, a power cut during the update", "04-case3")
 
+    def post_mortem(self) -> None:
+        """What the VM can still say after a failure: every boot's greenboot and check lines."""
+        try:
+            text = "\n".join([self.journal("--list-boots"), self.status_quiet(),
+                              self.vm("grub2-editenv /boot/grub2/grubenv list", check=False, timeout=30) or "",
+                              self.vm("findmnt /boot; lsblk -f", check=False, timeout=30) or "",
+                              self.journal("--grep 'greenboot|rikuri-unapplied-update|bootc|finalize'")])
+        except (DrillFailure, subprocess.TimeoutExpired, OSError) as e:
+            text = "the VM did not answer: %s" % e
+        self.keep("99-post-mortem.out", text)
+
     def collect(self) -> None:
         for i in range(1, self.starts + 1):
             serial = os.path.join(self.workdir, "serial-%d.log" % i)
@@ -356,6 +368,7 @@ def main(argv=None) -> int:
     except (DrillFailure, subprocess.TimeoutExpired) as e:
         error = str(e)
         drill.check("drill", False, error)
+        drill.post_mortem()
     finally:
         try:
             drill.collect()
