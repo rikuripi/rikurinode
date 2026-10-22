@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/ci-vm-drill`, from `main` at `7c135cf`, in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS (resumed 2026-10-22 after `docs/build-records/2026-10-22-greenboot-218.md`); development runs used: 4 of 10 (runs 3 and 4 on that task's branch) |
+| **Status** | IN PROGRESS (resumed 2026-10-22 after `docs/build-records/2026-10-22-greenboot-218.md`); development runs used: 5 of 10 (runs 3 and 4 on that task's branch; run 5 the red run) |
 | **Change type** | feature (CI; a control change, authorized as its own task) |
 
 ## Task Contract
@@ -52,9 +52,9 @@
 
 ## 2. Build
 
-- [ ] Red: the harness's unit tests committed failing.
-- [ ] Green: the harness and the job.
-- [ ] **Security question:** CI gains a job that runs a VM as root on the runner, with a read-only token; the VM has no secrets and no outbound network.
+- [x] Red: the harness's unit tests committed failing: `16dc883`.
+- [x] Green: the harness and the job `91cd832`; the post-mortem and non-UTF-8 fix `a55191f`.
+- [x] **Security question:** CI gains a job that runs a VM as root on the runner, with the workflow's read-only token (`permissions: contents: read`); the VM has no secrets and no outbound network (`restrict=on`, one loopback forward).
 
 ## 3. Debug
 
@@ -62,8 +62,8 @@
 
 ## 4. Verify
 
-- [ ] Development runs and the final run.
-- [ ] The red run.
+- [x] Development runs and the final run: 5 of 10 used; all Pass in run 4 and in pull request #29's check at `922cee4` (run 39726227170).
+- [x] The red run: run 5, Fail as required (Evidence log).
 - [ ] Independent verification.
 
 ## 5. Close Out
@@ -71,6 +71,7 @@
 - [ ] Gate; pull request; the stage 1 record's change list updated.
 
 - Resumed 2026-10-22. On `stage1/greenboot-218` (this task's commits plus the #218 fix): run 3 [39713948238](https://github.com/rikuripi/rikurinode/actions/runs/39713948238) (case 1 Pass; case 2b Fail on a read-only `/boot`), run 4 [39724262070](https://github.com/rikuripi/rikurinode/actions/runs/39724262070) (**all Pass**: first boot, cases 1, 2b, 3; case 3 cut after "finalize's stop seen on the serial console"); and as a check of pull request #29 at `922cee4`, [39726227170](https://github.com/rikuripi/rikurinode/actions/runs/39726227170) (pass, 6 m 51 s).
+- **Red run**, run 5, [39727276986](https://github.com/rikuripi/rikurinode/actions/runs/39727276986), on the throwaway branch `red/drill-without-unapplied-check` at `318f2be` (from `922cee4`, minus #28's drop-in and minus the drill's `needs: build`; the branch deleted afterwards): the build job's image check **refused** the image ("50-rikuri-unapplied-update.conf: missing, or not a regular file"); the drill **failed**: first boot Fail ("the check ran: False"), case 1 Pass (it does not depend on #28's check), case 2b timed out: greenboot logged "GRUB kernel fallback detected - new deployment failed to boot", rolled the healthy node back into case 1's broken image, which boot-looped ("Boot counter exhausted and next-deployment-id is set - initiating rollback"). The drill catches the absence of the fix, and the image check catches it first.
 
 ## Skipped items — visible, never silent
 

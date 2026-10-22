@@ -81,6 +81,12 @@
          changes and weekly, D8);
       5. install media for the N150; first boot without a command line;
       6. the N150 drill (§4.1), which closes stage 1.
+      **2026-10-22:** changes 3 and 4 built together, before change 2, by
+      the owner's choice: the `drill` job of `image.yml`
+      (`docs/build-records/2026-10-22-ci-vm-drill.md`), on pull request #29;
+      on the way it found and fixed greenboot-rs #218 and #219 in the image
+      (`docs/build-records/2026-10-22-greenboot-218.md`,
+      `docs/build-records/2026-10-22-d22-unapplied-update.md`).
 - [x] Risks: the build fails on Ubuntu's Podman 4.9.3 (then: newer Podman,
       as bootc's CI does); `podman image mount` behaves differently there;
       the IoT image's os-release differs from the fixture (the check would
