@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/ci-vm-drill`, from `main` at `7c135cf`, in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | (fill at close-out) |
-| **Status** | PAUSED for `docs/build-records/2026-10-22-greenboot-218.md` (owner, 2026-10-22: "Fix in image first"); development runs used: 2 of 10 |
+| **Status** | IN PROGRESS (resumed 2026-10-22 after `docs/build-records/2026-10-22-greenboot-218.md`); development runs used: 4 of 10 (runs 3 and 4 on that task's branch) |
 | **Change type** | feature (CI; a control change, authorized as its own task) |
 
 ## Task Contract
@@ -69,6 +69,8 @@
 ## 5. Close Out
 
 - [ ] Gate; pull request; the stage 1 record's change list updated.
+
+- Resumed 2026-10-22. On `stage1/greenboot-218` (this task's commits plus the #218 fix): run 3 [39713948238](https://github.com/rikuripi/rikurinode/actions/runs/39713948238) (case 1 Pass; case 2b Fail on a read-only `/boot`), run 4 [39724262070](https://github.com/rikuripi/rikurinode/actions/runs/39724262070) (**all Pass**: first boot, cases 1, 2b, 3; case 3 cut after "finalize's stop seen on the serial console"); and as a check of pull request #29 at `922cee4`, [39726227170](https://github.com/rikuripi/rikurinode/actions/runs/39726227170) (pass, 6 m 51 s).
 
 ## Skipped items — visible, never silent
 
