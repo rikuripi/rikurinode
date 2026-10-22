@@ -146,6 +146,30 @@ class Deployments(unittest.TestCase):
                 self.assertIsNone(m.deployments_from_json(text))
 
 
+# /proc/self/mountinfo lines: Anaconda's layout (a /boot partition, writable)
+# and bootc install's (an automount, then /boot a read-only bind of the root),
+# as seen in CI drill run 39713948238.
+MI_RW = ("22 1 253:0 / /sysroot rw,relatime - ext4 /dev/mapper/root rw\n"
+         "41 22 8:2 / /boot rw,relatime - ext4 /dev/sda2 rw,seclabel\n")
+MI_RO = ("22 1 252:3 / /sysroot ro,relatime - ext4 /dev/vda3 rw\n"
+         "40 22 0:39 / /boot rw,relatime - autofs systemd-1 rw,fd=84\n"
+         "41 40 252:3 /boot /boot ro,relatime - ext4 /dev/vda3 rw,seclabel\n")
+MI_NONE = "22 1 253:0 / / rw,relatime - ext4 /dev/mapper/root rw\n"
+
+
+class BootMount(unittest.TestCase):
+    def test_writable_partition(self):
+        self.assertIs(m.boot_is_readonly(MI_RW), False)
+
+    def test_read_only_bind_over_an_automount_reads_the_top_mount(self):
+        self.assertIs(m.boot_is_readonly(MI_RO), True)
+
+    def test_no_boot_mount_is_unknown(self):
+        self.assertIsNone(m.boot_is_readonly(MI_NONE))
+        self.assertIsNone(m.boot_is_readonly(""))
+        self.assertIsNone(m.boot_is_readonly("garbage\n1 2 3\n"))
+
+
 class Run(unittest.TestCase):
     """main() with the two commands replaced: no process runs in the tests."""
 
@@ -157,7 +181,7 @@ class Run(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def runner(self, grubenv_text, status_json, unset_rc=0):
+    def runner(self, grubenv_text, status_json, unset_rc=0, rw_rc=0, ro_rc=0):
         def run(argv):
             self.calls.append(argv)
             if argv[:2] == [m.GRUB2_EDITENV, m.GRUBENV] and argv[2] == "list":
@@ -166,8 +190,15 @@ class Run(unittest.TestCase):
                 return unset_rc, ""
             if argv == [m.RPM_OSTREE, "status", "--json"]:
                 return 0, status_json
+            if argv == [m.MOUNT, "-o", "remount,rw", "/boot"]:
+                return rw_rc, ""
+            if argv == [m.MOUNT, "-o", "remount,bind,ro", "/boot"]:
+                return ro_rc, ""
             raise AssertionError("unexpected command %r" % (argv,))
         return run
+
+    def main(self, run, mountinfo=MI_RW, **kw):
+        return m.main(run=run, record_path=self.record, mountinfo=lambda: mountinfo, **kw)
 
     def status(self, *deps):
         return json.dumps({"deployments": list(deps)})
@@ -234,6 +265,42 @@ class Run(unittest.TestCase):
             return 1, "greenboot_next_deployment_id=%s\n" % NEW
         self.assertEqual(m.main(run=run, record_path=self.record), 0)
         self.assertEqual(len(self.calls), 1)
+
+    def test_read_only_boot_is_remounted_around_the_one_write(self):
+        run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, self.status(dep(OLD, booted=True)))
+        self.assertEqual(self.main(run, mountinfo=MI_RO), 0)
+        tail = self.calls[-3:]
+        self.assertEqual(tail, [[m.MOUNT, "-o", "remount,rw", "/boot"],
+                                [m.GRUB2_EDITENV, m.GRUBENV, "unset", "greenboot_next_deployment_id"],
+                                [m.MOUNT, "-o", "remount,bind,ro", "/boot"]])
+        self.assertTrue(os.path.exists(self.record))
+
+    def test_writable_boot_is_not_remounted(self):
+        run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, self.status(dep(OLD, booted=True)))
+        self.assertEqual(self.main(run, mountinfo=MI_RW), 0)
+        self.assertFalse(any(c[0] == m.MOUNT for c in self.calls))
+
+    def test_unknown_boot_mount_is_not_remounted(self):
+        run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, self.status(dep(OLD, booted=True)))
+        self.assertEqual(self.main(run, mountinfo=MI_NONE), 0)
+        self.assertFalse(any(c[0] == m.MOUNT for c in self.calls))
+
+    def test_nothing_is_remounted_when_nothing_is_cleared(self):
+        run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, self.status(dep(NEW, booted=True), dep(OLD)))
+        self.assertEqual(self.main(run, mountinfo=MI_RO), 0)
+        self.assertFalse(any(c[0] == m.MOUNT for c in self.calls))
+
+    def test_failed_remount_leaves_the_trigger_and_says_so(self):
+        run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, self.status(dep(OLD, booted=True)), rw_rc=32)
+        self.assertEqual(self.main(run, mountinfo=MI_RO), 1)
+        self.assertFalse(any(len(c) > 2 and c[2] == "unset" for c in self.calls))
+        self.assertFalse(os.path.exists(self.record))
+
+    def test_failed_unset_on_read_only_boot_still_restores_it(self):
+        run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, self.status(dep(OLD, booted=True)), unset_rc=1)
+        self.assertEqual(self.main(run, mountinfo=MI_RO), 1)
+        self.assertEqual(self.calls[-1], [m.MOUNT, "-o", "remount,bind,ro", "/boot"])
+        self.assertFalse(os.path.exists(self.record))
 
     def test_failed_unset_is_reported_and_not_recorded(self):
         run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, self.status(dep(OLD, booted=True)), unset_rc=1)
