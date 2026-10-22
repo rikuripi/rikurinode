@@ -1,0 +1,85 @@
++ sudo -n rm -f /var/lib/rikuri/update-not-applied
++ sudo -n bootc switch --transport containers-storage localhost/rikuri-os:fix-a
++ tail -1
+  Digest: sha256:5f47713148bf541a8742eca9b391ad366c1af363050f3d0cedd2cf6ea01e13eb
++ sudo -n mkdir -p /run/systemd/system/ostree-finalize-staged.service.d
++ printf '[Service]\nExecStop=\nExecStop=/usr/bin/false\n'
++ sudo -n tee /run/systemd/system/ostree-finalize-staged.service.d/99-drill-fail.conf
++ sudo -n systemctl daemon-reload
++ systemctl show -p ExecStop ostree-finalize-staged.service
++ cut -c1-60
+ExecStop={ path=/usr/bin/false ; argv[]=/usr/bin/false ; ign
++ head -7
++ sudo -n bootc status --format humanreadable
+  Staged image: containers-storage:localhost/rikuri-os:fix-a
+        Digest: sha256:5f47713148bf541a8742eca9b391ad366c1af363050f3d0cedd2cf6ea01e13eb (arm64)
+       Version: 44.20261021.0 (2026-10-21T11:21:35Z)
+
+● Booted image: containers-storage:localhost/rikuri-os:fix
+        Digest: sha256:d85585f93738e60c3ad23d9ceb8be7067ffae1f0bb0af3de3a6ddf767cae69ab (arm64)
+       Version: 44.20261021.0 (2026-10-21T11:19:56Z)
++ sudo -n systemctl reboot
+Connection to 10.37.129.3 closed by remote host.
++ sudo -n bootc status --format humanreadable
+● Booted image: containers-storage:localhost/rikuri-os:fix
+        Digest: sha256:d85585f93738e60c3ad23d9ceb8be7067ffae1f0bb0af3de3a6ddf767cae69ab (arm64)
+       Version: 44.20261021.0 (2026-10-21T11:19:56Z)
+
+  Rollback image: containers-storage:localhost/rikuri-os:fix-broken
+          Digest: sha256:f2abd9c82777f5d7a213a946aabc0a494a5e174e4fb3605fd9535d0d36bd965b (arm64)
+         Version: 44.20261021.0 (2026-10-21T11:21:34Z)
++ sudo -n grub2-editenv /boot/grub2/grubenv list
+boot_success=1
+== previous boot
++ echo '== previous boot'
++ sudo -n journalctl -b -1 --no-pager -o short-monotonic
++ grep -E 'Setting rollback trigger|ostree-finalize-staged.service: (Control|Failed)'
++ cut -c1-200
+[   78.250015] rikuri-drill greenboot[1230]:  INFO  greenboot          > Setting rollback trigger for deployment: sha256:5f47713148bf541a8742eca9b391ad366c1af363050f3d0cedd2cf6ea01e13eb
+[   78.365527] rikuri-drill systemd[1]: ostree-finalize-staged.service: Control process exited, code=exited, status=1/FAILURE
+[   78.365636] rikuri-drill systemd[1]: ostree-finalize-staged.service: Failed with result 'exit-code'.
+== this boot
++ echo '== this boot'
++ sudo -n journalctl -b 0 --no-pager -o short-monotonic
++ grep -E 'rikuri-unapplied-update|greenboot\[|bootc\['
++ grep -v -E 'running (required|wanted)|success!|watchdog|Skipping disabled|update_platforms|connecting with|ostree.fedoraproject|/boot is already|Initial /boot|System detected'
++ cut -c1-230
+[    5.805904] rikuri-drill greenboot-unapplied-update[838]: rikuri-unapplied-update: update sha256:5f47713148bf541a8742eca9b391ad366c1af363050f3d0cedd2cf6ea01e13eb was never applied: the default deployment sha256:d85585f93738e60c
+[    5.832214] rikuri-drill greenboot-unapplied-update[838]: rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:d85585f93738e60c3ad23d9ceb8be7067ffae1f0bb0af3de3a6ddf767cae69ab; recorded in /va
+[    5.848800] rikuri-drill greenboot[882]: none
+[    6.006530] rikuri-drill greenboot[880]:  INFO  greenboot > Kernel booted successfully, disarming GRUB fallback before healthchecks
+[    6.019678] rikuri-drill greenboot[880]:  INFO  greenboot::grub > Clear grubenv: fallback
+[    6.212947] rikuri-drill greenboot[880]:  WARN  greenboot::greenboot > wanted script runner error:
+[    6.213087] rikuri-drill greenboot[880]:  INFO  greenboot            > greenboot health-check passed.
+[    6.232898] rikuri-drill greenboot[880]:  INFO  greenboot::grub      > Set grubenv: boot_success=1
+[    6.266970] rikuri-drill greenboot[880]:  INFO  greenboot::grub      > Clear grubenv: boot_counter
+== record
++ echo '== record'
++ sudo -n ls -l /var/lib/rikuri/
+total 4
+-rw-r--r--. 1 root root 429 Oct 22 00:24 update-not-applied
++ sudo -n cat /var/lib/rikuri/update-not-applied
+{"at": "2026-10-21T11:24:22Z", "booted": "sha256:d85585f93738e60c3ad23d9ceb8be7067ffae1f0bb0af3de3a6ddf767cae69ab", "not_applied": "sha256:5f47713148bf541a8742eca9b391ad366c1af363050f3d0cedd2cf6ea01e13eb", "reason": "update sha256:5f47713148bf541a8742eca9b391ad366c1af363050f3d0cedd2cf6ea01e13eb was never applied: the default deployment sha256:d85585f93738e60c3ad23d9ceb8be7067ffae1f0bb0af3de3a6ddf767cae69ab booted unchanged"}
++ sudo -n ls -Z /var/lib/rikuri/update-not-applied
+system_u:object_r:var_lib_t:s0 /var/lib/rikuri/update-not-applied
++ sudo -n ausearch -m avc -ts boot
++ tail -3
+sudo: ausearch: command not found
++ sudo -n systemctl reboot
+== after one more reboot
++ echo '== after one more reboot'
++ sudo -n bootc status --format humanreadable
+● Booted image: containers-storage:localhost/rikuri-os:fix
+        Digest: sha256:d85585f93738e60c3ad23d9ceb8be7067ffae1f0bb0af3de3a6ddf767cae69ab (arm64)
+       Version: 44.20261021.0 (2026-10-21T11:19:56Z)
+
+  Rollback image: containers-storage:localhost/rikuri-os:fix-broken
+          Digest: sha256:f2abd9c82777f5d7a213a946aabc0a494a5e174e4fb3605fd9535d0d36bd965b (arm64)
+         Version: 44.20261021.0 (2026-10-21T11:21:34Z)
++ sudo -n journalctl -b 0 --no-pager -o short-monotonic
++ grep -E 'rikuri-unapplied-update|FALLBACK|Rolling back|health-check passed'
++ cut -c1-200
+[    6.046018] rikuri-drill greenboot-unapplied-update[837]: rikuri-unapplied-update: no rollback trigger set; nothing to do
+[    6.407238] rikuri-drill greenboot[858]:  INFO  greenboot            > greenboot health-check passed.
++ cat /var/drill-marker
+drill marker written 2026-10-21T10:39:49Z on rikuri-os:good

@@ -1,0 +1,36 @@
++ sudo -n bootc status --format humanreadable
+● Booted image: containers-storage:localhost/rikuri-os:fix
+        Digest: sha256:d85585f93738e60c3ad23d9ceb8be7067ffae1f0bb0af3de3a6ddf767cae69ab (arm64)
+       Version: 44.20261021.0 (2026-10-21T11:19:56Z)
+
+  Rollback image: containers-storage:localhost/rikuri-os:good4
+          Digest: sha256:2b62a3689c3d451126f219502c4121b70cc998aac5621344c566f3a66873a97d (arm64)
+         Version: 44.20261021.0 (2026-10-21T10:55:52Z)
++ sudo -n grub2-editenv /boot/grub2/grubenv list
+boot_success=1
++ systemctl cat greenboot-healthcheck.service
++ grep -E '^# /|ExecStartPre'
+# /usr/lib/systemd/system/greenboot-healthcheck.service
+# /usr/lib/systemd/system/greenboot-healthcheck.service.d/10-network-online.conf
+# /usr/lib/systemd/system/service.d/10-timeout-abort.conf
+# /usr/lib/systemd/system/greenboot-healthcheck.service.d/50-rikuri-unapplied-update.conf
+ExecStartPre=-/usr/libexec/rikuri/greenboot-unapplied-update
++ sudo -n journalctl -b 0 --no-pager -o short-monotonic
++ grep -E 'rikuri-unapplied-update|greenboot\['
++ grep -v -E 'running (required|wanted)|success!|watchdog|Skipping disabled|update_platforms|connecting with|ostree.fedoraproject|/boot is already|Initial /boot'
++ sed -E 's/imageDigest.*$/…/'
++ cut -c1-220
+[    7.784707] rikuri-drill greenboot-unapplied-update[843]: rikuri-unapplied-update: update sha256:d85585f93738e60c3ad23d9ceb8be7067ffae1f0bb0af3de3a6ddf767cae69ab booted and is on trial; greenboot decides
+[    7.821659] rikuri-drill greenboot[882]: none
+[    7.985119] rikuri-drill greenboot[879]:  INFO  greenboot::handler > System detected as bootc (status.booted.image: {"architecture":"arm64","image":{"image":"localhost/rikuri-os:fix","transport":"containers-storage"},
+[    8.225372] rikuri-drill greenboot[879]:  INFO  greenboot          > Kernel booted successfully, disarming GRUB fallback before healthchecks
+[    8.256386] rikuri-drill greenboot[879]:  INFO  greenboot::grub    > Clear grubenv: fallback
+[    8.592852] rikuri-drill greenboot[879]:  WARN  greenboot::greenboot > wanted script runner error:
+[    8.593139] rikuri-drill greenboot[879]:  INFO  greenboot            > greenboot health-check passed.
+[    8.637662] rikuri-drill greenboot[879]:  INFO  greenboot::grub      > Set grubenv: boot_success=1
+[    8.673981] rikuri-drill greenboot[879]:  INFO  greenboot::grub      > Clear grubenv: boot_counter
+[    8.736512] rikuri-drill greenboot[879]:  INFO  greenboot::grub      > Clear grubenv: greenboot_next_deployment_id
++ getenforce
+Enforcing
++ cat /var/drill-marker
+drill marker written 2026-10-21T10:39:49Z on rikuri-os:good

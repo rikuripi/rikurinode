@@ -1,0 +1,52 @@
+# repo commit: dd4e556c0aebb04317626de05b232d8de785c61c
+# sha256 of image/ files on the Mac:
+e9a56ca74dea1341348e57a6f9b75b3af38e362d10cbe633d681093a0f1ac1f0  ./Containerfile
+c20cd1350c08d973a61ca223a4d4c9f992298ad94045fb47e747af8318087d56  ./check_image_root.py
+038243e8e39e0ffe9e92ac486349e7655f3c8712b982fbcd937ea6207dda5cc5  ./rootfs/etc/greenboot/greenboot.conf
+92d45efa5586cad03214b05c864a53604ef747ddceea4d1de20da195afff6117  ./rootfs/usr/lib/systemd/system/greenboot-healthcheck.service.d/50-rikuri-unapplied-update.conf
+e70a8ec15ef5fd001f778b654d8490a89757603158e99cf93473613d3e65db29  ./rootfs/usr/libexec/rikuri/greenboot-unapplied-update
+4936753cdcf167446f0d1b581194c04d94ef57d116a7eda003f4053e2715288c  ./tests/test_check_image_root.py
+4529b513d987dc5202fe8fddeeeb89bece2c831d37fff3c5719a22a885a95e8e  ./tests/test_greenboot_unapplied_update.py
++ cd /home/drill/image-fix
++ find . -type f
++ xargs sha256sum
++ sort
+e9a56ca74dea1341348e57a6f9b75b3af38e362d10cbe633d681093a0f1ac1f0  ./Containerfile
+c20cd1350c08d973a61ca223a4d4c9f992298ad94045fb47e747af8318087d56  ./check_image_root.py
+038243e8e39e0ffe9e92ac486349e7655f3c8712b982fbcd937ea6207dda5cc5  ./rootfs/etc/greenboot/greenboot.conf
+92d45efa5586cad03214b05c864a53604ef747ddceea4d1de20da195afff6117  ./rootfs/usr/lib/systemd/system/greenboot-healthcheck.service.d/50-rikuri-unapplied-update.conf
+e70a8ec15ef5fd001f778b654d8490a89757603158e99cf93473613d3e65db29  ./rootfs/usr/libexec/rikuri/greenboot-unapplied-update
+4936753cdcf167446f0d1b581194c04d94ef57d116a7eda003f4053e2715288c  ./tests/test_check_image_root.py
+4529b513d987dc5202fe8fddeeeb89bece2c831d37fff3c5719a22a885a95e8e  ./tests/test_greenboot_unapplied_update.py
++ B=registry.fedoraproject.org/fedora-iot@sha256:d862d94f86d4ebb72bb95d8c333bdbfcf1c95d07e11350b2a2eab3e34cec1421
++ sudo -n podman build --pull=never --network=none --from registry.fedoraproject.org/fedora-iot@sha256:d862d94f86d4ebb72bb95d8c333bdbfcf1c95d07e11350b2a2eab3e34cec1421 -t localhost/rikuri-os:fix /home/drill/image-fix
++ tail -6
+Checks passed: 14
+Checks skipped: 1
+COMMIT localhost/rikuri-os:fix
+--> a76d155a8b49
+Successfully tagged localhost/rikuri-os:fix
+a76d155a8b49a1496ab6c9150382fefe31b90e6c6105b6c944c17c23c122e2be
+++ sudo -n podman image mount localhost/rikuri-os:fix
++ R=/var/lib/containers/storage/overlay/77c0dc0bf1de9323976c11feaac6a71a8df91b29e0d12785638485bf87263a2a/merged
++ tail -4
++ sudo -n python3 -I /home/drill/image-fix/check_image_root.py /var/lib/containers/storage/overlay/77c0dc0bf1de9323976c11feaac6a71a8df91b29e0d12785638485bf87263a2a/merged --fedora 44
+scan opt: 0 file(s) read
+scan tmp: 0 file(s) read
+scan boot: 0 file(s) read
+check_image_root: 0 finding(s) in /var/lib/containers/storage/overlay/77c0dc0bf1de9323976c11feaac6a71a8df91b29e0d12785638485bf87263a2a/merged (Fedora 44 expected)
++ sudo -n ls -l /var/lib/containers/storage/overlay/77c0dc0bf1de9323976c11feaac6a71a8df91b29e0d12785638485bf87263a2a/merged/usr/libexec/rikuri/ /var/lib/containers/storage/overlay/77c0dc0bf1de9323976c11feaac6a71a8df91b29e0d12785638485bf87263a2a/merged/usr/lib/systemd/system/greenboot-healthcheck.service.d/
+/var/lib/containers/storage/overlay/77c0dc0bf1de9323976c11feaac6a71a8df91b29e0d12785638485bf87263a2a/merged/usr/lib/systemd/system/greenboot-healthcheck.service.d/:
+total 8
+-rw-r--r--. 2 root root  63 Dec 31  1969 10-network-online.conf
+-rw-r--r--. 1 root root 375 Oct 22 00:19 50-rikuri-unapplied-update.conf
+
+/var/lib/containers/storage/overlay/77c0dc0bf1de9323976c11feaac6a71a8df91b29e0d12785638485bf87263a2a/merged/usr/libexec/rikuri/:
+total 8
+-rwxr-xr-x. 1 root root 5903 Oct 22 00:19 greenboot-unapplied-update
++ sudo -n podman image unmount localhost/rikuri-os:fix
+a76d155a8b49a1496ab6c9150382fefe31b90e6c6105b6c944c17c23c122e2be
++ sudo -n bootc switch --transport containers-storage localhost/rikuri-os:fix
++ tail -2
+  Version: 44.20261021.0
+  Digest: sha256:d85585f93738e60c3ad23d9ceb8be7067ffae1f0bb0af3de3a6ddf767cae69ab

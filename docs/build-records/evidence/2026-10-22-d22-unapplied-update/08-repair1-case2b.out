@@ -1,0 +1,32 @@
++ sudo -n bootc switch --transport containers-storage localhost/rikuri-os:fix2-a
++ tail -1
+  Digest: sha256:9755667b7aaabaf8a48514010def8419716d02a1b18c248c6bc9e3ba6045fa2b
++ sudo -n mkdir -p /run/systemd/system/ostree-finalize-staged.service.d
++ printf '[Service]\nExecStop=\nExecStop=/usr/bin/false\n'
++ sudo -n tee /run/systemd/system/ostree-finalize-staged.service.d/99-drill-fail.conf
++ sudo -n systemctl daemon-reload
++ sudo -n systemctl reboot
++ sudo -n journalctl -b -1 --no-pager
++ cut -c1-170
++ grep -E 'Setting rollback trigger|finalize-staged.service: Control'
+Oct 22 00:43:35 rikuri-drill greenboot[1174]:  INFO  greenboot          > Setting rollback trigger for deployment: sha256:9755667b7aaabaf8a48514010def8419716d02a1b18c248c
+Oct 22 00:43:35 rikuri-drill systemd[1]: ostree-finalize-staged.service: Control process exited, code=exited, status=1/FAILURE
++ sudo -n journalctl -b 0 --no-pager -o short-monotonic
++ grep -E 'rikuri-unapplied|GRUB kernel fallback|Rolling back|health-check passed'
++ cut -c1-200
+[    8.261914] rikuri-drill greenboot-unapplied-update[842]: rikuri-unapplied-update: update sha256:9755667b7aaabaf8a48514010def8419716d02a1b18c248c6bc9e3ba6045fa2b was never applied: the default depl
+[    8.289038] rikuri-drill greenboot-unapplied-update[842]: rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:51a67a77b9f58cba1ac6edd931e430bc2d496c5e8abf1a6fed2
+[    9.066662] rikuri-drill greenboot[876]:  INFO  greenboot            > greenboot health-check passed.
++ sudo -n tail -1 /var/lib/rikuri/update-not-applied
++ cut -c1-120
+{"at": "2026-10-21T11:43:49Z", "booted": "sha256:51a67a77b9f58cba1ac6edd931e430bc2d496c5e8abf1a6fed2629b36470d262", "not
++ sudo -n systemctl reboot
+== after one more reboot
++ echo '== after one more reboot'
++ sudo -n bootc status --format humanreadable
++ head -3
+● Booted image: containers-storage:localhost/rikuri-os:fix2
+        Digest: sha256:51a67a77b9f58cba1ac6edd931e430bc2d496c5e8abf1a6fed2629b36470d262 (arm64)
+       Version: 44.20261021.0 (2026-10-21T11:40:15Z)
++ cat /var/drill-marker
+drill marker written 2026-10-21T10:39:49Z on rikuri-os:good
