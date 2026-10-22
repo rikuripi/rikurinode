@@ -25,6 +25,7 @@ WORKFLOWS = sorted(glob.glob(os.path.join(ROOT, ".github", "workflows", "*.yml")
 CI = os.path.join(ROOT, ".github", "workflows", "ci.yml")
 AUDIT = os.path.join(ROOT, ".github", "workflows", "advisory-audit.yml")
 GATE = os.path.join(ROOT, "scripts", "quality", "full-gate.sh")
+IMAGE = os.path.join(ROOT, ".github", "workflows", "image.yml")
 
 
 def read(path):
@@ -95,6 +96,49 @@ class Ci(unittest.TestCase):
 
     def test_the_gate_step_gets_the_token(self):
         self.assertIn("GITHUB_TOKEN: ${{ github.token }}", read(CI))
+
+
+def job(text, name):
+    """The lines of one job under `jobs:` (two-space indent), its header included."""
+    lines, out, inside = text.splitlines(), [], False
+    for line in lines:
+        if re.match(r"^  [A-Za-z0-9_-]+:\s*$", line):
+            inside = line.strip() == name + ":"
+        elif line and not line.startswith(" "):
+            inside = False
+        if inside:
+            out.append(line)
+    return out
+
+
+class Image(unittest.TestCase):
+    """The image workflow starts on every pull request, so its jobs can be
+    required checks, and its build and drill run only when the image or the
+    workflow changed (docs/build-records/2026-10-22-image-workflow-every-pr.md)."""
+
+    def test_every_pull_request_starts_the_workflow(self):
+        on = block(read(IMAGE), "on")   # stripped lines; a trigger's name ends with ":"
+        trigger = []
+        for line in on[on.index("pull_request:") + 1:]:
+            if line.endswith(":"):
+                break
+            trigger.append(line)
+        self.assertFalse(any(line.startswith("paths") for line in trigger), trigger)
+
+    def test_build_and_drill_wait_for_the_changes_job(self):
+        text = read(IMAGE)
+        self.assertTrue(job(text, "changes"), "a changes job")
+        for name in ("build", "drill"):
+            lines = " ".join(job(text, name))
+            self.assertRegex(lines, r"needs: \[?[^\]]*\bchanges\b", name)
+            self.assertIn("if: needs.changes.outputs.image == 'true'", lines, name)
+
+    def test_only_a_pull_request_can_skip(self):
+        lines = "\n".join(job(read(IMAGE), "changes"))
+        self.assertIn('if [ "$EVENT" != "pull_request" ]', lines)
+        self.assertIn("image=true", lines)
+        self.assertIn("image=false", lines)
+        self.assertIn("^(image/|\\.github/workflows/image\\.yml$)", lines)
 
 
 class Gate(unittest.TestCase):
