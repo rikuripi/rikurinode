@@ -75,3 +75,10 @@
 - (none yet)
 
 ## Evidence log
+
+Development runs (cap 10):
+
+1. [39707685031](https://github.com/rikuripi/rikurinode/actions/runs/39707685031), on the harness's first commit: build pass; drill: `bootc install to-disk` worked on the Ubuntu runner; **first boot: PASS** (greenboot passed, the DNS check skipped, the unapplied-update check ran; booted about 20 s after start); case 1 timed out after 1,200 s; collecting the serial log then crashed on a non-UTF-8 byte (a harness bug, fixed next).
+2. [39710186883](https://github.com/rikuripi/rikurinode/actions/runs/39710186883): first boot PASS; case 1 **Fail, greenboot-rs #218 on bootc's own layout**. `bootc install to-disk` makes no `/boot` partition (BIOS boot, EFI, root: `00-install.out`); `/boot` is a read-only bind of the root (`/dev/vda3[/boot]`, `findmnt`). At shutdown the trigger unit's `ExecStop=` never ran ("Setting rollback trigger": 0 lines); the broken image failed on four boots, then greenboot logged "Boot counter exhausted but no next-deployment-id set - manual intervention required" and the node stayed on the broken update. Also seen: SELinux denials for `bootupctl` reading `/sysroot/.bootc-aleph.json` on each boot (bootupd; not this task's).
+
+**Stopped for the owner (2026-10-22):** the fix lies in the image, outside this task's Scope.
