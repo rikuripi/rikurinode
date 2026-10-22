@@ -1,0 +1,16 @@
+blk-availability.service | Conflicts=[shutdown.target] | shutdown-related Before: shutdown.target
+bootc-finalize-staged.service | Conflicts=[final.target] | shutdown-related Before: final.target
+greenboot-set-rollback-trigger.service | Conflicts=[] | shutdown-related Before:
+lvm2-monitor.service | Conflicts=[shutdown.target] | shutdown-related Before: shutdown.target
+ostree-finalize-staged.service | Conflicts=[final.target] | shutdown-related Before: final.target
+systemd-binfmt.service | Conflicts=[shutdown.target] | shutdown-related Before: shutdown.target
+systemd-confext-initrd.service | Conflicts=[initrd-switch-root.target] | shutdown-related Before:
+systemd-confext.service | Conflicts=[shutdown.target] | shutdown-related Before: shutdown.target
+systemd-journal-flush.service | Conflicts=[soft-reboot.target] | shutdown-related Before: systemd-soft-reboot.service ostree-finalize-staged.service soft-reboot.target
+systemd-pcrphase-initrd.service | Conflicts=[shutdown.target initrd-switch-root.target] | shutdown-related Before: shutdown.target
+systemd-pcrphase-storage-target-mode.service | Conflicts=[shutdown.target] | shutdown-related Before: shutdown.target
+systemd-pcrphase-sysinit.service | Conflicts=[shutdown.target] | shutdown-related Before: shutdown.target
+systemd-random-seed.service | Conflicts=[shutdown.target] | shutdown-related Before: shutdown.target
+systemd-sysext-initrd.service | Conflicts=[initrd-switch-root.target] | shutdown-related Before:
+systemd-sysext.service | Conflicts=[shutdown.target] | shutdown-related Before: shutdown.target
+systemd-update-utmp.service | Conflicts=[shutdown.target] | shutdown-related Before: shutdown.target

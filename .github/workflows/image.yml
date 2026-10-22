@@ -4,9 +4,11 @@ name: OS image
 # lint runs inside the build; image/check_image_root.py checks the built
 # root against what the node relies on (lessons register PLAT-01). The node and
 # this machine never build it: the image exists only here.
-# Not yet (later changes of stage 1): signing and publishing, booting it in a
-# VM, the rollback drill (on image changes and weekly, owner 2026-10-12).
-# Record: docs/build-records/2026-10-12-stage1-os-image.md
+# The drill job boots the image in a KVM VM and runs the rollback drill (stage 1
+# changes 3 and 4; image/drill/vm_drill.py): on image changes and weekly
+# (owner, 2026-10-12). Not yet: signing and publishing (change 2).
+# Records: docs/build-records/2026-10-12-stage1-os-image.md,
+# docs/build-records/2026-10-22-ci-vm-drill.md
 
 on:
   pull_request:
@@ -15,6 +17,8 @@ on:
   push:
     branches: [main]
     paths: ["image/**", ".github/workflows/image.yml"]
+  schedule:
+    - cron: "17 6 * * 1"   # weekly, Monday 06:17 UTC: the drill against the pinned base
   workflow_dispatch:
 
 permissions:
@@ -38,7 +42,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Probe - can this runner run a VM? (for the boot test to come; reports, never fails)
+      - name: Probe - can this runner run a VM? (the drill job needs it; reports, never fails)
         run: |
           {
             echo "### Runner probe"
@@ -66,3 +70,38 @@ jobs:
             sudo podman image inspect --format '- image: {{.Id}}, {{.Size}} bytes, created {{.Created}}' "$IMAGE" || echo "- no image"
             sudo podman image inspect --format '- base: {{index .Labels "org.opencontainers.image.version"}}' "$IMAGE" || true
           } | tee -a "$GITHUB_STEP_SUMMARY"
+
+  drill:
+    name: Boot the image in a VM and run the rollback drill
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install QEMU and UEFI firmware (Ubuntu 24.04's archive; versions recorded)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends qemu-system-x86 ovmf
+          {
+            echo "### VM tools"
+            dpkg-query -W -f='- ${Package} ${Version}\n' qemu-system-x86 ovmf
+            echo "- /dev/kvm: $(ls -l /dev/kvm)"
+            echo "- free on /mnt: $(df -h --output=avail /mnt | tail -1 | tr -d ' ')"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Build the image (bootc container lint runs inside)
+        run: sudo podman build --pull=missing --tag "$IMAGE" image
+      - name: Run the drill (first boot; cases 1, 2b and 3)
+        run: |
+          sudo mkdir -p /mnt/drill
+          sudo chown "$(id -u):$(id -g)" /mnt/drill
+          python3 -I image/drill/vm_drill.py --image "$IMAGE" --workdir /mnt/drill --artifacts "$RUNNER_TEMP/drill-evidence"
+      - name: Keep the evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: drill-evidence
+          path: ${{ runner.temp }}/drill-evidence
+          if-no-files-found: warn
+          retention-days: 30

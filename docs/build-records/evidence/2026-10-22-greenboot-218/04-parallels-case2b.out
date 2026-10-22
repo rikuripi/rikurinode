@@ -1,0 +1,54 @@
+# repo commit 19bca3515db134891b307a667e6ec092643074b6
+3efd20f71ff4e44d61049c097a16f5a88df1f322dbeb3e873b324a1f722b778f  image/rootfs/usr/libexec/rikuri/greenboot-unapplied-update
++ sha256sum /home/drill/image-fix4/rootfs/usr/libexec/rikuri/greenboot-unapplied-update
+3efd20f71ff4e44d61049c097a16f5a88df1f322dbeb3e873b324a1f722b778f  /home/drill/image-fix4/rootfs/usr/libexec/rikuri/greenboot-unapplied-update
++ B=registry.fedoraproject.org/fedora-iot@sha256:d862d94f86d4ebb72bb95d8c333bdbfcf1c95d07e11350b2a2eab3e34cec1421
++ sudo -n podman build --pull=never --network=none --from registry.fedoraproject.org/fedora-iot@sha256:d862d94f86d4ebb72bb95d8c333bdbfcf1c95d07e11350b2a2eab3e34cec1421 -t localhost/rikuri-os:fix4 /home/drill/image-fix4
++ grep -E 'Checks passed|Successfully tagged'
+Checks passed: 14
+Successfully tagged localhost/rikuri-os:fix4
++ mkdir -p /home/drill/drill/fix4-a
++ printf 'FROM localhost/rikuri-os:fix4\nLABEL rikuri.drill=fix4-a\n'
++ sudo -n podman build --network=none -t localhost/rikuri-os:fix4-a /home/drill/drill/fix4-a
++ tail -1
+2241a4eb994162781d8f844440d6c0be71bf63d0c4e8c69ea5a03b92fa0362df
++ sudo -n bootc switch --transport containers-storage localhost/rikuri-os:fix4
++ tail -1
+  Digest: sha256:9fceb6b2fe984c7b53831d9bc7ebcbd3370d66b9ad9e3a0e06866569c17c258b
++ sudo -n systemctl reboot
++ sudo -n bootc status --format humanreadable
++ head -2
+● Booted image: containers-storage:localhost/rikuri-os:fix4
+        Digest: sha256:9fceb6b2fe984c7b53831d9bc7ebcbd3370d66b9ad9e3a0e06866569c17c258b (arm64)
+error: Status: Writing to stdout: Broken pipe (os error 32)
++ findmnt /boot
+TARGET SOURCE    FSTYPE OPTIONS
+/boot  /dev/sda2 ext4   rw,relatime,seclabel
++ sudo -n bootc switch --transport containers-storage localhost/rikuri-os:fix4-a
++ tail -1
+  Digest: sha256:4c9ca41ba1728b63c1d618b25ec4ce5a9feaecebdd7a1879d440f0e65b974d9b
++ sudo -n mkdir -p /run/systemd/system/ostree-finalize-staged.service.d
++ printf '[Service]\nExecStop=\nExecStop=/usr/bin/false\n'
++ sudo -n tee /run/systemd/system/ostree-finalize-staged.service.d/99-drill-fail.conf
++ sudo -n systemctl daemon-reload
++ sudo -n systemctl reboot
+Connection to 10.37.129.3 closed by remote host.
++ sudo -n journalctl -b 0 --no-pager
++ grep -E 'rikuri-unapplied-update|GRUB kernel fallback|Rolling back|health-check passed'
++ cut -c1-200
+Oct 22 04:58:56 rikuri-drill greenboot-unapplied-update[829]: rikuri-unapplied-update: update sha256:4c9ca41ba1728b63c1d618b25ec4ce5a9feaecebdd7a1879d440f0e65b974d9b was never applied: the default dep
+Oct 22 04:58:56 rikuri-drill greenboot-unapplied-update[829]: rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:9fceb6b2fe984c7b53831d9bc7ebcbd3370d66b9ad9e3a0e06
+Oct 22 04:59:02 rikuri-drill greenboot[876]:  INFO  greenboot            > greenboot health-check passed.
++ sudo -n bootc status --format humanreadable
++ head -2
+● Booted image: containers-storage:localhost/rikuri-os:fix4
+        Digest: sha256:9fceb6b2fe984c7b53831d9bc7ebcbd3370d66b9ad9e3a0e06866569c17c258b (arm64)
+error: Status: Writing to stdout: Broken pipe (os error 32)
++ sudo -n systemctl reboot
+== after one more reboot
++ echo '== after one more reboot'
++ sudo -n bootc status --format humanreadable
++ head -2
+● Booted image: containers-storage:localhost/rikuri-os:fix4
+        Digest: sha256:9fceb6b2fe984c7b53831d9bc7ebcbd3370d66b9ad9e3a0e06866569c17c258b (arm64)
+error: Status: Writing to stdout: Broken pipe (os error 32)

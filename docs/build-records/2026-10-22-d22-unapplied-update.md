@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/d22-unapplied-update`, stacked on `stage1/greenboot-drill-parallels` (pushed, no pull request yet), in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | `6ca7817` (red), `cb1eb4a` (the check and drop-in), `502b79b` (checker red), `dd4e556` (checker, wording), `171bc97` (repair 1 red), `c611d6b` (repair 1), and the commit that adds this record and its evidence |
-| **Status** | Built and verified (verifier FAIL, repaired in cycle 1, follow-up PASS); CI not yet run (push and pull request on the owner's word) |
+| **Status** | Built and verified (verifier FAIL, repaired in cycle 1, follow-up PASS); COMPLETE; pushed and opened as pull request #28 on the owner's word (2026-10-22, "Commit and push, open PR"); CI `Full gate (Ubuntu)` pass (1 m 51 s, run 39706630221) and `Build and check the OS image` pass (57 s, run 39706630307); merged by the owner as `7c135cf` (2026-10-22T01:38:16Z) |
 | **Change type** | fix (stage 1, the rollback path; before change 4) |
 
 ## Task Contract
@@ -86,8 +86,8 @@
 
 ## 5. Close Out
 
-- [ ] Gate: `full-gate.sh` stops at step 1 on this Mac (`shellcheck 0.11.0 required, found 'none'`). Its steps run by hand: 2 guard wiring, policy, tests: exit 0; 3 image tests: OK; 3 quality tools' tests: `FAILED (failures=15)`, the same 15 on `origin/main` without this change (Linux-only `safe_run` and guard-wiring placeholder tests); 4 hygiene: exit 0; 6 whitespace, tracked and working tree: exit 0. Not run here: 1, 5 (shell lint), 7 (secret scan), 8 to 10 (Rust). CI's full gate and the OS image workflow on the pull request are the reference.
-- [ ] Review; commit; push and pull request on the owner's word.
+- [x] Gate: CI on #28: `Full gate (Ubuntu)` pass, run 39706630221; the OS image build and check (x86_64) pass, run 39706630307. Locally, `full-gate.sh` stops at step 1 on this Mac (`shellcheck 0.11.0 required, found 'none'`). Its steps run by hand: 2 guard wiring, policy, tests: exit 0; 3 image tests: OK; 3 quality tools' tests: `FAILED (failures=15)`, the same 15 on `origin/main` without this change (Linux-only `safe_run` and guard-wiring placeholder tests); 4 hygiene: exit 0; 6 whitespace, tracked and working tree: exit 0. Not run here: 1, 5 (shell lint), 7 (secret scan), 8 to 10 (Rust). CI's full gate and the OS image workflow on the pull request are the reference.
+- [x] Review, commit, push and pull request #28 on the owner's word; merged by the owner as `7c135cf`.
 
 ## Skipped items — visible, never silent
 
