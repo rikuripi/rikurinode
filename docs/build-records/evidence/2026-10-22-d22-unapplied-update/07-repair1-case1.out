@@ -1,0 +1,81 @@
++ sudo -n bootc switch --transport containers-storage localhost/rikuri-os:fix2-broken
++ tail -1
+  Digest: sha256:354a2be5f22ca5801484db030479063a1ad15126f3bbc6c6c9655dc07dd2dc05
++ sudo -n systemctl reboot
++ sudo -n bootc status --format humanreadable
++ head -6
+● Booted image: containers-storage:localhost/rikuri-os:fix2
+        Digest: sha256:51a67a77b9f58cba1ac6edd931e430bc2d496c5e8abf1a6fed2629b36470d262 (arm64)
+       Version: 44.20261021.0 (2026-10-21T11:40:15Z)
+
+  Rollback image: containers-storage:localhost/rikuri-os:fix2-broken
+          Digest: sha256:354a2be5f22ca5801484db030479063a1ad15126f3bbc6c6c9655dc07dd2dc05 (arm64)
+== boot -4
++ for b in -4 -3 -2 -1 0
++ echo '== boot -4'
++ sudo -n journalctl -b -4 --no-pager -o short-monotonic
++ grep -E 'rikuri-unapplied|counter|exhausted|Rolling back|FALLBACK|health-check passed'
++ cut -c1-180
+[    0.695776] localhost kernel: clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+[    0.704503] localhost kernel: clocksource: Switched to clocksource arch_sys_counter
+[    0.706962] localhost kernel: hw perfevents: enabled with armv8_pmuv3_0 PMU driver, 1 (0,80000000) counters available
+[    4.261967] localhost systemd[1]: systemd-journald.service: Scheduled restart job, restart counter is at 1.
+[    6.132021] rikuri-drill greenboot-unapplied-update[861]: rikuri-unapplied-update: update sha256:354a2be5f22ca5801484db030479063a1ad15126f3bbc6c6c9655dc07dd2dc05 booted and is o
+[    6.529908] rikuri-drill greenboot[893]:  INFO  greenboot            > First health check failure, setting boot counter to 3
+[    6.539081] rikuri-drill greenboot[893]:  INFO  greenboot::grub      > boot_counter does not exists
+[    6.539081] rikuri-drill greenboot[893]:  INFO  greenboot::grub      > setting boot counter
+[    6.551723] rikuri-drill greenboot[893]:  INFO  greenboot::grub      > Set grubenv: boot_counter=3
+== boot -3
++ for b in -4 -3 -2 -1 0
++ echo '== boot -3'
++ sudo -n journalctl -b -3 --no-pager -o short-monotonic
++ grep -E 'rikuri-unapplied|counter|exhausted|Rolling back|FALLBACK|health-check passed'
++ cut -c1-180
+[    0.839728] localhost kernel: clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+[    0.844558] localhost kernel: clocksource: Switched to clocksource arch_sys_counter
+[    0.852839] localhost kernel: hw perfevents: enabled with armv8_pmuv3_0 PMU driver, 1 (0,80000000) counters available
+[    4.847737] localhost systemd[1]: systemd-journald.service: Scheduled restart job, restart counter is at 1.
+[    6.649190] rikuri-drill greenboot-unapplied-update[839]: rikuri-unapplied-update: update sha256:354a2be5f22ca5801484db030479063a1ad15126f3bbc6c6c9655dc07dd2dc05 booted and is o
+[    7.063883] rikuri-drill greenboot[883]:  INFO  greenboot            > Boot counter is 2, rebooting to try again
+== boot -2
++ for b in -4 -3 -2 -1 0
++ echo '== boot -2'
++ sudo -n journalctl -b -2 --no-pager -o short-monotonic
++ grep -E 'rikuri-unapplied|counter|exhausted|Rolling back|FALLBACK|health-check passed'
++ cut -c1-180
+[    0.635201] localhost kernel: clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+[    0.643497] localhost kernel: clocksource: Switched to clocksource arch_sys_counter
+[    0.645941] localhost kernel: hw perfevents: enabled with armv8_pmuv3_0 PMU driver, 1 (0,80000000) counters available
+[    4.385046] localhost systemd[1]: systemd-journald.service: Scheduled restart job, restart counter is at 1.
+[    6.130009] rikuri-drill greenboot-unapplied-update[833]: rikuri-unapplied-update: update sha256:354a2be5f22ca5801484db030479063a1ad15126f3bbc6c6c9655dc07dd2dc05 booted and is o
+[    6.476597] rikuri-drill greenboot[872]:  INFO  greenboot            > Boot counter is 1, rebooting to try again
+== boot -1
++ for b in -4 -3 -2 -1 0
++ echo '== boot -1'
++ sudo -n journalctl -b -1 --no-pager -o short-monotonic
++ grep -E 'rikuri-unapplied|counter|exhausted|Rolling back|FALLBACK|health-check passed'
++ cut -c1-180
+[    0.676105] localhost kernel: clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+[    0.680672] localhost kernel: clocksource: Switched to clocksource arch_sys_counter
+[    0.686016] localhost kernel: hw perfevents: enabled with armv8_pmuv3_0 PMU driver, 1 (0,80000000) counters available
+[    4.535562] localhost systemd[1]: systemd-journald.service: Scheduled restart job, restart counter is at 1.
+[    6.245160] rikuri-drill greenboot-unapplied-update[837]: rikuri-unapplied-update: update sha256:354a2be5f22ca5801484db030479063a1ad15126f3bbc6c6c9655dc07dd2dc05 booted and is o
+[    6.798401] rikuri-drill greenboot[873]:  INFO  greenboot            > Boot counter exhausted and next-deployment-id is set - initiating rollback
+[    6.925310] rikuri-drill bootc[944]: Rolling back to image: sha256:51a67a77b9f58cba1ac6edd931e430bc2d496c5e8abf1a6fed2629b36470d262
+[    7.886637] rikuri-drill greenboot[873]:  INFO  greenboot::grub      > Clear grubenv: boot_counter
+== boot 0
++ for b in -4 -3 -2 -1 0
++ echo '== boot 0'
++ sudo -n journalctl -b 0 --no-pager -o short-monotonic
++ grep -E 'rikuri-unapplied|counter|exhausted|Rolling back|FALLBACK|health-check passed'
++ cut -c1-180
+[    0.801075] localhost kernel: clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+[    0.806155] localhost kernel: clocksource: Switched to clocksource arch_sys_counter
+[    0.810800] localhost kernel: hw perfevents: enabled with armv8_pmuv3_0 PMU driver, 1 (0,80000000) counters available
+[    4.811489] localhost systemd[1]: systemd-journald.service: Scheduled restart job, restart counter is at 1.
+[    6.488027] rikuri-drill greenboot-unapplied-update[838]: rikuri-unapplied-update: no rollback trigger set; nothing to do
+[    6.861432] rikuri-drill greenboot[856]:  INFO  greenboot          > FALLBACK BOOT DETECTED! Default bootc deployment has been rolled back.
+[    7.126961] rikuri-drill greenboot[856]:  INFO  greenboot            > greenboot health-check passed.
+[    7.253280] rikuri-drill greenboot[856]:  INFO  greenboot::grub      > Clear grubenv: boot_counter
++ cat /var/drill-marker
+drill marker written 2026-10-21T10:39:49Z on rikuri-os:good

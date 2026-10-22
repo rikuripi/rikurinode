@@ -1,0 +1,69 @@
+== deployments
+* fedora-iot 20990cdea29f7db8ab04d7c654c0379587a23a0c095a14c636538f933e86fa37.0
+    origin: <unknown origin type>
+  fedora-iot a0d4f899a8d0984ad431db4c987c06568703d3c6822bf3af332e11a5982f59f2.0 (rollback)
+    origin: <unknown origin type>
+== boot 0 deployment
+Oct 22 12:43:19 localhost ostree-prepare-root[498]: Resolved OSTree target to: /sysroot/ostree/deploy/fedora-iot/deploy/20990cdea29f7db8ab04d7c654c0379587a23a0c095a14c636538f933e86fa37.0
+== boot -4, from 5s: greenboot and reboot requests
+[    5.744476] localhost lvm[660]: PV /dev/sda3 online, VG fedora_rikuri-drill is complete.
+[    5.858033] localhost lvm[672]:   1 logical volume(s) in volume group "fedora_rikuri-drill" now active
+[    5.797234] localhost systemd[1]: Started lvm-activate-fedora_rikuri-drill.service - [systemd-run] /usr/bin/lvm vgchange -aay --autoactivation event fedora_rikuri-drill.
+[    5.828895] localhost systemd[1]: lvm-activate-fedora_rikuri-drill.service: Deactivated successfully.
+[    6.745339] localhost systemd[1]: selinux-autorelabel-mark.service - Mark the need to relabel after reboot skipped, unmet condition check ConditionSecurity=!selinux
+[    7.345484] localhost.localdomain NetworkManager[746]: <info>  [1792579356.7614] policy: set-hostname: set hostname to 'rikuri-drill' (from DHCPv4)
+[    7.345812] rikuri-drill systemd-hostnamed[793]: Hostname set to <rikuri-drill> (transient)
+[    7.346326] rikuri-drill systemd-resolved[609]: System hostname changed to 'rikuri-drill'.
+[    7.347268] rikuri-drill systemd-resolved[609]: enp0s5: Bus client set search domain list to: localdomain
+[    7.347872] rikuri-drill systemd-resolved[609]: enp0s5: Bus client set default route setting: yes
+[    7.348312] rikuri-drill systemd-resolved[609]: enp0s5: Bus client set DNS server list to: 10.37.129.1
+[    7.349227] rikuri-drill NetworkManager[746]: <info>  [1792579356.7651] device (enp0s5): state change: ip-config -> ip-check (reason 'none', managed-type: 'full')
+[    7.350714] rikuri-drill NetworkManager[746]: <info>  [1792579356.7666] device (enp0s5): state change: ip-check -> secondaries (reason 'none', managed-type: 'full')
+[    7.350767] rikuri-drill NetworkManager[746]: <info>  [1792579356.7667] device (enp0s5): state change: secondaries -> activated (reason 'none', managed-type: 'full')
+[    7.350897] rikuri-drill NetworkManager[746]: <info>  [1792579356.7668] manager: NetworkManager state is now CONNECTED_LOCAL
+[    7.350965] rikuri-drill NetworkManager[746]: <info>  [1792579356.7669] device (enp0s5): Activation: successful, device activated.
+[    7.351179] rikuri-drill NetworkManager[746]: <info>  [1792579356.7671] manager: startup complete
+[    7.354760] rikuri-drill systemd[1]: Finished NetworkManager-wait-online.service - Network Manager Wait Online.
+[    7.357744] rikuri-drill systemd[1]: Reached target network-online.target - Network is Online.
+[    7.361579] rikuri-drill systemd[1]: Starting fdo-client-linuxapp.service - FDO client...
+[    7.364153] rikuri-drill systemd[1]: Starting greenboot-healthcheck.service - Greenboot Health Checks Runner...
+[    7.377351] rikuri-drill restorecon[836]: /usr/sbin/restorecon: open(/boot/device-credentials) failed: No such file or directory
+[    7.394518] rikuri-drill greenboot[857]: none
+[    7.404109] rikuri-drill fdo-client-linuxapp[845]:  2026-10-21T10:42:36.819Z INFO  fdo_client_linuxapp > No usable device credential located, skipping Device Onboarding
+[    7.419608] rikuri-drill mv[862]: mv: cannot stat '/boot/device-credentials': No such file or directory
+[    7.420396] rikuri-drill systemd[1]: fdo-client-linuxapp.service: Deactivated successfully.
+[    7.420972] rikuri-drill systemd[1]: Finished fdo-client-linuxapp.service - FDO client.
+[    7.496022] rikuri-drill kernel: EXT4-fs (dm-0): re-mounted aca1bb6a-c8b9-48f4-8d47-c578112bbd0f.
+[    7.531066] rikuri-drill greenboot[839]:  INFO  greenboot::handler > System detected as bootc (status.booted.image: {"architecture":"arm64","image":{"image":"localhost/rikuri-os:broken","transport":"containers-storage"},"imageDigest":"sh
+[    7.638869] rikuri-drill greenboot[839]:  INFO  greenboot          > Kernel booted successfully, disarming GRUB fallback before healthchecks
+== boot -1, from 5s: greenboot and reboot requests
+[    5.501255] localhost lvm[647]: PV /dev/sda3 online, VG fedora_rikuri-drill is complete.
+[    5.526138] localhost systemd[1]: Started lvm-activate-fedora_rikuri-drill.service - [systemd-run] /usr/bin/lvm vgchange -aay --autoactivation event fedora_rikuri-drill.
+[    5.539941] localhost lvm[660]:   1 logical volume(s) in volume group "fedora_rikuri-drill" now active
+[    5.550294] localhost systemd[1]: lvm-activate-fedora_rikuri-drill.service: Deactivated successfully.
+[    5.851408] localhost systemd[1]: selinux-autorelabel-mark.service - Mark the need to relabel after reboot skipped, unmet condition check ConditionSecurity=!selinux
+[    6.403093] localhost.localdomain NetworkManager[738]: <info>  [1792579390.8070] policy: set-hostname: set hostname to 'rikuri-drill' (from DHCPv4)
+[    6.404257] rikuri-drill systemd-resolved[604]: System hostname changed to 'rikuri-drill'.
+[    6.406266] rikuri-drill systemd-hostnamed[762]: Hostname set to <rikuri-drill> (transient)
+[    6.406560] rikuri-drill systemd-resolved[604]: enp0s5: Bus client set search domain list to: localdomain
+[    6.406835] rikuri-drill systemd-resolved[604]: enp0s5: Bus client set default route setting: yes
+[    6.407401] rikuri-drill systemd-resolved[604]: enp0s5: Bus client set DNS server list to: 10.37.129.1
+[    6.408425] rikuri-drill NetworkManager[738]: <info>  [1792579390.8123] device (enp0s5): state change: ip-config -> ip-check (reason 'none', managed-type: 'full')
+[    6.409709] rikuri-drill NetworkManager[738]: <info>  [1792579390.8136] device (enp0s5): state change: ip-check -> secondaries (reason 'none', managed-type: 'full')
+[    6.409943] rikuri-drill NetworkManager[738]: <info>  [1792579390.8139] device (enp0s5): state change: secondaries -> activated (reason 'none', managed-type: 'full')
+[    6.410498] rikuri-drill NetworkManager[738]: <info>  [1792579390.8144] manager: NetworkManager state is now CONNECTED_LOCAL
+[    6.410839] rikuri-drill NetworkManager[738]: <info>  [1792579390.8148] device (enp0s5): Activation: successful, device activated.
+[    6.411504] rikuri-drill NetworkManager[738]: <info>  [1792579390.8154] manager: startup complete
+[    6.418317] rikuri-drill systemd[1]: Finished NetworkManager-wait-online.service - Network Manager Wait Online.
+[    6.421909] rikuri-drill systemd[1]: Reached target network-online.target - Network is Online.
+[    6.424936] rikuri-drill systemd[1]: Starting fdo-client-linuxapp.service - FDO client...
+[    6.429945] rikuri-drill systemd[1]: Starting greenboot-healthcheck.service - Greenboot Health Checks Runner...
+[    6.437942] rikuri-drill restorecon[841]: /usr/sbin/restorecon: open(/boot/device-credentials) failed: No such file or directory
+[    6.452339] rikuri-drill greenboot[850]: none
+[    6.461665] rikuri-drill fdo-client-linuxapp[848]:  2026-10-21T10:43:10.865Z INFO  fdo_client_linuxapp > No usable device credential located, skipping Device Onboarding
+[    6.475120] rikuri-drill mv[854]: mv: cannot stat '/boot/device-credentials': No such file or directory
+[    6.476136] rikuri-drill systemd[1]: fdo-client-linuxapp.service: Deactivated successfully.
+[    6.476319] rikuri-drill systemd[1]: Finished fdo-client-linuxapp.service - FDO client.
+[    6.561113] rikuri-drill kernel: EXT4-fs (dm-0): re-mounted aca1bb6a-c8b9-48f4-8d47-c578112bbd0f.
+[    6.594800] rikuri-drill greenboot[847]:  INFO  greenboot::handler > System detected as bootc (status.booted.image: {"architecture":"arm64","image":{"image":"localhost/rikuri-os:broken","transport":"containers-storage"},"imageDigest":"sh
+[    6.699026] rikuri-drill greenboot[847]:  INFO  greenboot::greenboot > Skipping disabled script: 01_repository_dns_check.sh

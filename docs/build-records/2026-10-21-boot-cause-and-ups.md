@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `docs/d22-boot-cause-and-ups` (renamed from `claude/linux-security-research-eb820b` on the owner's word), in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` (made by the app for this session) |
 | **Commits** | one commit on `docs/d22-boot-cause-and-ups` holding the change and this record (its hash is in the pull request); committed without the pre-commit hook, see Skipped items |
-| **Status** | Edits verified (verifier FAIL, repaired, follow-up PASS); COMPLETE; committed and opened as a pull request on the owner's word (2026-10-21, "Commit + PR, new branch") |
+| **Status** | Edits verified (verifier FAIL, repaired, follow-up PASS); COMPLETE; committed and opened as pull request #27 on the owner's word (2026-10-21, "Commit + PR, new branch"); CI `Full gate (Ubuntu)` SUCCESS on #27; merged by the owner as `01cbdce` (2026-10-21T22:04:07Z) |
 | **Change type** | ops (plan amendment; documentation only) |
 
 ## Task Contract
@@ -57,12 +57,11 @@
 
 ## 5. Close Out
 
-- [ ] Full gate: documentation only, so CI runs it on the pull request, if the owner asks for one.
+- [x] Full gate: CI `Full gate (Ubuntu)` SUCCESS on pull request #27 (read with `gh pr view 27`, 2026-10-21), merged as `01cbdce`.
 - [x] Review and commit: verifier FAIL, repaired, follow-up PASS; committed on `docs/d22-boot-cause-and-ups` and opened as a pull request on the owner's word (see Status).
 
 ## Skipped items — visible, never silent
 
-- Full gate: documentation only; CI runs it on a pull request, if the owner asks for one.
 - Follow-up nit 1 (units held back for charge could fail a required check and count against a good image) resolved by the owner's ruling, 2026-10-21, option B of three (A: do not count those boots; B: no update applied while on battery; C: leave it to the build task): "B: no update on battery". Written into §4.1's UPS bullet and the D22 row as the owner's text; added after the two review rounds, so it has no verifier pass (AGENTS.md §5 allows no third round); CI's full gate covers the documentation checks.
 - Pre-commit hook: not run. Installing it (`git config core.hooksPath scripts/quality/hooks`) was refused by the sandbox (`could not lock config file .../.git/config: Operation not permitted`), and gitleaks is not installed on this Mac. Its other two checks were run by hand on the staged change: `git diff --cached --check` clean, `repo_hygiene.py` exit 0 with this record indexed. The secret scan runs in CI's full gate on the pull request. Installing the hook in this clone is the owner's step.
 - Backlog nit from the follow-up pass, not pursued: (2) once a flapping UPS is no longer obeyed, a real low battery ends in a power cut, which the help text should say.

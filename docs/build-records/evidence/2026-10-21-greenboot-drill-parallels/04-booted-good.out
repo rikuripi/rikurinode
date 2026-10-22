@@ -1,0 +1,62 @@
++ uptime
+ 23:39:38 up 0 min,  1 user,  load average: 1.35, 0.32, 0.11
++ journalctl --list-boots --no-pager
++ tail -3
+IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
+ -1 5eb597858be54077844774d3309abc28 Wed 2026-10-21 23:00:27 +13 Wed 2026-10-21 23:39:15 +13
+  0 32a332cb7dc24c48a28675dd2ffdf81f Thu 2026-10-22 12:39:22 +13 Wed 2026-10-21 23:39:38 +13
++ rpm -q greenboot bootc
+greenboot-0.16.4-0.fc44.aarch64
+bootc-1.17.1-1.fc44.aarch64
++ sudo -n bootc status --format humanreadable
+● Booted image: containers-storage:localhost/rikuri-os:good
+        Digest: sha256:a2562a956bd16ee8bed71bf01208b04c754c2d3dfdc33177d15d2dc9c55d9d81 (arm64)
+       Version: 44.20261021.0 (2026-10-21T10:38:12Z)
+
+  Rollback ostree
+           Commit: 9927129bba1220bb14b87702588f391a5227e900be900757308133c150ffadf3
++ sudo -n grub2-editenv /boot/grub2/grubenv list
+boot_success=1
++ sudo -n journalctl -b -u greenboot-healthcheck --no-pager
++ tail -12
+Oct 21 23:39:27 rikuri-drill greenboot[849]:  INFO  greenboot::greenboot > running required check /usr/lib/greenboot/check/required.d/02_watchdog.sh
+Oct 21 23:39:27 rikuri-drill greenboot[849]:  INFO  greenboot::greenboot > required script /usr/lib/greenboot/check/required.d/02_watchdog.sh success!
+Oct 21 23:39:27 rikuri-drill greenboot[849]:  INFO  greenboot::greenboot > No watchdog on the system, skipping check
+Oct 21 23:39:27 rikuri-drill greenboot[849]:  INFO  greenboot::greenboot > running wanted check /usr/lib/greenboot/check/wanted.d/01_update_platforms_check.sh
+Oct 21 23:39:28 rikuri-drill greenboot[849]:  INFO  greenboot::greenboot > wanted script /usr/lib/greenboot/check/wanted.d/01_update_platforms_check.sh success!
+Oct 21 23:39:28 rikuri-drill greenboot[849]:  INFO  greenboot::greenboot > We can connect to all update platforms
+Oct 21 23:39:28 rikuri-drill greenboot[849]:  INFO  greenboot            > greenboot health-check passed.
+Oct 21 23:39:28 rikuri-drill greenboot[849]:  INFO  greenboot            > Initial /boot mount state: rw
+Oct 21 23:39:28 rikuri-drill greenboot[849]:  INFO  greenboot            > /boot is already rw; no remount needed
+Oct 21 23:39:28 rikuri-drill greenboot[849]:  INFO  greenboot::grub      > Set grubenv: boot_success=1
+Oct 21 23:39:28 rikuri-drill greenboot[849]:  INFO  greenboot::grub      > Clear grubenv: boot_counter
+Oct 21 23:39:28 rikuri-drill systemd[1]: Finished greenboot-healthcheck.service - Greenboot Health Checks Runner.
++ sudo -n journalctl -b -1 -u greenboot-set-rollback-trigger -u ostree-finalize-staged --no-pager
++ tail -12
+Oct 21 23:39:15 rikuri-drill ostree[2780]: Completed freeze/thaw cycle for boot in 78 ms
+Oct 21 23:39:15 rikuri-drill ostree[2780]: Starting freeze/thaw cycle for boot
+Oct 21 23:39:15 rikuri-drill ostree[2780]: Completed freeze/thaw cycle for boot in 2 ms
+Oct 21 23:39:15 rikuri-drill ostree[2780]: Bootloader updated; bootconfig swap: yes; bootversion: boot.1.1, deployment count change: 1
+Oct 21 23:39:15 rikuri-drill ostree[2780]: Bootloader updated; bootconfig swap: yes; bootversion: boot.1.1, deployment count change: 1
+Oct 21 23:39:15 rikuri-drill ostree[2780]: Finished writing deployment
+Oct 21 23:39:15 rikuri-drill ostree[2780]: Starting syncfs for system repo
+Oct 21 23:39:15 rikuri-drill ostree[2780]: Completed syncfs() for system repo in 4 ms
+Oct 21 23:39:15 rikuri-drill ostree[2780]: Cleanup complete
+Oct 21 23:39:15 rikuri-drill systemd[1]: ostree-finalize-staged.service: Deactivated successfully.
+Oct 21 23:39:15 rikuri-drill systemd[1]: Stopped ostree-finalize-staged.service - OSTree Finalize Staged Deployment.
+Oct 21 23:39:15 rikuri-drill systemd[1]: ostree-finalize-staged.service: Consumed 2.756s CPU time over 13.564s wall clock time, 594.7M memory peak.
++ sudo -n journalctl -b -1 --no-pager
++ tail -8
++ grep -i -E 'rollback.trigger|greenboot'
+Oct 21 23:38:28 rikuri-drill zealous_stonebraker[2540]: greenboot-0.16.4-0.fc44.aarch64
+Oct 21 23:38:28 rikuri-drill sudo[2565]:    drill : PWD=/var/home/drill ; USER=root ; COMMAND=/usr/sbin/podman run --rm localhost/rikuri-os:good cat /usr/lib/systemd/system/greenboot-set-rollback-trigger.service
+Oct 21 23:38:29 rikuri-drill busy_benz[2601]: Description=Greenboot Rollback trigger
+Oct 21 23:38:29 rikuri-drill busy_benz[2601]: ExecStop=/usr/libexec/greenboot/greenboot set-rollback-trigger
+Oct 21 23:39:11 rikuri-drill systemd[1]: Stopped target greenboot-success.target - GreenBoot Healthcheck Success Target.
+Oct 21 23:39:11 rikuri-drill systemd[1]: greenboot-healthcheck.service: Deactivated successfully.
+Oct 21 23:39:11 rikuri-drill audit[1]: SERVICE_STOP pid=1 uid=0 auid=4294967295 ses=4294967295 subj=system_u:system_r:init_t:s0 msg='unit=greenboot-healthcheck comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+Oct 21 23:39:11 rikuri-drill systemd[1]: Stopped greenboot-healthcheck.service - Greenboot Health Checks Runner.
++ sudo -n tee /var/drill-marker
+++ date -u +%FT%TZ
++ echo 'drill marker written 2026-10-21T10:39:49Z on rikuri-os:good'
+drill marker written 2026-10-21T10:39:49Z on rikuri-os:good

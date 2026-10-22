@@ -1,0 +1,20 @@
++ mkdir -p /home/drill/drill/broken /home/drill/drill/good2
++ cat
++ cat
++ cat /home/drill/drill/broken/Containerfile /home/drill/drill/good2/Containerfile
+FROM localhost/rikuri-os:good
+RUN printf "#!/bin/bash\necho \"drill: deliberate required-check failure\" >&2\nexit 1\n" > /etc/greenboot/check/required.d/99-drill-fail.sh && chmod 0755 /etc/greenboot/check/required.d/99-drill-fail.sh
+LABEL rikuri.drill=broken
+FROM localhost/rikuri-os:good
+LABEL rikuri.drill=good2
++ sudo -n podman build --network=none -t localhost/rikuri-os:broken /home/drill/drill/broken
++ tail -2
+Successfully tagged localhost/rikuri-os:broken
+ed590c2eeb643327c1b3ef8a24aa8834140fca0de3079662d0a0a6c2c45f1519
++ sudo -n podman build --network=none -t localhost/rikuri-os:good2 /home/drill/drill/good2
++ tail -2
+Successfully tagged localhost/rikuri-os:good2
+efe0ec32fc68b6574bdb70e35179a917493257627e3b6c6823a75e0f68a112a0
++ sudo -n podman run --rm localhost/rikuri-os:broken ls -l /etc/greenboot/check/required.d/
+total 4
+-rwxr-xr-x. 1 root root 71 Oct 21 10:40 99-drill-fail.sh

@@ -56,6 +56,13 @@ GREENBOOT_EXPECTED = {
     "GREENBOOT_MAX_BOOT_ATTEMPTS": "3",
     "DISABLED_HEALTHCHECKS": ["01_repository_dns_check.sh"],
 }
+# D22 against greenboot-rs #219: before greenboot reads its rollback trigger, a
+# check clears it when the update it names was never applied. The drop-in must
+# run it with "-", so a failure of the check leaves greenboot's own behaviour.
+# Record: docs/build-records/2026-10-22-d22-unapplied-update.md
+UNAPPLIED_CHECK = "usr/libexec/rikuri/greenboot-unapplied-update"
+UNAPPLIED_DROPIN = "usr/lib/systemd/system/greenboot-healthcheck.service.d/50-rikuri-unapplied-update.conf"
+UNAPPLIED_EXEC = "ExecStartPre=-/" + UNAPPLIED_CHECK
 # The one form of a line read alike by greenboot and this check (the docstring).
 PRINTABLE_LINE = re.compile(rb"^[\x20-\x7e]*$")
 KEY_LINE = re.compile(rb"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
@@ -222,6 +229,30 @@ def check_greenboot(root: str) -> list:
     return found
 
 
+def check_unapplied_update(root: str) -> list:
+    found = []
+    path = _regular(root, UNAPPLIED_CHECK)
+    if path is None:
+        found.append("%s: missing, or not a regular file (an update never applied would roll "
+                     "the node back, greenboot-rs #219)" % UNAPPLIED_CHECK)
+    elif not os.lstat(path).st_mode & 0o111:
+        found.append("%s: not executable" % UNAPPLIED_CHECK)
+    text = _read(root, UNAPPLIED_DROPIN)
+    if text is None:
+        return found + ["%s: missing, or not a regular file" % UNAPPLIED_DROPIN]
+    section, runs = None, False
+    for line in text.splitlines():
+        line = line.strip()
+        if line.startswith("[") and line.endswith("]"):
+            section = line
+        elif section == "[Service]" and line == UNAPPLIED_EXEC:
+            runs = True
+    if not runs:
+        found.append("%s: does not run the check as greenboot's pre-step (expected the line %r "
+                     "under [Service])" % (UNAPPLIED_DROPIN, UNAPPLIED_EXEC))
+    return found
+
+
 def secret_forms(rel: str, data: bytes) -> list:
     """Why a file's contents may not be in a public image, if they may not."""
     found = []
@@ -286,7 +317,7 @@ def check_no_private_keys(root: str, note=lambda line: None) -> list:
 
 
 def check_root(root: str, release: str, note=lambda line: None) -> list:
-    return (check_os_release(root, release) + check_greenboot(root)
+    return (check_os_release(root, release) + check_greenboot(root) + check_unapplied_update(root)
             + check_no_private_keys(root, note))
 
 

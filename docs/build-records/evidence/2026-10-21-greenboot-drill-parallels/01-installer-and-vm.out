@@ -1,0 +1,17 @@
+# 01-installer and 02-vm (on the Mac), 2026-10-21
+gpgv: Good signature from "Fedora (44) <fedora-44-primary@fedoraproject.org>", key 36F612DCF27F7D1A48A835E4DBFCF71C6D9F90A6, made Mon Apr 27 11:04:14 2026 PDT
+621912a5fe82dfee1bcd330d6fdacda9b5dc77a31cc31a270c7ff2e6877c7196  Fedora-IoT-ostree-44-20260427.0.aarch64.iso
+Fedora-IoT-ostree-44-20260427.0.aarch64.iso: OK
+
+download page SHA-256: 621912a5fe82dfee1bcd330d6fdacda9b5dc77a31cc31a270c7ff2e6877c7196 (same)
+
+prlctl version 27.0.3 (58680)
+ID: {da4fc508-3520-44b2-becf-6e78fd15fafa}
+Name: rikuri-drill
+OS: fedora-core
+Boot order: cdrom0 hdd0
+  cpu cpus=2 auto=off VT-x accl=high mode=64 type=arm
+  memory size=4096Mb auto=off
+  hdd0 (+) sata:0 image='/Users/hchome/Parallels/rikuri-drill.pvm/harddisk.hdd' type='expanded' 32768Mb online-compact=on
+  cdrom0 (+) sata:1 image='/tmp/claude-501/-Users-hchome-rikurinode--claude-worktrees-linux-security-research-eb820b/6355243c-f47e-42c9-be0d-3a577a668937/scratchpad/iot-iso/Fedora-IoT-ostree-44-20260427.0.aarch64.iso'
+  net0 (+) type=shared mac=001C428D4177 card=virtio

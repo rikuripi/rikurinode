@@ -193,8 +193,10 @@ proven by a drill before it is trusted.
   Core answers RPC (an initial sync in progress is healthy, an answer that
   stops advancing is not); LND's process answers (a locked wallet is healthy);
   Tor finishes bootstrapping; the data disk is mounted by its UUID. If a
-  required check fails three boots in a row, the node boots the previous
-  image and says so on its status page and in an alert.
+  required check fails on four boots in a row (the first failure sets
+  greenboot's counter to its three attempts; observed 2026-10-21,
+  `docs/build-records/2026-10-21-greenboot-drill-parallels.md`), the node
+  boots the previous image and says so on its status page and in an alert.
 - **How the checks see the node** (review of 2026-10-16). The required
   checks ask the control plane's health endpoint on loopback and wait within
   a bound; the control plane judges the units (system units since D13, so

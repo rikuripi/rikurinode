@@ -1,0 +1,120 @@
++ for n in broken a b
++ mkdir -p /home/drill/drill/fix-broken
++ for n in broken a b
++ mkdir -p /home/drill/drill/fix-a
++ for n in broken a b
++ mkdir -p /home/drill/drill/fix-b
++ printf 'FROM localhost/rikuri-os:fix\nRUN printf "#!/bin/bash\\necho \\"drill: deliberate required-check failure\\" >&2\\nexit 1\\n" > /etc/greenboot/check/required.d/99-drill-fail.sh && chmod 0755 /etc/greenboot/check/required.d/99-drill-fail.sh\nLABEL rikuri.drill=fix-broken\n'
++ printf 'FROM localhost/rikuri-os:fix\nLABEL rikuri.drill=fix-a\n'
++ printf 'FROM localhost/rikuri-os:fix\nLABEL rikuri.drill=fix-b\n'
++ cat /home/drill/drill/fix-broken/Containerfile
+FROM localhost/rikuri-os:fix
+RUN printf "#!/bin/bash\necho \"drill: deliberate required-check failure\" >&2\nexit 1\n" > /etc/greenboot/check/required.d/99-drill-fail.sh && chmod 0755 /etc/greenboot/check/required.d/99-drill-fail.sh
+LABEL rikuri.drill=fix-broken
++ for n in broken a b
++ sudo -n podman build --network=none -t localhost/rikuri-os:fix-broken /home/drill/drill/fix-broken
++ tail -1
+eae7f37f4ca8d971370fa6e4aa04491bdba4d3f65b4716b93fba80172c6152de
++ for n in broken a b
++ sudo -n podman build --network=none -t localhost/rikuri-os:fix-a /home/drill/drill/fix-a
++ tail -1
+cc31cb8bc5146a60e3c6eb99f3359e227d3c182597167f4e922c16205c730196
++ for n in broken a b
++ sudo -n podman build --network=none -t localhost/rikuri-os:fix-b /home/drill/drill/fix-b
++ tail -1
+30236bd828afb67f3981a45187291b7c5ba6553b18fc05364cc406e5366c5933
++ sudo -n podman run --rm localhost/rikuri-os:fix-broken cat /etc/greenboot/check/required.d/99-drill-fail.sh
+#!/bin/bash
+echo "drill: deliberate required-check failure" >&2
+exit 1
++ sudo -n bootc switch --transport containers-storage localhost/rikuri-os:fix-broken
++ tail -1
+  Digest: sha256:f2abd9c82777f5d7a213a946aabc0a494a5e174e4fb3605fd9535d0d36bd965b
++ journalctl --list-boots --no-pager
++ tail -6
+ -5 6c70844b21de4b469f53f499a64fcec3 Thu 2026-10-22 13:20:28 +13 Thu 2026-10-22 00:22:00 +13
+ -4 c1e404ba1986462baa3d73691f5dd994 Thu 2026-10-22 13:22:07 +13 Thu 2026-10-22 00:22:13 +13
+ -3 f63ee5f1cc3947c6b8b708b97c5de2bf Thu 2026-10-22 13:22:19 +13 Thu 2026-10-22 00:22:24 +13
+ -2 0758abc09fc946ecaa83eedf54a57f9d Thu 2026-10-22 13:22:30 +13 Thu 2026-10-22 00:22:35 +13
+ -1 35f03ac07f6847ec86eb1c798d957f2a Thu 2026-10-22 13:22:41 +13 Thu 2026-10-22 00:22:47 +13
+  0 916431618f994f71a44ee0d14998ea95 Thu 2026-10-22 13:22:53 +13 Thu 2026-10-22 00:23:48 +13
++ sudo -n bootc status --format humanreadable
+● Booted image: containers-storage:localhost/rikuri-os:fix
+        Digest: sha256:d85585f93738e60c3ad23d9ceb8be7067ffae1f0bb0af3de3a6ddf767cae69ab (arm64)
+       Version: 44.20261021.0 (2026-10-21T11:19:56Z)
+
+  Rollback image: containers-storage:localhost/rikuri-os:fix-broken
+          Digest: sha256:f2abd9c82777f5d7a213a946aabc0a494a5e174e4fb3605fd9535d0d36bd965b (arm64)
+         Version: 44.20261021.0 (2026-10-21T11:21:34Z)
+== boot -4
++ for b in -4 -3 -2 -1 0
++ echo '== boot -4'
++ sudo -n journalctl -b -4 --no-pager -o short-monotonic
++ grep -E 'rikuri-unapplied-update|greenboot\[|bootc\['
++ grep -E 'rikuri-unapplied|counter|exhausted|Rolling back|Rollback|FALLBACK|health-check passed|99-drill-fail.sh failed|image":\{"image"'
++ sed -E 's/,"transport.*$//; s/.*status.booted.image: .*"image":"/  booted /'
++ cut -c1-200
+[    6.748772] rikuri-drill greenboot-unapplied-update[859]: rikuri-unapplied-update: update sha256:f2abd9c82777f5d7a213a946aabc0a494a5e174e4fb3605fd9535d0d36bd965b booted and is on trial; greenboot d
+  booted localhost/rikuri-os:fix-broken"
+[    7.049682] rikuri-drill greenboot[889]:  ERROR greenboot::greenboot > required script /etc/greenboot/check/required.d/99-drill-fail.sh failed!
+[    7.072916] rikuri-drill greenboot[889]:  INFO  greenboot            > First health check failure, setting boot counter to 3
+[    7.084687] rikuri-drill greenboot[889]:  INFO  greenboot::grub      > boot_counter does not exists
+[    7.084687] rikuri-drill greenboot[889]:  INFO  greenboot::grub      > setting boot counter
+[    7.097642] rikuri-drill greenboot[889]:  INFO  greenboot::grub      > Set grubenv: boot_counter=3
+== boot -3
++ for b in -4 -3 -2 -1 0
++ echo '== boot -3'
++ sudo -n journalctl -b -3 --no-pager -o short-monotonic
++ grep -E 'rikuri-unapplied-update|greenboot\[|bootc\['
++ grep -E 'rikuri-unapplied|counter|exhausted|Rolling back|Rollback|FALLBACK|health-check passed|99-drill-fail.sh failed|image":\{"image"'
++ cut -c1-200
++ sed -E 's/,"transport.*$//; s/.*status.booted.image: .*"image":"/  booted /'
+[    5.924397] rikuri-drill greenboot-unapplied-update[837]: rikuri-unapplied-update: update sha256:f2abd9c82777f5d7a213a946aabc0a494a5e174e4fb3605fd9535d0d36bd965b booted and is on trial; greenboot d
+  booted localhost/rikuri-os:fix-broken"
+[    6.215012] rikuri-drill greenboot[868]:  ERROR greenboot::greenboot > required script /etc/greenboot/check/required.d/99-drill-fail.sh failed!
+[    6.245505] rikuri-drill greenboot[868]:  INFO  greenboot            > Boot counter is 2, rebooting to try again
+== boot -2
++ for b in -4 -3 -2 -1 0
++ echo '== boot -2'
++ sudo -n journalctl -b -2 --no-pager -o short-monotonic
++ grep -E 'rikuri-unapplied-update|greenboot\[|bootc\['
++ grep -E 'rikuri-unapplied|counter|exhausted|Rolling back|Rollback|FALLBACK|health-check passed|99-drill-fail.sh failed|image":\{"image"'
++ cut -c1-200
++ sed -E 's/,"transport.*$//; s/.*status.booted.image: .*"image":"/  booted /'
+[    6.037318] rikuri-drill greenboot-unapplied-update[845]: rikuri-unapplied-update: update sha256:f2abd9c82777f5d7a213a946aabc0a494a5e174e4fb3605fd9535d0d36bd965b booted and is on trial; greenboot d
+  booted localhost/rikuri-os:fix-broken"
+[    6.303388] rikuri-drill greenboot[879]:  ERROR greenboot::greenboot > required script /etc/greenboot/check/required.d/99-drill-fail.sh failed!
+[    6.328994] rikuri-drill greenboot[879]:  INFO  greenboot            > Boot counter is 1, rebooting to try again
+== boot -1
++ for b in -4 -3 -2 -1 0
++ echo '== boot -1'
++ sudo -n journalctl -b -1 --no-pager -o short-monotonic
++ grep -E 'rikuri-unapplied-update|greenboot\[|bootc\['
++ grep -E 'rikuri-unapplied|counter|exhausted|Rolling back|Rollback|FALLBACK|health-check passed|99-drill-fail.sh failed|image":\{"image"'
++ sed -E 's/,"transport.*$//; s/.*status.booted.image: .*"image":"/  booted /'
++ cut -c1-200
+[    6.050014] rikuri-drill greenboot-unapplied-update[841]: rikuri-unapplied-update: update sha256:f2abd9c82777f5d7a213a946aabc0a494a5e174e4fb3605fd9535d0d36bd965b booted and is on trial; greenboot d
+  booted localhost/rikuri-os:fix-broken"
+[    6.335743] rikuri-drill greenboot[873]:  ERROR greenboot::greenboot > required script /etc/greenboot/check/required.d/99-drill-fail.sh failed!
+[    6.365033] rikuri-drill greenboot[873]:  INFO  greenboot            > Boot counter exhausted and next-deployment-id is set - initiating rollback
+  booted localhost/rikuri-os:fix-broken"
+[    6.455676] rikuri-drill bootc[942]: Rolling back to image: sha256:d85585f93738e60c3ad23d9ceb8be7067ffae1f0bb0af3de3a6ddf767cae69ab
+[    7.060042] rikuri-drill greenboot[873]:  INFO  greenboot            > Rollback successful
+[    7.095559] rikuri-drill greenboot[873]:  INFO  greenboot::grub      > Clear grubenv: boot_counter
+== boot 0
++ for b in -4 -3 -2 -1 0
++ echo '== boot 0'
++ sudo -n journalctl -b 0 --no-pager -o short-monotonic
++ grep -E 'rikuri-unapplied-update|greenboot\[|bootc\['
++ grep -E 'rikuri-unapplied|counter|exhausted|Rolling back|Rollback|FALLBACK|health-check passed|99-drill-fail.sh failed|image":\{"image"'
++ sed -E 's/,"transport.*$//; s/.*status.booted.image: .*"image":"/  booted /'
++ cut -c1-200
+[    6.513800] rikuri-drill greenboot-unapplied-update[833]: rikuri-unapplied-update: no rollback trigger set; nothing to do
+  booted localhost/rikuri-os:fix"
+[    6.820837] rikuri-drill greenboot[855]:  INFO  greenboot          > FALLBACK BOOT DETECTED! Default bootc deployment has been rolled back.
+  booted localhost/rikuri-os:fix"
+[    7.084067] rikuri-drill greenboot[855]:  INFO  greenboot            > greenboot health-check passed.
+  booted localhost/rikuri-os:fix"
+[    7.205877] rikuri-drill greenboot[855]:  INFO  greenboot::grub      > Clear grubenv: boot_counter
+drill marker written 2026-10-21T10:39:49Z on rikuri-os:good
++ cat /var/drill-marker

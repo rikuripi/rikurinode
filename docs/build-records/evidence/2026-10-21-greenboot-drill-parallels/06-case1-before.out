@@ -1,0 +1,38 @@
++ sudo -n bootc switch --transport containers-storage localhost/rikuri-os:broken
++ tail -3
+Queued for next boot: ostree-unverified-image:containers-storage:localhost/rikuri-os:broken
+  Version: 44.20261021.0
+  Digest: sha256:46aaa8c2e96cc1b6865760f67993b39191eb6f53f697bc2baf8530909b629573
++ sudo -n bootc status --format humanreadable
+  Staged image: containers-storage:localhost/rikuri-os:broken
+        Digest: sha256:46aaa8c2e96cc1b6865760f67993b39191eb6f53f697bc2baf8530909b629573 (arm64)
+       Version: 44.20261021.0 (2026-10-21T10:40:10Z)
+
+● Booted image: containers-storage:localhost/rikuri-os:good
+        Digest: sha256:a2562a956bd16ee8bed71bf01208b04c754c2d3dfdc33177d15d2dc9c55d9d81 (arm64)
+       Version: 44.20261021.0 (2026-10-21T10:38:12Z)
+
+  Rollback ostree
+           Commit: 9927129bba1220bb14b87702588f391a5227e900be900757308133c150ffadf3
++ systemctl status greenboot-set-rollback-trigger.service --no-pager
++ head -6
+● greenboot-set-rollback-trigger.service - Greenboot Rollback trigger
+     Loaded: loaded (/usr/lib/systemd/system/greenboot-set-rollback-trigger.service; enabled; preset: disabled)
+    Drop-In: /usr/lib/systemd/system/service.d
+             └─10-timeout-abort.conf
+     Active: active (exited) since Wed 2026-10-21 23:42:02 +13; 4s ago
+ Invocation: 7b3b376935da456a98d4755671c5c933
++ systemctl show -p ActiveState,DefaultDependencies,Conflicts,Before,After,RequiresMountsFor greenboot-set-rollback-trigger.service
+Conflicts=
+Before=
+After=boot.mount systemd-journald.socket rpm-ostreed.service -.mount ostree-finalize-staged.service system.slice
+RequiresMountsFor=/boot
+ActiveState=active
+DefaultDependencies=no
++ systemctl show -p Conflicts,Before boot.mount
+Conflicts=umount.target
+Before=ostree-boot-complete.service greenboot-set-rollback-trigger.service rpm-ostreed.service ignition-firstboot-complete.service ostree-finalize-staged.service dracut-shutdown.service ostree-finalize-staged-hold.service local-fs.target umount.target greenboot-healthcheck.service boot-efi.mount rpm-ostree-fix-shadow-mode.service
++ systemctl is-active ostree-finalize-staged.service
+active
++ sudo -n grub2-editenv /boot/grub2/grubenv list
+boot_success=1

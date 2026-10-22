@@ -1,0 +1,62 @@
+# repair 1: repo commit c611d6b85a9513c301e4d9dac4b6f86642088ebf
+e9a56ca74dea1341348e57a6f9b75b3af38e362d10cbe633d681093a0f1ac1f0  ./Containerfile
+c20cd1350c08d973a61ca223a4d4c9f992298ad94045fb47e747af8318087d56  ./check_image_root.py
+038243e8e39e0ffe9e92ac486349e7655f3c8712b982fbcd937ea6207dda5cc5  ./rootfs/etc/greenboot/greenboot.conf
+92d45efa5586cad03214b05c864a53604ef747ddceea4d1de20da195afff6117  ./rootfs/usr/lib/systemd/system/greenboot-healthcheck.service.d/50-rikuri-unapplied-update.conf
+d342f3118f43efe3279e473b6a6456d5a0b339ab09d3056ab2dfd66a073653ad  ./rootfs/usr/libexec/rikuri/__pycache__/greenboot-unapplied-updatecpython-313.pyc
+1cb2a2d63207c7dca4b951749af9557f613511356aa139c79e775ccdf0bfeb69  ./rootfs/usr/libexec/rikuri/greenboot-unapplied-update
+4936753cdcf167446f0d1b581194c04d94ef57d116a7eda003f4053e2715288c  ./tests/test_check_image_root.py
+00df58e45877aeae45e40920413f469e2d65b23309757cbfeb912deb5ac36d70  ./tests/test_greenboot_unapplied_update.py
++ cd /home/drill/image-fix2
++ find . -type f
++ sort
++ xargs sha256sum
+e9a56ca74dea1341348e57a6f9b75b3af38e362d10cbe633d681093a0f1ac1f0  ./Containerfile
+c20cd1350c08d973a61ca223a4d4c9f992298ad94045fb47e747af8318087d56  ./check_image_root.py
+038243e8e39e0ffe9e92ac486349e7655f3c8712b982fbcd937ea6207dda5cc5  ./rootfs/etc/greenboot/greenboot.conf
+92d45efa5586cad03214b05c864a53604ef747ddceea4d1de20da195afff6117  ./rootfs/usr/lib/systemd/system/greenboot-healthcheck.service.d/50-rikuri-unapplied-update.conf
+d342f3118f43efe3279e473b6a6456d5a0b339ab09d3056ab2dfd66a073653ad  ./rootfs/usr/libexec/rikuri/__pycache__/greenboot-unapplied-updatecpython-313.pyc
+1cb2a2d63207c7dca4b951749af9557f613511356aa139c79e775ccdf0bfeb69  ./rootfs/usr/libexec/rikuri/greenboot-unapplied-update
+4936753cdcf167446f0d1b581194c04d94ef57d116a7eda003f4053e2715288c  ./tests/test_check_image_root.py
+00df58e45877aeae45e40920413f469e2d65b23309757cbfeb912deb5ac36d70  ./tests/test_greenboot_unapplied_update.py
++ B=registry.fedoraproject.org/fedora-iot@sha256:d862d94f86d4ebb72bb95d8c333bdbfcf1c95d07e11350b2a2eab3e34cec1421
++ sudo -n podman build --pull=never --network=none --from registry.fedoraproject.org/fedora-iot@sha256:d862d94f86d4ebb72bb95d8c333bdbfcf1c95d07e11350b2a2eab3e34cec1421 -t localhost/rikuri-os:fix2 /home/drill/image-fix2
++ grep -E 'Checks passed|Successfully tagged'
+Checks passed: 14
+Successfully tagged localhost/rikuri-os:fix2
+++ sudo -n podman image mount localhost/rikuri-os:fix2
++ R=/var/lib/containers/storage/overlay/b7d0caf315e661e4821e1642c8263b1ea999b6fd800072c9d0b8dd6e3715afd9/merged
++ sudo -n python3 -I /home/drill/image-fix2/check_image_root.py /var/lib/containers/storage/overlay/b7d0caf315e661e4821e1642c8263b1ea999b6fd800072c9d0b8dd6e3715afd9/merged --fedora 44
++ tail -1
+check_image_root: 0 finding(s) in /var/lib/containers/storage/overlay/b7d0caf315e661e4821e1642c8263b1ea999b6fd800072c9d0b8dd6e3715afd9/merged (Fedora 44 expected)
++ sudo -n podman image unmount localhost/rikuri-os:fix2
++ for n in broken a
++ mkdir -p /home/drill/drill/fix2-broken
++ sed 's/rikuri-os:fix$/rikuri-os:fix2/; s/rikuri-os:fix\\n/rikuri-os:fix2\\n/; s/^FROM localhost\/rikuri-os:fix$/FROM localhost\/rikuri-os:fix2/; s/fix-broken/fix2-broken/' /home/drill/drill/fix-broken/Containerfile
++ head -1 /home/drill/drill/fix2-broken/Containerfile
+FROM localhost/rikuri-os:fix2
++ sudo -n podman build --network=none -t localhost/rikuri-os:fix2-broken /home/drill/drill/fix2-broken
++ tail -1
+b0baa8cb1cb038e1c01ea2066eb7cbc1ba2be40d81a6b64aeaa1d9a281ceecfb
++ for n in broken a
++ mkdir -p /home/drill/drill/fix2-a
+FROM localhost/rikuri-os:fix2
++ sed 's/rikuri-os:fix$/rikuri-os:fix2/; s/rikuri-os:fix\\n/rikuri-os:fix2\\n/; s/^FROM localhost\/rikuri-os:fix$/FROM localhost\/rikuri-os:fix2/; s/fix-a/fix2-a/' /home/drill/drill/fix-a/Containerfile
++ head -1 /home/drill/drill/fix2-a/Containerfile
++ sudo -n podman build --network=none -t localhost/rikuri-os:fix2-a /home/drill/drill/fix2-a
++ tail -1
+adf88163a6d715a0e1cb4d60fe5072784468c1ca70cf83b5b5325df871a23c60
++ sudo -n bootc switch --transport containers-storage localhost/rikuri-os:fix2
++ tail -1
+  Digest: sha256:51a67a77b9f58cba1ac6edd931e430bc2d496c5e8abf1a6fed2629b36470d262
++ sudo -n systemctl reboot
+Connection to 10.37.129.3 closed by remote host.
++ sudo -n bootc status --format humanreadable
++ head -3
+● Booted image: containers-storage:localhost/rikuri-os:fix2
+        Digest: sha256:51a67a77b9f58cba1ac6edd931e430bc2d496c5e8abf1a6fed2629b36470d262 (arm64)
+       Version: 44.20261021.0 (2026-10-21T11:40:15Z)
++ sudo -n journalctl -b 0 --no-pager
++ grep rikuri-unapplied-update
++ cut -c1-200
+Oct 22 00:40:52 rikuri-drill greenboot-unapplied-update[844]: rikuri-unapplied-update: update sha256:51a67a77b9f58cba1ac6edd931e430bc2d496c5e8abf1a6fed2629b36470d262 booted and is on trial; greenboot

@@ -1,0 +1,26 @@
++ mkdir -p /home/drill/drill/good3
++ printf 'FROM localhost/rikuri-os:good\nLABEL rikuri.drill=good3\n'
++ sudo -n podman build --network=none -t localhost/rikuri-os:good3 /home/drill/drill/good3
++ tail -1
+0b9a8ddf3fad9a9127d50a2dedde6c67f2bd4b9e2c54c5bca3fcc4991cde9a05
++ sudo -n bootc switch --transport containers-storage localhost/rikuri-os:good2
++ tail -2
+  Version: 44.20261021.0
+  Digest: sha256:5a216136f093671a68f650352767aaaa68c09aad5a6c35b1ba2059a2da95a4a3
++ sudo -n systemctl reboot
+Connection to 10.37.129.3 closed by remote host.
++ sudo -n bootc status --format humanreadable
+● Booted image: containers-storage:localhost/rikuri-os:good2
+        Digest: sha256:5a216136f093671a68f650352767aaaa68c09aad5a6c35b1ba2059a2da95a4a3 (arm64)
+       Version: 44.20261021.0 (2026-10-21T10:40:10Z)
+
+  Rollback image: containers-storage:localhost/rikuri-os:good
+          Digest: sha256:a2562a956bd16ee8bed71bf01208b04c754c2d3dfdc33177d15d2dc9c55d9d81 (arm64)
+         Version: 44.20261021.0 (2026-10-21T10:38:12Z)
++ sudo -n grub2-editenv /boot/grub2/grubenv list
+boot_success=1
++ systemctl is-active greenboot-healthcheck
+active
++ df -h /boot
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda2       2.0G  208M  1.6G  12% /boot
