@@ -11,9 +11,12 @@ name: OS image
 # docs/build-records/2026-10-22-ci-vm-drill.md
 
 on:
+  # Every pull request starts the workflow, so its jobs can be required checks;
+  # the changes job skips the build and the drill when neither image/ nor this
+  # file changed (a skipped job counts as passed).
+  # Record: docs/build-records/2026-10-22-image-workflow-every-pr.md
   pull_request:
     branches: [main]
-    paths: ["image/**", ".github/workflows/image.yml"]
   push:
     branches: [main]
     paths: ["image/**", ".github/workflows/image.yml"]
@@ -34,8 +37,41 @@ env:
   IMAGE: localhost/rikuri-os:ci
 
 jobs:
+  changes:
+    name: Did the image or its workflow change?
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      image: ${{ steps.diff.outputs.image }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Decide (only a pull request that touches neither may skip)
+        id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          image=true
+          if [ "$EVENT" != "pull_request" ]; then
+            reason="$EVENT: everything runs"
+          elif ! changed="$(git diff --name-only "$BASE" HEAD)"; then
+            reason="the diff against $BASE could not be read: everything runs"
+          elif grep -qE '^(image/|\.github/workflows/image\.yml$)' <<< "$changed"; then
+            reason="the pull request changes image/ or this workflow"
+          else
+            image=false
+            reason="the pull request changes neither image/ nor this workflow: build and drill skipped"
+          fi
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "### Changes: image=$image ($reason)" | tee -a "$GITHUB_STEP_SUMMARY"
+
   build:
     name: Build and check the OS image
+    needs: changes
+    if: needs.changes.outputs.image == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -73,7 +109,8 @@ jobs:
 
   drill:
     name: Boot the image in a VM and run the rollback drill
-    needs: build
+    needs: [changes, build]
+    if: needs.changes.outputs.image == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     steps:
