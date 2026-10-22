@@ -20,6 +20,14 @@ sys.path.insert(0, os.path.join(HERE, ".."))
 import check_image_root as cir  # noqa: E402
 
 SHIPPED_CONF = os.path.join(HERE, "..", "rootfs", "etc", "greenboot", "greenboot.conf")
+# D22 against greenboot-rs #219 (docs/build-records/2026-10-22-d22-unapplied-update.md).
+UNAPPLIED_CHECK = "usr/libexec/rikuri/greenboot-unapplied-update"
+UNAPPLIED_DROPIN = "usr/lib/systemd/system/greenboot-healthcheck.service.d/50-rikuri-unapplied-update.conf"
+
+
+def shipped_file(rel) -> bytes:
+    with open(os.path.join(HERE, "..", "rootfs", rel), "rb") as f:
+        return f.read()
 
 
 def shipped() -> bytes:
@@ -100,6 +108,8 @@ class Root:
                    "#!/bin/sh\n", mode=0o755)
         self.write("usr/lib/greenboot/check/required.d/02_watchdog.sh", "#!/bin/sh\n", mode=0o755)
         self.write_bytes(cir.GREENBOOT_CONF, shipped())
+        self.write_bytes(UNAPPLIED_CHECK, shipped_file(UNAPPLIED_CHECK), mode=0o755)
+        self.write_bytes(UNAPPLIED_DROPIN, shipped_file(UNAPPLIED_DROPIN))
         self.write("etc/ssh/sshd_config", "PermitRootLogin no\n")
 
     def _fresh(self, rel):
@@ -210,6 +220,34 @@ class CheckImageRoot(unittest.TestCase):
                 self.root.remove(rel)
                 os.makedirs(os.path.join(self.root.path, rel))
                 self.assertFinds(fragment)
+
+    # --- the check that keeps an unapplied update from rolling a node back --
+    def test_unapplied_check_missing(self):
+        self.root.remove(UNAPPLIED_CHECK)
+        self.assertFinds(UNAPPLIED_CHECK + ": missing")
+
+    def test_unapplied_check_not_executable(self):
+        self.root.write_bytes(UNAPPLIED_CHECK, shipped_file(UNAPPLIED_CHECK), mode=0o644)
+        self.assertFinds(UNAPPLIED_CHECK + ": not executable")
+
+    def test_unapplied_check_as_link_does_not_count(self):
+        self.root.link(UNAPPLIED_CHECK, "/bin/true")
+        self.assertFinds(UNAPPLIED_CHECK + ": missing")
+
+    def test_dropin_missing(self):
+        self.root.remove(UNAPPLIED_DROPIN)
+        self.assertFinds(UNAPPLIED_DROPIN + ": missing")
+
+    def test_dropin_must_run_the_check(self):
+        for text, why in (("[Service]\n", "no ExecStartPre"),
+                          ("[Service]\nExecStartPre=/usr/libexec/rikuri/greenboot-unapplied-update\n",
+                           "without '-', a crash of the check would fail greenboot"),
+                          ("[Unit]\nExecStartPre=-/usr/libexec/rikuri/greenboot-unapplied-update\n",
+                           "outside [Service]"),
+                          ("[Service]\nExecStartPre=-/usr/libexec/rikuri/other\n", "another program")):
+            with self.subTest(why=why):
+                self.root.write(UNAPPLIED_DROPIN, text)
+                self.assertFinds(UNAPPLIED_DROPIN + ": does not run")
 
     # --- greenboot.conf in the one form greenboot and the check read alike (F1)
     def test_shipped_conf_parses_to_the_expected_values(self):
