@@ -152,6 +152,12 @@ class SerialConsole(unittest.TestCase):
         text = self.EARLIER + "boot again\r\n"
         self.assertTrue(d.trigger_stopped(text + self.NOW, offset=len(text)))
 
+    def test_the_trigger_still_stopping_does_not_count(self):
+        # Follow-up nit: "Stopping" means the trigger is still running.
+        text = "x" * 10
+        self.assertFalse(d.trigger_stopped(text + "         Stopping greenboot-set-rollback-trigger.service - "
+                                                  "Greenboot Rollback trigger...\r\n", offset=len(text)))
+
     def test_finalize_alone_does_not_count(self):
         text = "x" * 10
         self.assertFalse(d.trigger_stopped(text + "Stopping ostree-finalize-staged.service - OSTree Finalize "
