@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/greenboot-drill-parallels`, stacked on `docs/d22-boot-cause-and-ups` (pull request not yet opened; this record cites D22's rule), in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | (fill at close-out) |
-| **Status** | Experiment run, question answered (1 h 45 min of the 4 h budget); verifier FAIL (whitespace), repaired, follow-up PASS; the VM kept pending the owner's decision |
+| **Status** | Experiment run, question answered (1 h 45 min of the 4 h budget); verifier FAIL (whitespace), repaired, follow-up PASS; COMPLETE; VM kept by the owner for later tests |
 | **Change type** | experiment (stage 1, before change 4; evidence only, no image or CI change) |
 
 ## Task Contract
@@ -75,8 +75,9 @@ Each step records its commands' outputs in the evidence folder (`NN-<step>.out`)
 ## 5. Close Out
 
 - [x] Conclusions and the fix task recorded (Results and Conclusion, below); **keep** the procedure as input to option C.
-- [ ] VM, key and settings exceptions removed or handed to the owner.
-- [ ] Commit; push and pull request on the owner's word.
+- [x] VM, key and settings exceptions handed to the owner, who keeps them for later tests (Skipped items).
+- [x] The DNS gap in isolation (step 5) ratified by the owner (2026-10-21, "2. DNS OK").
+- [x] Committed; pushed on the owner's word (2026-10-21, "3. Push now"); D22's pull request #27 had merged meanwhile (`01cbdce`), so this branch's pull request targets `main`.
 
 ## Results
 
@@ -109,9 +110,8 @@ Not proven here: #217 (the first update from the stock 0.16.2 install was a good
 
 ## Skipped items — visible, never silent
 
-- Owner to ratify: the DNS gap in isolation (step 5), accepted by the agent, not by the owner (AGENTS.md §2).
 - Case 3 is timing-dependent: two cuts, one landed after applying, one during. Repeated cuts were not run.
-- The VM is kept, not deleted, until the owner decides whether the fix task reuses it (Close Out).
+- The VM, its key, the passwordless `sudo` and the `excludedCommands` entries are kept, and the session's sandbox stays off: the owner's decision (2026-10-21, "1. Keep rikuri-drill … 4. leave it for now. Takes a while to setup. We may be doing a lot more test along the way as we build."). Reactivate: remove them when the owner says testing is done.
 
 ## Evidence log
 
