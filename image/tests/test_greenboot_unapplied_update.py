@@ -96,6 +96,23 @@ class Decide(unittest.TestCase):
         action, _ = m.decide(NEW, [])
         self.assertEqual(action, "none")
 
+    def test_checksum_trigger_of_the_booted_deployment_is_on_trial(self):
+        # Verifier I1: greenboot arms the trigger with the staged deployment's
+        # ostree checksum when the booted system is not a container image.
+        csum = "1" * 64
+        booted = dict(dep(OLD, booted=True), checksum=csum)
+        action, _ = m.decide(csum, [booted, dep(OLDER)])
+        self.assertEqual(action, "none")
+
+    def test_trigger_that_is_not_an_image_digest_is_unknown(self):
+        # The same mode after an applied update to a container image: the
+        # trigger is a checksum, the booted digest differs; never clear.
+        for trigger in ("1" * 64, "sha256:" + "a" * 63, "sha256:" + "A" * 64, "sha512:" + "a" * 64, NEW + "\n"):
+            with self.subTest(trigger=trigger):
+                action, reason = m.decide(trigger, [dict(dep(OLD, booted=True), checksum="2" * 64), dep(OLDER)])
+                self.assertEqual(action, "none")
+                self.assertIn("unknown", reason)
+
     def test_malformed_deployment_entries_are_unknown(self):
         for deployments in ([None], ["x"], [{"booted": "yes", "container-image-reference-digest": OLD}],
                             [{"booted": True, "container-image-reference-digest": 7}]):
@@ -192,6 +209,28 @@ class Run(unittest.TestCase):
         def run(argv):
             self.calls.append(argv)
             return 1, ""
+        self.assertEqual(m.main(run=run, record_path=self.record), 0)
+        self.assertEqual(len(self.calls), 1)
+
+    def test_failing_rpm_ostree_with_readable_output_leaves_the_trigger(self):
+        # Verifier I2: a non-zero exit counts as unknown even if stdout parses.
+        status = self.status(dep(OLD, booted=True))
+
+        def run(argv):
+            self.calls.append(argv)
+            if argv[2:3] == ["list"]:
+                return 0, "greenboot_next_deployment_id=%s\n" % NEW
+            if argv == [m.RPM_OSTREE, "status", "--json"]:
+                return 1, status
+            raise AssertionError("unexpected command %r" % (argv,))
+        self.assertEqual(m.main(run=run, record_path=self.record), 0)
+        self.assertFalse(any(len(c) > 2 and c[2] == "unset" for c in self.calls))
+        self.assertFalse(os.path.exists(self.record))
+
+    def test_failing_grubenv_read_with_readable_output_leaves_everything(self):
+        def run(argv):
+            self.calls.append(argv)
+            return 1, "greenboot_next_deployment_id=%s\n" % NEW
         self.assertEqual(m.main(run=run, record_path=self.record), 0)
         self.assertEqual(len(self.calls), 1)
 
