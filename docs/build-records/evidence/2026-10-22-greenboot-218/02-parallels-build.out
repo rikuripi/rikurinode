@@ -1,0 +1,52 @@
+# repo commit 04a01ed65724ba298bcf0b341cfd87eb908ee0cd
+038243e8e39e0ffe9e92ac486349e7655f3c8712b982fbcd937ea6207dda5cc5  rootfs/etc/greenboot/greenboot.conf
+92d45efa5586cad03214b05c864a53604ef747ddceea4d1de20da195afff6117  rootfs/usr/lib/systemd/system/greenboot-healthcheck.service.d/50-rikuri-unapplied-update.conf
+5bfb3cc757c5ba12e3fed20c06f4586aef684597fed88d70a32237ddf51b23bc  rootfs/usr/lib/systemd/system/greenboot-set-rollback-trigger.service.d/50-rikuri-run-at-shutdown.conf
+1cb2a2d63207c7dca4b951749af9557f613511356aa139c79e775ccdf0bfeb69  rootfs/usr/libexec/rikuri/greenboot-unapplied-update
++ cd /home/drill/image-fix3
++ find rootfs -type f
++ sort
++ xargs sha256sum
+038243e8e39e0ffe9e92ac486349e7655f3c8712b982fbcd937ea6207dda5cc5  rootfs/etc/greenboot/greenboot.conf
+92d45efa5586cad03214b05c864a53604ef747ddceea4d1de20da195afff6117  rootfs/usr/lib/systemd/system/greenboot-healthcheck.service.d/50-rikuri-unapplied-update.conf
+5bfb3cc757c5ba12e3fed20c06f4586aef684597fed88d70a32237ddf51b23bc  rootfs/usr/lib/systemd/system/greenboot-set-rollback-trigger.service.d/50-rikuri-run-at-shutdown.conf
+1cb2a2d63207c7dca4b951749af9557f613511356aa139c79e775ccdf0bfeb69  rootfs/usr/libexec/rikuri/greenboot-unapplied-update
++ B=registry.fedoraproject.org/fedora-iot@sha256:d862d94f86d4ebb72bb95d8c333bdbfcf1c95d07e11350b2a2eab3e34cec1421
++ grep -E 'Checks passed|Successfully tagged'
++ sudo -n podman build --pull=never --network=none --from registry.fedoraproject.org/fedora-iot@sha256:d862d94f86d4ebb72bb95d8c333bdbfcf1c95d07e11350b2a2eab3e34cec1421 -t localhost/rikuri-os:fix3 /home/drill/image-fix3
+Checks passed: 14
+Successfully tagged localhost/rikuri-os:fix3
+++ sudo -n podman image mount localhost/rikuri-os:fix3
++ R=/var/lib/containers/storage/overlay/bd137fa80b4e0fea8df1312fef35bdfba1ae0a10258357d4adf9e495348cf7f9/merged
++ sudo -n python3 -I /home/drill/image-fix3/check_image_root.py /var/lib/containers/storage/overlay/bd137fa80b4e0fea8df1312fef35bdfba1ae0a10258357d4adf9e495348cf7f9/merged --fedora 44
++ tail -1
+check_image_root: 0 finding(s) in /var/lib/containers/storage/overlay/bd137fa80b4e0fea8df1312fef35bdfba1ae0a10258357d4adf9e495348cf7f9/merged (Fedora 44 expected)
++ sudo -n podman image unmount localhost/rikuri-os:fix3
++ mkdir -p /home/drill/drill/fix3-broken
++ sed 's#^FROM .*#FROM localhost/rikuri-os:fix3#; s/fix-broken/fix3-broken/' /home/drill/drill/fix-broken/Containerfile
++ head -1 /home/drill/drill/fix3-broken/Containerfile
+FROM localhost/rikuri-os:fix3
++ sudo -n podman build --network=none -t localhost/rikuri-os:fix3-broken /home/drill/drill/fix3-broken
++ tail -1
+ca03a371dacb27218b7d23c5a9512ebac8d58ed803d0a7df78e48852a02d47bf
++ tail -1
++ sudo -n bootc switch --transport containers-storage localhost/rikuri-os:fix3
+  Digest: sha256:19ff4be9fb305986d0167903e2c554ae937d115930cd060b6972e7537be21841
++ sudo -n systemctl reboot
+Connection to 10.37.129.3 closed by remote host.
++ sudo -n bootc status --format humanreadable
++ head -3
+● Booted image: containers-storage:localhost/rikuri-os:fix3
+        Digest: sha256:19ff4be9fb305986d0167903e2c554ae937d115930cd060b6972e7537be21841 (arm64)
+       Version: 44.20261021.0 (2026-10-21T13:55:35Z)
++ systemctl show -p Conflicts,Before greenboot-set-rollback-trigger.service
+Conflicts=final.target
+Before=final.target
++ findmnt /boot
+TARGET SOURCE    FSTYPE OPTIONS
+/boot  /dev/sda2 ext4   rw,relatime,seclabel
+== previous boot (the switch to fix3): trigger lines
++ echo '== previous boot (the switch to fix3): trigger lines'
++ sudo -n journalctl -b -1 --no-pager
++ grep -c 'Setting rollback trigger'
+1

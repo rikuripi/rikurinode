@@ -1,0 +1,77 @@
++ tail -1
++ sudo -n bootc switch --transport containers-storage localhost/rikuri-os:fix3-broken
+  Digest: sha256:612ca4bc12d4ed3d0eb9ce809c7fc7de6b87ebb94919d99be4a2e039fc8ffaec
++ sudo -n systemctl reboot
++ journalctl --list-boots --no-pager
++ tail -6
+ -5 79e64bdb5a6b456fba930c114b312e2d Thu 2026-10-22 15:56:41 +13 Thu 2026-10-22 02:57:38 +13
+ -4 f45c9fe0567c454eabd1bdc999bfdc8f Thu 2026-10-22 15:57:45 +13 Thu 2026-10-22 02:57:53 +13
+ -3 51d15e108ef54c8586c07eaca8c46da7 Thu 2026-10-22 15:57:59 +13 Thu 2026-10-22 02:58:05 +13
+ -2 5cc9305926534793b8cb32c674e928a1 Thu 2026-10-22 15:58:11 +13 Thu 2026-10-22 02:58:17 +13
+ -1 57144fb238df45c28a82e48bd83a7253 Thu 2026-10-22 15:58:24 +13 Thu 2026-10-22 02:58:31 +13
+  0 b65536ad3c474c108af9ab30aa8d9fdd Thu 2026-10-22 15:58:37 +13 Thu 2026-10-22 02:59:31 +13
++ head -6
++ sudo -n bootc status --format humanreadable
+● Booted image: containers-storage:localhost/rikuri-os:fix3
+        Digest: sha256:19ff4be9fb305986d0167903e2c554ae937d115930cd060b6972e7537be21841 (arm64)
+       Version: 44.20261021.0 (2026-10-21T13:55:35Z)
+
+  Rollback image: containers-storage:localhost/rikuri-os:fix3-broken
+          Digest: sha256:612ca4bc12d4ed3d0eb9ce809c7fc7de6b87ebb94919d99be4a2e039fc8ffaec (arm64)
+== the shutdown that applied fix3-broken (boot -5): trigger runs
++ echo '== the shutdown that applied fix3-broken (boot -5): trigger runs'
++ sudo -n journalctl -b -5 --no-pager
++ grep -E 'Setting rollback trigger|Rollback trigger set|Finalized deployment'
++ cut -c1-170
+Oct 22 02:57:35 rikuri-drill greenboot[1144]:  INFO  greenboot          > Setting rollback trigger for deployment: sha256:612ca4bc12d4ed3d0eb9ce809c7fc7de6b87ebb94919d99b
+Oct 22 02:57:35 rikuri-drill greenboot[1144]:  INFO  greenboot          > Rollback trigger set successfully.
+Oct 22 02:57:37 rikuri-drill ostree[1203]: Finalized deployment
+++ sudo -n journalctl -b -5 --no-pager
+++ grep -c 'Setting rollback trigger'
+count: 1
+== boot -4
++ echo 'count: 1'
++ for b in -4 -3 -2 -1 0
++ echo '== boot -4'
++ sudo -n journalctl -b -4 --no-pager
++ grep -E 'rikuri-unapplied-update|setting boot counter|Boot counter is|exhausted|Rolling back|FALLBACK|health-check passed'
++ cut -c1-170
+Oct 22 02:57:51 rikuri-drill greenboot-unapplied-update[849]: rikuri-unapplied-update: update sha256:612ca4bc12d4ed3d0eb9ce809c7fc7de6b87ebb94919d99be4a2e039fc8ffaec boot
+Oct 22 02:57:52 rikuri-drill greenboot[876]:  INFO  greenboot            > First health check failure, setting boot counter to 3
+Oct 22 02:57:52 rikuri-drill greenboot[876]:  INFO  greenboot::grub      > setting boot counter
+== boot -3
++ for b in -4 -3 -2 -1 0
++ echo '== boot -3'
++ sudo -n journalctl -b -3 --no-pager
++ grep -E 'rikuri-unapplied-update|setting boot counter|Boot counter is|exhausted|Rolling back|FALLBACK|health-check passed'
++ cut -c1-170
+Oct 22 02:58:04 rikuri-drill greenboot-unapplied-update[835]: rikuri-unapplied-update: update sha256:612ca4bc12d4ed3d0eb9ce809c7fc7de6b87ebb94919d99be4a2e039fc8ffaec boot
+Oct 22 02:58:05 rikuri-drill greenboot[873]:  INFO  greenboot            > Boot counter is 2, rebooting to try again
+== boot -2
++ for b in -4 -3 -2 -1 0
++ echo '== boot -2'
++ sudo -n journalctl -b -2 --no-pager
++ grep -E 'rikuri-unapplied-update|setting boot counter|Boot counter is|exhausted|Rolling back|FALLBACK|health-check passed'
++ cut -c1-170
+Oct 22 02:58:17 rikuri-drill greenboot-unapplied-update[835]: rikuri-unapplied-update: update sha256:612ca4bc12d4ed3d0eb9ce809c7fc7de6b87ebb94919d99be4a2e039fc8ffaec boot
+Oct 22 02:58:17 rikuri-drill greenboot[873]:  INFO  greenboot            > Boot counter is 1, rebooting to try again
+== boot -1
++ for b in -4 -3 -2 -1 0
++ echo '== boot -1'
++ sudo -n journalctl -b -1 --no-pager
++ grep -E 'rikuri-unapplied-update|setting boot counter|Boot counter is|exhausted|Rolling back|FALLBACK|health-check passed'
++ cut -c1-170
+Oct 22 02:58:29 rikuri-drill greenboot-unapplied-update[849]: rikuri-unapplied-update: update sha256:612ca4bc12d4ed3d0eb9ce809c7fc7de6b87ebb94919d99be4a2e039fc8ffaec boot
+Oct 22 02:58:30 rikuri-drill greenboot[875]:  INFO  greenboot            > Boot counter exhausted and next-deployment-id is set - initiating rollback
+Oct 22 02:58:30 rikuri-drill bootc[943]: Rolling back to image: sha256:19ff4be9fb305986d0167903e2c554ae937d115930cd060b6972e7537be21841
+== boot 0
++ for b in -4 -3 -2 -1 0
++ echo '== boot 0'
++ sudo -n journalctl -b 0 --no-pager
++ grep -E 'rikuri-unapplied-update|setting boot counter|Boot counter is|exhausted|Rolling back|FALLBACK|health-check passed'
++ cut -c1-170
+Oct 22 02:58:43 rikuri-drill greenboot-unapplied-update[845]: rikuri-unapplied-update: no rollback trigger set; nothing to do
+Oct 22 02:58:43 rikuri-drill greenboot[855]:  INFO  greenboot          > FALLBACK BOOT DETECTED! Default bootc deployment has been rolled back.
+Oct 22 02:58:43 rikuri-drill greenboot[855]:  INFO  greenboot            > greenboot health-check passed.
++ cat /var/drill-marker
+drill marker written 2026-10-21T10:39:49Z on rikuri-os:good
