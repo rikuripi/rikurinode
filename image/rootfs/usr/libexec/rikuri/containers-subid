@@ -1,0 +1,141 @@
+#!/usr/bin/python3 -I
+"""Keep Podman's `containers` range in /etc/subuid and /etc/subgid.
+
+Runs at every boot from rikuri-containers-subid.service, before sysinit.target,
+so before every ordinary service and every container unit. Rootful Podman
+needs the user name `containers` in both files to give each container its own
+range of user IDs (UserNS=auto); without it, such a unit refuses to start
+("no subuid ranges found for user \"containers\"",
+docs/build-records/2026-10-23-shellless-health-probe.md).
+
+The line cannot be shipped as an /etc file: installing a node creates a user,
+whose range is appended to both files, and bootc's three-way merge then keeps
+the node's own copy over the image's on every update. So the line is added
+here, when it is missing, in the one state where that is safe:
+
+  every line reads as name:start:count, no entry is named `containers`, and
+  podman's documented range overlaps no entry  ->  add the line.
+
+  an entry named `containers`                  ->  leave (someone chose it).
+  an overlap, a line it cannot read, a file
+  it cannot read                               ->  leave the file, fail.
+
+The write replaces the whole file at once (a new file beside it, then a
+rename), so a power cut leaves the old file or the new one, never half a line.
+It runs no command and takes no input from the network or a user, and logs
+every decision to the journal.
+Record: docs/build-records/2026-10-23-containers-subid.md
+"""
+from __future__ import annotations
+
+import os
+import re
+import sys
+
+NAME = "containers"
+START = 2147483647
+COUNT = 2147483648
+LINE = "%s:%d:%d" % (NAME, START, COUNT)
+ETC = "/etc"
+FILES = ("subuid", "subgid")
+TMP_SUFFIX = ".rikuri-tmp"
+ENTRY = re.compile(r"([^:\s]+):([0-9]+):([0-9]+)")
+
+
+def log(message: str) -> None:
+    print("rikuri-containers-subid: " + message, flush=True)
+
+
+def parse(text: str):
+    """[(name, start, count)] in file order, or None if any line does not read."""
+    entries = []
+    for line in text.splitlines():
+        if not line:
+            continue
+        match = ENTRY.fullmatch(line)
+        if not match or int(match.group(3)) == 0:
+            return None
+        entries.append((match.group(1), int(match.group(2)), int(match.group(3))))
+    return entries
+
+
+def decide(entries):
+    """(action, reason): action is "add" only when no `containers` entry exists
+    and the range overlaps nothing."""
+    for name, start, count in entries:
+        if name == NAME:
+            if (start, count) == (START, COUNT):
+                return "present", "%s is present" % LINE
+            return "present", ("a %s range is already set (%s:%d:%d), left as it is"
+                               % (NAME, name, start, count))
+    for name, start, count in entries:
+        if start < START + COUNT and START < start + count:
+            return "refuse", ("%s would overlap %s:%d:%d; nothing written" % (LINE, name, start, count))
+    return "add", "%s is missing" % LINE
+
+
+def write_whole(path: str, text: str, replace=os.replace) -> None:
+    """Write text as path's new content in one step: a new file, then a rename."""
+    tmp = path + TMP_SUFFIX
+    if os.path.lexists(tmp):
+        os.remove(tmp)
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+    try:
+        with os.fdopen(fd, "w", encoding="ascii") as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+        os.chmod(tmp, 0o644)
+        replace(tmp, path)
+    except BaseException:
+        if os.path.lexists(tmp):
+            os.remove(tmp)
+        raise
+    dir_fd = os.open(os.path.dirname(path) or ".", os.O_RDONLY)
+    try:
+        os.fsync(dir_fd)
+    finally:
+        os.close(dir_fd)
+
+
+def ensure(path: str, log=log, replace=os.replace) -> int:
+    """0 when path names the range afterwards (or another chosen `containers`
+    range), 1 when it was left without it."""
+    try:
+        with open(path, encoding="ascii") as f:
+            text = f.read()
+    except FileNotFoundError:
+        text = ""
+    except (OSError, UnicodeDecodeError) as e:
+        log("%s: cannot be read (%s); left as it is" % (path, e))
+        return 1
+    entries = parse(text)
+    if entries is None:
+        log("%s: a line does not read as name:start:count; left as it is" % path)
+        return 1
+    action, reason = decide(entries)
+    log("%s: %s" % (path, reason))
+    if action == "present":
+        return 0
+    if action == "refuse":
+        return 1
+    if text and not text.endswith("\n"):
+        text += "\n"
+    try:
+        write_whole(path, text + LINE + "\n", replace=replace)
+    except OSError as e:
+        log("%s: FAILED to add %s (%s); the old file is kept" % (path, LINE, e))
+        return 1
+    log("%s: added %s" % (path, LINE))
+    return 0
+
+
+def main(etc: str = ETC, log=log) -> int:
+    failed = 0
+    for name in FILES:
+        failed |= ensure(os.path.join(etc, name), log=log)
+    return failed
+
+
+if __name__ == "__main__":
+    sys.exit(main())

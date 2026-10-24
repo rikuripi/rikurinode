@@ -164,6 +164,15 @@ class SerialConsole(unittest.TestCase):
                                                   "Staged Deployment...\r\n", offset=len(text)))
 
 
+class ContainersRange(unittest.TestCase):
+    def test_the_range_exactly_once(self):
+        self.assertTrue(d.subid_once("drill:524288:65536\ncontainers:2147483647:2147483648\n"))
+        for text in ("", "drill:524288:65536\n", "containers:2147483647:2147483648\n" * 2,
+                     "containers:2147483647:2147483647\n", " containers:2147483647:2147483648\n"):
+            with self.subTest(text=text):
+                self.assertFalse(d.subid_once(text))
+
+
 class WaitUntil(unittest.TestCase):
     def test_false_or_empty_values_keep_waiting(self):
         values = iter([False, "", 0, [], "done"])
