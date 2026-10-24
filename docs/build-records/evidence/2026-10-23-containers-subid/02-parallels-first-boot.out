@@ -1,0 +1,38 @@
++ sudo bootc status
++ grep -A3 booted:
++ grep -E 'image: |imageDigest'
+        image: localhost/rikuri-os:subid
++ systemctl show -p ActiveState -p Result -p ExecMainStatus rikuri-containers-subid.service
+ActiveState=active
+Result=success
+ExecMainStatus=0
++ systemd-analyze critical-chain rikuri-containers-subid.service --no-pager
++ tail -4
+  └─boot-efi.mount @1.562s +36ms
+    └─boot.mount @1.544s +17ms
+      └─systemd-fsck@dev-disk-by\x2duuid-e04a59dd\x2d1057\x2d4d60\x2da0ed\x2d31c5d9c7f6a2.service @1.141s +27ms
+        └─dev-disk-by\x2duuid-e04a59dd\x2d1057\x2d4d60\x2da0ed\x2d31c5d9c7f6a2.device
++ sudo journalctl -b -u rikuri-containers-subid --no-pager -o short-monotonic
+[    5.357541] localhost containers-subid[732]: rikuri-containers-subid: /etc/subuid: containers:2147483647:2147483648 is missing
+[    5.357541] localhost containers-subid[732]: rikuri-containers-subid: /etc/subuid: added containers:2147483647:2147483648
+[    5.357541] localhost containers-subid[732]: rikuri-containers-subid: /etc/subgid: containers:2147483647:2147483648 is missing
+[    5.357541] localhost containers-subid[732]: rikuri-containers-subid: /etc/subgid: added containers:2147483647:2147483648
+[    5.171973] localhost systemd[1]: Starting rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid...
+[    5.283290] localhost systemd[1]: Finished rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
++ cat /etc/subuid /etc/subgid
+drill:524288:65536
+containers:2147483647:2147483648
+drill:524288:65536
+containers:2147483647:2147483648
++ ls -lZ /etc/subuid /etc/subgid
+-rw-r--r--. 1 root root system_u:object_r:etc_t:s0 52 Oct 24 03:02 /etc/subgid
+-rw-r--r--. 1 root root system_u:object_r:etc_t:s0 52 Oct 24 03:02 /etc/subuid
++ ls -la /etc/subuid.rikuri-tmp /etc/subgid.rikuri-tmp
+ls: cannot access '/etc/subuid.rikuri-tmp': No such file or directory
+ls: cannot access '/etc/subgid.rikuri-tmp': No such file or directory
++ sudo podman run --rm --userns=auto --network=none --read-only localhost/rikuri-os:subid /usr/bin/cat /proc/self/uid_map
+         0 2147483647       1024
+started
++ echo started
++ systemctl is-system-running
+running

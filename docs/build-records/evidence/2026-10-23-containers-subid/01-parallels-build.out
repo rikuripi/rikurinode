@@ -1,0 +1,40 @@
++ cd /home/drill/image-subid/image
++ sort
++ find rootfs '(' -type f -o -type l ')'
++ xargs sha256sum
+038243e8e39e0ffe9e92ac486349e7655f3c8712b982fbcd937ea6207dda5cc5  rootfs/etc/greenboot/greenboot.conf
+92d45efa5586cad03214b05c864a53604ef747ddceea4d1de20da195afff6117  rootfs/usr/lib/systemd/system/greenboot-healthcheck.service.d/50-rikuri-unapplied-update.conf
+5bfb3cc757c5ba12e3fed20c06f4586aef684597fed88d70a32237ddf51b23bc  rootfs/usr/lib/systemd/system/greenboot-set-rollback-trigger.service.d/50-rikuri-run-at-shutdown.conf
+6ff2b8410c105b547ab9465f1263af4ae9dae5d8321943619f7690974b331261  rootfs/usr/lib/systemd/system/rikuri-containers-subid.service
+6ff2b8410c105b547ab9465f1263af4ae9dae5d8321943619f7690974b331261  rootfs/usr/lib/systemd/system/sysinit.target.wants/rikuri-containers-subid.service
+a38fc08c34f1bd973d1988d56290957d5433683f4d30f3888bc9b1159a4f25ae  rootfs/usr/libexec/rikuri/containers-subid
+3efd20f71ff4e44d61049c097a16f5a88df1f322dbeb3e873b324a1f722b778f  rootfs/usr/libexec/rikuri/greenboot-unapplied-update
++ ls -l rootfs/usr/lib/systemd/system/sysinit.target.wants/
+total 0
+lrwxrwxrwx. 1 drill drill 34 Oct 24  2026 rikuri-containers-subid.service -> ../rikuri-containers-subid.service
++ B=registry.fedoraproject.org/fedora-iot@sha256:d862d94f86d4ebb72bb95d8c333bdbfcf1c95d07e11350b2a2eab3e34cec1421
++ sudo -n podman build --pull=never --network=none --from registry.fedoraproject.org/fedora-iot@sha256:d862d94f86d4ebb72bb95d8c333bdbfcf1c95d07e11350b2a2eab3e34cec1421 -t localhost/rikuri-os:subid .
++ grep -E 'Checks passed|Successfully tagged|rror'
+Checks passed: 14
+Successfully tagged localhost/rikuri-os:subid
+++ sudo -n podman image mount localhost/rikuri-os:subid
++ R=/var/lib/containers/storage/overlay/148af3befce3141282709d5b1b6c21cffad5dfd14b5cc7ba70ae64ce1ec90c38/merged
++ sudo -n python3 -I check_image_root.py /var/lib/containers/storage/overlay/148af3befce3141282709d5b1b6c21cffad5dfd14b5cc7ba70ae64ce1ec90c38/merged --fedora 44
++ tail -1
+check_image_root: 0 finding(s) in /var/lib/containers/storage/overlay/148af3befce3141282709d5b1b6c21cffad5dfd14b5cc7ba70ae64ce1ec90c38/merged (Fedora 44 expected)
++ ls -l /var/lib/containers/storage/overlay/148af3befce3141282709d5b1b6c21cffad5dfd14b5cc7ba70ae64ce1ec90c38/merged/usr/lib/systemd/system/sysinit.target.wants/rikuri-containers-subid.service
+ls: cannot access '/var/lib/containers/storage/overlay/148af3befce3141282709d5b1b6c21cffad5dfd14b5cc7ba70ae64ce1ec90c38/merged/usr/lib/systemd/system/sysinit.target.wants/rikuri-containers-subid.service': Permission denied
++ sudo -n podman image unmount localhost/rikuri-os:subid
+--- before:
+drill:524288:65536
+drill:524288:65536
++ echo '--- before:'
++ cat /etc/subuid /etc/subgid
++ sudo ostree admin config-diff
++ grep -E 'sub[ug]id$'
+M    subgid
+M    subuid
++ sudo -n bootc switch --transport containers-storage localhost/rikuri-os:subid
++ tail -2
+  Version: 44.20261021.0
+  Digest: sha256:950655580d0a0c26c7ad63bb0a531ef4f541d8aab39bf5fed3d15fd1ec6bc88d

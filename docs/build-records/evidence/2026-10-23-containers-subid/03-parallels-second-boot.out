@@ -1,0 +1,13 @@
+before (inode mtime size, both files; boot id): 654094 1792764131 52 654097 1792764131 52
+e26263f4-5cdc-44df-96bc-679d1a9b75d9
+after: 654094 1792764131 52 654097 1792764131 52
+0255610e-546f-4268-bbb7-10264398f607
+Starting rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid...
+rikuri-containers-subid: /etc/subuid: containers:2147483647:2147483648 is present
+rikuri-containers-subid: /etc/subgid: containers:2147483647:2147483648 is present
+Finished rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+Before=shutdown.target sysinit.target
+After=systemd-journald.socket system.slice local-fs.target
+Result=success
+/etc/subuid:1
+/etc/subgid:1
