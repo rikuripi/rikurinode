@@ -51,6 +51,8 @@ NEVER_APPLIED = "was never applied"
 DNS_SKIPPED = "Skipping disabled script: 01_repository_dns_check.sh"
 ROLLED_BACK = "Boot counter exhausted and next-deployment-id is set - initiating rollback"
 TRIGGER_STOPPED = re.compile(r"Stopped [^\n]*Greenboot Rollback trigger")
+SUBID_LINE = "containers:2147483647:2147483648"
+SUBID_FILES = ("/etc/subuid", "/etc/subgid")
 
 
 class DrillFailure(Exception):
@@ -117,6 +119,23 @@ def trigger_stopped(serial: str, offset: int) -> bool:
     and finalize, ordered after it, is next. Colour codes may sit inside the
     line; the pattern spans them."""
     return bool(TRIGGER_STOPPED.search(serial[offset:]))
+
+
+def subid_once(text: str) -> bool:
+    """True if a subuid or subgid file names Podman's containers range exactly once."""
+    return text.splitlines().count(SUBID_LINE) == 1
+
+
+def unit_ran(show: str) -> bool:
+    """`systemctl show -p ActiveState -p Result` of a RemainAfterExit oneshot:
+    True only if it ran and succeeded (Result=success alone is also a unit
+    that never ran; verifier round 1, nit 3)."""
+    lines = show.splitlines()
+    return "ActiveState=active" in lines and "Result=success" in lines
+
+
+def container_started(output: str) -> bool:
+    return "started" in output.splitlines()
 
 
 def containerfile_broken(base: str) -> str:
@@ -264,6 +283,33 @@ class Drill:
                     timeout=1800)
         self.log("variants built in the VM: broken, a, b")
 
+    def subid_files(self) -> list:
+        return [self.vm("cat %s" % f, check=False) or "" for f in SUBID_FILES]
+
+    def userns_auto(self) -> None:
+        """The containers range is in place (added at the first boot), the
+        unit ran and succeeded in this boot, and a container with its own
+        range of user IDs starts."""
+        files = self.subid_files()
+        unit = self.vm("systemctl show -p ActiveState -p Result rikuri-containers-subid.service", check=False) or ""
+        journal = self.journal("-u rikuri-containers-subid")    # every boot: "added" is the first one's
+        run = self.vm("podman run --rm --userns=auto --network=none --read-only %s /usr/bin/true && echo started"
+                      % self.image, check=False) or ""
+        self.keep("01b-userns-auto.out", "\n".join(SUBID_FILES[i] + ":\n" + files[i] for i in range(2))
+                  + "\n" + unit + "\n" + journal + "\n" + run)
+        once = all(subid_once(text) for text in files)
+        self.check("the containers range", once and unit_ran(unit) and container_started(run),
+                   "the range once in both files: %s; the unit ran and succeeded: %s; a --userns=auto container "
+                   "started: %s" % (once, unit_ran(unit), container_started(run)))
+
+    def subid_after_reboots(self) -> None:
+        """Every boot since the first left the files as they were: still the range once."""
+        files = self.subid_files()
+        self.keep("05-subid-after-reboots.out", "\n".join(files))
+        self.check("the containers range after reboots", all(subid_once(text) for text in files),
+                   "the range still once in both files after every case's reboots: %s"
+                   % all(subid_once(text) for text in files))
+
     def switch(self, name: str) -> None:
         self.vm("bootc switch --transport containers-storage localhost/rikuri-os:%s" % name, timeout=900)
 
@@ -355,7 +401,9 @@ class Drill:
             text = "\n".join([self.journal("--list-boots"), self.status_quiet(),
                               self.vm("grub2-editenv /boot/grub2/grubenv list", check=False, timeout=30) or "",
                               self.vm("findmnt /boot; lsblk -f", check=False, timeout=30) or "",
-                              self.journal("--grep 'greenboot|rikuri-unapplied-update|bootc|finalize'")])
+                              self.journal("--grep 'greenboot|rikuri-unapplied-update|bootc|finalize'"),
+                              # ostree's own lines name why finalizing failed (they lack "finalize").
+                              self.journal("-u ostree-finalize-staged.service -u ostree-finalize-staged-hold.service")])
         except (DrillFailure, subprocess.TimeoutExpired, OSError) as e:
             text = "the VM did not answer: %s" % e
         self.keep("99-post-mortem.out", text)
@@ -387,6 +435,11 @@ def main(argv=None) -> int:
         drill.load_variants()
         for case in (drill.case1, drill.case2b, drill.case3):
             case()
+        # After the cases, so that a --userns=auto run (which may add ID-mapped
+        # layers to the storage bootc switch reads) cannot touch them; run 2
+        # (40057729110) saw case 1's update fail to finalize with it before.
+        drill.subid_after_reboots()
+        drill.userns_auto()
     except (DrillFailure, subprocess.TimeoutExpired) as e:
         error = str(e)
         drill.check("drill", False, error)
@@ -403,7 +456,8 @@ def main(argv=None) -> int:
         with open(path, "a", encoding="utf-8") as f:
             f.write(text)
     expected = {"first boot", "case 1, a failing update", "case 2b, finalize fails",
-                "case 3, a power cut during the update"}
+                "case 3, a power cut during the update", "the containers range",
+                "the containers range after reboots"}
     passed = {case for case, ok, _ in drill.results if ok}
     return 0 if error is None and expected <= passed and all(ok for _, ok, _ in drill.results) else 1
 

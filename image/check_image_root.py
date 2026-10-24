@@ -68,6 +68,14 @@ UNAPPLIED_EXEC = "ExecStartPre=-/" + UNAPPLIED_CHECK
 # Record: docs/build-records/2026-10-22-greenboot-218.md
 TRIGGER_DROPIN = "usr/lib/systemd/system/greenboot-set-rollback-trigger.service.d/50-rikuri-run-at-shutdown.conf"
 TRIGGER_LINES = ("Conflicts=final.target", "Before=final.target")
+# Podman's containers range for UserNS=auto, kept at every boot
+# (docs/build-records/2026-10-23-containers-subid.md).
+SUBID_CHECK = "usr/libexec/rikuri/containers-subid"
+SUBID_UNIT = "usr/lib/systemd/system/rikuri-containers-subid.service"
+SUBID_WANTS = "usr/lib/systemd/system/sysinit.target.wants/rikuri-containers-subid.service"
+SUBID_LINES = {"[Unit]": ("DefaultDependencies=no", "Before=sysinit.target shutdown.target"),
+               "[Service]": ("Type=oneshot", "ExecStart=/" + SUBID_CHECK)}
+SUBID_TARGETS = ("../rikuri-containers-subid.service", "/" + SUBID_UNIT)
 # The one form of a line read alike by greenboot and this check (the docstring).
 PRINTABLE_LINE = re.compile(rb"^[\x20-\x7e]*$")
 KEY_LINE = re.compile(rb"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
@@ -277,6 +285,39 @@ def check_trigger_at_shutdown(root: str) -> list:
     return []
 
 
+def check_containers_subid(root: str) -> list:
+    found = []
+    path = _regular(root, SUBID_CHECK)
+    if path is None:
+        found.append("%s: missing, or not a regular file (containers with UserNS=auto would not "
+                     "start)" % SUBID_CHECK)
+    elif not os.lstat(path).st_mode & 0o111:
+        found.append("%s: not executable" % SUBID_CHECK)
+    text = _read(root, SUBID_UNIT)
+    if text is None:
+        found.append("%s: missing, or not a regular file" % SUBID_UNIT)
+    else:
+        section, seen = None, set()
+        for line in text.splitlines():
+            line = line.strip()
+            if line.startswith("[") and line.endswith("]"):
+                section = line
+            elif line in SUBID_LINES.get(section, ()):
+                seen.add((section, line))
+        missing = ["%s under %s" % (line, section) for section, lines in SUBID_LINES.items()
+                   for line in lines if (section, line) not in seen]
+        if missing:
+            found.append("%s: does not run the check before sysinit.target (missing: %s)"
+                         % (SUBID_UNIT, "; ".join(missing)))
+    wants = os.path.join(root, SUBID_WANTS)
+    hit = _lstat_in(root, os.path.dirname(SUBID_WANTS))
+    if hit is None or not os.path.islink(wants):
+        found.append("%s: not a link, so the unit is not enabled" % SUBID_WANTS)
+    elif os.readlink(wants) not in SUBID_TARGETS:
+        found.append("%s: points to %s, not to the unit" % (SUBID_WANTS, os.readlink(wants)))
+    return found
+
+
 def secret_forms(rel: str, data: bytes) -> list:
     """Why a file's contents may not be in a public image, if they may not."""
     found = []
@@ -342,7 +383,7 @@ def check_no_private_keys(root: str, note=lambda line: None) -> list:
 
 def check_root(root: str, release: str, note=lambda line: None) -> list:
     return (check_os_release(root, release) + check_greenboot(root) + check_unapplied_update(root)
-            + check_trigger_at_shutdown(root)
+            + check_trigger_at_shutdown(root) + check_containers_subid(root)
             + check_no_private_keys(root, note))
 
 

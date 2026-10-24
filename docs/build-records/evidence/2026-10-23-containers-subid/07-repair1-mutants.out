@@ -1,0 +1,8 @@
+I1 link on the way not checked: FAILED (failures=1)
+I2 upper bound <=: FAILED (failures=1)
+nit2 leading zeros accepted: FAILED (failures=2)
+nit1 splitlines again: FAILED (failures=3)
+nit1 read in text mode: FAILED (failures=1)
+nit5 sync failure as failure: FAILED (failures=1)
+nit3 Result alone: FAILED (failures=2)
+nit3 substring: FAILED (failures=2)

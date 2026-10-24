@@ -1,0 +1,4 @@
+Enforcing
+      4 comm="chcon"
+0
+boot -2 (rikuri-os:fix4, before the switch): 4 chcon denials; boot -1 (rikuri-os:subid, first boot): 4; boot 0: 0 (from the session, 2026-10-23)

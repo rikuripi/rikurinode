@@ -1,0 +1,17 @@
+/etc/subuid:
+containers:2147483647:2147483648
+
+/etc/subgid:
+containers:2147483647:2147483648
+
+ActiveState=active
+Result=success
+
+[    6.711262] localhost systemd[1]: Starting rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid...
+[    6.954493] localhost containers-subid[588]: rikuri-containers-subid: /etc/subuid: containers:2147483647:2147483648 is missing
+[    6.959665] localhost containers-subid[588]: rikuri-containers-subid: /etc/subuid: added containers:2147483647:2147483648
+[    6.959738] localhost containers-subid[588]: rikuri-containers-subid: /etc/subgid: containers:2147483647:2147483648 is missing
+[    6.963895] localhost containers-subid[588]: rikuri-containers-subid: /etc/subgid: added containers:2147483647:2147483648
+[    6.969870] localhost systemd[1]: Finished rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+
+started

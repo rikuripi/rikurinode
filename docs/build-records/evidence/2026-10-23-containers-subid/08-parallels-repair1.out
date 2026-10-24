@@ -1,0 +1,17 @@
+# repo commit 785b05e
+1cd8508f1c3d583691e5f592dae7ee8b4362ee3ef2ab3fa8a24f7a2d139e22da  rootfs/usr/libexec/rikuri/containers-subid
+Checks passed: 14
+Successfully tagged localhost/rikuri-os:subid2
+check_image_root: 0 finding(s) in /var/lib/containers/storage/overlay/dc6e268779b4f719df49089a601e567d1ce01a12281344ea51dccc7d6f117144/merged (Fedora 44 expected)
+before: 654094 1792764131 52
+before: 654097 1792764131 52
+  Digest: sha256:109a3762cd44fe4f2e2c870c4ffd9513ff250d23a6fd01c89ffa8307656e1859
+        image: localhost/rikuri-os:subid2
+after: 677591 1792764131 52
+after: 677590 1792764131 52
+ActiveState=active
+Result=success
+rikuri-containers-subid: /etc/subuid: containers:2147483647:2147483648 is present
+rikuri-containers-subid: /etc/subgid: containers:2147483647:2147483648 is present
+denials naming it: 0
+started

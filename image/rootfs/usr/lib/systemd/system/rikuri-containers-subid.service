@@ -1,0 +1,17 @@
+# Keep Podman's containers range in /etc/subuid and /etc/subgid (UserNS=auto),
+# before sysinit.target, so before every ordinary service and container unit.
+# Record: docs/build-records/2026-10-23-containers-subid.md
+[Unit]
+Description=Podman's containers range in /etc/subuid and /etc/subgid
+DefaultDependencies=no
+After=local-fs.target
+Before=sysinit.target shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/rikuri/containers-subid
+
+[Install]
+WantedBy=sysinit.target

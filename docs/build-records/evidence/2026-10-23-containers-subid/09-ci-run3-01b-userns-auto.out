@@ -1,0 +1,80 @@
+/etc/subuid:
+containers:2147483647:2147483648
+
+/etc/subgid:
+containers:2147483647:2147483648
+
+ActiveState=active
+Result=success
+
+[    7.817376] localhost systemd[1]: Starting rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid...
+[    7.936177] localhost containers-subid[580]: rikuri-containers-subid: /etc/subuid: containers:2147483647:2147483648 is missing
+[    7.944882] localhost containers-subid[580]: rikuri-containers-subid: /etc/subuid: added containers:2147483647:2147483648
+[    7.944882] localhost containers-subid[580]: rikuri-containers-subid: /etc/subgid: containers:2147483647:2147483648 is missing
+[    7.950161] localhost containers-subid[580]: rikuri-containers-subid: /etc/subgid: added containers:2147483647:2147483648
+[    7.965761] localhost systemd[1]: Finished rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+[  153.347098] localhost.localdomain systemd[1]: rikuri-containers-subid.service: Deactivated successfully.
+[  153.347187] localhost.localdomain systemd[1]: Stopped rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+-- Boot 5f6edcbfbfce4068b4218b4f5cd3fd48 --
+[    8.744638] localhost systemd[1]: Starting rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid...
+[    8.901459] localhost containers-subid[580]: rikuri-containers-subid: /etc/subuid: containers:2147483647:2147483648 is present
+[    8.902357] localhost containers-subid[580]: rikuri-containers-subid: /etc/subgid: containers:2147483647:2147483648 is present
+[    8.920223] localhost systemd[1]: Finished rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+[   12.586113] localhost.localdomain systemd[1]: rikuri-containers-subid.service: Deactivated successfully.
+[   12.586185] localhost.localdomain systemd[1]: Stopped rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+-- Boot 446a51b1da174d3db70a8b961d03a2a5 --
+[    7.103749] localhost systemd[1]: Starting rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid...
+[    7.275934] localhost containers-subid[570]: rikuri-containers-subid: /etc/subuid: containers:2147483647:2147483648 is present
+[    7.278489] localhost containers-subid[570]: rikuri-containers-subid: /etc/subgid: containers:2147483647:2147483648 is present
+[    7.287262] localhost systemd[1]: Finished rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+[   10.815115] localhost.localdomain systemd[1]: rikuri-containers-subid.service: Deactivated successfully.
+[   10.815285] localhost.localdomain systemd[1]: Stopped rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+-- Boot e1d8622ae4a344e585fcacd36f48bb0b --
+[    8.022305] localhost systemd[1]: Starting rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid...
+[    8.159461] localhost containers-subid[572]: rikuri-containers-subid: /etc/subuid: containers:2147483647:2147483648 is present
+[    8.160126] localhost containers-subid[572]: rikuri-containers-subid: /etc/subgid: containers:2147483647:2147483648 is present
+[    8.172732] localhost systemd[1]: Finished rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+[   11.646414] localhost.localdomain systemd[1]: rikuri-containers-subid.service: Deactivated successfully.
+[   11.646687] localhost.localdomain systemd[1]: Stopped rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+-- Boot 99ac2e5eb48346e08a38626b71437cf2 --
+[    8.007294] localhost systemd[1]: Starting rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid...
+[    8.211776] localhost containers-subid[575]: rikuri-containers-subid: /etc/subuid: containers:2147483647:2147483648 is present
+[    8.213764] localhost containers-subid[575]: rikuri-containers-subid: /etc/subgid: containers:2147483647:2147483648 is present
+[    8.226685] localhost systemd[1]: Finished rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+[   13.627668] localhost.localdomain systemd[1]: rikuri-containers-subid.service: Deactivated successfully.
+[   13.627855] localhost.localdomain systemd[1]: Stopped rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+-- Boot 1b390c87f6f54b9589822e65a3af90c2 --
+[    8.038055] localhost systemd[1]: Starting rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid...
+[    8.223105] localhost containers-subid[571]: rikuri-containers-subid: /etc/subuid: containers:2147483647:2147483648 is present
+[    8.227457] localhost containers-subid[571]: rikuri-containers-subid: /etc/subgid: containers:2147483647:2147483648 is present
+[    8.254260] localhost systemd[1]: Finished rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+[   34.713725] localhost.localdomain systemd[1]: rikuri-containers-subid.service: Deactivated successfully.
+[   34.713831] localhost.localdomain systemd[1]: Stopped rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+-- Boot 4fd4410b16cb4a54b9fa7961e91f4c27 --
+[    7.965668] localhost systemd[1]: Starting rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid...
+[    8.098553] localhost containers-subid[572]: rikuri-containers-subid: /etc/subuid: containers:2147483647:2147483648 is present
+[    8.103236] localhost containers-subid[572]: rikuri-containers-subid: /etc/subgid: containers:2147483647:2147483648 is present
+[    8.114651] localhost systemd[1]: Finished rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+[   22.556397] localhost.localdomain systemd[1]: rikuri-containers-subid.service: Deactivated successfully.
+[   22.556598] localhost.localdomain systemd[1]: Stopped rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+-- Boot e055295d62b74ebca541a00722262f6f --
+[    7.022589] localhost systemd[1]: Starting rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid...
+[    7.199337] localhost containers-subid[571]: rikuri-containers-subid: /etc/subuid: containers:2147483647:2147483648 is present
+[    7.204518] localhost containers-subid[571]: rikuri-containers-subid: /etc/subgid: containers:2147483647:2147483648 is present
+[    7.214353] localhost systemd[1]: Finished rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+[   24.538883] localhost.localdomain systemd[1]: rikuri-containers-subid.service: Deactivated successfully.
+[   24.538955] localhost.localdomain systemd[1]: Stopped rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+-- Boot 68ee4ac3120f4c35a808e4169d904d71 --
+[    7.199135] localhost systemd[1]: Starting rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid...
+[    7.362551] localhost containers-subid[575]: rikuri-containers-subid: /etc/subuid: containers:2147483647:2147483648 is present
+[    7.366748] localhost containers-subid[575]: rikuri-containers-subid: /etc/subgid: containers:2147483647:2147483648 is present
+[    7.379889] localhost systemd[1]: Finished rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+[   18.288469] localhost.localdomain systemd[1]: rikuri-containers-subid.service: Deactivated successfully.
+[   18.288573] localhost.localdomain systemd[1]: Stopped rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+-- Boot 967d8b5ecc9b4082a438511f7169a6c7 --
+[    7.970393] localhost systemd[1]: Starting rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid...
+[    8.120740] localhost containers-subid[575]: rikuri-containers-subid: /etc/subuid: containers:2147483647:2147483648 is present
+[    8.121550] localhost containers-subid[575]: rikuri-containers-subid: /etc/subgid: containers:2147483647:2147483648 is present
+[    8.134622] localhost systemd[1]: Finished rikuri-containers-subid.service - Podman's containers range in /etc/subuid and /etc/subgid.
+
+started
