@@ -25,6 +25,10 @@ UNAPPLIED_CHECK = "usr/libexec/rikuri/greenboot-unapplied-update"
 UNAPPLIED_DROPIN = "usr/lib/systemd/system/greenboot-healthcheck.service.d/50-rikuri-unapplied-update.conf"
 # greenboot-rs #218 (docs/build-records/2026-10-22-greenboot-218.md).
 TRIGGER_DROPIN = "usr/lib/systemd/system/greenboot-set-rollback-trigger.service.d/50-rikuri-run-at-shutdown.conf"
+# The containers range for UserNS=auto (docs/build-records/2026-10-23-containers-subid.md).
+SUBID_CHECK = "usr/libexec/rikuri/containers-subid"
+SUBID_UNIT = "usr/lib/systemd/system/rikuri-containers-subid.service"
+SUBID_WANTS = "usr/lib/systemd/system/sysinit.target.wants/rikuri-containers-subid.service"
 
 
 def shipped_file(rel) -> bytes:
@@ -114,6 +118,10 @@ class Root:
         self.write_bytes(UNAPPLIED_DROPIN, shipped_file(UNAPPLIED_DROPIN))
         if os.path.exists(os.path.join(HERE, "..", "rootfs", TRIGGER_DROPIN)):
             self.write_bytes(TRIGGER_DROPIN, shipped_file(TRIGGER_DROPIN))
+        if os.path.exists(os.path.join(HERE, "..", "rootfs", SUBID_UNIT)):
+            self.write_bytes(SUBID_CHECK, shipped_file(SUBID_CHECK), mode=0o755)
+            self.write_bytes(SUBID_UNIT, shipped_file(SUBID_UNIT))
+            self.link(SUBID_WANTS, "../rikuri-containers-subid.service")
         self.write("etc/ssh/sshd_config", "PermitRootLogin no\n")
 
     def _fresh(self, rel):
@@ -271,6 +279,47 @@ class CheckImageRoot(unittest.TestCase):
             with self.subTest(why=why):
                 self.root.write(TRIGGER_DROPIN, text)
                 self.assertFinds(TRIGGER_DROPIN + ": does not order")
+
+    # --- the containers range is kept at every boot (UserNS=auto) ------------
+    def test_shipped_subid_files_pass(self):
+        self.assertEqual(cir.check_containers_subid(self.root.path), [])
+
+    def test_subid_check_missing_or_not_executable(self):
+        self.root.remove(SUBID_CHECK)
+        self.assertFinds(SUBID_CHECK + ": missing")
+        self.root.write_bytes(SUBID_CHECK, shipped_file(SUBID_CHECK), mode=0o644)
+        self.assertFinds(SUBID_CHECK + ": not executable")
+        self.root.link(SUBID_CHECK, "/bin/true")
+        self.assertFinds(SUBID_CHECK + ": missing")
+
+    def test_subid_unit_missing(self):
+        self.root.remove(SUBID_UNIT)
+        self.assertFinds(SUBID_UNIT + ": missing")
+
+    def test_subid_unit_must_run_the_check_before_sysinit(self):
+        good = shipped_file(SUBID_UNIT).decode("ascii")
+        for text, why in ((good.replace("ExecStart=/usr/libexec/rikuri/containers-subid", "ExecStart=/bin/true"),
+                           "another command"),
+                          (good.replace("Before=sysinit.target", "Before=multi-user.target"), "too late"),
+                          (good.replace("DefaultDependencies=no", "DefaultDependencies=yes"),
+                           "default dependencies (ordered after sysinit.target)"),
+                          (good.replace("[Unit]", "[Install]", 1), "outside [Unit]")):
+            with self.subTest(why=why):
+                self.assertNotEqual(text, good)
+                self.root.write(SUBID_UNIT, text)
+                self.assertFinds(SUBID_UNIT + ": ")
+
+    def test_subid_unit_must_be_enabled(self):
+        self.root.remove(SUBID_WANTS)
+        self.assertFinds(SUBID_WANTS + ": not a link")
+        for target, why in (("/dev/null", "masked"), ("../other.service", "another unit")):
+            with self.subTest(why=why):
+                self.root.link(SUBID_WANTS, target)
+                self.assertFinds(SUBID_WANTS + ": ")
+        self.root.write(SUBID_WANTS, "[Unit]\n")
+        self.assertFinds(SUBID_WANTS + ": not a link")
+        self.root.link(SUBID_WANTS, "/usr/lib/systemd/system/rikuri-containers-subid.service")
+        self.assertEqual(cir.check_containers_subid(self.root.path), [])
 
     # --- greenboot.conf in the one form greenboot and the check read alike (F1)
     def test_shipped_conf_parses_to_the_expected_values(self):
