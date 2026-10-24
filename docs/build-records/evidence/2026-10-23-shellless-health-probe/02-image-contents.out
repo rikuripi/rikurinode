@@ -1,0 +1,26 @@
++ cd /home/drill/standin-exp
++ sudo podman build --network=none -t localhost/standin:exp .
++ tail -3
+--> 0be507886f4d
+Successfully tagged localhost/standin:exp
+0be507886f4d2b4e57a424437e21d2e3290de168c1efb355edf9fcb42e3376e5
++ sudo podman image inspect localhost/standin:exp --format 'size={{.Size}} layers={{len .RootFS.Layers}} entrypoint={{.Config.Entrypoint}} user={{.Config.User}} healthcheck={{.Config.Healthcheck}}'
+size=455089 layers=1 entrypoint=[/standin serve] user=10001:10001 healthcheck=<nil>
+++ sudo podman create localhost/standin:exp
++ c=ec20ab5c23249d73661fb9ca5520507a4ec4c6d41dd8fdd2cc5b55274460a8ad
++ tar -tvf -
++ sudo podman export ec20ab5c23249d73661fb9ca5520507a4ec4c6d41dd8fdd2cc5b55274460a8ad
+-rwxr-xr-x 0/0          451328 2026-10-23 07:37 standin
++ sudo podman rm -f ec20ab5c23249d73661fb9ca5520507a4ec4c6d41dd8fdd2cc5b55274460a8ad
+--- try a shell:
++ echo '--- try a shell:'
++ sudo podman run --rm --network=none --entrypoint /bin/sh localhost/standin:exp -c true
+Error: crun: executable file `/bin/sh` not found: No such file or directory: OCI runtime attempted to invoke a command that was not found
+exit=127
+--- try ls:
++ echo exit=127
++ echo '--- try ls:'
++ sudo podman run --rm --network=none --entrypoint /bin/ls localhost/standin:exp /
+Error: crun: executable file `/bin/ls` not found: No such file or directory: OCI runtime attempted to invoke a command that was not found
+exit=127
++ echo exit=127
