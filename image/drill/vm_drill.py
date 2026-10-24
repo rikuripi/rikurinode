@@ -8,8 +8,9 @@ Runs only on an x86_64 Linux runner with KVM, sudo, podman, QEMU and OVMF
 image's own `bootc install to-disk` onto a raw disk, boots it under QEMU, and
 checks, failing on any miss:
 
-  first boot   greenboot passes; its journal shows Fedora's DNS check skipped
-               (D9); the unapplied-update check ran.
+  first boot   greenboot passes; its journal shows Fedora's DNS check (D9) and
+               update-platforms check (owner, 2026-10-24) skipped; the
+               unapplied-update check ran.
   case 1       a staged update whose required check fails rolls back by itself
                to the installed image, with a /var marker intact.
   case 2b      an update whose finalize fails leaves the node on the installed
@@ -55,6 +56,7 @@ FINALIZE_HOLDS = ("[Service]\nExecStop=\nExecStop=/usr/bin/sleep 240\n"
 MARKER = "/var/drill-marker"
 NEVER_APPLIED = "was never applied"
 DNS_SKIPPED = "Skipping disabled script: 01_repository_dns_check.sh"
+PLATFORMS_SKIPPED = "Skipping disabled script: 01_update_platforms_check.sh"
 ROLLED_BACK = "Boot counter exhausted and next-deployment-id is set - initiating rollback"
 TRIGGER_STOPPED = re.compile(r"Stopped [^\n]*Greenboot Rollback trigger")
 SUBID_LINE = "containers:2147483647:2147483648"
@@ -301,10 +303,12 @@ class Drill:
             self.journal("-b -u greenboot-healthcheck")]))
         journal = self.journal("-b -u greenboot-healthcheck")
         self.check("first boot", self.installed is not None and "health-check passed" in journal
-                   and DNS_SKIPPED in journal and "rikuri-unapplied-update:" in journal,
-                   "booted %s; greenboot passed: %s; DNS check skipped: %s; the check ran: %s"
+                   and DNS_SKIPPED in journal and PLATFORMS_SKIPPED in journal
+                   and "rikuri-unapplied-update:" in journal,
+                   "booted %s; greenboot passed: %s; DNS check skipped: %s; update-platforms check skipped: %s; "
+                   "the check ran: %s"
                    % (self.installed, "health-check passed" in journal, DNS_SKIPPED in journal,
-                      "rikuri-unapplied-update:" in journal))
+                      PLATFORMS_SKIPPED in journal, "rikuri-unapplied-update:" in journal))
         self.vm("echo 'vm-drill marker' > %s && sync" % MARKER)
         self.subid_first_boot()
 
