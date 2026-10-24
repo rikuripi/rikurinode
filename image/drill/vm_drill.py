@@ -19,6 +19,11 @@ checks, failing on any miss:
                update was written does the same. The cut is deterministic: a
                drop-in in /run holds finalize's stop (greenboot's trigger stops
                first), and the VM is killed during the hold.
+  containers range
+               rikuri-containers-subid added Podman's range to /etc/subuid and
+               /etc/subgid in the first boot; after the cases both files read
+               as they did then; last, a --userns=auto container starts
+               (docs/build-records/2026-10-24-drill-first-boot-and-finalize.md).
 
 The VM gets a key made for this run (root, on the drill's disk only; the image
 is unchanged) and a user-mode network restricted to one forwarded SSH port on
@@ -126,6 +131,19 @@ def subid_once(text: str) -> bool:
     return text.splitlines().count(SUBID_LINE) == 1
 
 
+def subid_added(journal: str) -> bool:
+    """True if rikuri-containers-subid's journal says it added the range to both
+    files, each on a line of its own (an "added ..., but syncing its folder
+    failed" line does not count)."""
+    return all(re.search(r"%s: added %s$" % (re.escape(f), re.escape(SUBID_LINE)), journal, re.M)
+               for f in SUBID_FILES)
+
+
+def subid_unchanged(first: list, now: list) -> bool:
+    """True if both files read now as they did at the first boot, with the range once."""
+    return len(now) == len(first) == len(SUBID_FILES) and now == first and all(subid_once(t) for t in now)
+
+
 def unit_ran(show: str) -> bool:
     """`systemctl show -p ActiveState -p Result` of a RemainAfterExit oneshot:
     True only if it ran and succeeded (Result=success alone is also a unit
@@ -172,6 +190,7 @@ class Drill:
         self.starts = 0
         self.installed = None
         self.results = []
+        self.first_subid = []
 
     # --- plumbing ------------------------------------------------------------
     def log(self, message: str) -> None:
@@ -268,6 +287,18 @@ class Drill:
                    % (self.installed, "health-check passed" in journal, DNS_SKIPPED in journal,
                       "rikuri-unapplied-update:" in journal))
         self.vm("echo 'vm-drill marker' > %s && sync" % MARKER)
+        self.subid_first_boot()
+
+    def subid_first_boot(self) -> None:
+        """A fresh install gets the range at its first boot: the unit added it to
+        both files in this boot, and each file names it once."""
+        self.first_subid = self.subid_files()
+        journal = self.journal("-b -u rikuri-containers-subid")
+        self.keep("01a-subid-first-boot.out", "\n".join(
+            SUBID_FILES[i] + ":\n" + self.first_subid[i] for i in range(2)) + "\n" + journal)
+        once = all(subid_once(text) for text in self.first_subid)
+        self.check("the containers range at the first boot", once and subid_added(journal),
+                   "added in boot 1 to both files: %s; the range once in both: %s" % (subid_added(journal), once))
 
     def load_variants(self) -> None:
         archive = os.path.join(self.workdir, "image.tar")
@@ -303,12 +334,12 @@ class Drill:
                    "started: %s" % (once, unit_ran(unit), container_started(run)))
 
     def subid_after_reboots(self) -> None:
-        """Every boot since the first left the files as they were: still the range once."""
+        """Every boot since the first left the files as they were then."""
         files = self.subid_files()
         self.keep("05-subid-after-reboots.out", "\n".join(files))
-        self.check("the containers range after reboots", all(subid_once(text) for text in files),
-                   "the range still once in both files after every case's reboots: %s"
-                   % all(subid_once(text) for text in files))
+        same = subid_unchanged(self.first_subid, files)
+        self.check("the containers range after reboots", same,
+                   "both files as at the first boot, with the range once, after every case's reboots: %s" % same)
 
     def switch(self, name: str) -> None:
         self.vm("bootc switch --transport containers-storage localhost/rikuri-os:%s" % name, timeout=900)
@@ -456,7 +487,8 @@ def main(argv=None) -> int:
         with open(path, "a", encoding="utf-8") as f:
             f.write(text)
     expected = {"first boot", "case 1, a failing update", "case 2b, finalize fails",
-                "case 3, a power cut during the update", "the containers range",
+                "case 3, a power cut during the update", "the containers range at the first boot",
+                "the containers range",
                 "the containers range after reboots"}
     passed = {case for case, ok, _ in drill.results if ok}
     return 0 if error is None and expected <= passed and all(ok for _, ok, _ in drill.results) else 1

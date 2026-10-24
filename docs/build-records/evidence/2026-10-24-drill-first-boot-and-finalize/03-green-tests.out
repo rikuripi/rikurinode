@@ -1,0 +1,68 @@
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/._drill: time stamp 2026-10-25 05:56:55 is 46795.306649904 s in the future
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/drill: time stamp 2026-10-25 05:56:55.818238967 is 46796.124749121 s in the future
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/._tests: time stamp 2026-10-25 05:56:08 is 46748.306314154 s in the future
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/tests: time stamp 2026-10-25 05:56:08.573531519 is 46748.879807131 s in the future
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/tests/._test_vm_drill.py: time stamp 2026-10-25 05:56:08 is 46748.306242154 s in the future
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/tests/test_vm_drill.py: time stamp 2026-10-25 05:56:08.573303017 is 46748.879525046 s in the future
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/drill/._vm_drill.py: time stamp 2026-10-25 05:56:55 is 46795.289198779 s in the future
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/drill/vm_drill.py: time stamp 2026-10-25 05:56:55.817949298 is 46796.107107285 s in the future
+Python 3.14.8
+....................................................................................................rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmpyhvgfp64/lib/rikuri/update-not-applied
+rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmpyhvgfp64/lib/rikuri/update-not-applied
+...........rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmptk3is0pr/lib/rikuri/update-not-applied
+rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to remount /boot writable (exit 32); greenboot will roll this healthy node back
+..rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to clear greenboot_next_deployment_id (exit 1); greenboot will roll this healthy node back
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to clear greenboot_next_deployment_id (exit 1); greenboot will roll this healthy node back
+rikuri-unapplied-update: cannot read /boot/grub2/grubenv (exit 1); greenboot decides
+..rikuri-unapplied-update: cannot read /boot/grub2/grubenv (exit 1); greenboot decides
+.rikuri-unapplied-update: unknown: no deployments listed
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa booted and is on trial; greenboot decides
+rikuri-unapplied-update: no rollback trigger set; nothing to do
+..rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa booted and is on trial; greenboot decides
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmp9sny9dvc/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmpynaocp8j/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: unknown: no deployments listed
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmpbqziza1g/lib/rikuri/update-not-applied
+.............................
+----------------------------------------------------------------------
+Ran 153 tests in 0.064s
+
+OK

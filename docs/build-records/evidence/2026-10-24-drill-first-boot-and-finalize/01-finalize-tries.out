@@ -1,0 +1,74 @@
+try 1 (with): booted localhost/rikuri-os:ft
+userns=auto run: started
+  Digest: sha256:f073bd99f687e7dcd4bbfdf612d29550f750fd51e0d41e6da57f01fa4d199001
+staged: localhost/rikuri-os:ft1
+booted: localhost/rikuri-os:ft1
+finalize (previous boot):
+  Finished writing deployment
+  ostree-finalize-staged.service: Deactivated successfully.
+greenboot trigger (previous boot):
+   INFO  greenboot          > Setting rollback trigger for deployment: sha256:f073bd99f687e7dcd4bbfdf612d29550f750fd51e0d41e6da57f01fa4d199001
+error lines (previous boot):
+  [  121.399269] rikuri-drill sshd-session[1164]: error: mm_reap: child terminated by signal 15
+
+try 2 (without): booted localhost/rikuri-os:ft1
+  Digest: sha256:f54147a2ac8e526a035883f5f3ff61f60e3f13398e2b18ab9b289eb2d7b7fdb2
+staged: localhost/rikuri-os:ft2
+booted: localhost/rikuri-os:ft2
+finalize (previous boot):
+  Finished writing deployment
+  ostree-finalize-staged.service: Deactivated successfully.
+greenboot trigger (previous boot):
+   INFO  greenboot          > Setting rollback trigger for deployment: sha256:f54147a2ac8e526a035883f5f3ff61f60e3f13398e2b18ab9b289eb2d7b7fdb2
+error lines (previous boot):
+  -- No entries --
+
+try 3 (with): booted localhost/rikuri-os:ft2
+userns=auto run: started
+  Digest: sha256:34596e329ddfc32b4b95b7f831cdb825e9d97e001735d66654133c69e904eea9
+staged: localhost/rikuri-os:ft3
+booted: localhost/rikuri-os:ft3
+finalize (previous boot):
+  Finished writing deployment
+  ostree-finalize-staged.service: Deactivated successfully.
+greenboot trigger (previous boot):
+   INFO  greenboot          > Setting rollback trigger for deployment: sha256:34596e329ddfc32b4b95b7f831cdb825e9d97e001735d66654133c69e904eea9
+error lines (previous boot):
+  -- No entries --
+
+try 4 (without): booted localhost/rikuri-os:ft3
+  Digest: sha256:126d6677687eeac0b8e4f11def449196cf9f83596320b77039a1c405ce743f03
+staged: localhost/rikuri-os:ft4
+booted: localhost/rikuri-os:ft4
+finalize (previous boot):
+  Finished writing deployment
+  ostree-finalize-staged.service: Deactivated successfully.
+greenboot trigger (previous boot):
+   INFO  greenboot          > Setting rollback trigger for deployment: sha256:126d6677687eeac0b8e4f11def449196cf9f83596320b77039a1c405ce743f03
+error lines (previous boot):
+  -- No entries --
+
+try 5 (with): booted localhost/rikuri-os:ft4
+userns=auto run: started
+  Digest: sha256:9e1439f04514f840d1eafbd288187f6793e9cef9d632d6f38c6c1521b7baa395
+staged: localhost/rikuri-os:ft5
+booted: localhost/rikuri-os:ft5
+finalize (previous boot):
+  Finished writing deployment
+  ostree-finalize-staged.service: Deactivated successfully.
+greenboot trigger (previous boot):
+   INFO  greenboot          > Setting rollback trigger for deployment: sha256:9e1439f04514f840d1eafbd288187f6793e9cef9d632d6f38c6c1521b7baa395
+error lines (previous boot):
+  [   14.062983] rikuri-drill sshd-session[1049]: error: mm_reap: child terminated by signal 15
+
+try 6 (without): booted localhost/rikuri-os:ft5
+  Digest: sha256:37295e5822b90b70bd4bd18d19b0e4e9fd243f78dd008a1e63d4feca99ff5b1d
+staged: localhost/rikuri-os:ft6
+booted: localhost/rikuri-os:ft6
+finalize (previous boot):
+  Finished writing deployment
+  ostree-finalize-staged.service: Deactivated successfully.
+greenboot trigger (previous boot):
+   INFO  greenboot          > Setting rollback trigger for deployment: sha256:37295e5822b90b70bd4bd18d19b0e4e9fd243f78dd008a1e63d4feca99ff5b1d
+error lines (previous boot):
+  -- No entries --

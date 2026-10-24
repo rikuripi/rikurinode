@@ -1,0 +1,49 @@
+try  (): base localhost/rikuri-os:subid2
+bash: line 5: [: =: unary operator expected
+  Digest: sha256:6e3fba91fb70735dfa5218f70e7f77e8f3c65b0940ca0640ae25deeae7c22958
+booted: localhost/rikuri-os:ft
+finalize result (previous boot): Finished ostree-finalize-staged.service - OSTree Finalize Staged Deployment.|Finished writing deployment|ostree-finalize-staged.service: Deactivated successfully.|
+ostree errors (previous boot):
+greenboot trigger:  INFO  greenboot          > Setting rollback trigger for deployment: sha256:6e3fba91fb70735dfa5218f70e7f77e8f3c65b0940ca0640ae25deeae7c22958|
+
+try  (): base localhost/rikuri-os:ft
+bash: line 5: [: =: unary operator expected
+Image specification is unchanged.
+Connection to 10.37.129.3 closed by remote host.
+booted: localhost/rikuri-os:ft
+finalize result (previous boot):
+ostree errors (previous boot): error: mm_reap: child terminated by signal 15|
+greenboot trigger:
+
+try  (): base localhost/rikuri-os:ft
+bash: line 5: [: =: unary operator expected
+Image specification is unchanged.
+Connection to 10.37.129.3 closed by remote host.
+booted: localhost/rikuri-os:ft
+finalize result (previous boot):
+ostree errors (previous boot): error: mm_reap: child terminated by signal 15|
+greenboot trigger:
+
+try  (): base localhost/rikuri-os:ft
+bash: line 5: [: =: unary operator expected
+Image specification is unchanged.
+booted: localhost/rikuri-os:ft
+finalize result (previous boot):
+ostree errors (previous boot): error: mm_reap: child terminated by signal 15|
+greenboot trigger:
+
+try  (): base localhost/rikuri-os:ft
+bash: line 5: [: =: unary operator expected
+Image specification is unchanged.
+booted: localhost/rikuri-os:ft
+finalize result (previous boot):
+ostree errors (previous boot): error: mm_reap: child terminated by signal 15|
+greenboot trigger:
+
+try  (): base localhost/rikuri-os:ft
+bash: line 5: [: =: unary operator expected
+Image specification is unchanged.
+booted: localhost/rikuri-os:ft
+finalize result (previous boot):
+ostree errors (previous boot):
+greenboot trigger:
