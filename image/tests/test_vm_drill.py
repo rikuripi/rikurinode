@@ -173,6 +173,35 @@ class ContainersRange(unittest.TestCase):
                 self.assertFalse(d.subid_once(text))
 
 
+class ContainersRangeFirstBoot(unittest.TestCase):
+    # Build Record 2026-10-24-drill-first-boot-and-finalize, item (a).
+    UID = ("[    5.101] h rikuri-containers-subid[612]: rikuri-containers-subid: /etc/subuid: "
+           "added containers:2147483647:2147483648\n")
+    GID = UID.replace("subuid", "subgid")
+
+    def test_added_for_both_files(self):
+        self.assertTrue(d.subid_added(self.UID + self.GID))
+
+    def test_anything_less_is_not_added(self):
+        unsynced = self.GID.rstrip("\n") + ", but syncing its folder failed (EIO); a power cut now may undo it\n"
+        present = self.UID.replace("added containers:2147483647:2147483648",
+                                   "containers:2147483647:2147483648 is present")
+        for text in ("", self.UID, self.GID, self.UID + unsynced, present + self.GID,
+                     self.UID + self.GID.replace("2147483648", "65536")):
+            with self.subTest(text=text):
+                self.assertFalse(d.subid_added(text))
+
+    def test_unchanged_since_the_first_boot(self):
+        first = ["drill:524288:65536\ncontainers:2147483647:2147483648\n"] * 2
+        self.assertTrue(d.subid_unchanged(first, list(first)))
+        for now in ([first[0], first[1] + "x:1:1\n"], [first[0]], [first[0], ""]):
+            with self.subTest(now=now):
+                self.assertFalse(d.subid_unchanged(first, now))
+
+    def test_unchanged_still_needs_the_range(self):
+        self.assertFalse(d.subid_unchanged(["drill:524288:65536\n"] * 2, ["drill:524288:65536\n"] * 2))
+
+
 class UnitAndContainer(unittest.TestCase):
     # Verifier nit 3: Result=success alone is also a unit that never ran.
     def test_the_unit_ran_and_succeeded(self):

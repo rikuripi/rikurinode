@@ -1,0 +1,145 @@
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/._tests: time stamp 2026-10-25 05:56:08 is 46788.730456173 s in the future
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/tests: time stamp 2026-10-25 05:56:08.573531519 is 46789.303912234 s in the future
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/tests/._test_vm_drill.py: time stamp 2026-10-25 05:56:08 is 46788.730254215 s in the future
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/tests/test_vm_drill.py: time stamp 2026-10-25 05:56:08.573303017 is 46789.303499565 s in the future
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+Python 3.14.8
+..............................................................................................................rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmplrzcu9a4/lib/rikuri/update-not-applied
+rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmplrzcu9a4/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmpht1hd8aj/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to remount /boot writable (exit 32); greenboot will roll this healthy node back
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to clear greenboot_next_deployment_id (exit 1); greenboot will roll this healthy node back
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to clear greenboot_next_deployment_id (exit 1); greenboot will roll this healthy node back
+.rikuri-unapplied-update: cannot read /boot/grub2/grubenv (exit 1); greenboot decides
+.rikuri-unapplied-update: cannot read /boot/grub2/grubenv (exit 1); greenboot decides
+.rikuri-unapplied-update: unknown: no deployments listed
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa booted and is on trial; greenboot decides
+.rikuri-unapplied-update: no rollback trigger set; nothing to do
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa booted and is on trial; greenboot decides
+rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+.rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmpstd43c68/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmps6k6xkf1/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: unknown: no deployments listed
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmp5l224g1k/lib/rikuri/update-not-applied
+.........EEEEEEEEE................
+======================================================================
+ERROR: test_added_for_both_files (test_vm_drill.ContainersRangeFirstBoot.test_added_for_both_files)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_vm_drill.py", line 183, in test_added_for_both_files
+    self.assertTrue(d.subid_added(self.UID + self.GID))
+                    ^^^^^^^^^^^^^
+AttributeError: module 'vm_drill' has no attribute 'subid_added'. Did you mean: 'subid_once'?
+
+======================================================================
+ERROR: test_anything_less_is_not_added (test_vm_drill.ContainersRangeFirstBoot.test_anything_less_is_not_added) (text='')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_vm_drill.py", line 192, in test_anything_less_is_not_added
+    self.assertFalse(d.subid_added(text))
+                     ^^^^^^^^^^^^^
+AttributeError: module 'vm_drill' has no attribute 'subid_added'. Did you mean: 'subid_once'?
+
+======================================================================
+ERROR: test_anything_less_is_not_added (test_vm_drill.ContainersRangeFirstBoot.test_anything_less_is_not_added) (text='[    5.101] h rikuri-containers-subid[612]: rikuri-containers-subid: /etc/subuid: added containers:2147483647:2147483648\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_vm_drill.py", line 192, in test_anything_less_is_not_added
+    self.assertFalse(d.subid_added(text))
+                     ^^^^^^^^^^^^^
+AttributeError: module 'vm_drill' has no attribute 'subid_added'. Did you mean: 'subid_once'?
+
+======================================================================
+ERROR: test_anything_less_is_not_added (test_vm_drill.ContainersRangeFirstBoot.test_anything_less_is_not_added) (text='[    5.101] h rikuri-containers-subid[612]: rikuri-containers-subid: /etc/subgid: added containers:2147483647:2147483648\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_vm_drill.py", line 192, in test_anything_less_is_not_added
+    self.assertFalse(d.subid_added(text))
+                     ^^^^^^^^^^^^^
+AttributeError: module 'vm_drill' has no attribute 'subid_added'. Did you mean: 'subid_once'?
+
+======================================================================
+ERROR: test_anything_less_is_not_added (test_vm_drill.ContainersRangeFirstBoot.test_anything_less_is_not_added) (text='[    5.101] h rikuri-containers-subid[612]: rikuri-containers-subid: /etc/subuid: added containers:2147483647:2147483648\n[    5.101] h rikuri-containers-subid[612]: rikuri-containers-subid: /etc/subgid: added containers:2147483647:2147483648, but syncing its folder failed (EIO); a power cut now may undo it\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_vm_drill.py", line 192, in test_anything_less_is_not_added
+    self.assertFalse(d.subid_added(text))
+                     ^^^^^^^^^^^^^
+AttributeError: module 'vm_drill' has no attribute 'subid_added'. Did you mean: 'subid_once'?
+
+======================================================================
+ERROR: test_anything_less_is_not_added (test_vm_drill.ContainersRangeFirstBoot.test_anything_less_is_not_added) (text='[    5.101] h rikuri-containers-subid[612]: rikuri-containers-subid: /etc/subuid: containers:2147483647:2147483648 is present\n[    5.101] h rikuri-containers-subid[612]: rikuri-containers-subid: /etc/subgid: added containers:2147483647:2147483648\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_vm_drill.py", line 192, in test_anything_less_is_not_added
+    self.assertFalse(d.subid_added(text))
+                     ^^^^^^^^^^^^^
+AttributeError: module 'vm_drill' has no attribute 'subid_added'. Did you mean: 'subid_once'?
+
+======================================================================
+ERROR: test_anything_less_is_not_added (test_vm_drill.ContainersRangeFirstBoot.test_anything_less_is_not_added) (text='[    5.101] h rikuri-containers-subid[612]: rikuri-containers-subid: /etc/subuid: added containers:2147483647:2147483648\n[    5.101] h rikuri-containers-subid[612]: rikuri-containers-subid: /etc/subgid: added containers:2147483647:65536\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_vm_drill.py", line 192, in test_anything_less_is_not_added
+    self.assertFalse(d.subid_added(text))
+                     ^^^^^^^^^^^^^
+AttributeError: module 'vm_drill' has no attribute 'subid_added'. Did you mean: 'subid_once'?
+
+======================================================================
+ERROR: test_unchanged_since_the_first_boot (test_vm_drill.ContainersRangeFirstBoot.test_unchanged_since_the_first_boot)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_vm_drill.py", line 196, in test_unchanged_since_the_first_boot
+    self.assertTrue(d.subid_unchanged(first, list(first)))
+                    ^^^^^^^^^^^^^^^^^
+AttributeError: module 'vm_drill' has no attribute 'subid_unchanged'
+
+======================================================================
+ERROR: test_unchanged_still_needs_the_range (test_vm_drill.ContainersRangeFirstBoot.test_unchanged_still_needs_the_range)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_vm_drill.py", line 202, in test_unchanged_still_needs_the_range
+    self.assertFalse(d.subid_unchanged(["drill:524288:65536\n"] * 2, ["drill:524288:65536\n"] * 2))
+                     ^^^^^^^^^^^^^^^^^
+AttributeError: module 'vm_drill' has no attribute 'subid_unchanged'
+
+----------------------------------------------------------------------
+Ran 153 tests in 0.064s
+
+FAILED (errors=9)
