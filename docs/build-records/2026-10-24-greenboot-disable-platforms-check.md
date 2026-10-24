@@ -54,3 +54,29 @@
   The probe cases keep their byte layouts (comments, whitespace, control bytes); only the names inside the parentheses change. The probes recorded how greenboot's INI reader handles those layouts; by reading, its handling does not depend on the names inside the value, but that is not re-probed. Keeping the old single-name `D` would make every probe case a finding for its value alone, and stop them testing the format, so they move with the expected value.
 
 ## Evidence log
+
+All test runs were in `rikuri-drill` with `python3 -m unittest discover -s image/tests` (`safe-run.sh` refuses on macOS; the CI gate runs them through it); `tar`'s clock warnings are filtered from the kept output.
+
+- **Red** (`01-red-tests.out`, commit `23c905f`): 182 tests, 8 failures and 1 error, each from the old single-name pin or the missing drill constant:
+  - `test_each_disabled_name_is_pinned`: 3 subtests;
+  - `test_disabled_platforms_check_absent_from_image`;
+  - `test_fedora_default_conf_keeps_dns_check`;
+  - `test_typo_in_disabled_name`;
+  - `test_subid_wanted_check_must_not_be_disabled`;
+  - `SkippedChecks`: an error, no `PLATFORMS_SKIPPED`.
+
+  The shipped-file and probe tests still passed at red, since the old file matched the old pin.
+- **Change** (commit `68e0081`):
+  - `greenboot.conf` lists both names, with the reason;
+  - `GREENBOOT_EXPECTED` pins both;
+  - the drill's first-boot check requires `PLATFORMS_SKIPPED` and reports it, and the docstring says so.
+- **Green** (`02-green-tests.out`): 182 tests, OK.
+- **Booted in the VM** (`03-vm-boot.out`): **Pass.**
+  - The tree of `68e0081`, built offline; `greenboot.conf` has the same SHA-256 (`a68f7d74…0fbb`) in the tree and the image; `check_image_root.py` in the image: "0 finding(s)".
+  - After `bootc switch` to it, an update's trial boot. greenboot's check lines, in order:
+    - "Skipping disabled script: 01_repository_dns_check.sh";
+    - the watchdog check, success;
+    - "Skipping disabled script: 01_update_platforms_check.sh";
+    - the containers-range check, success;
+    - "health-check passed".
+  - No "failed!" line; `boot_success=1`; booted `gbp`.
