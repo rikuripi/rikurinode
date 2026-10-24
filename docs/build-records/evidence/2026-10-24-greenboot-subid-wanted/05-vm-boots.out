@@ -1,0 +1,54 @@
+## (i) bootc switch to localhost/rikuri-os:gbw (the tree of 91803f1), reboot
+  Digest: sha256:b7d41bf09df98e74d1c031812d5b2344a90201af70f0e9992e1dc9377fa0140a
+rebooted: boot c3ffd3c1-e8f7-4e88-819d-8fc7a8d17671
+booted: localhost/rikuri-os:gbw sha256:b7d41bf09df9
+rollback: localhost/rikuri-os:ft6
+unit: ActiveState=active Result=success
+  unit log: rikuri-containers-subid: /etc/subuid: containers:2147483647:2147483648 is present
+  unit log: rikuri-containers-subid: /etc/subgid: containers:2147483647:2147483648 is present
+  greenboot: rikuri-unapplied-update: update sha256:b7d41bf09df98e74d1c031812d5b2344a90201af70f0e9992e1dc9377fa0140a booted and is on trial; greenboot decides
+  greenboot:  INFO  greenboot::greenboot > running wanted check /usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid
+  greenboot:  INFO  greenboot::greenboot > wanted script /usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid success!
+  greenboot:  INFO  greenboot            > greenboot health-check passed.
+  greenboot:  INFO  greenboot::grub      > Set grubenv: boot_success=1
+grubenv: boot_success=1
+
+## (ii) /etc/subuid gets a '# comment' line; an update gbw2 (gbw + a label) is staged; reboot into its trial
+# a hand-written note
+drill:524288:65536
+containers:2147483647:2147483648
+  Digest: sha256:39ea6199a4e86002d8b609ba8d9838ff577e3e8dee911077fc0a8f92e730d056
+rebooted: boot fc207eb2-afda-45ad-a593-24a260e89d50
+booted: localhost/rikuri-os:gbw2 sha256:39ea6199a4e8
+rollback: localhost/rikuri-os:gbw
+unit: ActiveState=failed Result=exit-code
+  unit log: rikuri-containers-subid: /etc/subuid: a line does not read as name:start:count; left as it is
+  unit log: rikuri-containers-subid: /etc/subgid: containers:2147483647:2147483648 is present
+  greenboot: rikuri-unapplied-update: update sha256:39ea6199a4e86002d8b609ba8d9838ff577e3e8dee911077fc0a8f92e730d056 booted and is on trial; greenboot decides
+  greenboot:  INFO  greenboot::greenboot > running wanted check /usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid
+  greenboot:  ERROR greenboot::greenboot > wanted script /usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid failed!
+  greenboot: rikuri-containers-subid did not succeed in this boot (ActiveState=failed; Result=exit-code): containers with their own range of user IDs (UserNS=auto) will not start; see journalctl -b -u rikuri-containers-subid
+  greenboot:  INFO  greenboot            > greenboot health-check passed.
+  greenboot:  INFO  greenboot::grub      > Set grubenv: boot_success=1
+grubenv: boot_success=1
+
+## (iii) one more reboot, the comment still there
+rebooted: boot 21f46068-a1ab-48f0-b2f3-4ad104e875cd
+booted: localhost/rikuri-os:gbw2 sha256:39ea6199a4e8
+rollback: localhost/rikuri-os:gbw
+unit: ActiveState=failed Result=exit-code
+  unit log: rikuri-containers-subid: /etc/subuid: a line does not read as name:start:count; left as it is
+  unit log: rikuri-containers-subid: /etc/subgid: containers:2147483647:2147483648 is present
+  greenboot: rikuri-unapplied-update: no rollback trigger set; nothing to do
+  greenboot:  INFO  greenboot::greenboot > running wanted check /usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid
+  greenboot:  ERROR greenboot::greenboot > wanted script /usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid failed!
+  greenboot: rikuri-containers-subid did not succeed in this boot (ActiveState=failed; Result=exit-code): containers with their own range of user IDs (UserNS=auto) will not start; see journalctl -b -u rikuri-containers-subid
+  greenboot:  INFO  greenboot            > greenboot health-check passed.
+  greenboot:  INFO  greenboot::grub      > Set grubenv: boot_success=1
+grubenv: boot_success=1
+
+## (iv) the comment removed by hand, the unit started again
+drill:524288:65536
+containers:2147483647:2147483648
+ActiveState=active Result=success
+check exit: 0

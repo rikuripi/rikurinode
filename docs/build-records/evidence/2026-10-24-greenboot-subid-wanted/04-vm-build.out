@@ -1,0 +1,11 @@
+# tree of 91803f1 (git archive), image/ only
+image/rootfs/usr/lib/greenboot/check/wanted.d/
+image/rootfs/usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid
+ea73ddbd5a7672537d3539d934c8e82c8fdc307e7ee8c186698a5616d10e3d8d  image/rootfs/usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid
+056e0778312ea7a22225205babf9a0b33277543f7f21527d54060977db141e80
+total 8
+-rwxr-xr-x. 2 root root 1137 Jan  1  1970 01_update_platforms_check.sh
+-rwxr-xr-x. 1 root root 2484 Oct 24  2026 50-rikuri-containers-subid
+ea73ddbd5a7672537d3539d934c8e82c8fdc307e7ee8c186698a5616d10e3d8d  /usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid
+scan boot: 0 file(s) read
+check_image_root: 0 finding(s) in / (Fedora 44 expected)
