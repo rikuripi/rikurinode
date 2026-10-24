@@ -1,0 +1,11 @@
+/etc/subuid:0
+/etc/subgid:0
+---standin.service---
+# Quadlet unit for the shell-less health experiment (case A as written).
+# Record: docs/build-records/2026-10-23-shellless-health-probe.md
+Description=Shell-less health experiment stand-in
+Notify=healthy
+TimeoutStartSec=45
+Type=notify
+NotifyAccess=all
+ExecStart=/usr/bin/podman run --name standin --replace --rm --cgroups=split --network none --sdnotify=healthy -d --security-opt=no-new-privileges --cap-drop all --read-only --userns auto --env STANDIN_DELAY_S=5 --health-cmd "[\"/standin\",\x20\"probe\"]" --health-interval 2s --health-start-period 30s localhost/standin:exp

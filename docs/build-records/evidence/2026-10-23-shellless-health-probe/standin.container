@@ -1,0 +1,21 @@
+# Quadlet unit for the shell-less health experiment (case A as written).
+# Record: docs/build-records/2026-10-23-shellless-health-probe.md
+[Unit]
+Description=Shell-less health experiment stand-in
+
+[Container]
+Image=localhost/standin:0.1-exp
+ContainerName=standin
+Network=none
+ReadOnly=true
+DropCapability=all
+NoNewPrivileges=true
+UserNS=auto
+Environment=STANDIN_DELAY_S=5
+HealthCmd=["/standin", "probe"]
+HealthInterval=2s
+HealthStartPeriod=30s
+Notify=healthy
+
+[Service]
+TimeoutStartSec=45

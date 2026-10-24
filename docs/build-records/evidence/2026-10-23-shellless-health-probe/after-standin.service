@@ -1,0 +1,11 @@
+# Stands for a dependant (ADR 0005): it may start only once standin is healthy.
+# Record: docs/build-records/2026-10-23-shellless-health-probe.md
+[Unit]
+Description=Shell-less health experiment dependant
+Requires=standin.service
+After=standin.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/echo dependant started

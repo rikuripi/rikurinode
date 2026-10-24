@@ -1,0 +1,6 @@
+# From nothing: one static binary, no shell, no libraries, no package manager.
+# Record: docs/build-records/2026-10-23-shellless-health-probe.md
+FROM scratch
+COPY standin /standin
+USER 10001:10001
+ENTRYPOINT ["/standin", "serve"]

@@ -1,0 +1,14 @@
+uptime_s=96584.28
+boot_id=37d50312-1371-494e-aa6c-6982a6208d27
+ -1 fe3d3bce3df247fba430f28772f08fbe Thu 2026-10-22 17:58:50 +13 Thu 2026-10-22 04:59:30 +13
+  0 37d503121371494eaa6c6982a6208d27 Thu 2026-10-22 17:59:35 +13 Fri 2026-10-23 07:49:18 +13
+  booted:
+        image: localhost/rikuri-os:fix4
+      version: 44.20261021.0
+      imageDigest: sha256:9fceb6b2fe984c7b53831d9bc7ebcbd3370d66b9ad9e3a0e06866569c17c258b
+podman version 5.8.9
+crun version 1.28
+conmon version 2.2.1
+systemd 259 (259.10-1.fc44)
+7.2.11-200.fc44.aarch64
+256 SHA256:NtVMqX12NYeujT0KNVRasNSCtiVoLgh3+SqVUFD5938 no comment (ED25519)

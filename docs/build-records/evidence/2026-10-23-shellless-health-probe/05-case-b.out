@@ -1,0 +1,18 @@
+grep: warning: stray \ before -
+--env STANDIN_DELAY_S=5
+--env STANDIN_STATE=sick
+A dependency job for after-standin.service failed. See 'journalctl -xe' for details.
+systemctl start rc=1, returned after 100390 ms
+ActiveState=failed
+ActiveEnterTimestampMonotonic=95951261605
+Result=timeout
+ActiveState=inactive
+ActiveEnterTimestampMonotonic=0
+[96018.066131] rikuri-drill systemd[1]: standin.service: start operation timed out. Terminating.
+[96063.073717] rikuri-drill systemd[1]: standin.service: State 'stop-sigterm' timed out. Aborting.
+[96073.269710] rikuri-drill podman[5925]: 2026-10-23 07:40:47.672967102 +1300 +13 m=+100.300489174 container stop 31da655c06d3b2255d1202f0338f4d0f76e0bda23b99b332240ff00fb2e8c8ac (image=localhost/standin:exp, name=standin, PODMAN_SYSTEMD_UNIT=standin.service, io.buildah.version=1.43.5)
+[96073.270197] rikuri-drill podman[5925]: 2026-10-23 07:40:47.673857019 +1300 +13 m=+100.301378965 container died 31da655c06d3b2255d1202f0338f4d0f76e0bda23b99b332240ff00fb2e8c8ac (image=localhost/standin:exp, name=standin, PODMAN_SYSTEMD_UNIT=standin.service, io.buildah.version=1.43.5)
+[96073.313395] rikuri-drill podman[5925]: 2026-10-23 07:40:47.717092144 +1300 +13 m=+100.344614049 container remove 31da655c06d3b2255d1202f0338f4d0f76e0bda23b99b332240ff00fb2e8c8ac (image=localhost/standin:exp, name=standin, io.buildah.version=1.43.5, PODMAN_SYSTEMD_UNIT=standin.service)
+[96073.325733] rikuri-drill systemd[1]: standin.service: Failed with result 'timeout'.
+[96073.326322] rikuri-drill systemd[1]: Failed to start standin.service - Shell-less health experiment stand-in.
+[96073.326469] rikuri-drill systemd[1]: Dependency failed for after-standin.service - Shell-less health experiment dependant.
