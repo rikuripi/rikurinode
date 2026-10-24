@@ -1,0 +1,19 @@
+# rikuri-drill (aarch64), greenboot-0.16.4-0.fc44, booted localhost/rikuri-os:ft6.
+# A probe /etc/greenboot/check/wanted.d/90-rikuri-probe (0755):
+#!/usr/bin/python3 -I
+import os, sys
+print("probe ran: exe=%s ppid-comm=%s" % (sys.executable, open("/proc/%d/comm" % os.getppid()).read().strip()))
+sys.exit(1)
+# After a reboot: journalctl -b -u greenboot-healthcheck | grep -E "probe|wanted|health-check passed|boot_success"
+ INFO  greenboot::greenboot > running wanted check /usr/lib/greenboot/check/wanted.d/01_update_platforms_check.sh
+ WARN  greenboot::greenboot > wanted script runner error:
+ ERROR greenboot::greenboot > wanted script /usr/lib/greenboot/check/wanted.d/01_update_platforms_check.sh failed!
+ INFO  greenboot::greenboot > running wanted check /etc/greenboot/check/wanted.d/90-rikuri-probe
+ WARN  greenboot::greenboot > wanted script runner error:
+ ERROR greenboot::greenboot > wanted script /etc/greenboot/check/wanted.d/90-rikuri-probe failed!
+probe ran: exe=/usr/bin/python3 ppid-comm=greenboot
+ INFO  greenboot            > greenboot health-check passed.
+ INFO  greenboot::grub      > Set grubenv: boot_success=1
+# grub2-editenv /boot/grub2/grubenv list
+boot_success=1
+# The probe was then removed (wanted.d empty).

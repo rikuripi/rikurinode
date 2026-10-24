@@ -29,6 +29,8 @@ TRIGGER_DROPIN = "usr/lib/systemd/system/greenboot-set-rollback-trigger.service.
 SUBID_CHECK = "usr/libexec/rikuri/containers-subid"
 SUBID_UNIT = "usr/lib/systemd/system/rikuri-containers-subid.service"
 SUBID_WANTS = "usr/lib/systemd/system/sysinit.target.wants/rikuri-containers-subid.service"
+# greenboot's wanted check of it (docs/build-records/2026-10-24-greenboot-subid-wanted.md).
+SUBID_WANTED = "usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid"
 
 
 def shipped_file(rel) -> bytes:
@@ -122,6 +124,8 @@ class Root:
             self.write_bytes(SUBID_CHECK, shipped_file(SUBID_CHECK), mode=0o755)
             self.write_bytes(SUBID_UNIT, shipped_file(SUBID_UNIT))
             self.link(SUBID_WANTS, "../rikuri-containers-subid.service")
+        if os.path.exists(os.path.join(HERE, "..", "rootfs", SUBID_WANTED)):
+            self.write_bytes(SUBID_WANTED, shipped_file(SUBID_WANTED), mode=0o755)
         self.write("etc/ssh/sshd_config", "PermitRootLogin no\n")
 
     def _fresh(self, rel):
@@ -291,6 +295,34 @@ class CheckImageRoot(unittest.TestCase):
         self.assertFinds(SUBID_CHECK + ": not executable")
         self.root.link(SUBID_CHECK, "/bin/true")
         self.assertFinds(SUBID_CHECK + ": missing")
+
+    def test_subid_wanted_check_must_be_there_and_executable(self):
+        # Verified against the shipped file: the fixture copies it when it exists.
+        self.assertEqual(cir.check_subid_wanted(self.root.path), [])
+        self.root.remove(SUBID_WANTED)
+        self.assertFinds(SUBID_WANTED + ": missing")
+        self.root.write_bytes(SUBID_WANTED, shipped_file(SUBID_WANTED), mode=0o644)
+        self.assertFinds(SUBID_WANTED + ": not executable")
+        self.root.link(SUBID_WANTED, "/bin/true")
+        self.assertFinds(SUBID_WANTED + ": missing")
+
+    def test_subid_wanted_check_must_not_be_required(self):
+        for d in ("usr/lib/greenboot/check/required.d", "etc/greenboot/check/required.d"):
+            with self.subTest(d=d):
+                rel = d + "/50-rikuri-containers-subid"
+                self.root.write_bytes(rel, shipped_file(SUBID_WANTED), mode=0o755)
+                self.assertFinds(rel + ": a required check")
+                self.root.remove(rel)
+
+    def test_subid_wanted_check_must_not_be_disabled(self):
+        conf = shipped().decode("ascii")
+        line = 'DISABLED_HEALTHCHECKS=("01_repository_dns_check.sh")'
+        self.assertIn(line, conf.splitlines())
+        self.root.write(cir.GREENBOOT_CONF, conf.replace(
+            line, 'DISABLED_HEALTHCHECKS=("01_repository_dns_check.sh" "50-rikuri-containers-subid")'))
+        # Already a finding: the list is pinned to Fedora's DNS check alone.
+        self.assertFinds("DISABLED_HEALTHCHECKS is ['01_repository_dns_check.sh', '50-rikuri-containers-subid'], "
+                         "expected ['01_repository_dns_check.sh']")
 
     def test_subid_unit_missing(self):
         self.root.remove(SUBID_UNIT)
