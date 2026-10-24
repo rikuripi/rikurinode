@@ -13,7 +13,8 @@ whose range is appended to both files, and bootc's three-way merge then keeps
 the node's own copy over the image's on every update. So the line is added
 here, when it is missing, in the one state where that is safe:
 
-  every line reads as name:start:count, no entry is named `containers`, and
+  every line reads as name:start:count (decimal, no leading zero, one "\n"
+  ending each), no entry is named `containers`, and
   podman's documented range overlaps no entry  ->  add the line.
 
   an entry named `containers`                  ->  leave (someone chose it).
@@ -39,7 +40,9 @@ LINE = "%s:%d:%d" % (NAME, START, COUNT)
 ETC = "/etc"
 FILES = ("subuid", "subgid")
 TMP_SUFFIX = ".rikuri-tmp"
-ENTRY = re.compile(r"([^:\s]+):([0-9]+):([0-9]+)")
+# Decimal without a leading zero: shadow-utils reads numbers in base 0, so
+# 017777777777 is octal to it (verifier round 1, nit 2).
+ENTRY = re.compile(r"([^:\s]+):(0|[1-9][0-9]*):(0|[1-9][0-9]*)")
 
 
 def log(message: str) -> None:
@@ -47,9 +50,11 @@ def log(message: str) -> None:
 
 
 def parse(text: str):
-    """[(name, start, count)] in file order, or None if any line does not read."""
+    """[(name, start, count)] in file order, or None if any line does not read.
+    Lines end at "\n" only, as shadow-utils reads them; a "\r" or another line
+    break str.splitlines() knows makes the line unreadable (round 1, nit 1)."""
     entries = []
-    for line in text.splitlines():
+    for line in text.split("\n"):
         if not line:
             continue
         match = ENTRY.fullmatch(line)
@@ -79,9 +84,10 @@ def write_whole(path: str, text: str, replace=os.replace) -> None:
     tmp = path + TMP_SUFFIX
     if os.path.lexists(tmp):
         os.remove(tmp)
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
     try:
-        with os.fdopen(fd, "w", encoding="ascii") as f:
+        # "x" is O_EXCL: a link planted at tmp is never followed.
+        with open(tmp, "x", encoding="ascii", newline="",
+                  opener=lambda p, flags: os.open(p, flags, 0o644)) as f:
             f.write(text)
             f.flush()
             os.fsync(f.fileno())
@@ -91,18 +97,22 @@ def write_whole(path: str, text: str, replace=os.replace) -> None:
         if os.path.lexists(tmp):
             os.remove(tmp)
         raise
-    dir_fd = os.open(os.path.dirname(path) or ".", os.O_RDONLY)
+
+
+def sync_folder(path: str) -> None:
+    """fsync a folder, so that a rename in it survives a power cut."""
+    fd = os.open(path, os.O_RDONLY)
     try:
-        os.fsync(dir_fd)
+        os.fsync(fd)
     finally:
-        os.close(dir_fd)
+        os.close(fd)
 
 
-def ensure(path: str, log=log, replace=os.replace) -> int:
+def ensure(path: str, log=log, replace=os.replace, sync_dir=sync_folder) -> int:
     """0 when path names the range afterwards (or another chosen `containers`
     range), 1 when it was left without it."""
     try:
-        with open(path, encoding="ascii") as f:
+        with open(path, encoding="ascii", newline="") as f:
             text = f.read()
     except FileNotFoundError:
         text = ""
@@ -126,6 +136,12 @@ def ensure(path: str, log=log, replace=os.replace) -> int:
     except OSError as e:
         log("%s: FAILED to add %s (%s); the old file is kept" % (path, LINE, e))
         return 1
+    try:
+        sync_dir(os.path.dirname(path) or ".")
+    except OSError as e:
+        log("%s: added %s, but syncing its folder failed (%s); a power cut now may undo it"
+            % (path, LINE, e))
+        return 0
     log("%s: added %s" % (path, LINE))
     return 0
 

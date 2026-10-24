@@ -126,6 +126,18 @@ def subid_once(text: str) -> bool:
     return text.splitlines().count(SUBID_LINE) == 1
 
 
+def unit_ran(show: str) -> bool:
+    """`systemctl show -p ActiveState -p Result` of a RemainAfterExit oneshot:
+    True only if it ran and succeeded (Result=success alone is also a unit
+    that never ran; verifier round 1, nit 3)."""
+    lines = show.splitlines()
+    return "ActiveState=active" in lines and "Result=success" in lines
+
+
+def container_started(output: str) -> bool:
+    return "started" in output.splitlines()
+
+
 def containerfile_broken(base: str) -> str:
     return ("FROM %s\n"
             "RUN printf '#!/bin/bash\\necho \"drill: deliberate required-check failure\" >&2\\nexit 1\\n' "
@@ -285,9 +297,9 @@ class Drill:
         self.keep("01b-userns-auto.out", "\n".join(SUBID_FILES[i] + ":\n" + files[i] for i in range(2))
                   + "\n" + unit + "\n" + journal + "\n" + run)
         once = all(subid_once(text) for text in files)
-        self.check("the containers range", once and "Result=success" in unit and "started" in run,
-                   "the range once in both files: %s; the unit succeeded: %s; a --userns=auto container started: %s"
-                   % (once, "Result=success" in unit, "started" in run))
+        self.check("the containers range", once and unit_ran(unit) and container_started(run),
+                   "the range once in both files: %s; the unit ran and succeeded: %s; a --userns=auto container "
+                   "started: %s" % (once, unit_ran(unit), container_started(run)))
 
     def subid_after_reboots(self) -> None:
         """Every later boot left the files as they were: still the range once."""
