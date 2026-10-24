@@ -1,0 +1,59 @@
+#!/usr/bin/python3 -I
+"""greenboot wanted check: Podman's containers range was set in this boot.
+
+rikuri-containers-subid.service adds Podman's `containers` range to
+/etc/subuid and /etc/subgid before sysinit.target, and fails when it will not
+or cannot (a line it cannot read safely, an overlap, a file it cannot write).
+Without the range, every container unit with UserNS=auto refuses to start, so
+this check makes that failure visible in greenboot's journal at every boot.
+
+It is a wanted check, not a required one: greenboot logs a failure and the
+boot still counts as good. Both files are the node's own /etc, which every
+image carries over, so rolling back to another image could not repair them
+(owner, 2026-10-24).
+
+It passes only when systemd reports the unit active with Result=success; the
+unit is a RemainAfterExit oneshot, so Result=success alone is also a unit that
+never ran. It runs one fixed command by absolute path, never a shell, and
+takes no input from the network or a user.
+Record: docs/build-records/2026-10-24-greenboot-subid-wanted.md
+"""
+from __future__ import annotations
+
+import subprocess
+import sys
+
+UNIT = "rikuri-containers-subid.service"
+ARGV = ["/usr/bin/systemctl", "show", "-p", "ActiveState", "-p", "Result", UNIT]
+WHY = ("containers with their own range of user IDs (UserNS=auto) will not start; "
+       "see journalctl -b -u rikuri-containers-subid")
+
+
+def verdict(show: str):
+    """(True, None) if the unit ran and succeeded in this boot, else (False, reason)."""
+    lines = show.splitlines()
+    if "ActiveState=active" in lines and "Result=success" in lines:
+        return True, None
+    seen = "; ".join(line for line in lines if line) or "no state reported"
+    return False, "rikuri-containers-subid did not succeed in this boot (%s): %s" % (seen, WHY)
+
+
+def main(run=subprocess.run, out=sys.stdout) -> int:
+    try:
+        p = run(ARGV, capture_output=True, text=True, errors="replace", timeout=30, check=False)
+    except (OSError, subprocess.SubprocessError) as e:
+        print("rikuri-containers-subid: its state could not be read (%s): %s" % (e, WHY), file=out)
+        return 1
+    if p.returncode != 0:
+        print("rikuri-containers-subid: systemctl exited %d (%s): %s"
+              % (p.returncode, (p.stderr or "").strip(), WHY), file=out)
+        return 1
+    ok, reason = verdict(p.stdout)
+    if not ok:
+        print(reason, file=out)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

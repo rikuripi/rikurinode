@@ -76,6 +76,9 @@ SUBID_WANTS = "usr/lib/systemd/system/sysinit.target.wants/rikuri-containers-sub
 SUBID_LINES = {"[Unit]": ("DefaultDependencies=no", "Before=sysinit.target shutdown.target"),
                "[Service]": ("Type=oneshot", "ExecStart=/" + SUBID_CHECK)}
 SUBID_TARGETS = ("../rikuri-containers-subid.service", "/" + SUBID_UNIT)
+# greenboot's wanted check of it: logged at every boot, never a rollback, since
+# no image can repair /etc (docs/build-records/2026-10-24-greenboot-subid-wanted.md).
+SUBID_WANTED = "usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid"
 # The one form of a line read alike by greenboot and this check (the docstring).
 PRINTABLE_LINE = re.compile(rb"^[\x20-\x7e]*$")
 KEY_LINE = re.compile(rb"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
@@ -381,9 +384,26 @@ def check_no_private_keys(root: str, note=lambda line: None) -> list:
     return found
 
 
+def check_subid_wanted(root: str) -> list:
+    found = []
+    path = _regular(root, SUBID_WANTED)
+    if path is None:
+        found.append("%s: missing, or not a regular file (a failed containers range would pass "
+                     "greenboot in silence)" % SUBID_WANTED)
+    elif not os.lstat(path).st_mode & 0o111:
+        found.append("%s: not executable" % SUBID_WANTED)
+    name = os.path.basename(SUBID_WANTED)
+    for d in CHECK_DIRS:
+        rel = d + "/" + name
+        if d.endswith("/required.d") and _lstat_in(root, rel) is not None:
+            found.append("%s: a required check; a failure would roll the node back, and no image "
+                         "can repair /etc" % rel)
+    return found
+
+
 def check_root(root: str, release: str, note=lambda line: None) -> list:
     return (check_os_release(root, release) + check_greenboot(root) + check_unapplied_update(root)
-            + check_trigger_at_shutdown(root) + check_containers_subid(root)
+            + check_trigger_at_shutdown(root) + check_containers_subid(root) + check_subid_wanted(root)
             + check_no_private_keys(root, note))
 
 
