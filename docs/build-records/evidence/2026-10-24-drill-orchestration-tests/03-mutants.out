@@ -1,0 +1,6 @@
+s/self.check("the containers range at the first boot", once and subid_added(journal),/self.check("the containers range at the first boot", subid_added(journal),/ -> FAILED (failures=3)
+s/self.check("the containers range at the first boot", once and subid_added(journal),/self.check("the containers range at the first boot", once,/ -> FAILED (failures=1)
+s/journal = self.journal("-b -u rikuri-containers-subid")/journal = self.journal("-u rikuri-containers-subid")/ -> FAILED (failures=2)
+s/ "the containers range at the first boot", "case 1, a failing update",/ "case 1, a failing update",/ -> FAILED (failures=1)
+s/EXPECTED <= passed and all(ok for _, ok, _ in results)/EXPECTED <= passed/ -> FAILED (failures=1)
+s/return 0 if error is None and EXPECTED/return 0 if EXPECTED/ -> FAILED (failures=1)

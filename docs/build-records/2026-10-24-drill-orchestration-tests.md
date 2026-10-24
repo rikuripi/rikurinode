@@ -46,3 +46,20 @@
 - [x] **Why stand-ins over `vm`/`journal`:** `Drill.__init__` has no side effects, and `subid_files`, `keep` and `check` then run for real (`keep` writes to a temporary artifacts folder).
 
 ## Evidence log
+
+- **Red** (`01-red-tests.out`, commit `8e325df`):
+  - 165 tests ran; the 5 `Verdict` tests failed, each an `AttributeError` for `EXPECTED`;
+  - the 6 `ContainersRangeSteps` tests passed on the unchanged methods, as they should.
+  - A first try errored the whole module: a class attribute read `d.EXPECTED` at import, so nothing in the file ran. I moved it into `setUp` before committing, so red is only the missing function.
+  - Run in `rikuri-drill` (`safe-run.sh` refuses on macOS); the CI gate runs the tests through it.
+- **Fix** (commit `4146c8f`):
+  - `EXPECTED` (a frozenset of the same seven names) and `verdict(results, error)` (the same expression) are now module-level; `main` returns `verdict(drill.results, error)`.
+  - Nothing else in the drill changed.
+- **Green** (`02-green-tests.out`): 165 tests, OK.
+- **Mutants** (`03-mutants.out`; each applied, checked to differ, then reverted), all red:
+  - first-boot check without `once and`: 3 failures;
+  - without `subid_added`: 1;
+  - journal read without `-b`: 2;
+  - "the containers range at the first boot" dropped from `EXPECTED`: 1, caught by the explicit set test (the missing-check test iterates `EXPECTED` itself, so it cannot see a name dropped from it);
+  - failing checks ignored: 1;
+  - `error` ignored: 1.
