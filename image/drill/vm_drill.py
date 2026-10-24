@@ -130,6 +130,15 @@ def trigger_stopped(serial: str, offset: int) -> bool:
     return bool(TRIGGER_STOPPED.search(serial[offset:]))
 
 
+def first_boot_checks(journal: str) -> dict:
+    """What the first-boot check requires of greenboot's journal, by name, in the
+    order the check reports them; the boot passes only if each is True."""
+    return {"greenboot passed": "health-check passed" in journal,
+            "DNS check skipped": DNS_SKIPPED in journal,
+            "update-platforms check skipped": PLATFORMS_SKIPPED in journal,
+            "the check ran": "rikuri-unapplied-update:" in journal}
+
+
 def subid_once(text: str) -> bool:
     """True if a subuid or subgid file names Podman's containers range exactly once."""
     return text.splitlines().count(SUBID_LINE) == 1
@@ -302,13 +311,9 @@ class Drill:
                                                                       check=False) or "",
             self.journal("-b -u greenboot-healthcheck")]))
         journal = self.journal("-b -u greenboot-healthcheck")
-        self.check("first boot", self.installed is not None and "health-check passed" in journal
-                   and DNS_SKIPPED in journal and PLATFORMS_SKIPPED in journal
-                   and "rikuri-unapplied-update:" in journal,
-                   "booted %s; greenboot passed: %s; DNS check skipped: %s; update-platforms check skipped: %s; "
-                   "the check ran: %s"
-                   % (self.installed, "health-check passed" in journal, DNS_SKIPPED in journal,
-                      PLATFORMS_SKIPPED in journal, "rikuri-unapplied-update:" in journal))
+        checks = first_boot_checks(journal)
+        self.check("first boot", self.installed is not None and all(checks.values()),
+                   "booted %s; %s" % (self.installed, "; ".join("%s: %s" % kv for kv in checks.items())))
         self.vm("echo 'vm-drill marker' > %s && sync" % MARKER)
         self.subid_first_boot()
 

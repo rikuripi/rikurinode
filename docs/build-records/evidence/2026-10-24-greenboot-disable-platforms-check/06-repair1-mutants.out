@@ -1,0 +1,10 @@
+# 1: the update-platforms condition removed; 2: the DNS condition always True; 3: first_boot ignores the conditions; 4: the update-platforms condition reads the DNS line
+mutant 1 -> FAILED (failures=1, errors=1)
+mutant 2 -> FAILED (failures=1)
+mutant 3 -> OK
+mutant 4 -> FAILED (failures=1)
+# Mutants 1-4 above ran before the FirstBoot tests existed; mutant 3 survived. With FirstBoot added, all four again:
+mutant 1 -> FAILED (failures=2, errors=1)
+mutant 2 -> FAILED (failures=2)
+mutant 3 -> FAILED (failures=4)
+mutant 4 -> FAILED (failures=2)

@@ -408,5 +408,57 @@ class Verdict(unittest.TestCase):
         self.assertEqual(d.verdict(self.ALL, "timed out"), 1)
 
 
+class FirstBootStandIn(StandInDrill):
+    """first_boot through stand-ins: the boot wait, bootc's status and the three
+    harmless commands it runs answer here; everything else as StandInDrill."""
+    HARMLESS = ("getenforce", "grub2-editenv /boot/grub2/grubenv list")
+
+    def __init__(self, artifacts, status_text, greenboot):
+        super().__init__(artifacts, dict.fromkeys(d.SUBID_FILES, RANGE),
+                         {"-b -u rikuri-containers-subid": ADDED, "-b -u greenboot-healthcheck": greenboot})
+        self.status_text = status_text
+
+    def wait_up(self, old_boot=None, timeout=600):
+        return "boot-1"
+
+    def status(self):
+        return self.status_text
+
+    def vm(self, command, check=True, timeout=300, stdin=None):
+        if command in self.HARMLESS or command.startswith("echo 'vm-drill marker' > "):
+            return ""
+        return super().vm(command, check=check, timeout=timeout, stdin=stdin)
+
+
+class FirstBoot(unittest.TestCase):
+    # Verifier I1, repair 1 mutant 3 (06-repair1-mutants.out): first_boot itself
+    # must require every condition, not only first_boot_checks name them.
+    STATUS = json.dumps({"status": {"booted": {"image": {"image": {"image": "localhost/rikuri-os:ci",
+                                                                   "transport": "registry"},
+                                                         "imageDigest": DIGEST}},
+                                    "rollback": None, "staged": None}})
+
+    def setUp(self):
+        self.artifacts = tempfile.mkdtemp(prefix="drill-artifacts-")
+        self.addCleanup(shutil.rmtree, self.artifacts)
+
+    def first_boot(self, greenboot, status=None):
+        drill = FirstBootStandIn(self.artifacts, self.STATUS if status is None else status, greenboot)
+        drill.first_boot()
+        return [ok for name, ok, _ in drill.results if name == "first boot"]
+
+    def test_a_good_first_boot_passes(self):
+        self.assertEqual(self.first_boot(FirstBootChecks.JOURNAL + WANTED_OK), [True])
+
+    def test_each_missing_greenboot_line_fails_it(self):
+        for name, fragment in FirstBootChecks.LINES.items():
+            with self.subTest(name=name):
+                journal = "".join(l + "\n" for l in FirstBootChecks.JOURNAL.splitlines() if fragment not in l)
+                self.assertEqual(self.first_boot(journal + WANTED_OK), [False])
+
+    def test_an_unreadable_status_fails_it(self):
+        self.assertEqual(self.first_boot(FirstBootChecks.JOURNAL + WANTED_OK, status=""), [False])
+
+
 if __name__ == "__main__":
     unittest.main()
