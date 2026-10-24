@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted — owner, 2026-10-17 (the principle: "2 & 3. A"; the mechanism with package R of D13, the same day; record `docs/build-records/2026-10-17-plan-review.md`) |
+| **Status** | Accepted — owner, 2026-10-17 (the principle: "2 & 3. A"; the mechanism with package R of D13, the same day; record `docs/build-records/2026-10-17-plan-review.md`); clarified, not changed, 2026-10-22 (owner, "Add dated clarification to ADR 0006."; the section "Clarification (2026-10-22)" below; record `docs/build-records/2026-10-22-adr-0006-clarification.md`) |
 | **Decision** | D12 of `docs/architecture/platform-plan.md`; its §4.2 |
 | **Supersedes** | The rule of 2026-10-10, carried into the plan on 2026-10-11, that a component's version is machine state and the newer wins |
 | **Beside it** | ADR 0005 (supervision), ADR 0007 (rootful Podman, which this mechanism needs) |
@@ -77,6 +77,43 @@ fails, then use the one previous stable container."
 - Podman auto-update on moving tags: floating tags are forbidden by the
   hygiene rule, and auto-update judges only the first start, not a failure
   minutes later.
+
+## Clarification (2026-10-22): how many failed boots, and what the rollback depends on
+
+Recorded on the owner's word ("Add dated clarification to ADR 0006. We'll
+probably use the information when our build gets there."). It changes
+nothing above; it keeps what was observed with the decision.
+
+- **Four boots, not three.** "Three failed boots return the previous image"
+  reads greenboot's setting (`GREENBOOT_MAX_BOOT_ATTEMPTS=3`). greenboot
+  0.16.4 sets its counter to three on the *first* failure, then counts down
+  over three more boots, so a failing release runs **four** boots before the
+  rollback (about a minute in the VMs tried; not yet measured on the N150 or
+  the Pi; the node's services are down for that time). Observed in the Parallels experiment and in every CI drill
+  run (`docs/build-records/2026-10-21-greenboot-drill-parallels.md`,
+  `docs/build-records/2026-10-22-ci-vm-drill.md`); plan §4.1 already says four.
+- **"Proven or undone" depends on two changes to stock greenboot**, both in the
+  image since #28 and #29:
+  - greenboot sets its rollback trigger only at shutdown; on a disk without a
+    separate `/boot` partition (what `bootc install to-disk` makes) it never
+    did, and a failing release stayed in place ("manual intervention
+    required", greenboot-rs #218). A drop-in now orders the trigger against
+    `final.target` (`docs/build-records/2026-10-22-greenboot-218.md`).
+  - greenboot sets that trigger *before* the release is applied; when applying
+    then fails, or the power is cut between the two, it rolled a healthy node
+    back to the set before (greenboot-rs #219). A check before greenboot's own
+    clears the trigger when the release was never applied, remounting a
+    read-only `/boot` for that write
+    (`docs/build-records/2026-10-22-d22-unapplied-update.md`; plan §4.1, D22).
+- **Held by CI.** The `drill` job of `.github/workflows/image.yml` proves both,
+  on every image change and weekly: a failing release returns the previous set
+  with `/var` intact; a release that failed to apply, or was cut off by a
+  power loss, leaves the node on its current set. A greenboot or Fedora update
+  that brings either bug back fails that job.
+- **For the builder of release sets:** a release's containers return with
+  the previous image only through these paths; a release whose containers
+  fail after the image's own checks pass is the control plane's to roll back
+  (the "Proven or undone" bullet above), not greenboot's.
 
 ## Sources (read 2026-10-17)
 

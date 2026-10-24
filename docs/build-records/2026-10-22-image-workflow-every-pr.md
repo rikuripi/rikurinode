@@ -5,8 +5,8 @@
 | **Date** | 2026-10-22 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `ci/image-workflow-every-pr`, from `main` at `a3babce`, in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | red `c27d9f9`, change `8b3e618`; merged by #30 (`6db7a53`); closed out on #31's branch |
+| **Status** | COMPLETE: both halves of Done when seen (below) |
 | **Change type** | ops (CI; a control change, authorized as its own task) |
 
 ## Task Contract
@@ -28,3 +28,6 @@
 - Red: `c27d9f9`, three tests in `scripts/quality/tests/test_workflows.py` failing (no path filter; build and drill gated on `changes`; only a pull request can skip), the other 8 passing.
 - The decision script, taken from the workflow (`ruby -e YAML.load_file`) and run in scratch git repositories: docs only → `image=false`; `image/Containerfile`, `.github/workflows/image.yml` → `image=true`; `.github/workflows/ci.yml` → `image=false`; an unreadable base → `image=true`; a push → `image=true`.
 - **A hazard found and closed before CI:** GitHub runs steps with `bash -e -o pipefail`; the first draft matched with `printf … | grep -q`. With the image file listed first among 20,001 changed files, that draft decided `image=false` three times in three (grep exits at its first match, printf dies on the closed pipe, pipefail fails the condition), which would have skipped the drill on an image change. The match now reads a here-string (`grep -qE … <<< "$changed"`): `image=true` three times in three on the same diff, and a test forbids a pipe into `grep -q` in that job (a test added after the red commit, for this reason).
+- **This task's pull request, #30** (touches the workflow): the image workflow's run [39735324708](https://github.com/rikuripi/rikurinode/actions/runs/39735324708) on `8b3e618` passed, `changes` deciding yes and the build and the drill running and passing; `Full gate (Ubuntu)` passed. Merged as `6db7a53`.
+- **The next pull request touching neither, #31** (the ADR 0006 docs, branch `docs/close-out-29-adr-0006`): image workflow run [40042158213](https://github.com/rikuripi/rikurinode/actions/runs/40042158213), against base `6db7a53`: `Did the image or its workflow change?` **success**, its summary "image=false (the pull request changes neither image/ nor this workflow: build and drill skipped)"; `Build and check the OS image` and `Boot the image in a VM and run the rollback drill` **skipped**, reported by GitHub as "skipping" with 0 s. #32 and #33 (neither touches the image) skipped the same way.
+- **Outcome:** DONE. Making any of these jobs a required check stays the owner's choice (review set for 2026-11-16).

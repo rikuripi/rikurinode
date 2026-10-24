@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/ci-vm-drill`, from `main` at `7c135cf`, in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS (resumed 2026-10-22 after `docs/build-records/2026-10-22-greenboot-218.md`); development runs used: 6 of 10 (runs 3 and 4 on that task's branch; run 5 the red run; run 6 after repair 1) |
+| **Status** | COMPLETE: verifier FAIL, repaired in cycle 1, follow-up PASS; merged by the owner ("1. Merge #29", 2026-10-22) as `a3babce` with pull request #29, green on `97a40c3` (the drill as a check: [run 39730621085](https://github.com/rikuripi/rikurinode/actions/runs/39730621085), 7 m 51 s; `Full gate (Ubuntu)` [run 39730621171](https://github.com/rikuripi/rikurinode/actions/runs/39730621171)); development runs used: 6 of 10 |
 | **Change type** | feature (CI; a control change, authorized as its own task) |
 
 ## Task Contract
@@ -68,7 +68,8 @@
 
 ## 5. Close Out
 
-- [ ] Gate; pull request; the stage 1 record's change list updated.
+- [x] Gate: CI on #29 at `97a40c3`, all pass (Status); locally, the steps that run here pass and the full gate stops at step 1 (`shellcheck` absent). Pull request #29, merged as `a3babce`. The stage 1 record's change list notes changes 3 and 4.
+- [x] **Owner's answers at close-out (2026-10-22):** QEMU and OVMF from Ubuntu 24.04's archive, versions printed each run: "2. Keep it". Making the drill a required check: after it has run weekly for a while (the owner's "3. When do we check again?"); not done here (a repository setting, the owner's), and it needs one workflow change first: `image.yml` runs only on pull requests that touch `image/` or the workflow, and a required check that never starts would block every other pull request.
 
 - Resumed 2026-10-22. On `stage1/greenboot-218` (this task's commits plus the #218 fix): run 3 [39713948238](https://github.com/rikuripi/rikurinode/actions/runs/39713948238) (case 1 Pass; case 2b Fail on a read-only `/boot`), run 4 [39724262070](https://github.com/rikuripi/rikurinode/actions/runs/39724262070) (**all Pass**: first boot, cases 1, 2b, 3; case 3's log said "finalize's stop seen on the serial console", which was untrue: verifier I1, below; the cut was timed by a fixed sleep until repair 1); and as a check of pull request #29 at `922cee4`, [39726227170](https://github.com/rikuripi/rikurinode/actions/runs/39726227170) (pass, 6 m 51 s).
 - **Red run**, run 5, [39727276986](https://github.com/rikuripi/rikurinode/actions/runs/39727276986), on the throwaway branch `red/drill-without-unapplied-check` at `318f2be` (from `922cee4`, minus #28's drop-in and minus the drill's `needs: build`; the branch deleted afterwards): the build job's image check **refused** the image ("50-rikuri-unapplied-update.conf: missing, or not a regular file"); the drill **failed**: first boot Fail ("the check ran: False"), case 1 Pass (it does not depend on #28's check), case 2b timed out: greenboot logged "GRUB kernel fallback detected - new deployment failed to boot", rolled the healthy node back into case 1's broken image, which then failed four boots and ended stuck: "Boot counter exhausted but no next-deployment-id set - manual intervention required" (`99-post-mortem.out`; corrected after the verifier: the earlier wording quoted case 1's own, legitimate rollback line). The drill catches the absence of the fix, and the image check catches it first.
