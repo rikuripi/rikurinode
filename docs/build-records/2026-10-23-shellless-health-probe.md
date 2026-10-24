@@ -5,8 +5,8 @@
 | **Date** | 2026-10-23 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `exp/shellless-health-probe`, from `main` at `6db7a53`, in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | COMPLETE but for the merge: criterion 3 kept; verifier PASS on the follow-up pass; CI's full gate on the pull request is expected to fail on two RustSec advisories that block every pull request (RUSTSEC-2026-0385 `ctutils` 0.4.3, RUSTSEC-2026-0386 `tokio` 1.53.2; first seen on #31, run 40042158214), unrelated to this change and left for its own task |
+| **Commits** | `e19bde4`; `main` merged in `324c2c2`; this close-out |
+| **Status** | COMPLETE but for the merge: criterion 3 kept; verifier PASS on the follow-up pass; pull request #32 green after `main` (with #33's advisory fix) was merged into the branch: `Full gate (Ubuntu)` [run 40052461157](https://github.com/rikuripi/rikurinode/actions/runs/40052461157) (the first run, 40043855134, failed on RUSTSEC-2026-0385 and -0386, unrelated to this change) |
 | **Change type** | ops (an experiment; evidence and documentation only) |
 
 ## Task Contract
