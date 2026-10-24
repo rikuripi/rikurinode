@@ -281,6 +281,32 @@ class SkippedChecks(unittest.TestCase):
         self.assertEqual(d.PLATFORMS_SKIPPED, "Skipping disabled script: 01_update_platforms_check.sh")
 
 
+class FirstBootChecks(unittest.TestCase):
+    # Verifier I1 (2026-10-24): each greenboot condition of the first-boot check is required.
+    JOURNAL = ("rikuri-unapplied-update: no rollback trigger set; nothing to do\n"
+               " INFO  greenboot::greenboot > Skipping disabled script: 01_repository_dns_check.sh\n"
+               " INFO  greenboot::greenboot > Skipping disabled script: 01_update_platforms_check.sh\n"
+               " INFO  greenboot            > greenboot health-check passed.\n")
+    LINES = {"greenboot passed": "health-check passed",
+             "DNS check skipped": "01_repository_dns_check.sh",
+             "update-platforms check skipped": "01_update_platforms_check.sh",
+             "the check ran": "rikuri-unapplied-update:"}
+
+    def test_every_condition_is_named(self):
+        self.assertEqual(list(d.first_boot_checks(self.JOURNAL)), list(self.LINES))
+
+    def test_all_present(self):
+        self.assertTrue(all(d.first_boot_checks(self.JOURNAL).values()))
+
+    def test_each_missing_line_fails_its_condition(self):
+        for name, fragment in self.LINES.items():
+            with self.subTest(name=name):
+                journal = "".join(l + "\n" for l in self.JOURNAL.splitlines() if fragment not in l)
+                checks = d.first_boot_checks(journal)
+                self.assertFalse(checks[name])
+                self.assertFalse(all(checks.values()))
+
+
 class WantedCheck(unittest.TestCase):
     def test_greenboots_success_line_for_the_check(self):
         self.assertTrue(d.wanted_passed(WANTED_OK))
