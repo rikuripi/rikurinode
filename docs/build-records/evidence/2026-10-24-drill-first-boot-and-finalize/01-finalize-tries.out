@@ -72,4 +72,3 @@ greenboot trigger (previous boot):
    INFO  greenboot          > Setting rollback trigger for deployment: sha256:37295e5822b90b70bd4bd18d19b0e4e9fd243f78dd008a1e63d4feca99ff5b1d
 error lines (previous boot):
   -- No entries --
-

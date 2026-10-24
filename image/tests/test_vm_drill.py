@@ -175,7 +175,7 @@ class ContainersRange(unittest.TestCase):
 
 class ContainersRangeFirstBoot(unittest.TestCase):
     # Build Record 2026-10-24-drill-first-boot-and-finalize, item (a).
-    UID = ("[    5.101] h rikuri-containers-subid[612]: rikuri-containers-subid: /etc/subuid: "
+    UID = ("[    5.101] h containers-subid[612]: rikuri-containers-subid: /etc/subuid: "
            "added containers:2147483647:2147483648\n")
     GID = UID.replace("subuid", "subgid")
 
@@ -200,6 +200,10 @@ class ContainersRangeFirstBoot(unittest.TestCase):
 
     def test_unchanged_still_needs_the_range(self):
         self.assertFalse(d.subid_unchanged(["drill:524288:65536\n"] * 2, ["drill:524288:65536\n"] * 2))
+
+    def test_unchanged_needs_both_files(self):
+        # Verifier nit 1: all() over no files is True; the length guard refuses it.
+        self.assertFalse(d.subid_unchanged([], []))
 
 
 class UnitAndContainer(unittest.TestCase):

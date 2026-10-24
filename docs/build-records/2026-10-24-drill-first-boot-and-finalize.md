@@ -34,7 +34,7 @@
 - **First attempt invalid** (`00-finalize-tries-script-bug.out`): the try number and mode were expanded to empty when the script was written (an unquoted heredoc), so no try ran the `--userns=auto` container and only the first staged anything. Kept as evidence of the mistake, not counted.
 - **Result** (`01-finalize-tries.out`): **6 of 6 finalized**, 3 with the `--userns=auto` run (tries 1, 3, 5) and 3 without (2, 4, 6). Each shows "Finished writing deployment", `Deactivated successfully`, greenboot's "Setting rollback trigger" for the staged digest, and the new image booted. The two `error: mm_reap: child terminated by signal 15` lines come from `sshd-session`, killed by the reboot, not from ostree.
 - **Run 2's artifact again** (`99-post-mortem.out` of 40057729110): at case 1's shutdown, `bootc status --booted --json` failed inside greenboot's trigger, greenboot then found no staged deployment, and finalize's stop exited 1. ostree's own message is not in it: the post-mortem kept that unit's journal only from #34's repair on. The node then booted the installed image, so the update was not applied and nothing broke; case 2b drills exactly that outcome every run.
-- **Answer.** The hypothesis (a `--userns=auto` run before `bootc switch` breaks finalize) is **not supported**: 0 of 3 tries with it failed, as 0 of 3 without. The cause of run 2's failure is **not known**. Limits: 3 + 3 tries; aarch64 in Parallels, not the x86_64 KVM runner; a `LABEL`-only image, not the drill's `broken` variant. Since #34 the drill keeps `ostree-finalize-staged`'s journal in its post-mortem, so a recurrence will name the error. Not proven: that it cannot recur.
+- **Answer.** The hypothesis (a `--userns=auto` run before `bootc switch` breaks finalize) is **not supported**: 0 of 3 tries with it failed, as 0 of 3 without. The cause of run 2's failure is **not known**. Limits: 3 + 3 tries; aarch64 in Parallels, not the x86_64 KVM runner; a `LABEL`-only image, not the drill's `broken` variant; each try started from an already-updated deployment, not the first boot after an install; the image run was the booted one by its own ref, not the drill's `podman load`-ed one. Since #34 the drill keeps `ostree-finalize-staged`'s journal in its post-mortem, so a recurrence will name the error. Not proven: that it cannot recur.
 
 ### (a) The first-boot check
 
@@ -42,3 +42,19 @@
 - **Fix** (commit `9f333e8`): `subid_added(journal)` needs "<file>: added <range>" ending a line for both files (the folder-sync warning does not count); `subid_unchanged(first, now)` needs both files' text as at the first boot, with the range once. `first_boot` calls the new `subid_first_boot`, which keeps `01a-subid-first-boot.out` and checks "the containers range at the first boot" (in `expected`); "after reboots" compares against that read. The module docstring now lists the containers-range checks (#34 had left them out).
 - **Green** (`03-green-tests.out`): 153 tests, OK.
 - **Mutants** (each applied, checked to differ, then reverted): drop the line-end anchor (1 failure); drop `now == first` (1); drop the range-once condition (1); `any` for `all` in `subid_added` (5). Each turned the suite red.
+
+### Verifier pass 1 and repair cycle 1
+
+- **Verifier pass 1: FAIL**, one Important finding. **I1:** `Full gate (Ubuntu)` failed on 5469053 at its whitespace step (run 40113935952, job 120931203573, exit 2). The cause was trailing spaces, `\r` (ssh's "closed by remote host" notices) and a blank last line in `00-finalize-tries-script-bug.out` and `01-finalize-tries.out`. My `git diff --check` had missed them while the files were untracked. The CI drill was still pending.
+- **Repair 1:**
+  - The two `.out` files were trimmed of trailing spaces and tabs, `\r`, and the blank line at the end. No other byte changed, as in the earlier records.
+  - Checked with `git diff --cached --check <empty tree>` over the whole staged tree: exit 0.
+- **Verifier nits taken:**
+  - **Nit 1:** a new test, `test_unchanged_needs_both_files`, pins the length guard: `subid_unchanged([], [])` is False.
+  - **Nit 3:** the fixture's journal tag is now `containers-subid[612]:`, the real identifier.
+  - Reason for changing test code after red: both changes tighten or correct the tests; nothing was loosened. The suite passes in the VM.
+  - **Nit 4:** the driving loop is kept as `ft_loop.sh`, written down after the run. The script that produced `00` is not kept; that output is counted as invalid anyway.
+  - **Nit 5:** the two unnamed limits are added to (b)'s answer.
+- **Nits left:**
+  - Nit 2: `subid_first_boot` and `main`'s `expected` set have no unit test; only the CI drill exercises them. This goes to the backlog.
+  - Nit 6: the run 2 and run 3 post-mortems are cited by CI run id only.
