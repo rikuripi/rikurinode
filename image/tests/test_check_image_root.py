@@ -314,6 +314,15 @@ class CheckImageRoot(unittest.TestCase):
                 self.assertFinds(rel + ": a required check")
                 self.root.remove(rel)
 
+    def test_subid_wanted_check_linked_into_required_is_still_required(self):
+        # Verifier nit 1 (2026-10-24): greenboot follows a link, so a link there runs it as required.
+        for d in ("usr/lib/greenboot/check/required.d", "etc/greenboot/check/required.d"):
+            with self.subTest(d=d):
+                rel = d + "/50-rikuri-containers-subid"
+                self.root.link(rel, "../wanted.d/50-rikuri-containers-subid")
+                self.assertFinds(rel + ": a required check")
+                self.root.remove(rel)
+
     def test_subid_wanted_check_must_not_be_disabled(self):
         conf = shipped().decode("ascii")
         line = 'DISABLED_HEALTHCHECKS=("01_repository_dns_check.sh")'
