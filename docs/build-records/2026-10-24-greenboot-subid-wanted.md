@@ -57,11 +57,11 @@ All test runs below were in `rikuri-drill` with `python3 -m unittest discover -s
 
 - **The check, red** (`02-red-tests.out`, commit `fca3c69`):
   - `test_greenboot_subid_wanted` could not import (the check does not exist);
-  - three checker tests errored on the missing file or `check_subid_wanted`.
+  - two checker tests errored (three subtest errors) on the missing file or `check_subid_wanted`.
   - A first form of the "must not be disabled" test expected a new finding. It turned out the checker already pins `DISABLED_HEALTHCHECKS` to Fedora's DNS check alone, so the test now asserts that existing finding, and no new code is needed for it.
 - **The check, green** (`03-green-tests.out`, commit `91803f1`): 176 tests, OK.
   - `50-rikuri-containers-subid`: `verdict` passes only on both `ActiveState=active` and `Result=success` as whole lines; `main` runs `/usr/bin/systemctl show` with fixed arguments, no shell, and a 30 s timeout. A non-zero exit, an `OSError` or a timeout fails with a plain line.
-  - `check_subid_wanted`: the file present, regular, reached without links, and executable; the same name in either `required.d` is a finding.
+  - `check_subid_wanted`: the file present, regular, reached without links, and executable; the same name as a regular file in either `required.d` is a finding (a link there too, from repair 1).
 - **Built in the VM** (`04-vm-build.out`): the tree of `91803f1` by `git archive`, the check's SHA-256 `ea73ddbd…3d8d` equal on the Mac and inside the image; built offline on the aarch64 base by digest; `check_image_root.py` in the built image: "0 finding(s)".
 - **Booted in the VM** (`05-vm-boots.out`): **Pass.**
   - (i) the switch to `gbw`, a trial boot: the unit `active`/`success` ("is present" for both files); greenboot "wanted script …/50-rikuri-containers-subid success!", "health-check passed", `boot_success=1`.
@@ -72,7 +72,7 @@ All test runs below were in `rikuri-drill` with `python3 -m unittest discover -s
   - the new `WantedCheck` test errored (no `wanted_passed`);
   - the three new step subtests failed;
   - `test_it_reads_this_boots_journal` failed. That existing test was changed on purpose: `subid_first_boot` now reads greenboot's journal as well, so the list of reads it pins grows by one.
-- **The drill, green** (`07-drill-green-tests.out`, commit `0eca334`): 179 tests, OK.
+- **The drill, green** (`07-drill-green-tests.out`, commit `0eca334`): 178 tests, OK.
   - `subid_first_boot` also reads `-b -u greenboot-healthcheck`, keeps it in `01a`, and requires `wanted_passed`, greenboot's exact line for the check.
 - **Mutants** (`08-mutants.out`; each applied, checked to differ, then reverted):
   - drill: the requirement dropped: 3 failures; greenboot's journal read without `-b`: 2; the line matched by path alone: **survived**. A test case with the path under "required script" was then added (in `0eca334`, the reason for the test change after red), and the mutant failed: 1.
@@ -81,3 +81,19 @@ All test runs below were in `rikuri-drill` with `python3 -m unittest discover -s
   - The first attempts at the two checker mutants did not apply (shell quoting); they are not counted and were redone by exact replacement.
 - **Knowledge layer:** the repository has no help pages or runbooks yet; the repair steps for a node are in this record's conversation with the owner and belong to the status page's later stage.
 - **For the owner, not in scope:** Fedora's wanted check `01_update_platforms_check.sh` fails on every boot of a node without a route to Fedora's servers ("There are problems connecting with the following URLs", `05`, every boot), so "wanted script … failed!" lines are not rare on a node. Disabling it would be a change to `greenboot.conf`'s pinned list, an owner choice like D9.
+
+### Verifier pass 1, CI, and repair cycle 1
+
+- **Verifier, pass 1: PASS**, no Important finding. Its nits:
+  - **Nit 1, a link named `50-rikuri-containers-subid` in a `required.d` gave no finding.** `_lstat_in` returns None on any link. greenboot follows the link and would run the check as required, the rollback this design avoids. Fixed in repair 1, below.
+  - **Nit 2:** "three checker tests errored" was two tests (three subtest errors); corrected above.
+  - **Nit 3:** CI requires only the success line; the failure path is proven by `05` alone. Left as it is: a CI case that breaks `/etc/subuid` would cost a drill run per change for a path the unit tests and `05` already hold.
+  - **Nit 4:** the record not yet closed (this close-out).
+  - The local "179 tests" for `07` corrected to 178, as `07` shows.
+- **CI on `9b5b364`:**
+  - `Full gate (Ubuntu)` Pass (run 40119174308).
+  - The drill Pass (run 40119174384), 7 of 7, with "the containers range at the first boot: added in boot 1 to both files: True; the range once in both: True; greenboot's wanted check passed: True".
+- **Repair 1:**
+  - **Red** (`09-repair1-red.out`): the new `test_subid_wanted_check_linked_into_required_is_still_required`, 2 subtests failed; 179 tests.
+  - **Fix:** `check_subid_wanted` asks `os.path.lexists` for each `required.d` name, so a file, a link, or a link reached through a linked folder all count.
+  - **Green** (`10-repair1-green.out`): 179 tests, OK.

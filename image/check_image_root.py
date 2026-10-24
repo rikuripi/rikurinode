@@ -395,7 +395,8 @@ def check_subid_wanted(root: str) -> list:
     name = os.path.basename(SUBID_WANTED)
     for d in CHECK_DIRS:
         rel = d + "/" + name
-        if d.endswith("/required.d") and _lstat_in(root, rel) is not None:
+        # lexists, not _lstat_in: greenboot follows a link, so a link there is a required check too.
+        if d.endswith("/required.d") and os.path.lexists(os.path.join(root, rel)):
             found.append("%s: a required check; a failure would roll the node back, and no image "
                          "can repair /etc" % rel)
     return found
