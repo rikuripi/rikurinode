@@ -5,8 +5,8 @@
 | **Date** | 2026-10-24 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/greenboot-subid-wanted`, from `main` at `6c6038c`, in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | red `fca3c69`, check `91803f1`; drill red `e47e110`, fix `0eca334`; record `9b5b364`; repair 1: red `9669c63`, fix `3d9d4f8`; merged as `26758e8` (#39); this close-out |
+| **Status** | DONE: pull request #39 green at `3d9d4f8` and merged by the owner (`Full gate (Ubuntu)` [run 40132942513](https://github.com/rikuripi/rikurinode/actions/runs/40132942513); the image build, its check "0 finding(s)", and the drill [run 40132942663](https://github.com/rikuripi/rikurinode/actions/runs/40132942663), 7 of 7 checks Pass) |
 | **Change type** | feature (the OS image's health check) |
 
 ## Task Contract
@@ -95,5 +95,34 @@ All test runs below were in `rikuri-drill` with `python3 -m unittest discover -s
   - The drill Pass (run 40119174384), 7 of 7, with "the containers range at the first boot: added in boot 1 to both files: True; the range once in both: True; greenboot's wanted check passed: True".
 - **Repair 1:**
   - **Red** (`09-repair1-red.out`): the new `test_subid_wanted_check_linked_into_required_is_still_required`, 2 subtests failed; 179 tests.
-  - **Fix:** `check_subid_wanted` asks `os.path.lexists` for each `required.d` name, so a file, a link, or a link reached through a linked folder all count.
+  - **Fix:** `check_subid_wanted` asks `os.path.lexists` for each `required.d` name, so a file or a link of that name (also a dangling one) counts. A `required.d` that is itself a link is followed only if the link is relative: an absolute one resolves on the machine running the checker, not in the image (verifier follow-up, nit A; not tested).
   - **Green** (`10-repair1-green.out`): 179 tests, OK.
+
+### Verifier follow-up pass and CI on the merged head
+
+- **Verifier, follow-up pass: no Important finding.**
+  - Nit 1 is closed for a link of that name, a dangling one included (the `etc` subtest's target does not exist).
+  - The red commit is red for that reason only (`09`: both subtests "got []").
+  - No test was loosened.
+  - **Nit A:** this record had claimed the linked-folder case as well; it holds only for a relative folder link and is untested. The sentence is narrowed above (this close-out); the case goes to the backlog.
+- **CI on `3d9d4f8`:**
+  - `Full gate (Ubuntu)` Pass (run 40132942513).
+  - The OS image: Pass (run 40132942663). The built root "check_image_root: 0 finding(s)", so the fix raises no false finding in the shipped image; the drill passed 7 of 7.
+
+## 5. Close Out
+
+- [x] **Done when:**
+  - the check's tests red, then green: Pass;
+  - (i) and (ii) in `rikuri-drill`, with (ii) on an update's trial boot and one more reboot: Pass;
+  - the CI drill with the new line: Pass;
+  - Full gate: Pass;
+  - verifier with no Important finding: Pass.
+- [x] **Limits:**
+  - Repair cycles: 1 of 2.
+  - Review rounds: 2 of 2 (pass 1, follow-up).
+  - CI drill development runs: 2 of 2 (`9b5b364`, `3d9d4f8`). This close-out touches only `docs/`, so the image workflow skips its drill.
+  - Time: over the 2-hour budget in wall-clock time, mostly from the verifier's network-error restart and waits on CI; working time within it.
+- [x] **Backlog, not started:**
+  - nit A: a `required.d` that is an absolute link is not followed inside the image root; resolve links within the root, or accept the case as contrived;
+  - nit 3: no CI case for the failing path (proven by `05` only);
+  - owner choice: Fedora's `01_update_platforms_check.sh`, which fails on every boot without a route to Fedora and makes "wanted script … failed!" a noisy signal.
