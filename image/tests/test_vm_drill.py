@@ -274,6 +274,13 @@ class StandInDrill(d.Drill):
         return self.journals.get(args, "")
 
 
+class SkippedChecks(unittest.TestCase):
+    # greenboot 0.16.4's line for each check greenboot.conf disables (D9; owner, 2026-10-24).
+    def test_the_lines_the_first_boot_check_requires(self):
+        self.assertEqual(d.DNS_SKIPPED, "Skipping disabled script: 01_repository_dns_check.sh")
+        self.assertEqual(d.PLATFORMS_SKIPPED, "Skipping disabled script: 01_update_platforms_check.sh")
+
+
 class WantedCheck(unittest.TestCase):
     def test_greenboots_success_line_for_the_check(self):
         self.assertTrue(d.wanted_passed(WANTED_OK))
