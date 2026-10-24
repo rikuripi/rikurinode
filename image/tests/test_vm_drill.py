@@ -3,16 +3,21 @@
 Only its pure parts run here: the command lines it builds (the VM's network
 is restricted, KVM is required, the test key goes only onto the drill's
 disk), what it reads from bootc, the drop-ins each case uses, and the
-bounded wait. The orchestration itself runs only in CI, on an x86_64 runner
-with KVM (.github/workflows/image.yml, job drill); its proof is the job's
-runs, including the red run. No VM, container or network here.
-Record: docs/build-records/2026-10-22-ci-vm-drill.md
+bounded wait; also the pass rule, and the two containers-range steps through
+a Drill whose VM commands and journal are stand-ins. The rest of the
+orchestration runs only in CI, on an x86_64 runner with KVM
+(.github/workflows/image.yml, job drill); its proof is the job's runs,
+including the red run. No VM, container or network here.
+Records: docs/build-records/2026-10-22-ci-vm-drill.md,
+docs/build-records/2026-10-24-drill-orchestration-tests.md
 """
 from __future__ import annotations
 
 import json
 import os
+import shutil
 import sys
+import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -240,6 +245,112 @@ class WaitUntil(unittest.TestCase):
         with self.assertRaises(d.DrillFailure):
             d.wait_until(lambda: None, timeout=30, interval=1, clock=lambda: next(clock),
                          sleep=lambda s: None, what="the VM to answer")
+
+
+RANGE = "drill:524288:65536\ncontainers:2147483647:2147483648\n"
+ADDED = "".join("[    5.1] h containers-subid[612]: rikuri-containers-subid: %s: added "
+                "containers:2147483647:2147483648\n" % f for f in d.SUBID_FILES)
+PRESENT = ADDED.replace("added containers:2147483647:2147483648", "containers:2147483647:2147483648 is present")
+
+
+class StandInDrill(d.Drill):
+    """A Drill whose VM is two dicts: file contents and journal text by its
+    journalctl arguments. Every journal call is recorded."""
+
+    def __init__(self, artifacts, files, journals):
+        super().__init__("localhost/rikuri-os:test", artifacts, artifacts)
+        self.files, self.journals, self.journal_calls = files, journals, []
+        self.log = lambda message: None
+
+    def vm(self, command, check=True, timeout=300, stdin=None):
+        if command.startswith("cat ") and command[4:] in self.files:
+            return self.files[command[4:]]
+        raise AssertionError("unexpected VM command: %r" % command)
+
+    def journal(self, args):
+        self.journal_calls.append(args)
+        return self.journals.get(args, "")
+
+
+class ContainersRangeSteps(unittest.TestCase):
+    # Verifier nit 2 of docs/build-records/2026-10-24-drill-first-boot-and-finalize.md.
+    def setUp(self):
+        self.artifacts = tempfile.mkdtemp(prefix="drill-artifacts-")
+        self.addCleanup(shutil.rmtree, self.artifacts)
+
+    def drill(self, files=None, journal=ADDED):
+        files = dict.fromkeys(d.SUBID_FILES, RANGE) if files is None else files
+        return StandInDrill(self.artifacts, files, {"-b -u rikuri-containers-subid": journal})
+
+    def result(self, drill, case):
+        return [ok for name, ok, _ in drill.results if name == case]
+
+    def test_a_fresh_install_passes_and_is_kept(self):
+        drill = self.drill()
+        drill.subid_first_boot()
+        self.assertEqual(self.result(drill, "the containers range at the first boot"), [True])
+        self.assertEqual(drill.first_subid, [RANGE, RANGE])
+        with open(os.path.join(self.artifacts, "01a-subid-first-boot.out"), encoding="utf-8") as f:
+            kept = f.read()
+        self.assertIn("/etc/subuid:\n" + RANGE, kept)
+        self.assertIn(ADDED, kept)
+
+    def test_it_reads_this_boots_journal(self):
+        drill = self.drill()
+        drill.subid_first_boot()
+        self.assertEqual(drill.journal_calls, ["-b -u rikuri-containers-subid"])
+
+    def test_a_range_already_there_at_the_first_boot_fails(self):
+        drill = self.drill(journal=PRESENT)
+        drill.subid_first_boot()
+        self.assertEqual(self.result(drill, "the containers range at the first boot"), [False])
+
+    def test_added_but_not_once_in_a_file_fails(self):
+        for text in (RANGE + "containers:2147483647:2147483648\n", "drill:524288:65536\n", ""):
+            with self.subTest(text=text):
+                drill = self.drill(files={"/etc/subuid": RANGE, "/etc/subgid": text})
+                drill.subid_first_boot()
+                self.assertEqual(self.result(drill, "the containers range at the first boot"), [False])
+
+    def test_after_reboots_passes_only_unchanged(self):
+        drill = self.drill()
+        drill.subid_first_boot()
+        drill.subid_after_reboots()
+        self.assertEqual(self.result(drill, "the containers range after reboots"), [True])
+        drill.files["/etc/subgid"] = RANGE + "x:1:1\n"
+        drill.subid_after_reboots()
+        self.assertEqual(self.result(drill, "the containers range after reboots"), [True, False])
+
+    def test_after_reboots_without_a_first_read_fails(self):
+        drill = self.drill()
+        drill.subid_after_reboots()
+        self.assertEqual(self.result(drill, "the containers range after reboots"), [False])
+
+
+class Verdict(unittest.TestCase):
+    def setUp(self):
+        self.ALL = [(case, True, "") for case in sorted(d.EXPECTED)]
+
+    def test_every_check_names_a_step(self):
+        self.assertEqual(d.EXPECTED, {
+            "first boot", "the containers range at the first boot", "case 1, a failing update",
+            "case 2b, finalize fails", "case 3, a power cut during the update",
+            "the containers range after reboots", "the containers range"})
+
+    def test_all_passed_and_no_error_is_zero(self):
+        self.assertEqual(d.verdict(self.ALL, None), 0)
+
+    def test_a_missing_check_fails(self):
+        for case in sorted(d.EXPECTED):
+            with self.subTest(case=case):
+                self.assertEqual(d.verdict([r for r in self.ALL if r[0] != case], None), 1)
+
+    def test_a_failed_check_fails_even_if_it_also_passed(self):
+        self.assertEqual(d.verdict(self.ALL + [("the containers range", False, "")], None), 1)
+        self.assertEqual(d.verdict(self.ALL + [("an extra step", False, "")], None), 1)
+
+    def test_an_error_fails(self):
+        self.assertEqual(d.verdict(self.ALL, "timed out"), 1)
 
 
 if __name__ == "__main__":
