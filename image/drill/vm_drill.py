@@ -180,6 +180,18 @@ def wait_until(predicate, timeout: float, interval: float = 5, clock=time.monoto
         sleep(interval)
 
 
+# Every check main runs; the drill passes only if each of them passed.
+EXPECTED = frozenset({"first boot", "the containers range at the first boot", "case 1, a failing update",
+                      "case 2b, finalize fails", "case 3, a power cut during the update",
+                      "the containers range after reboots", "the containers range"})
+
+
+def verdict(results, error) -> int:
+    """0 only if nothing raised, every expected check passed, and no check failed."""
+    passed = {case for case, ok, _ in results if ok}
+    return 0 if error is None and EXPECTED <= passed and all(ok for _, ok, _ in results) else 1
+
+
 class Drill:
     def __init__(self, image: str, workdir: str, artifacts: str):
         self.image, self.workdir, self.artifacts = image, workdir, artifacts
@@ -486,12 +498,7 @@ def main(argv=None) -> int:
     if path:
         with open(path, "a", encoding="utf-8") as f:
             f.write(text)
-    expected = {"first boot", "case 1, a failing update", "case 2b, finalize fails",
-                "case 3, a power cut during the update", "the containers range at the first boot",
-                "the containers range",
-                "the containers range after reboots"}
-    passed = {case for case, ok, _ in drill.results if ok}
-    return 0 if error is None and expected <= passed and all(ok for _, ok, _ in drill.results) else 1
+    return verdict(drill.results, error)
 
 
 if __name__ == "__main__":
