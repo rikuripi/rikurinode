@@ -5,8 +5,8 @@
 | **Date** | 2026-10-24 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/drill-orchestration-tests`, from `main` at `c588fb7`, in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | red `8e325df`, fix `4146c8f`, record `9a08b61`; merged as `66e88cb` (#37); this close-out |
+| **Status** | DONE: pull request #37 green at `9a08b61` and merged by the owner (`Full gate (Ubuntu)` [run 40115835518](https://github.com/rikuripi/rikurinode/actions/runs/40115835518); the image build and the drill [run 40115835578](https://github.com/rikuripi/rikurinode/actions/runs/40115835578), 7 of 7 checks Pass) |
 | **Change type** | refactor and tests (the CI drill, a control) |
 
 ## Task Contract
@@ -43,12 +43,12 @@
 ## 0b. Spec
 
 - [x] **Why a refactor:** `main` cannot be unit-tested without a VM; the pass rule is the part that can silently lose a check (a name missing from the set passes whatever that check did). Lifting it out unchanged makes it testable; `main` keeps its order and its error handling.
-- [x] **Why stand-ins over `vm`/`journal`:** `Drill.__init__` has no side effects, and `subid_files`, `keep` and `check` then run for real (`keep` writes to a temporary artifacts folder).
+- [x] **Why stand-ins over `vm`/`journal`** (and a silent `log`): `Drill.__init__` has no side effects, and `subid_files`, `keep` and `check` then run for real (`keep` writes to a temporary artifacts folder).
 
 ## Evidence log
 
 - **Red** (`01-red-tests.out`, commit `8e325df`):
-  - 165 tests ran; the 5 `Verdict` tests failed, each an `AttributeError` for `EXPECTED`;
+  - 165 tests ran; the 5 `Verdict` tests errored (`FAILED (errors=5)`), each an `AttributeError` for `EXPECTED`;
   - the 6 `ContainersRangeSteps` tests passed on the unchanged methods, as they should.
   - A first try errored the whole module: a class attribute read `d.EXPECTED` at import, so nothing in the file ran. I moved it into `setUp` before committing, so red is only the missing function.
   - Run in `rikuri-drill` (`safe-run.sh` refuses on macOS); the CI gate runs the tests through it.
@@ -63,3 +63,33 @@
   - "the containers range at the first boot" dropped from `EXPECTED`: 1, caught by the explicit set test (the missing-check test iterates `EXPECTED` itself, so it cannot see a name dropped from it);
   - failing checks ignored: 1;
   - `error` ignored: 1.
+
+### Verifier and CI
+
+- **Verifier, one pass: no Important finding.**
+  - `EXPECTED` and `verdict` are the old rule exactly; `main` is otherwise unchanged.
+  - The red commit is red only for the stated reason.
+  - The stand-ins replace `vm`, `journal` and `log` only.
+  - It found no weaker variant that survives, apart from one that does not matter (`passed` built without the `ok` filter gives the same result whenever the `all(ok)` part holds).
+  - Nits 2 and 3, the wording above ("errored", the silent `log`), are fixed in this close-out.
+- **CI on `9a08b61`:**
+  - `Full gate (Ubuntu)` Pass (run 40115835518).
+  - The drill Pass (run 40115835578), 7 of 7, with "the containers range at the first boot: added in boot 1 to both files: True".
+
+## 5. Close Out
+
+- [x] **Done when:**
+  - red, then green: Pass;
+  - six mutants red: Pass;
+  - the CI drill 7 of 7: Pass;
+  - Full gate: Pass;
+  - verifier with no Important finding: Pass.
+- [x] **Limits:**
+  - Repair cycles: 0 of 2.
+  - Review rounds: 1 of 2.
+  - CI drill development runs: 1 of 1. This close-out touches only `docs/`, so the image workflow skips its drill.
+  - Time: within the 1-hour budget.
+- [x] **Backlog, not started:**
+  - verifier nit 4: `main` as a whole has no unit test (`return 0` there would survive);
+  - nit 5: the `vm` stand-in raises where the real one returns `None`, so the unreadable-file path of `subid_files` is untested;
+  - nit 1: the VM test runs copy macOS metadata (`tar:` warnings, `._*` files, `__pycache__`) into `rikuri-drill`. `COPYFILE_DISABLE=1` and an exclude in `vm_tests.sh` would quiet them.
