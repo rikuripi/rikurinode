@@ -1,0 +1,129 @@
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/drill: time stamp 2026-10-25 05:57:00.61068337 is 42920.276403484 s in the future
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/tests: time stamp 2026-10-25 07:01:08.137218343 is 46767.802837499 s in the future
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/tests/test_vm_drill.py: time stamp 2026-10-25 06:21:38.316273139 is 44397.981841878 s in the future
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/tests/test_greenboot_subid_wanted.py: time stamp 2026-10-25 07:01:08.139694117 is 46767.805176315 s in the future
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/tests/__pycache__: time stamp 2026-10-25 06:23:46.035344275 is 44525.700762264 s in the future
+tar: image/tests/test_check_image_root.py: time stamp 2026-10-25 07:01:39.997003389 is 46799.662364128 s in the future
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/tests/__pycache__/test_vm_drill.cpython-313.pyc: time stamp 2026-10-25 06:23:46.035256859 is 44525.700567265 s in the future
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/drill/vm_drill.py: time stamp 2026-10-25 06:22:12.136362774 is 44431.798589888 s in the future
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: image/drill/__pycache__/vm_drill.cpython-313.pyc: time stamp 2026-10-25 06:23:46.032501879 is 44525.694542035 s in the future
+tar: image/drill/__pycache__: time stamp 2026-10-25 06:23:46.032753752 is 44525.6947772 s in the future
+Python 3.14.8
+.....................................................E.EE................................rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmpbwakvbzb/lib/rikuri/update-not-applied
+rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmpbwakvbzb/lib/rikuri/update-not-applied
+rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmpa44k_aev/lib/rikuri/update-not-applied
+....E......................rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to remount /boot writable (exit 32); greenboot will roll this healthy node back
+..rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to clear greenboot_next_deployment_id (exit 1); greenboot will roll this healthy node back
+rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to clear greenboot_next_deployment_id (exit 1); greenboot will roll this healthy node back
+.rikuri-unapplied-update: cannot read /boot/grub2/grubenv (exit 1); greenboot decides
+.rikuri-unapplied-update: cannot read /boot/grub2/grubenv (exit 1); greenboot decides
+..rikuri-unapplied-update: unknown: no deployments listed
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa booted and is on trial; greenboot decides
+rikuri-unapplied-update: no rollback trigger set; nothing to do
+rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa booted and is on trial; greenboot decides
+...rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmpju3gxyuu/lib/rikuri/update-not-applied
+rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmp4uh2z15w/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: unknown: no deployments listed
+..rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmp950to4mn/lib/rikuri/update-not-applied
+.........................................
+======================================================================
+ERROR: test_subid_wanted_check_must_be_there_and_executable (test_check_image_root.CheckImageRoot.test_subid_wanted_check_must_be_there_and_executable)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 301, in test_subid_wanted_check_must_be_there_and_executable
+    self.assertEqual(cir.check_subid_wanted(self.root.path), [])
+                     ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_subid_wanted'
+
+======================================================================
+ERROR: test_subid_wanted_check_must_not_be_required (test_check_image_root.CheckImageRoot.test_subid_wanted_check_must_not_be_required) (d='usr/lib/greenboot/check/required.d')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 313, in test_subid_wanted_check_must_not_be_required
+    self.root.write_bytes(rel, shipped_file(SUBID_WANTED), mode=0o755)
+                               ~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 37, in shipped_file
+    with open(os.path.join(HERE, "..", "rootfs", rel), "rb") as f:
+         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/home/drill/image-tests/image/tests/../rootfs/usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid'
+
+======================================================================
+ERROR: test_subid_wanted_check_must_not_be_required (test_check_image_root.CheckImageRoot.test_subid_wanted_check_must_not_be_required) (d='etc/greenboot/check/required.d')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 313, in test_subid_wanted_check_must_not_be_required
+    self.root.write_bytes(rel, shipped_file(SUBID_WANTED), mode=0o755)
+                               ~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 37, in shipped_file
+    with open(os.path.join(HERE, "..", "rootfs", rel), "rb") as f:
+         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/home/drill/image-tests/image/tests/../rootfs/usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid'
+
+======================================================================
+ERROR: test_greenboot_subid_wanted (unittest.loader._FailedTest.test_greenboot_subid_wanted)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_greenboot_subid_wanted
+Traceback (most recent call last):
+  File "/usr/lib64/python3.14/unittest/loader.py", line 433, in _find_test_path
+    module = self._get_module_from_name(name)
+  File "/usr/lib64/python3.14/unittest/loader.py", line 374, in _get_module_from_name
+    __import__(name)
+    ~~~~~~~~~~^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_greenboot_subid_wanted.py", line 31, in <module>
+    m = load()
+  File "/var/home/drill/image-tests/image/tests/test_greenboot_subid_wanted.py", line 27, in load
+    loader.exec_module(module)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "<frozen importlib._bootstrap_external>", line 759, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 896, in get_code
+  File "<frozen importlib._bootstrap_external>", line 954, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: '/var/home/drill/image-tests/image/tests/../rootfs/usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid'
+
+
+----------------------------------------------------------------------
+Ran 169 tests in 0.067s
+
+FAILED (errors=4)

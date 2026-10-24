@@ -250,6 +250,8 @@ class WaitUntil(unittest.TestCase):
 RANGE = "drill:524288:65536\ncontainers:2147483647:2147483648\n"
 ADDED = "".join("[    5.1] h containers-subid[612]: rikuri-containers-subid: %s: added "
                 "containers:2147483647:2147483648\n" % f for f in d.SUBID_FILES)
+WANTED_OK = ("[   10.9] h greenboot[766]:  INFO  greenboot::greenboot > wanted script "
+             "/usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid success!\n")
 PRESENT = ADDED.replace("added containers:2147483647:2147483648", "containers:2147483647:2147483648 is present")
 
 
@@ -272,15 +274,27 @@ class StandInDrill(d.Drill):
         return self.journals.get(args, "")
 
 
+class WantedCheck(unittest.TestCase):
+    def test_greenboots_success_line_for_the_check(self):
+        self.assertTrue(d.wanted_passed(WANTED_OK))
+        for text in ("", WANTED_OK.replace("success!", "failed!"), WANTED_OK.replace("50-rikuri", "51-rikuri"),
+                     "wanted script /etc/greenboot/check/wanted.d/50-rikuri-containers-subid success!\n",
+                     # mutant 2 (08-mutants.out): the exact line, not the path alone
+                     "required script /usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid success!\n"):
+            with self.subTest(text=text):
+                self.assertFalse(d.wanted_passed(text))
+
+
 class ContainersRangeSteps(unittest.TestCase):
     # Verifier nit 2 of docs/build-records/2026-10-24-drill-first-boot-and-finalize.md.
     def setUp(self):
         self.artifacts = tempfile.mkdtemp(prefix="drill-artifacts-")
         self.addCleanup(shutil.rmtree, self.artifacts)
 
-    def drill(self, files=None, journal=ADDED):
+    def drill(self, files=None, journal=ADDED, greenboot=WANTED_OK):
         files = dict.fromkeys(d.SUBID_FILES, RANGE) if files is None else files
-        return StandInDrill(self.artifacts, files, {"-b -u rikuri-containers-subid": journal})
+        return StandInDrill(self.artifacts, files, {"-b -u rikuri-containers-subid": journal,
+                                                    "-b -u greenboot-healthcheck": greenboot})
 
     def result(self, drill, case):
         return [ok for name, ok, _ in drill.results if name == case]
@@ -298,7 +312,7 @@ class ContainersRangeSteps(unittest.TestCase):
     def test_it_reads_this_boots_journal(self):
         drill = self.drill()
         drill.subid_first_boot()
-        self.assertEqual(drill.journal_calls, ["-b -u rikuri-containers-subid"])
+        self.assertEqual(drill.journal_calls, ["-b -u rikuri-containers-subid", "-b -u greenboot-healthcheck"])
 
     def test_a_range_already_there_at_the_first_boot_fails(self):
         drill = self.drill(journal=PRESENT)
@@ -309,6 +323,14 @@ class ContainersRangeSteps(unittest.TestCase):
         for text in (RANGE + "containers:2147483647:2147483648\n", "drill:524288:65536\n", ""):
             with self.subTest(text=text):
                 drill = self.drill(files={"/etc/subuid": RANGE, "/etc/subgid": text})
+                drill.subid_first_boot()
+                self.assertEqual(self.result(drill, "the containers range at the first boot"), [False])
+
+    def test_greenboot_must_have_run_the_wanted_check(self):
+        for greenboot in ("", WANTED_OK.replace("success!", "failed!"),
+                          WANTED_OK.replace("wanted.d", "required.d").replace("wanted script", "required script")):
+            with self.subTest(greenboot=greenboot):
+                drill = self.drill(greenboot=greenboot)
                 drill.subid_first_boot()
                 self.assertEqual(self.result(drill, "the containers range at the first boot"), [False])
 

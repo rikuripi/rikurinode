@@ -21,7 +21,8 @@ checks, failing on any miss:
                first), and the VM is killed during the hold.
   containers range
                rikuri-containers-subid added Podman's range to /etc/subuid and
-               /etc/subgid in the first boot; after the cases both files read
+               /etc/subgid in the first boot, and greenboot's wanted check of
+               it passed; after the cases both files read
                as they did then; last, a --userns=auto container starts
                (docs/build-records/2026-10-24-drill-first-boot-and-finalize.md).
 
@@ -58,6 +59,7 @@ ROLLED_BACK = "Boot counter exhausted and next-deployment-id is set - initiating
 TRIGGER_STOPPED = re.compile(r"Stopped [^\n]*Greenboot Rollback trigger")
 SUBID_LINE = "containers:2147483647:2147483648"
 SUBID_FILES = ("/etc/subuid", "/etc/subgid")
+SUBID_WANTED = "/usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid"
 
 
 class DrillFailure(Exception):
@@ -137,6 +139,11 @@ def subid_added(journal: str) -> bool:
     failed" line does not count)."""
     return all(re.search(r"%s: added %s$" % (re.escape(f), re.escape(SUBID_LINE)), journal, re.M)
                for f in SUBID_FILES)
+
+
+def wanted_passed(journal: str) -> bool:
+    """True if greenboot's journal says the image's wanted check of the range succeeded."""
+    return ("wanted script %s success!" % SUBID_WANTED) in journal
 
 
 def subid_unchanged(first: list, now: list) -> bool:
@@ -303,14 +310,17 @@ class Drill:
 
     def subid_first_boot(self) -> None:
         """A fresh install gets the range at its first boot: the unit added it to
-        both files in this boot, and each file names it once."""
+        both files in this boot, each file names it once, and greenboot's
+        wanted check of it succeeded."""
         self.first_subid = self.subid_files()
         journal = self.journal("-b -u rikuri-containers-subid")
+        greenboot = self.journal("-b -u greenboot-healthcheck")
         self.keep("01a-subid-first-boot.out", "\n".join(
-            SUBID_FILES[i] + ":\n" + self.first_subid[i] for i in range(2)) + "\n" + journal)
+            SUBID_FILES[i] + ":\n" + self.first_subid[i] for i in range(2)) + "\n" + journal + "\n" + greenboot)
         once = all(subid_once(text) for text in self.first_subid)
-        self.check("the containers range at the first boot", once and subid_added(journal),
-                   "added in boot 1 to both files: %s; the range once in both: %s" % (subid_added(journal), once))
+        self.check("the containers range at the first boot", once and subid_added(journal) and wanted_passed(greenboot),
+                   "added in boot 1 to both files: %s; the range once in both: %s; greenboot's wanted check "
+                   "passed: %s" % (subid_added(journal), once, wanted_passed(greenboot)))
 
     def load_variants(self) -> None:
         archive = os.path.join(self.workdir, "image.tar")
