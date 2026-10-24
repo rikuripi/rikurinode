@@ -52,3 +52,32 @@
   - reading the files again in the check (duplicates the unit's rules; the unit's own verdict is the single source).
 
 ## Evidence log
+
+All test runs below were in `rikuri-drill` with `python3 -m unittest discover -s image/tests` (`safe-run.sh` refuses on macOS; the CI gate runs them through it). From evidence 06 on, `tar`'s "time stamp … in the future" warnings (the VM's clock against the Mac's) are filtered out of the kept output.
+
+- **The check, red** (`02-red-tests.out`, commit `fca3c69`):
+  - `test_greenboot_subid_wanted` could not import (the check does not exist);
+  - three checker tests errored on the missing file or `check_subid_wanted`.
+  - A first form of the "must not be disabled" test expected a new finding. It turned out the checker already pins `DISABLED_HEALTHCHECKS` to Fedora's DNS check alone, so the test now asserts that existing finding, and no new code is needed for it.
+- **The check, green** (`03-green-tests.out`, commit `91803f1`): 176 tests, OK.
+  - `50-rikuri-containers-subid`: `verdict` passes only on both `ActiveState=active` and `Result=success` as whole lines; `main` runs `/usr/bin/systemctl show` with fixed arguments, no shell, and a 30 s timeout. A non-zero exit, an `OSError` or a timeout fails with a plain line.
+  - `check_subid_wanted`: the file present, regular, reached without links, and executable; the same name in either `required.d` is a finding.
+- **Built in the VM** (`04-vm-build.out`): the tree of `91803f1` by `git archive`, the check's SHA-256 `ea73ddbd…3d8d` equal on the Mac and inside the image; built offline on the aarch64 base by digest; `check_image_root.py` in the built image: "0 finding(s)".
+- **Booted in the VM** (`05-vm-boots.out`): **Pass.**
+  - (i) the switch to `gbw`, a trial boot: the unit `active`/`success` ("is present" for both files); greenboot "wanted script …/50-rikuri-containers-subid success!", "health-check passed", `boot_success=1`.
+  - (ii) a `# a hand-written note` line added to `/etc/subuid`, then an update `gbw2` (a label on `gbw`) staged, and its **trial** boot: the unit `failed`/`exit-code` ("a line does not read as name:start:count; left as it is"); greenboot "wanted script … failed!" with the check's line "rikuri-containers-subid did not succeed in this boot (ActiveState=failed; Result=exit-code): containers with their own range of user IDs (UserNS=auto) will not start; see journalctl -b -u rikuri-containers-subid"; "health-check passed"; `boot_success=1`; booted `gbw2`, rollback entry `gbw`.
+  - (iii) one more reboot: still `gbw2`; the same failure logged; `boot_success=1`.
+  - (iv) the line removed by hand and the unit restarted: `active`/`success`; the check exits 0.
+- **The drill, red** (`06-drill-red-tests.out`, commit `e47e110`):
+  - the new `WantedCheck` test errored (no `wanted_passed`);
+  - the three new step subtests failed;
+  - `test_it_reads_this_boots_journal` failed. That existing test was changed on purpose: `subid_first_boot` now reads greenboot's journal as well, so the list of reads it pins grows by one.
+- **The drill, green** (`07-drill-green-tests.out`, commit `0eca334`): 179 tests, OK.
+  - `subid_first_boot` also reads `-b -u greenboot-healthcheck`, keeps it in `01a`, and requires `wanted_passed`, greenboot's exact line for the check.
+- **Mutants** (`08-mutants.out`; each applied, checked to differ, then reverted):
+  - drill: the requirement dropped: 3 failures; greenboot's journal read without `-b`: 2; the line matched by path alone: **survived**. A test case with the path under "required script" was then added (in `0eca334`, the reason for the test change after red), and the mutant failed: 1.
+  - check: `Result=success` alone: 6; a non-zero `systemctl` exit ignored: 3.
+  - checker: `required.d` never looked at: 2; the executable bit not checked: 1.
+  - The first attempts at the two checker mutants did not apply (shell quoting); they are not counted and were redone by exact replacement.
+- **Knowledge layer:** the repository has no help pages or runbooks yet; the repair steps for a node are in this record's conversation with the owner and belong to the status page's later stage.
+- **For the owner, not in scope:** Fedora's wanted check `01_update_platforms_check.sh` fails on every boot of a node without a route to Fedora's servers ("There are problems connecting with the following URLs", `05`, every boot), so "wanted script … failed!" lines are not rare on a node. Disabling it would be a change to `greenboot.conf`'s pinned list, an owner choice like D9.
