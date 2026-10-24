@@ -46,17 +46,23 @@ class Parse(unittest.TestCase):
     def test_entries_in_order(self):
         self.assertEqual(m.parse(DRILL + "\nb:1:2"), [("drill", 524288, 65536), ("b", 1, 2)])
         self.assertEqual(m.parse(""), [])
+        self.assertEqual(m.parse("zero:0:1\n"), [("zero", 0, 1)])
 
     def test_anything_else_is_unreadable(self):
         for text in ("drill:524288\n", "drill:524288:65536:1\n", ":1:2\n", "a:x:2\n", "a:1:\n",
-                     "a:-1:2\n", "a:1:0\n", "# a comment\n", " a:1:2\n", "a:1:2 \n", "a:+1:2\n"):
+                     "a:-1:2\n", "a:1:0\n", "# a comment\n", " a:1:2\n", "a:1:2 \n", "a:+1:2\n",
+                     # verifier nit 2: shadow-utils reads numbers in base 0 (017777777777 is octal)
+                     "x:017777777777:1\n", "x:1:010\n", "x:0x10:1\n",
+                     # verifier nit 1: line ends shadow-utils does not split on
+                     "a:1:2\r\n", "a:1:2\x0cb:3:4\n"):
             with self.subTest(text=text):
                 self.assertIsNone(m.parse(text))
 
 
 class Decide(unittest.TestCase):
     def test_no_entry_and_no_overlap_adds(self):
-        for entries in ([], [("drill", 524288, 65536)], [("low", 0, 2147483647)]):
+        for entries in ([], [("drill", 524288, 65536)], [("low", 0, 2147483647)],
+                        [("top", 4294967295, 1)]):    # verifier I2: the range's upper end
             with self.subTest(entries=entries):
                 self.assertEqual(m.decide(entries)[0], "add")
 
@@ -138,6 +144,26 @@ class Ensure(unittest.TestCase):
         self.assertEqual(self.ensure(), 1)
         self.assertEqual(self.read(), "# keep\n" + DRILL)
         self.assertTrue(any("left as it is" in line for line in self.lines))
+
+    def test_windows_line_ends_are_left_alone_and_fail(self):
+        # Verifier nit 1: read in text mode, "\r\n" became "\n" and the file was
+        # rewritten; shadow-utils cannot read such a line, so it is left as it is.
+        with open(self.path(), "wb") as f:
+            f.write(DRILL.replace("\n", "\r\n").encode("ascii"))
+        self.assertEqual(self.ensure(), 1)
+        with open(self.path(), "rb") as f:
+            self.assertEqual(f.read(), DRILL.replace("\n", "\r\n").encode("ascii"))
+
+    def test_a_failed_folder_sync_after_the_rename_is_not_reported_as_kept(self):
+        # Verifier nit 5: the new file is already in place when the folder's fsync fails.
+        self.put(DRILL)
+
+        def broken_sync(path):
+            raise OSError("I/O error")
+        self.assertEqual(m.ensure(self.path(), log=self.lines.append, sync_dir=broken_sync), 0)
+        self.assertEqual(self.read(), DRILL + LINE)
+        self.assertFalse(any("old file is kept" in line for line in self.lines))
+        self.assertTrue(any("added" in line and "folder" in line for line in self.lines))
 
     def test_an_overlap_is_left_alone_and_fails(self):
         self.put("big:2000000000:300000000\n")

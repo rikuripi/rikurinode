@@ -173,6 +173,22 @@ class ContainersRange(unittest.TestCase):
                 self.assertFalse(d.subid_once(text))
 
 
+class UnitAndContainer(unittest.TestCase):
+    # Verifier nit 3: Result=success alone is also a unit that never ran.
+    def test_the_unit_ran_and_succeeded(self):
+        self.assertTrue(d.unit_ran("ActiveState=active\nResult=success\n"))
+        for text in ("Result=success\n", "ActiveState=inactive\nResult=success\n",
+                     "ActiveState=active\nResult=exit-code\n", ""):
+            with self.subTest(text=text):
+                self.assertFalse(d.unit_ran(text))
+
+    def test_the_container_started_line_exactly(self):
+        self.assertTrue(d.container_started("started\n"))
+        for text in ("", "Error: not started\n", "started later\n"):
+            with self.subTest(text=text):
+                self.assertFalse(d.container_started(text))
+
+
 class WaitUntil(unittest.TestCase):
     def test_false_or_empty_values_keep_waiting(self):
         values = iter([False, "", 0, [], "done"])

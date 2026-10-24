@@ -321,6 +321,16 @@ class CheckImageRoot(unittest.TestCase):
         self.root.link(SUBID_WANTS, "/usr/lib/systemd/system/rikuri-containers-subid.service")
         self.assertEqual(cir.check_containers_subid(self.root.path), [])
 
+    def test_subid_wants_reached_through_a_link_does_not_count(self):
+        # Verifier I1: a link on the way to the .wants folder points outside the image.
+        wants_dir = os.path.dirname(os.path.join(self.root.path, SUBID_WANTS))
+        outside = tempfile.mkdtemp(prefix="outside-")
+        self.addCleanup(shutil.rmtree, outside)
+        os.symlink("../rikuri-containers-subid.service", os.path.join(outside, os.path.basename(SUBID_WANTS)))
+        shutil.rmtree(wants_dir)
+        os.symlink(outside, wants_dir)
+        self.assertFinds(SUBID_WANTS + ": not a link")
+
     # --- greenboot.conf in the one form greenboot and the check read alike (F1)
     def test_shipped_conf_parses_to_the_expected_values(self):
         # The checker's own reading of the shipped file. greenboot's reading of
