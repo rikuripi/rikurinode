@@ -278,7 +278,9 @@ class WantedCheck(unittest.TestCase):
     def test_greenboots_success_line_for_the_check(self):
         self.assertTrue(d.wanted_passed(WANTED_OK))
         for text in ("", WANTED_OK.replace("success!", "failed!"), WANTED_OK.replace("50-rikuri", "51-rikuri"),
-                     "wanted script /etc/greenboot/check/wanted.d/50-rikuri-containers-subid success!\n"):
+                     "wanted script /etc/greenboot/check/wanted.d/50-rikuri-containers-subid success!\n",
+                     # mutant 2 (08-mutants.out): the exact line, not the path alone
+                     "required script /usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid success!\n"):
             with self.subTest(text=text):
                 self.assertFalse(d.wanted_passed(text))
 

@@ -1,0 +1,10 @@
+s/ and wanted_passed(greenboot),/,/ -> FAILED (failures=3)
+s/("wanted script %s success!" % SUBID_WANTED) in journal/("%s success!" % SUBID_WANTED) in journal/ -> OK
+s/greenboot = self.journal("-b -u greenboot-healthcheck")/greenboot = self.journal("-u greenboot-healthcheck")/ -> FAILED (failures=2)
+image/rootfs/usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid: s/"ActiveState=active" in lines and "Result=success" in lines/"Result=success" in lines/ -> FAILED (failures=6)
+image/rootfs/usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid: s/    if p.returncode != 0:/    if False:/ -> FAILED (failures=3)
+        found.append("%s: not executable" % SUBID_WANTED)//
+after the added test case: mutant 2 again -> FAILED (failures=1)
+check_image_root.py mutant 1 (required.d never looked at) -> FAILED (failures=2)
+check_image_root.py mutant 2 (executable bit not checked) -> FAILED (failures=1)
+# The first attempts at the two check_image_root.py mutants did not apply (shell quoting) and are not counted; they were redone above by exact replacement.
