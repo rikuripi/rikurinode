@@ -1,0 +1,25 @@
+containers:2147483647:2147483648
+systemctl start rc=0, returned after 7207 ms
+ActiveState=active
+SubState=running
+ActiveEnterTimestampMonotonic=95951261605
+ExecMainStartTimestampMonotonic=95944390000
+ActiveState=active
+ActiveEnterTimestampMonotonic=95951289068
+health.test=["CMD","/standin","probe"] status=healthy user=10001:10001 userns=private readonly=true caps=null
+healthcheck run rc=0
+--- exec a shell into the running container:
+Error: crun: executable file `/bin/sh` not found: No such file or directory: OCI runtime attempted to invoke a command that was not found
+exit=127
+[95944.197799] rikuri-drill systemd[1]: Starting standin.service - Shell-less health experiment stand-in...
+[95944.344714] rikuri-drill podman[5544]: 2026-10-23 07:38:38.650544374 +1300 +13 m=+0.029399584 image pull 0be507886f4d2b4e57a424437e21d2e3290de168c1efb355edf9fcb42e3376e5 localhost/standin:exp
+[95944.354375] rikuri-drill podman[5544]: 2026-10-23 07:38:38.758135458 +1300 +13 m=+0.136990667 container create e239fec8cbb6822c30b80abc21fc156fc776bb1ba685361279212184e83b3e53 (image=localhost/standin:exp, name=standin, io.buildah.version=1.43.5, PODMAN_SYSTEMD_UNIT=standin.service)
+[95944.429797] rikuri-drill podman[5544]: 2026-10-23 07:38:38.833559999 +1300 +13 m=+0.212415209 container init e239fec8cbb6822c30b80abc21fc156fc776bb1ba685361279212184e83b3e53 (image=localhost/standin:exp, name=standin, io.buildah.version=1.43.5, PODMAN_SYSTEMD_UNIT=standin.service)
+[95944.431854] rikuri-drill standin[5555]: standin: starting, ready in 5 s
+[95944.436937] rikuri-drill podman[5544]: 2026-10-23 07:38:38.840705374 +1300 +13 m=+0.219560584 container start e239fec8cbb6822c30b80abc21fc156fc776bb1ba685361279212184e83b3e53 (image=localhost/standin:exp, name=standin, PODMAN_SYSTEMD_UNIT=standin.service, io.buildah.version=1.43.5)
+[95949.436408] rikuri-drill standin[5555]: standin: listening on 127.0.0.1:8080, answering "ok"
+[95951.261441] rikuri-drill standin[5544]: e239fec8cbb6822c30b80abc21fc156fc776bb1ba685361279212184e83b3e53
+[95951.261662] rikuri-drill systemd[1]: Started standin.service - Shell-less health experiment stand-in.
+[95951.267321] rikuri-drill systemd[1]: Starting after-standin.service - Shell-less health experiment dependant...
+[95951.288077] rikuri-drill echo[5623]: dependant started
+[95951.289094] rikuri-drill systemd[1]: Finished after-standin.service - Shell-less health experiment dependant.

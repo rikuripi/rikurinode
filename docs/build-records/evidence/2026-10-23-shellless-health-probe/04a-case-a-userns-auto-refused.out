@@ -1,0 +1,24 @@
+A dependency job for after-standin.service failed. See 'journalctl -xe' for details.
+bash: line 1: bc: command not found
+systemctl start rc=1, returned after  s
+ActiveState=failed
+SubState=failed
+ActiveEnterTimestampMonotonic=0
+ExecMainStartTimestampMonotonic=95929993306
+ActiveState=inactive
+ActiveEnterTimestampMonotonic=0
+Error: no such object: "standin"
+Error: unable to look up standin to perform a health check: no container with name or ID "standin" found: no such container
+healthcheck run rc=125
+--- exec a shell into the running container:
+Error: no container with name or ID "standin" found: no such container
+exit=125
+[95929.993583] rikuri-drill systemd[1]: Starting standin.service - Shell-less health experiment stand-in...
+[95930.014575] rikuri-drill standin[5439]: time="2026-10-23T07:38:24+13:00" level=error msg="Cannot find mappings for user \"containers\": no subuid ranges found for user \"containers\" in /etc/subuid"
+[95930.101321] rikuri-drill standin[5439]: Error: creating container storage: not enough unused IDs in user namespace
+[95930.101515] rikuri-drill podman[5439]: 2026-10-23 07:38:24.415165159 +1300 +13 m=+0.010975918 image pull 0be507886f4d2b4e57a424437e21d2e3290de168c1efb355edf9fcb42e3376e5 localhost/standin:exp
+[95930.103399] rikuri-drill systemd[1]: standin.service: Main process exited, code=exited, status=125/n/a
+[95930.124646] rikuri-drill systemd[1]: standin.service: Failed with result 'exit-code'.
+[95930.124865] rikuri-drill systemd[1]: Failed to start standin.service - Shell-less health experiment stand-in.
+[95930.124938] rikuri-drill systemd[1]: Dependency failed for after-standin.service - Shell-less health experiment dependant.
+[95930.124950] rikuri-drill systemd[1]: after-standin.service: Job after-standin.service/start failed with result 'dependency'.

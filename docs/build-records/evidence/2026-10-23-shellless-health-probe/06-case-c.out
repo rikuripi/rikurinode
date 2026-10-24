@@ -1,0 +1,22 @@
+Failed to reset failed state of unit after-standin.service: Unit after-standin.service not loaded.
+--env STANDIN_DELAY_S=5
+--health-cmd "/standin\x20probe"
+health.test=["CMD-SHELL","/standin probe"] status=starting
+unhealthy
+healthcheck run rc=1
+1
+
+A dependency job for after-standin.service failed. See 'journalctl -xe' for details.
+systemctl start rc=1, returned after 100418 ms
+ActiveState=failed
+Result=timeout
+ActiveState=inactive
+ActiveEnterTimestampMonotonic=0
+[96146.890718] rikuri-drill systemd[1]: standin.service: start operation timed out. Terminating.
+[96192.071995] rikuri-drill systemd[1]: standin.service: State 'stop-sigterm' timed out. Aborting.
+[96202.234712] rikuri-drill podman[7491]: 2026-10-23 07:42:56.633822956 +1300 +13 m=+10.049859339 container stop 63c0f4e49c04fc7eb4efe4fd67e832e6879c3c93bf5db017463f53adc933e396 (image=localhost/standin:exp, name=standin, PODMAN_SYSTEMD_UNIT=standin.service, io.buildah.version=1.43.5)
+[96202.234916] rikuri-drill podman[7491]: 2026-10-23 07:42:56.638603914 +1300 +13 m=+10.054640298 container died 63c0f4e49c04fc7eb4efe4fd67e832e6879c3c93bf5db017463f53adc933e396 (image=localhost/standin:exp, name=standin, PODMAN_SYSTEMD_UNIT=standin.service, io.buildah.version=1.43.5)
+[96202.261154] rikuri-drill podman[7491]: 2026-10-23 07:42:56.664902706 +1300 +13 m=+10.080939048 container remove 63c0f4e49c04fc7eb4efe4fd67e832e6879c3c93bf5db017463f53adc933e396 (image=localhost/standin:exp, name=standin, PODMAN_SYSTEMD_UNIT=standin.service, io.buildah.version=1.43.5)
+[96202.268353] rikuri-drill systemd[1]: standin.service: Failed with result 'timeout'.
+[96202.268849] rikuri-drill systemd[1]: Failed to start standin.service - Shell-less health experiment stand-in.
+[96202.268968] rikuri-drill systemd[1]: Dependency failed for after-standin.service - Shell-less health experiment dependant.
