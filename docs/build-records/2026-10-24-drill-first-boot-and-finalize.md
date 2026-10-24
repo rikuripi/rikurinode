@@ -5,8 +5,8 @@
 | **Date** | 2026-10-24 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/drill-first-boot-subid`, from `main` at `452e6c6`, in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | red `91fc6e1`, fix `9f333e8`; records `5926735`, `5469053`; repair 1 `cec88f3`; merged as `1f5bbec` (#35); this close-out |
+| **Status** | DONE: pull request #35 green at `cec88f3` and merged by the owner (`Full gate (Ubuntu)` [run 40114276420](https://github.com/rikuripi/rikurinode/actions/runs/40114276420); the image build and the drill [run 40114276441](https://github.com/rikuripi/rikurinode/actions/runs/40114276441), 7 of 7 checks Pass) |
 | **Change type** | fix (the CI drill, a control) and an investigation |
 
 ## Task Contract
@@ -58,3 +58,32 @@
 - **Nits left:**
   - Nit 2: `subid_first_boot` and `main`'s `expected` set have no unit test; only the CI drill exercises them. This goes to the backlog.
   - Nit 6: the run 2 and run 3 post-mortems are cited by CI run id only.
+
+### Verifier follow-up pass and CI
+
+- **Verifier, follow-up pass: no Important finding.**
+  - I1 is closed: the whole tree passes `git diff --check` against the empty tree, and the trim changed only whitespace at line ends and the final blank line.
+  - Both test changes tighten or correct the tests; the reason is recorded.
+  - `ft_loop.sh` matches `01`'s output.
+  - Its nit A (no evidence for the post-repair VM run) is answered by `04-tests-after-repair.out`: at `cec88f3`, 154 tests, OK.
+- **CI on `cec88f3`:**
+  - `Full gate (Ubuntu)` Pass (run 40114276420), image tests included.
+  - The drill Pass (run 40114276441), 7 of 7, including "the containers range at the first boot: added in boot 1 to both files: True; the range once in both: True" and "the containers range after reboots: both files as at the first boot, with the range once, after every case's reboots: True".
+  - The run on `5469053` (40113936244) was cancelled by the push of `cec88f3`, so it counts as no result.
+
+## 5. Close Out
+
+- [x] **Done when:**
+  - (a) red, then green (`02`, `03`, `04`), and the CI drill states "added" in boot 1: Pass;
+  - (b) a stated answer with 3 + 3 tries (above): Pass;
+  - Full gate: Pass;
+  - verifier: no Important finding after repair 1: Pass.
+- [x] **Limits:**
+  - Repair cycles: 1 of 2.
+  - Review rounds: 2 of 2 (pass 1, follow-up).
+  - CI drill development runs: 2 of 2 (`5469053` cancelled, `cec88f3` passed). This close-out's push starts one more drill run on unchanged code.
+  - Time: not measured to the minute; within the 3-hour budget.
+- [x] **Backlog, not started:**
+  - verifier nit 2: unit tests for `subid_first_boot` and `main`'s `expected` set;
+  - nit 6: the run 2 and run 3 post-mortems are cited by run id only;
+  - if run 2's finalize failure recurs: the drill's post-mortem now keeps `ostree-finalize-staged`'s journal, which should name the error.
