@@ -5,8 +5,8 @@
 | **Date** | 2026-10-23 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/containers-subid`, from `main` at `860c9f5`, in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | red `448d009`, change `94444e9`; repair 1: red `7bccdd5`, fix `785b05e`; repair 2 `5223dea`; records `faf3fa1`, `73c8ed6`, this close-out |
+| **Status** | COMPLETE but for the merge: pull request #34 green at `73c8ed6` (`Full gate (Ubuntu)` [run 40059717256](https://github.com/rikuripi/rikurinode/actions/runs/40059717256); the image build and the drill [run 40059717226](https://github.com/rikuripi/rikurinode/actions/runs/40059717226), all six drill checks Pass); verifier: follow-up pass PASS |
 | **Change type** | feature (stage 1, the image; a prerequisite stage 2 named) |
 
 ## Task Contract
@@ -69,6 +69,14 @@
 - [x] **CI drill run 2,** [40057729110](https://github.com/rikuripi/rikurinode/actions/runs/40057729110) on `785b05e`: **Fail.** "PASS first boot", "PASS the containers range: … the unit ran and succeeded: True; a --userns=auto container started: True", then "FAIL drill: timed out after 600s waiting for the broken update to roll back". The run's `99-post-mortem.out`: at the shutdown that was to apply case 1's update, greenboot logged "'bootc status --booted --json' exited with non-zero status" and "No staged deployment found; nothing to do", and `ostree-finalize-staged.service` "Control process exited, code=exited, status=1/FAILURE"; the next boot was the installed image, with no trigger, so no rollback could follow. ostree's own error was not kept: the post-mortem's `--grep` caught systemd's lines, not ostree's. Not shown to be this change's: run 1 passed with the same steps in the same order, and nothing this change adds runs at shutdown. A possible link, not proven: the new `--userns=auto` run of the OS image came just before case 1's `bootc switch`, and such a run can make Podman add ID-mapped layers to the storage `bootc switch` reads.
 - [x] **Repair cycle 2 of two** (`5223dea`): the `--userns=auto` check runs after the three cases and the check that the range is still there, so it cannot touch them; its journal covers every boot (the unit logs "added" only in the first); the post-mortem also keeps the journal of `ostree-finalize-staged.service` and its hold unit. 149 image tests OK in `rikuri-drill`. Drill run 3 of 3: below. A second failure of this kind goes to the owner (no third repair cycle).
 - [x] **CI drill run 3,** [40059008230](https://github.com/rikuripi/rikurinode/actions/runs/40059008230) on `5223dea`: **all Pass**: first boot; case 1 ("rolled back: True; marker intact: True"); case 2b; case 3; "the containers range after reboots: … True"; "the containers range: the range once in both files: True; the unit ran and succeeded: True; a --userns=auto container started: True". `09-ci-run3-01b-userns-auto.out` (the run's artifact): across 10 boots the unit started 10 times, "added" both lines once (the first boot) and "is present" 18 times (9 boots, two files); no refusal or failure; the container "started". Development runs of the drill: 3 of 3 used.
+
+- [x] **Verifier, follow-up pass: PASS**, no new Important finding: I1 and I2 closed (each new test kills its mutant, by reading and in `07-repair1-mutants.out`); the four nits' fixes correct and red first (7bccdd5's 5 failures and 3 errors match by reading); run 2's account honest, its cause not shown; run 3 supports the record. Its nits, for the backlog, not changed here (both repair cycles and the three development runs are used): (1) the drill's pass condition no longer asserts that the range was added at the **first** boot: the kept journal shows it (`09-ci-run3-01b-userns-auto.out`, "added" only in the first boot's section), but a later run would pass if the line came at a later boot; `subid_after_reboots`'s name and docstring claim more than it checks; (2) run 2's finalize failure is unexplained: a drill flake, or an interaction between a `--userns=auto` run on containers-storage and `bootc switch`; (3) `07-repair1-mutants.out` keeps labels and results, not the mutants' diffs; (4) a failed fsync of `/etc` after an added line leaves the unit successful, with the warning in the journal only (defensible: the line is in place, and a lost one is added again at the next boot).
+- [x] **The pull request's own drill** (run 40059717226, a fourth run of the drill, started by opening #34, not a development run): all six checks Pass.
+
+## 5. Close Out
+
+- [x] Gate: CI on #34 at `73c8ed6`, all pass (Status). Locally: the image tests in `rikuri-drill` (149 OK), `git diff --check` and `repo_hygiene.py`; the full gate does not run on this Mac (`safe-run.sh` refuses without Linux namespaces).
+- [x] Time: about 2 hours 30 minutes of the 4-hour budget. Repair cycles: 2 of 2. Drill development runs: 3 of 3.
 
 ## Evidence log
 
