@@ -1,0 +1,22 @@
+# First probe (all three drop-ins named 50-x.conf): only the exact-name folder's file listed; a same-named file in a more specific folder replaces the others, so it could not tell. Second probe, distinct names:
+## DropInPaths:
+DropInPaths=/usr/lib/systemd/system/service.d/10-timeout-abort.conf
+/etc/systemd/system/rikuri-.service.d/50-rikuri-.conf
+/etc/systemd/system/rikuri-probe-.service.d/50-rikuri-probe-.conf
+/etc/systemd/system/rikuri-probe-unit.service.d/50-rikuri-probe-unit.conf
+## Description: from rikuri-probe-unit
+## removed: LoadState=not-found
+## /usr/local in this image: drwxr-xr-x. 11 root root 176 Dec 31  1969 /usr/local
+## systemd unit paths:
+/etc/systemd/system.control
+/run/systemd/system.control
+/run/systemd/transient
+/run/systemd/generator.early
+/etc/systemd/system
+/etc/systemd/system.attached
+/run/systemd/system
+/run/systemd/system.attached
+/run/systemd/generator
+/usr/local/lib/systemd/system
+/usr/lib/systemd/system
+/run/systemd/generator.late

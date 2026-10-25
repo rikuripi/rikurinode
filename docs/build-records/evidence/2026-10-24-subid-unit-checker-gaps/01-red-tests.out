@@ -1,0 +1,380 @@
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+Python 3.14.8
+.....................................................FFFFFFFFFFFFFFF...FFFFFFF.....................................................................rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmprm0pwd70/lib/rikuri/update-not-applied
+rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmprm0pwd70/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmpaso_talx/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to remount /boot writable (exit 32); greenboot will roll this healthy node back
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to clear greenboot_next_deployment_id (exit 1); greenboot will roll this healthy node back
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to clear greenboot_next_deployment_id (exit 1); greenboot will roll this healthy node back
+.rikuri-unapplied-update: cannot read /boot/grub2/grubenv (exit 1); greenboot decides
+.rikuri-unapplied-update: cannot read /boot/grub2/grubenv (exit 1); greenboot decides
+.rikuri-unapplied-update: unknown: no deployments listed
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa booted and is on trial; greenboot decides
+.rikuri-unapplied-update: no rollback trigger set; nothing to do
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa booted and is on trial; greenboot decides
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmprqb7ovjf/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmphnfhxpob/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: unknown: no deployments listed
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmpce_jvzg8/lib/rikuri/update-not-applied
+..................................................
+======================================================================
+FAIL: test_subid_unit_is_a_closed_world (test_check_image_root.CheckImageRoot.test_subid_unit_is_a_closed_world) (why='a later value replaces it')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 388, in test_subid_unit_is_a_closed_world
+    self.assertFinds(SUBID_UNIT + ": ", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/lib/systemd/system/rikuri-containers-subid.service: ', got []
+
+======================================================================
+FAIL: test_subid_unit_is_a_closed_world (test_check_image_root.CheckImageRoot.test_subid_unit_is_a_closed_world) (why='a second command')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 388, in test_subid_unit_is_a_closed_world
+    self.assertFinds(SUBID_UNIT + ": ", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/lib/systemd/system/rikuri-containers-subid.service: ', got []
+
+======================================================================
+FAIL: test_subid_unit_is_a_closed_world (test_check_image_root.CheckImageRoot.test_subid_unit_is_a_closed_world) (why='an empty value resets the list')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 388, in test_subid_unit_is_a_closed_world
+    self.assertFinds(SUBID_UNIT + ": ", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/lib/systemd/system/rikuri-containers-subid.service: ', got []
+
+======================================================================
+FAIL: test_subid_unit_is_a_closed_world (test_check_image_root.CheckImageRoot.test_subid_unit_is_a_closed_world) (why='RemainAfterExit missing: inactive after success')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 388, in test_subid_unit_is_a_closed_world
+    self.assertFinds(SUBID_UNIT + ": ", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/lib/systemd/system/rikuri-containers-subid.service: ', got []
+
+======================================================================
+FAIL: test_subid_unit_is_a_closed_world (test_check_image_root.CheckImageRoot.test_subid_unit_is_a_closed_world) (why='Conflicts missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 388, in test_subid_unit_is_a_closed_world
+    self.assertFinds(SUBID_UNIT + ": ", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/lib/systemd/system/rikuri-containers-subid.service: ', got []
+
+======================================================================
+FAIL: test_subid_unit_is_a_closed_world (test_check_image_root.CheckImageRoot.test_subid_unit_is_a_closed_world) (why='After missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 388, in test_subid_unit_is_a_closed_world
+    self.assertFinds(SUBID_UNIT + ": ", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/lib/systemd/system/rikuri-containers-subid.service: ', got []
+
+======================================================================
+FAIL: test_subid_unit_is_a_closed_world (test_check_image_root.CheckImageRoot.test_subid_unit_is_a_closed_world) (why='another After value')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 388, in test_subid_unit_is_a_closed_world
+    self.assertFinds(SUBID_UNIT + ": ", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/lib/systemd/system/rikuri-containers-subid.service: ', got []
+
+======================================================================
+FAIL: test_subid_unit_is_a_closed_world (test_check_image_root.CheckImageRoot.test_subid_unit_is_a_closed_world) (why='a key the unit does not have')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 388, in test_subid_unit_is_a_closed_world
+    self.assertFinds(SUBID_UNIT + ": ", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/lib/systemd/system/rikuri-containers-subid.service: ', got []
+
+======================================================================
+FAIL: test_subid_unit_is_a_closed_world (test_check_image_root.CheckImageRoot.test_subid_unit_is_a_closed_world) (why='a condition that would skip it')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 388, in test_subid_unit_is_a_closed_world
+    self.assertFinds(SUBID_UNIT + ": ", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/lib/systemd/system/rikuri-containers-subid.service: ', got []
+
+======================================================================
+FAIL: test_subid_unit_is_a_closed_world (test_check_image_root.CheckImageRoot.test_subid_unit_is_a_closed_world) (why='a byte outside printable ASCII')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 388, in test_subid_unit_is_a_closed_world
+    self.assertFinds(SUBID_UNIT + ": ", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/lib/systemd/system/rikuri-containers-subid.service: ', got []
+
+======================================================================
+FAIL: test_subid_unit_is_a_closed_world (test_check_image_root.CheckImageRoot.test_subid_unit_is_a_closed_world) (why='enabled for another target')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 388, in test_subid_unit_is_a_closed_world
+    self.assertFinds(SUBID_UNIT + ": ", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/lib/systemd/system/rikuri-containers-subid.service: ', got []
+
+======================================================================
+FAIL: test_subid_unit_is_a_closed_world (test_check_image_root.CheckImageRoot.test_subid_unit_is_a_closed_world) (why='moved to [Install]')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 388, in test_subid_unit_is_a_closed_world
+    self.assertFinds(SUBID_UNIT + ": ", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/lib/systemd/system/rikuri-containers-subid.service: ', got []
+
+======================================================================
+FAIL: test_subid_unit_is_a_closed_world (test_check_image_root.CheckImageRoot.test_subid_unit_is_a_closed_world) (why='an indented comment')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 388, in test_subid_unit_is_a_closed_world
+    self.assertFinds(SUBID_UNIT + ": ", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/lib/systemd/system/rikuri-containers-subid.service: ', got []
+
+======================================================================
+FAIL: test_subid_unit_is_a_closed_world (test_check_image_root.CheckImageRoot.test_subid_unit_is_a_closed_world) (why='a section twice')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 393, in test_subid_unit_is_a_closed_world
+    self.assertFinds(SUBID_UNIT + ": ", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/lib/systemd/system/rikuri-containers-subid.service: ', got []
+
+======================================================================
+FAIL: test_subid_unit_is_a_closed_world (test_check_image_root.CheckImageRoot.test_subid_unit_is_a_closed_world) (why='an unknown section')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 393, in test_subid_unit_is_a_closed_world
+    self.assertFinds(SUBID_UNIT + ": ", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/lib/systemd/system/rikuri-containers-subid.service: ', got []
+
+======================================================================
+FAIL: test_subid_unit_overrides_in_the_image_are_findings (test_check_image_root.CheckImageRoot.test_subid_unit_overrides_in_the_image_are_findings) (rel='usr/lib/systemd/system/rikuri-containers-subid.service.d', kind='folder')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 422, in test_subid_unit_overrides_in_the_image_are_findings
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/lib/systemd/system/rikuri-containers-subid.service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_subid_unit_overrides_in_the_image_are_findings (test_check_image_root.CheckImageRoot.test_subid_unit_overrides_in_the_image_are_findings) (rel='usr/lib/systemd/system/rikuri-.service.d', kind='folder')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 422, in test_subid_unit_overrides_in_the_image_are_findings
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/lib/systemd/system/rikuri-.service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_subid_unit_overrides_in_the_image_are_findings (test_check_image_root.CheckImageRoot.test_subid_unit_overrides_in_the_image_are_findings) (rel='etc/systemd/system/rikuri-containers-subid.service', kind='mask')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 422, in test_subid_unit_overrides_in_the_image_are_findings
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/systemd/system/rikuri-containers-subid.service: overrides the unit', got []
+
+======================================================================
+FAIL: test_subid_unit_overrides_in_the_image_are_findings (test_check_image_root.CheckImageRoot.test_subid_unit_overrides_in_the_image_are_findings) (rel='etc/systemd/system/rikuri-containers-subid.service', kind='copy')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 422, in test_subid_unit_overrides_in_the_image_are_findings
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/systemd/system/rikuri-containers-subid.service: overrides the unit', got []
+
+======================================================================
+FAIL: test_subid_unit_overrides_in_the_image_are_findings (test_check_image_root.CheckImageRoot.test_subid_unit_overrides_in_the_image_are_findings) (rel='etc/systemd/system/rikuri-containers-subid.service.d', kind='folder')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 422, in test_subid_unit_overrides_in_the_image_are_findings
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/systemd/system/rikuri-containers-subid.service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_subid_unit_overrides_in_the_image_are_findings (test_check_image_root.CheckImageRoot.test_subid_unit_overrides_in_the_image_are_findings) (rel='etc/systemd/system/rikuri-.service.d', kind='folder')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 422, in test_subid_unit_overrides_in_the_image_are_findings
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/systemd/system/rikuri-.service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_subid_unit_overrides_in_the_image_are_findings (test_check_image_root.CheckImageRoot.test_subid_unit_overrides_in_the_image_are_findings) (rel='etc/systemd/system/rikuri-containers-subid.service.d', kind='link')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 422, in test_subid_unit_overrides_in_the_image_are_findings
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/systemd/system/rikuri-containers-subid.service.d: overrides the unit', got []
+
+----------------------------------------------------------------------
+Ran 191 tests in 0.088s
+
+FAILED (failures=22)

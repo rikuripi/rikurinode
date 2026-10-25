@@ -1,0 +1,18 @@
+## the probe unit (/etc/systemd/system/rikuri-probe.service):
+[Unit]$
+Description=probe \$
+DefaultDependencies=no$
+$
+[Service]$
+Type=oneshot$
+RemainAfterExit=yes$
+ExecStart=/usr/bin/true$
+ExecStart=/usr/bin/true$
+## systemctl show:
+Description=probe  DefaultDependencies=no
+DefaultDependencies=yes
+RemainAfterExit=yes
+argv[]=/usr/bin/true
+argv[]=/usr/bin/true
+## removed:
+LoadState=not-found
