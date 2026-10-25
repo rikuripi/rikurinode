@@ -73,8 +73,22 @@ TRIGGER_LINES = ("Conflicts=final.target", "Before=final.target")
 SUBID_CHECK = "usr/libexec/rikuri/containers-subid"
 SUBID_UNIT = "usr/lib/systemd/system/rikuri-containers-subid.service"
 SUBID_WANTS = "usr/lib/systemd/system/sysinit.target.wants/rikuri-containers-subid.service"
-SUBID_LINES = {"[Unit]": ("DefaultDependencies=no", "Before=sysinit.target shutdown.target"),
-               "[Service]": ("Type=oneshot", "ExecStart=/" + SUBID_CHECK)}
+# The unit as a closed world: systemd lets a later line replace a value, add a
+# command or reset a list, so each key appears once, with this value (None: any),
+# in its section, and nothing else does
+# (docs/build-records/2026-10-24-subid-unit-checker-gaps.md).
+SUBID_KEYS = {"[Unit]": {"Description": None, "DefaultDependencies": "no", "After": "local-fs.target",
+                         "Before": "sysinit.target shutdown.target", "Conflicts": "shutdown.target"},
+              "[Service]": {"Type": "oneshot", "RemainAfterExit": "yes", "ExecStart": "/" + SUBID_CHECK},
+              "[Install]": {"WantedBy": "sysinit.target"}}
+UNIT_KEY_LINE = re.compile(r"^([A-Za-z][A-Za-z0-9]*)=(.*)$")
+# Each would override the unit on a node (systemd.unit(5): drop-ins by name and
+# by the "rikuri-" prefix; /etc over /usr/lib, a link to /dev/null masks it).
+SUBID_OVERRIDES = ("usr/lib/systemd/system/rikuri-containers-subid.service.d",
+                   "usr/lib/systemd/system/rikuri-.service.d",
+                   "etc/systemd/system/rikuri-containers-subid.service",
+                   "etc/systemd/system/rikuri-containers-subid.service.d",
+                   "etc/systemd/system/rikuri-.service.d")
 SUBID_TARGETS = ("../rikuri-containers-subid.service", "/" + SUBID_UNIT)
 # greenboot's wanted check of it: logged at every boot, never a rollback, since
 # no image can repair /etc (docs/build-records/2026-10-24-greenboot-subid-wanted.md).
@@ -288,6 +302,49 @@ def check_trigger_at_shutdown(root: str) -> list:
     return []
 
 
+def subid_unit_problems(data: bytes) -> list:
+    """Why the unit is not exactly SUBID_KEYS, in the one line form read alike by
+    systemd and this check; [] when it is."""
+    problems, sections, seen, section = [], set(), set(), None
+    for n, raw in enumerate(data.split(b"\n"), 1):
+        if not PRINTABLE_LINE.match(raw):
+            problems.append("line %d: outside printable ASCII" % n)
+            continue
+        line = raw.decode("ascii")
+        if line == "" or line[0] in "#;":
+            continue
+        if line.endswith("\\"):
+            problems.append("line %d: a continuation line" % n)
+            continue
+        if line in SUBID_KEYS:
+            if line in sections:
+                problems.append("line %d: %s a second time" % (n, line))
+            sections.add(line)
+            section = line
+            continue
+        m = UNIT_KEY_LINE.match(line)
+        if not m:
+            problems.append("line %d: not a section, a comment in column 0, or KEY=VALUE (%r)" % (n, line))
+            continue
+        key, value = m.groups()
+        keys = SUBID_KEYS.get(section, {})
+        if key not in keys:
+            problems.append("line %d: %s= does not belong in %s" % (n, key, section or "no section"))
+        elif (section, key) in seen:
+            problems.append("line %d: %s= a second time; systemd would replace, add to or reset it" % (n, key))
+        elif keys[key] is not None and value != keys[key]:
+            problems.append("line %d: %s=%s, expected %s=%s" % (n, key, value, key, keys[key]))
+        elif keys[key] is None and not value:
+            problems.append("line %d: %s= is empty" % (n, key))
+        seen.add((section, key))
+    missing = ["%s=%s under %s" % (key, value or "...", section) for section, keys in SUBID_KEYS.items()
+               for key, value in keys.items() if (section, key) not in seen]
+    if missing:
+        problems.append("does not run the check once, before sysinit.target, and stay active "
+                        "(missing: %s)" % "; ".join(missing))
+    return problems
+
+
 def check_containers_subid(root: str) -> list:
     found = []
     path = _regular(root, SUBID_CHECK)
@@ -296,22 +353,14 @@ def check_containers_subid(root: str) -> list:
                      "start)" % SUBID_CHECK)
     elif not os.lstat(path).st_mode & 0o111:
         found.append("%s: not executable" % SUBID_CHECK)
-    text = _read(root, SUBID_UNIT)
-    if text is None:
+    data = _read_bytes(root, SUBID_UNIT)
+    if data is None:
         found.append("%s: missing, or not a regular file" % SUBID_UNIT)
     else:
-        section, seen = None, set()
-        for line in text.splitlines():
-            line = line.strip()
-            if line.startswith("[") and line.endswith("]"):
-                section = line
-            elif line in SUBID_LINES.get(section, ()):
-                seen.add((section, line))
-        missing = ["%s under %s" % (line, section) for section, lines in SUBID_LINES.items()
-                   for line in lines if (section, line) not in seen]
-        if missing:
-            found.append("%s: does not run the check before sysinit.target (missing: %s)"
-                         % (SUBID_UNIT, "; ".join(missing)))
+        found += ["%s: %s" % (SUBID_UNIT, p) for p in subid_unit_problems(data)]
+    for rel in SUBID_OVERRIDES:
+        if os.path.lexists(os.path.join(root, rel)):
+            found.append("%s: overrides the unit on every node; the image must not ship it" % rel)
     wants = os.path.join(root, SUBID_WANTS)
     hit = _lstat_in(root, os.path.dirname(SUBID_WANTS))
     if hit is None or not os.path.islink(wants):

@@ -377,6 +377,13 @@ class CheckImageRoot(unittest.TestCase):
             ("WantedBy=sysinit.target", "WantedBy=multi-user.target", "enabled for another target"),
             ("RemainAfterExit=yes\n", "", "moved to [Install]"),
             ("[Install]\n", "[Install]\n# a note\n  ; indented\n", "an indented comment"),
+            # Mutants 1 and 5 (03-mutants.out) survived the cases above:
+            ("ExecStart=/usr/libexec/rikuri/containers-subid\n",
+             "ExecStart=/usr/libexec/rikuri/containers-subid\nExecStart=/usr/libexec/rikuri/containers-subid\n",
+             "the same command twice: systemd runs it twice"),
+            ("Description=Podman's containers range in /etc/subuid and /etc/subgid\n",
+             "Description=Podman's containers range in /etc/subuid and /etc/subgid \\\n",
+             "a continuation that swallows DefaultDependencies=no into the description"),
         )
         for old, new, why in cases:
             with self.subTest(why=why):
@@ -387,6 +394,7 @@ class CheckImageRoot(unittest.TestCase):
                 self.root.write_bytes(SUBID_UNIT, text.encode("utf-8"))
                 self.assertFinds(SUBID_UNIT + ": ", cir.check_containers_subid(self.root.path))
         for extra, why in (("\n[Unit]\nAfter=local-fs.target\n", "a section twice"),
+                           ("\n[Install]\n", "an empty section twice (mutant 4)"),
                            ("\n[X-Rikuri]\nKey=value\n", "an unknown section")):
             with self.subTest(why=why):
                 self.root.write(SUBID_UNIT, good + extra)
@@ -407,7 +415,9 @@ class CheckImageRoot(unittest.TestCase):
                           ("etc/systemd/system/rikuri-containers-subid.service", "copy"),
                           ("etc/systemd/system/rikuri-containers-subid.service.d", "folder"),
                           ("etc/systemd/system/rikuri-.service.d", "folder"),
-                          ("etc/systemd/system/rikuri-containers-subid.service.d", "link")):
+                          ("etc/systemd/system/rikuri-containers-subid.service.d", "link"),
+                          # Mutant 9: a link whose target the checker's machine lacks, a node may have.
+                          ("etc/systemd/system/rikuri-.service.d", "dangling")):
             with self.subTest(rel=rel, kind=kind):
                 full = os.path.join(self.root.path, rel)
                 try:
@@ -417,6 +427,8 @@ class CheckImageRoot(unittest.TestCase):
                         self.root.link(rel, "/dev/null")
                     elif kind == "link":
                         self.root.link(rel, "/tmp")
+                    elif kind == "dangling":
+                        self.root.link(rel, "/nonexistent-on-the-checker/rikuri.service.d")
                     else:
                         self.root.write_bytes(rel, shipped_file(SUBID_UNIT))
                     self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))

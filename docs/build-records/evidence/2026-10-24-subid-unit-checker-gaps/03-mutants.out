@@ -1,0 +1,121 @@
+### mutant 1
+@@ -330,8 +330,6 @@
+         keys = SUBID_KEYS.get(section, {})
+         if key not in keys:
+             problems.append("line %d: %s= does not belong in %s" % (n, key, section or "no section"))
+-        elif (section, key) in seen:
+-            problems.append("line %d: %s= a second time; systemd would replace, add to or reset it" % (n, key))
+         elif keys[key] is not None and value != keys[key]:
+             problems.append("line %d: %s=%s, expected %s=%s" % (n, key, value, key, keys[key]))
+         elif keys[key] is None and not value:
+result: OK
+### mutant 2
+@@ -332,7 +332,7 @@
+             problems.append("line %d: %s= does not belong in %s" % (n, key, section or "no section"))
+         elif (section, key) in seen:
+             problems.append("line %d: %s= a second time; systemd would replace, add to or reset it" % (n, key))
+-        elif keys[key] is not None and value != keys[key]:
++        elif False:
+             problems.append("line %d: %s=%s, expected %s=%s" % (n, key, value, key, keys[key]))
+         elif keys[key] is None and not value:
+             problems.append("line %d: %s= is empty" % (n, key))
+result: FAILED (failures=5)
+### mutant 3
+@@ -79,7 +79,7 @@
+ # (docs/build-records/2026-10-24-subid-unit-checker-gaps.md).
+ SUBID_KEYS = {"[Unit]": {"Description": None, "DefaultDependencies": "no", "After": "local-fs.target",
+                          "Before": "sysinit.target shutdown.target", "Conflicts": "shutdown.target"},
+-              "[Service]": {"Type": "oneshot", "RemainAfterExit": "yes", "ExecStart": "/" + SUBID_CHECK},
++              "[Service]": {"Type": "oneshot", "ExecStart": "/" + SUBID_CHECK},
+               "[Install]": {"WantedBy": "sysinit.target"}}
+ UNIT_KEY_LINE = re.compile(r"^([A-Za-z][A-Za-z0-9]*)=(.*)$")
+ # Each would override the unit on a node (systemd.unit(5): drop-ins by name and
+result: FAILED (failures=15)
+### mutant 4
+@@ -317,8 +317,6 @@
+             problems.append("line %d: a continuation line" % n)
+             continue
+         if line in SUBID_KEYS:
+-            if line in sections:
+-                problems.append("line %d: %s a second time" % (n, line))
+             sections.add(line)
+             section = line
+             continue
+result: OK
+### mutant 5
+@@ -313,9 +313,6 @@
+         line = raw.decode("ascii")
+         if line == "" or line[0] in "#;":
+             continue
+-        if line.endswith("\\"):
+-            problems.append("line %d: a continuation line" % n)
+-            continue
+         if line in SUBID_KEYS:
+             if line in sections:
+                 problems.append("line %d: %s a second time" % (n, line))
+result: OK
+### mutant 6
+@@ -328,7 +328,7 @@
+             continue
+         key, value = m.groups()
+         keys = SUBID_KEYS.get(section, {})
+-        if key not in keys:
++        if False:
+             problems.append("line %d: %s= does not belong in %s" % (n, key, section or "no section"))
+         elif (section, key) in seen:
+             problems.append("line %d: %s= a second time; systemd would replace, add to or reset it" % (n, key))
+result: FAILED (errors=5)
+### mutant 7
+@@ -339,7 +339,7 @@
+         seen.add((section, key))
+     missing = ["%s=%s under %s" % (key, value or "...", section) for section, keys in SUBID_KEYS.items()
+                for key, value in keys.items() if (section, key) not in seen]
+-    if missing:
++    if False:
+         problems.append("does not run the check once, before sysinit.target, and stay active "
+                         "(missing: %s)" % "; ".join(missing))
+     return problems
+result: FAILED (failures=3)
+### mutant 8
+@@ -85,7 +85,6 @@
+ # Each would override the unit on a node (systemd.unit(5): drop-ins by name and
+ # by the "rikuri-" prefix; /etc over /usr/lib, a link to /dev/null masks it).
+ SUBID_OVERRIDES = ("usr/lib/systemd/system/rikuri-containers-subid.service.d",
+-                   "usr/lib/systemd/system/rikuri-.service.d",
+                    "etc/systemd/system/rikuri-containers-subid.service",
+                    "etc/systemd/system/rikuri-containers-subid.service.d",
+                    "etc/systemd/system/rikuri-.service.d")
+result: FAILED (failures=1)
+### mutant 9
+@@ -359,7 +359,7 @@
+     else:
+         found += ["%s: %s" % (SUBID_UNIT, p) for p in subid_unit_problems(data)]
+     for rel in SUBID_OVERRIDES:
+-        if os.path.lexists(os.path.join(root, rel)):
++        if os.path.exists(os.path.join(root, rel)):
+             found.append("%s: overrides the unit on every node; the image must not ship it" % rel)
+     wants = os.path.join(root, SUBID_WANTS)
+     hit = _lstat_in(root, os.path.dirname(SUBID_WANTS))
+result: OK
+### mutant 10
+@@ -311,7 +311,7 @@
+             problems.append("line %d: outside printable ASCII" % n)
+             continue
+         line = raw.decode("ascii")
+-        if line == "" or line[0] in "#;":
++        if line == "" or line.lstrip()[:1] in ("#", ";"):
+             continue
+         if line.endswith("\\"):
+             problems.append("line %d: a continuation line" % n)
+result: FAILED (failures=1)
+# Mutants 1, 4, 5 and 9 survived the first tests; four cases were added (see the record). All ten again:
+mutant 1 again: FAILED (failures=1)
+mutant 2 again: FAILED (failures=5)
+mutant 3 again: FAILED (failures=15)
+mutant 4 again: FAILED (failures=1)
+mutant 5 again: FAILED (failures=1)
+mutant 6 again: FAILED (errors=5)
+mutant 7 again: FAILED (failures=3)
+mutant 8 again: FAILED (failures=1)
+mutant 9 again: FAILED (failures=1)
+mutant 10 again: FAILED (failures=1)
