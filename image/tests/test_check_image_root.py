@@ -67,7 +67,7 @@ VARIANT_ID=iot
 """
 
 A = "GREENBOOT_MAX_BOOT_ATTEMPTS=3"
-D = 'DISABLED_HEALTHCHECKS=("01_repository_dns_check.sh")'
+D = 'DISABLED_HEALTHCHECKS=("01_repository_dns_check.sh" "01_update_platforms_check.sh")'
 
 
 def probe_cases():
@@ -93,11 +93,11 @@ def probe_cases():
         ("08-ff-after-value", A + "\n" + D + "\x0c# note\n", "disabled=[]"),
         ("09-x1f-trailing", A + "\n" + D + "\x1f\n", "disabled=[]"),
         ("10-crlf-shipped", s.replace("\n", "\r\n"), "as shipped"),
-        ("11-spaces-inside-array", A + '\nDISABLED_HEALTHCHECKS=( "01_repository_dns_check.sh" )\n',
+        ("11-spaces-inside-array", A + '\nDISABLED_HEALTHCHECKS=( "01_repository_dns_check.sh" "01_update_platforms_check.sh" )\n',
          "as shipped"),
         ("12-inline-comment", A + " # three\n" + D + "\n",
          "disabled as shipped; the attempts value does not parse, so its default (3)"),
-        ("13-spaces-around-equals", A + '\nDISABLED_HEALTHCHECKS = ("01_repository_dns_check.sh")\n',
+        ("13-spaces-around-equals", A + '\nDISABLED_HEALTHCHECKS = ("01_repository_dns_check.sh" "01_update_platforms_check.sh")\n',
          "as shipped"),
         ("14-nel-after-comment", A + "\n# note\x85" + D + "\n", "disabled=[]: the key was swallowed"),
         ("15-leading-ff-before-comment", A + "\n\x0c# note\n" + D + "\n",
@@ -115,6 +115,7 @@ class Root:
         self.write("usr/lib/greenboot/check/required.d/01_repository_dns_check.sh",
                    "#!/bin/sh\n", mode=0o755)
         self.write("usr/lib/greenboot/check/required.d/02_watchdog.sh", "#!/bin/sh\n", mode=0o755)
+        self.write("usr/lib/greenboot/check/wanted.d/01_update_platforms_check.sh", "#!/bin/sh\n", mode=0o755)
         self.write_bytes(cir.GREENBOOT_CONF, shipped())
         self.write_bytes(UNAPPLIED_CHECK, shipped_file(UNAPPLIED_CHECK), mode=0o755)
         self.write_bytes(UNAPPLIED_DROPIN, shipped_file(UNAPPLIED_DROPIN))
@@ -325,13 +326,15 @@ class CheckImageRoot(unittest.TestCase):
 
     def test_subid_wanted_check_must_not_be_disabled(self):
         conf = shipped().decode("ascii")
-        line = 'DISABLED_HEALTHCHECKS=("01_repository_dns_check.sh")'
+        line = D
         self.assertIn(line, conf.splitlines())
         self.root.write(cir.GREENBOOT_CONF, conf.replace(
-            line, 'DISABLED_HEALTHCHECKS=("01_repository_dns_check.sh" "50-rikuri-containers-subid")'))
-        # Already a finding: the list is pinned to Fedora's DNS check alone.
-        self.assertFinds("DISABLED_HEALTHCHECKS is ['01_repository_dns_check.sh', '50-rikuri-containers-subid'], "
-                         "expected ['01_repository_dns_check.sh']")
+            line, 'DISABLED_HEALTHCHECKS=("01_repository_dns_check.sh" "01_update_platforms_check.sh" '
+                  '"50-rikuri-containers-subid")'))
+        # Already a finding: the list is pinned to its two names.
+        self.assertFinds("DISABLED_HEALTHCHECKS is ['01_repository_dns_check.sh', '01_update_platforms_check.sh', "
+                         "'50-rikuri-containers-subid'], expected ['01_repository_dns_check.sh', "
+                         "'01_update_platforms_check.sh']")
 
     def test_subid_unit_missing(self):
         self.root.remove(SUBID_UNIT)
@@ -432,17 +435,33 @@ class CheckImageRoot(unittest.TestCase):
     def test_fedora_default_conf_keeps_dns_check(self):
         self.root.write(cir.GREENBOOT_CONF,
                         "GREENBOOT_MAX_BOOT_ATTEMPTS=3\nDISABLED_HEALTHCHECKS=()\n")
-        self.assertFinds("DISABLED_HEALTHCHECKS is [], expected ['01_repository_dns_check.sh']")
+        self.assertFinds("DISABLED_HEALTHCHECKS is [], expected ['01_repository_dns_check.sh', "
+                         "'01_update_platforms_check.sh']")
 
     def test_typo_in_disabled_name(self):
         self.root.write(cir.GREENBOOT_CONF, "GREENBOOT_MAX_BOOT_ATTEMPTS=3\n"
                         'DISABLED_HEALTHCHECKS=("01_repository_dns_checks.sh")\n')
-        self.assertFinds("expected ['01_repository_dns_check.sh']")
+        self.assertFinds("expected ['01_repository_dns_check.sh', '01_update_platforms_check.sh']")
         self.assertFinds("disabled check '01_repository_dns_checks.sh' is in none of")
 
     def test_disabled_name_absent_from_image(self):
         self.root.remove("usr/lib/greenboot/check/required.d/01_repository_dns_check.sh")
         self.assertFinds("disabled check '01_repository_dns_check.sh' is in none of")
+
+    def test_each_disabled_name_is_pinned(self):
+        # Owner, 2026-10-24: Fedora's update-platforms check is off, like the DNS check (D9).
+        for value, got in (('("01_repository_dns_check.sh")', "['01_repository_dns_check.sh']"),
+                           ('("01_update_platforms_check.sh")', "['01_update_platforms_check.sh']"),
+                           ('("01_update_platforms_check.sh" "01_repository_dns_check.sh")',
+                            "['01_update_platforms_check.sh', '01_repository_dns_check.sh']")):
+            with self.subTest(value=value):
+                self.root.write(cir.GREENBOOT_CONF, A + "\nDISABLED_HEALTHCHECKS=" + value + "\n")
+                self.assertFinds("DISABLED_HEALTHCHECKS is %s, expected ['01_repository_dns_check.sh', "
+                                 "'01_update_platforms_check.sh']" % got)
+
+    def test_disabled_platforms_check_absent_from_image(self):
+        self.root.remove("usr/lib/greenboot/check/wanted.d/01_update_platforms_check.sh")
+        self.assertFinds("disabled check '01_update_platforms_check.sh' is in none of")
 
     def test_disabled_check_as_link_does_not_count(self):
         self.root.link("usr/lib/greenboot/check/required.d/01_repository_dns_check.sh", "/bin/true")
@@ -480,12 +499,11 @@ class CheckImageRoot(unittest.TestCase):
         self.assertFinds("not KEY=VALUE")
 
     def test_attempts_changed(self):
-        self.root.write(cir.GREENBOOT_CONF, "GREENBOOT_MAX_BOOT_ATTEMPTS=1\n"
-                        'DISABLED_HEALTHCHECKS=("01_repository_dns_check.sh")\n')
+        self.root.write(cir.GREENBOOT_CONF, "GREENBOOT_MAX_BOOT_ATTEMPTS=1\n" + D + "\n")
         self.assertFinds("GREENBOOT_MAX_BOOT_ATTEMPTS is '1', expected '3'")
 
     def test_attempts_missing(self):
-        self.root.write(cir.GREENBOOT_CONF, 'DISABLED_HEALTHCHECKS=("01_repository_dns_check.sh")\n')
+        self.root.write(cir.GREENBOOT_CONF, D + "\n")
         self.assertFinds("GREENBOOT_MAX_BOOT_ATTEMPTS is not set")
 
     def test_disabled_missing(self):

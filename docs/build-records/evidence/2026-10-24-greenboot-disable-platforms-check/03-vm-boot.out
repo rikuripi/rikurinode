@@ -1,0 +1,27 @@
+## the tree of 68e0081 (git archive), built offline on the aarch64 base by digest
+a68f7d7457ca767a1b573121b548f6d23199f8fc6cc7d4c31c0431a5f2e20fbb  image/rootfs/etc/greenboot/greenboot.conf
+a68f7d7457ca767a1b573121b548f6d23199f8fc6cc7d4c31c0431a5f2e20fbb  /etc/greenboot/greenboot.conf
+check_image_root: 0 finding(s) in / (Fedora 44 expected)
+
+## bootc switch to localhost/rikuri-os:gbp, reboot (an update's trial boot)
+  Digest: sha256:15979e3b940a21847f2aa71ecabcd3e6c8b927e2615e9cd3ce8617cc6095f8f3
+rebooted: boot 8d287e14-a36d-4dbf-a916-d8d72170d833
+booted: localhost/rikuri-os:gbp sha256:15979e3b940a
+rollback: localhost/rikuri-os:gbw2
+unit: ActiveState=active Result=success
+  unit log: rikuri-containers-subid: /etc/subuid: containers:2147483647:2147483648 is present
+  unit log: rikuri-containers-subid: /etc/subgid: containers:2147483647:2147483648 is present
+  greenboot: rikuri-unapplied-update: update sha256:15979e3b940a21847f2aa71ecabcd3e6c8b927e2615e9cd3ce8617cc6095f8f3 booted and is on trial; greenboot decides
+  greenboot:  INFO  greenboot::greenboot > running wanted check /usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid
+  greenboot:  INFO  greenboot::greenboot > wanted script /usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid success!
+  greenboot:  INFO  greenboot            > greenboot health-check passed.
+  greenboot:  INFO  greenboot::grub      > Set grubenv: boot_success=1
+grubenv: boot_success=1
+-- greenboot, every check line:
+   INFO  greenboot::greenboot > Skipping disabled script: 01_repository_dns_check.sh
+   INFO  greenboot::greenboot > running required check /usr/lib/greenboot/check/required.d/02_watchdog.sh
+   INFO  greenboot::greenboot > required script /usr/lib/greenboot/check/required.d/02_watchdog.sh success!
+   INFO  greenboot::greenboot > Skipping disabled script: 01_update_platforms_check.sh
+   INFO  greenboot::greenboot > running wanted check /usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid
+   INFO  greenboot::greenboot > wanted script /usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid success!
+   INFO  greenboot            > greenboot health-check passed.

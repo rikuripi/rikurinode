@@ -54,7 +54,7 @@ CHECK_DIRS = ("usr/lib/greenboot/check/required.d", "usr/lib/greenboot/check/wan
 # closed-world: only these keys, once each, outside any [section].
 GREENBOOT_EXPECTED = {
     "GREENBOOT_MAX_BOOT_ATTEMPTS": "3",
-    "DISABLED_HEALTHCHECKS": ["01_repository_dns_check.sh"],
+    "DISABLED_HEALTHCHECKS": ["01_repository_dns_check.sh", "01_update_platforms_check.sh"],
 }
 # D22 against greenboot-rs #219: before greenboot reads its rollback trigger, a
 # check clears it when the update it names was never applied. The drop-in must
