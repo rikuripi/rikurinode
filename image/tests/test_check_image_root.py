@@ -353,6 +353,80 @@ class CheckImageRoot(unittest.TestCase):
                 self.root.write(SUBID_UNIT, text)
                 self.assertFinds(SUBID_UNIT + ": ")
 
+    def test_subid_unit_is_a_closed_world(self):
+        # docs/build-records/2026-10-24-subid-unit-checker-gaps.md: systemd lets a later line
+        # replace, add to or reset an earlier one, so each line's presence is not enough.
+        good = shipped_file(SUBID_UNIT).decode("ascii")
+        cases = (
+            ("RemainAfterExit=yes\n", "RemainAfterExit=yes\nRemainAfterExit=no\n", "a later value replaces it"),
+            ("ExecStart=/usr/libexec/rikuri/containers-subid\n",
+             "ExecStart=/usr/libexec/rikuri/containers-subid\nExecStart=/bin/false\n", "a second command"),
+            ("Before=sysinit.target shutdown.target\n", "Before=sysinit.target shutdown.target\nBefore=\n",
+             "an empty value resets the list"),
+            ("RemainAfterExit=yes\n", "", "RemainAfterExit missing: inactive after success"),
+            ("Conflicts=shutdown.target\n", "", "Conflicts missing"),
+            ("After=local-fs.target\n", "", "After missing"),
+            ("After=local-fs.target", "After=network.target", "another After value"),
+            ("Type=oneshot\n", "Type=oneshot\nExecStartPre=/bin/true\n", "a key the unit does not have"),
+            ("DefaultDependencies=no\n", "DefaultDependencies=no\nConditionPathExists=/nope\n",
+             "a condition that would skip it"),
+            ("Type=oneshot", "Type = oneshot", "spaces around ="),
+            ("ExecStart=/usr/libexec/rikuri/containers-subid\n",
+             "ExecStart=/usr/libexec/rikuri/containers-subid \\\n  --other\n", "a continuation line"),
+            ("Description=Podman's", "Description=Podman\u2019s", "a byte outside printable ASCII"),
+            ("WantedBy=sysinit.target", "WantedBy=multi-user.target", "enabled for another target"),
+            ("RemainAfterExit=yes\n", "", "moved to [Install]"),
+            ("[Install]\n", "[Install]\n# a note\n  ; indented\n", "an indented comment"),
+        )
+        for old, new, why in cases:
+            with self.subTest(why=why):
+                self.assertIn(old, good)
+                text = good.replace(old, new, 1)
+                if why == "moved to [Install]":
+                    text += "RemainAfterExit=yes\n"
+                self.root.write_bytes(SUBID_UNIT, text.encode("utf-8"))
+                self.assertFinds(SUBID_UNIT + ": ", cir.check_containers_subid(self.root.path))
+        for extra, why in (("\n[Unit]\nAfter=local-fs.target\n", "a section twice"),
+                           ("\n[X-Rikuri]\nKey=value\n", "an unknown section")):
+            with self.subTest(why=why):
+                self.root.write(SUBID_UNIT, good + extra)
+                self.assertFinds(SUBID_UNIT + ": ", cir.check_containers_subid(self.root.path))
+
+    def test_subid_unit_comments_blank_lines_and_description_are_free(self):
+        good = shipped_file(SUBID_UNIT).decode("ascii")
+        text = ("; a note\n\n" + good.replace("Description=Podman's containers range in /etc/subuid and /etc/subgid",
+                                                "Description=Another description")
+                + "\n# the end\n")
+        self.root.write(SUBID_UNIT, text)
+        self.assertEqual(cir.check_containers_subid(self.root.path), [])
+
+    def test_subid_unit_overrides_in_the_image_are_findings(self):
+        for rel, kind in (("usr/lib/systemd/system/rikuri-containers-subid.service.d", "folder"),
+                          ("usr/lib/systemd/system/rikuri-.service.d", "folder"),
+                          ("etc/systemd/system/rikuri-containers-subid.service", "mask"),
+                          ("etc/systemd/system/rikuri-containers-subid.service", "copy"),
+                          ("etc/systemd/system/rikuri-containers-subid.service.d", "folder"),
+                          ("etc/systemd/system/rikuri-.service.d", "folder"),
+                          ("etc/systemd/system/rikuri-containers-subid.service.d", "link")):
+            with self.subTest(rel=rel, kind=kind):
+                full = os.path.join(self.root.path, rel)
+                try:
+                    if kind == "folder":
+                        self.root.write(rel + "/50-x.conf", "[Service]\nRemainAfterExit=no\n")
+                    elif kind == "mask":
+                        self.root.link(rel, "/dev/null")
+                    elif kind == "link":
+                        self.root.link(rel, "/tmp")
+                    else:
+                        self.root.write_bytes(rel, shipped_file(SUBID_UNIT))
+                    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+                finally:
+                    if os.path.isdir(full) and not os.path.islink(full):
+                        shutil.rmtree(full)
+                    elif os.path.lexists(full):
+                        os.remove(full)
+        self.assertEqual(cir.check_containers_subid(self.root.path), [])
+
     def test_subid_unit_must_be_enabled(self):
         self.root.remove(SUBID_WANTS)
         self.assertFinds(SUBID_WANTS + ": not a link")
