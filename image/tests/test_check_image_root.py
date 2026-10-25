@@ -798,5 +798,142 @@ class CheckImageRoot(unittest.TestCase):
         self.assertFinds("etc: no regular file was read")
 
 
+
+class QuadletHealth(unittest.TestCase):
+    """Every health command a Quadlet unit in the image sets is the exec form
+    (docs/build-records/2026-10-25-healthcmd-exec-form.md; probed in evidence 01 to 04)."""
+
+    setUp = CheckImageRoot.setUp
+    assertFinds = CheckImageRoot.assertFinds
+
+    UNIT = "etc/containers/systemd/svc.container"
+    EXEC = '["/standin", "probe"]'
+
+    def unit(self, lines, rel=None):
+        self.root.write(rel or self.UNIT, "[Container]\nImage=localhost/svc:1.0\n" + lines + "\n")
+
+    def problems(self):
+        return cir.check_quadlet_health(self.root.path)
+
+    def test_the_checks_run_on_the_image(self):
+        self.unit("HealthCmd=/standin probe")
+        self.assertFinds(self.UNIT + ": line 3: HealthCmd= is not the exec form")
+
+    def test_no_unit_folders_no_finding(self):
+        self.assertEqual(self.problems(), [])
+
+    def test_exec_forms_pass(self):
+        for line in ('HealthCmd=["/standin", "probe"]',
+                     'HealthCmd=   ["/standin","probe"]   ',      # probe hc05, hc16, hc17: Podman reads CMD
+                     'HealthCmd = ["/standin", "probe"]',          # hc10: Quadlet reads the key
+                     'HealthCmd=["/standin"]',
+                     'HealthStartupCmd=["/standin", "startup"]',
+                     '# HealthCmd=/standin probe',                 # a comment
+                     '; HealthCmd=/standin probe',
+                     'PodmanArgs=--memory=1g',
+                     'Environment=HEALTH=1'):
+            with self.subTest(line=line):
+                self.unit(line)
+                self.assertEqual(self.problems(), [])
+
+    def test_forms_podman_runs_through_a_shell_or_never_runs_are_findings(self):
+        for line, why in (('HealthCmd=/standin probe', "a plain string: CMD-SHELL (hc14)"),
+                          ('HealthCmd=["CMD-SHELL", "/standin probe"]', "CMD-SHELL in the array (hc02)"),
+                          ('HealthCmd=["CMD", "/standin", "probe"]', "exec, but not the one form (hc03)"),
+                          ('HealthCmd=[/standin, probe]', "not JSON: CMD-SHELL (hc04)"),
+                          ('HealthCmd="[\\"/standin\\", \\"probe\\"]"', "quoted: CMD-SHELL (hc07)"),
+                          ('HealthCmd=["/standin", "probe"] # trailing', "a trailing comment: CMD-SHELL (hc15)"),
+                          ('HealthCmd=none', "disabled (hc06)"),
+                          ('HealthCmd=["NONE"]', "disabled (hc13)"),
+                          ('HealthCmd=[]', "refused by Podman (hc12)"),
+                          ('HealthCmd=', "empty"),
+                          ('HealthCmd=[""]', "an empty item"),
+                          ('HealthCmd=["standin", "probe"]', "not an absolute path"),
+                          ('HealthCmd=["/standin", 1]', "not all strings"),
+                          ('HealthCmd={"cmd": "/standin"}', "not an array"),
+                          ('HealthCmd="/standin"', "a JSON string, not an array"),
+                          ('healthcmd=/standin probe', "the key in another case (hc11)"),
+                          ('HealthStartupCmd=/standin startup', "the startup check: CMD-SHELL (hs01)")):
+            with self.subTest(why=why):
+                self.unit(line)
+                key = line.split("=")[0].strip()
+                self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+
+    def test_a_later_shell_form_is_a_finding(self):
+        # Probe hc09: the last HealthCmd= wins.
+        self.unit('HealthCmd=["/standin", "probe"]\nHealthCmd=/standin probe')
+        self.assertEqual(self.problems(), [self.UNIT + ": line 4: HealthCmd= is not the exec form "
+                                           "(a JSON array whose first item is an absolute path); Podman "
+                                           "would run it through /bin/sh -c, which a shell-less image lacks"])
+
+    def test_health_options_through_podman_args_are_findings(self):
+        # Probes hs02 to hs04: PodmanArgs= hands Podman its own --health-cmd, and it wins.
+        for line in ('PodmanArgs=--health-cmd=/standin\\x20probe',
+                     'PodmanArgs=--health-cmd "/standin probe"',
+                     'PodmanArgs=--memory=1g --health-startup-cmd "/standin startup"',
+                     'PodmanArgs = --HEALTH-CMD x'):
+            with self.subTest(line=line):
+                self.unit(line)
+                self.assertFinds(self.UNIT + ": line 3: PodmanArgs= sets a health option", self.problems())
+
+    def test_a_continuation_line_is_a_finding(self):
+        # Probe hc08: Quadlet joins it to the next line.
+        for line in ('HealthCmd=["/standin", \\\n  "probe"]', 'Environment=A=1 \\\n  B=2', '# a comment \\'):
+            with self.subTest(line=line):
+                self.unit(line)
+                self.assertFinds(self.UNIT + ": line 3: a continuation line", self.problems())
+
+    def test_a_health_line_outside_printable_ascii_is_a_finding(self):
+        self.root.write_bytes(self.UNIT, b'[Container]\nHealthCmd=["/standin", "pr\xc3\xb6be"]\n')
+        self.assertFinds(self.UNIT + ": line 2: HealthCmd= is not the exec form", self.problems())
+        self.root.write_bytes(self.UNIT, b'[Container]\nHealthCmd=["/standin",\t"probe"]\n')
+        self.assertFinds(self.UNIT + ": line 2: HealthCmd= is not the exec form", self.problems())
+
+    def test_every_file_quadlet_reads_is_checked(self):
+        # Evidence 01, 04: both folders, their subfolders, every drop-in level, users/.
+        for rel in ("etc/containers/systemd/svc.container",
+                    "usr/share/containers/systemd/svc.container",
+                    "etc/containers/systemd/sub/svc.container",
+                    "etc/containers/systemd/svc.container.d/50-health.conf",
+                    "etc/containers/systemd/svc-.container.d/50-health.conf",
+                    "etc/containers/systemd/container.d/50-health.conf",
+                    "usr/share/containers/systemd/container.d/50-health.conf",
+                    "etc/containers/systemd/users/svc.container",
+                    "etc/containers/systemd/svc@.container"):
+            with self.subTest(rel=rel):
+                full = os.path.join(self.root.path, rel)
+                try:
+                    self.root.write(rel, "[Container]\nHealthCmd=/standin probe\n")
+                    self.assertFinds(rel + ": line 2: HealthCmd= is not the exec form", self.problems())
+                finally:
+                    os.remove(full)
+        self.assertEqual(self.problems(), [])
+
+    def test_links_in_or_on_the_way_to_the_unit_folders_are_findings(self):
+        # Probe 02: Quadlet reads a linked file and a linked folder; the checker would not see
+        # what a link reaches on a node.
+        outside = tempfile.mkdtemp(prefix="outside-")
+        self.addCleanup(shutil.rmtree, outside)
+        for linked, fragment in (("etc/containers/systemd/svc.container", "etc/containers/systemd/svc.container: a link"),
+                                 ("etc/containers/systemd/linked", "etc/containers/systemd/linked: a link"),
+                                 ("usr/share/containers/systemd", "usr/share/containers/systemd: a link"),
+                                 ("etc/containers", "etc/containers/systemd: reached through a link at etc/containers"),
+                                 ("etc", "etc/containers/systemd: reached through a link at etc")):
+            with self.subTest(linked=linked):
+                full = os.path.join(self.root.path, linked)
+                try:
+                    if os.path.isdir(full) and not os.path.islink(full):
+                        shutil.rmtree(full)
+                    self.root.link(linked, outside)
+                    self.assertFinds(fragment, self.problems())
+                finally:
+                    if os.path.lexists(full):
+                        os.remove(full)
+        self.assertEqual(self.problems(), [])
+
+    def test_a_unit_folder_that_is_a_file_is_a_finding(self):
+        self.root.write("usr/share/containers/systemd", "not a folder\n")
+        self.assertFinds("usr/share/containers/systemd: not a folder", self.problems())
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,681 @@
+Python 3.14.8
+.................................................................................EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEF..................................................rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmp187x5j5j/lib/rikuri/update-not-applied
+rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmp187x5j5j/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmpxphixyxx/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to remount /boot writable (exit 32); greenboot will roll this healthy node back
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to clear greenboot_next_deployment_id (exit 1); greenboot will roll this healthy node back
+rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to clear greenboot_next_deployment_id (exit 1); greenboot will roll this healthy node back
+.rikuri-unapplied-update: cannot read /boot/grub2/grubenv (exit 1); greenboot decides
+..rikuri-unapplied-update: cannot read /boot/grub2/grubenv (exit 1); greenboot decides
+.rikuri-unapplied-update: unknown: no deployments listed
+rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa booted and is on trial; greenboot decides
+rikuri-unapplied-update: no rollback trigger set; nothing to do
+...rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa booted and is on trial; greenboot decides
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmp7qij2r7m/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmp_kv43rmi/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: unknown: no deployments listed
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmptc_io1zd/lib/rikuri/update-not-applied
+..................................................
+======================================================================
+ERROR: test_a_continuation_line_is_a_finding (test_check_image_root.QuadletHealth.test_a_continuation_line_is_a_finding) (line='HealthCmd=["/standin", \\\n  "probe"]')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 884, in test_a_continuation_line_is_a_finding
+    self.assertFinds(self.UNIT + ": line 3: a continuation line", self.problems())
+                                                                  ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_a_continuation_line_is_a_finding (test_check_image_root.QuadletHealth.test_a_continuation_line_is_a_finding) (line='Environment=A=1 \\\n  B=2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 884, in test_a_continuation_line_is_a_finding
+    self.assertFinds(self.UNIT + ": line 3: a continuation line", self.problems())
+                                                                  ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_a_continuation_line_is_a_finding (test_check_image_root.QuadletHealth.test_a_continuation_line_is_a_finding) (line='# a comment \\')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 884, in test_a_continuation_line_is_a_finding
+    self.assertFinds(self.UNIT + ": line 3: a continuation line", self.problems())
+                                                                  ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_a_health_line_outside_printable_ascii_is_a_finding (test_check_image_root.QuadletHealth.test_a_health_line_outside_printable_ascii_is_a_finding)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 888, in test_a_health_line_outside_printable_ascii_is_a_finding
+    self.assertFinds(self.UNIT + ": line 2: HealthCmd= is not the exec form", self.problems())
+                                                                              ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_a_later_shell_form_is_a_finding (test_check_image_root.QuadletHealth.test_a_later_shell_form_is_a_finding)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 865, in test_a_later_shell_form_is_a_finding
+    self.assertEqual(self.problems(), [self.UNIT + ": line 4: HealthCmd= is not the exec form "
+                     ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_a_unit_folder_that_is_a_file_is_a_finding (test_check_image_root.QuadletHealth.test_a_unit_folder_that_is_a_file_is_a_finding)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 936, in test_a_unit_folder_that_is_a_file_is_a_finding
+    self.assertFinds("usr/share/containers/systemd: not a folder", self.problems())
+                                                                   ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_every_file_quadlet_reads_is_checked (test_check_image_root.QuadletHealth.test_every_file_quadlet_reads_is_checked) (rel='etc/containers/systemd/svc.container')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 907, in test_every_file_quadlet_reads_is_checked
+    self.assertFinds(rel + ": line 2: HealthCmd= is not the exec form", self.problems())
+                                                                        ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_every_file_quadlet_reads_is_checked (test_check_image_root.QuadletHealth.test_every_file_quadlet_reads_is_checked) (rel='usr/share/containers/systemd/svc.container')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 907, in test_every_file_quadlet_reads_is_checked
+    self.assertFinds(rel + ": line 2: HealthCmd= is not the exec form", self.problems())
+                                                                        ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_every_file_quadlet_reads_is_checked (test_check_image_root.QuadletHealth.test_every_file_quadlet_reads_is_checked) (rel='etc/containers/systemd/sub/svc.container')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 907, in test_every_file_quadlet_reads_is_checked
+    self.assertFinds(rel + ": line 2: HealthCmd= is not the exec form", self.problems())
+                                                                        ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_every_file_quadlet_reads_is_checked (test_check_image_root.QuadletHealth.test_every_file_quadlet_reads_is_checked) (rel='etc/containers/systemd/svc.container.d/50-health.conf')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 907, in test_every_file_quadlet_reads_is_checked
+    self.assertFinds(rel + ": line 2: HealthCmd= is not the exec form", self.problems())
+                                                                        ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_every_file_quadlet_reads_is_checked (test_check_image_root.QuadletHealth.test_every_file_quadlet_reads_is_checked) (rel='etc/containers/systemd/svc-.container.d/50-health.conf')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 907, in test_every_file_quadlet_reads_is_checked
+    self.assertFinds(rel + ": line 2: HealthCmd= is not the exec form", self.problems())
+                                                                        ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_every_file_quadlet_reads_is_checked (test_check_image_root.QuadletHealth.test_every_file_quadlet_reads_is_checked) (rel='etc/containers/systemd/container.d/50-health.conf')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 907, in test_every_file_quadlet_reads_is_checked
+    self.assertFinds(rel + ": line 2: HealthCmd= is not the exec form", self.problems())
+                                                                        ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_every_file_quadlet_reads_is_checked (test_check_image_root.QuadletHealth.test_every_file_quadlet_reads_is_checked) (rel='usr/share/containers/systemd/container.d/50-health.conf')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 907, in test_every_file_quadlet_reads_is_checked
+    self.assertFinds(rel + ": line 2: HealthCmd= is not the exec form", self.problems())
+                                                                        ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_every_file_quadlet_reads_is_checked (test_check_image_root.QuadletHealth.test_every_file_quadlet_reads_is_checked) (rel='etc/containers/systemd/users/svc.container')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 907, in test_every_file_quadlet_reads_is_checked
+    self.assertFinds(rel + ": line 2: HealthCmd= is not the exec form", self.problems())
+                                                                        ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_every_file_quadlet_reads_is_checked (test_check_image_root.QuadletHealth.test_every_file_quadlet_reads_is_checked) (rel='etc/containers/systemd/svc@.container')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 907, in test_every_file_quadlet_reads_is_checked
+    self.assertFinds(rel + ": line 2: HealthCmd= is not the exec form", self.problems())
+                                                                        ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_every_file_quadlet_reads_is_checked (test_check_image_root.QuadletHealth.test_every_file_quadlet_reads_is_checked)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 910, in test_every_file_quadlet_reads_is_checked
+    self.assertEqual(self.problems(), [])
+                     ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_exec_forms_pass (test_check_image_root.QuadletHealth.test_exec_forms_pass) (line='HealthCmd=["/standin", "probe"]')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 837, in test_exec_forms_pass
+    self.assertEqual(self.problems(), [])
+                     ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_exec_forms_pass (test_check_image_root.QuadletHealth.test_exec_forms_pass) (line='HealthCmd=   ["/standin","probe"]   ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 837, in test_exec_forms_pass
+    self.assertEqual(self.problems(), [])
+                     ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_exec_forms_pass (test_check_image_root.QuadletHealth.test_exec_forms_pass) (line='HealthCmd = ["/standin", "probe"]')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 837, in test_exec_forms_pass
+    self.assertEqual(self.problems(), [])
+                     ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_exec_forms_pass (test_check_image_root.QuadletHealth.test_exec_forms_pass) (line='HealthCmd=["/standin"]')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 837, in test_exec_forms_pass
+    self.assertEqual(self.problems(), [])
+                     ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_exec_forms_pass (test_check_image_root.QuadletHealth.test_exec_forms_pass) (line='HealthStartupCmd=["/standin", "startup"]')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 837, in test_exec_forms_pass
+    self.assertEqual(self.problems(), [])
+                     ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_exec_forms_pass (test_check_image_root.QuadletHealth.test_exec_forms_pass) (line='# HealthCmd=/standin probe')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 837, in test_exec_forms_pass
+    self.assertEqual(self.problems(), [])
+                     ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_exec_forms_pass (test_check_image_root.QuadletHealth.test_exec_forms_pass) (line='; HealthCmd=/standin probe')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 837, in test_exec_forms_pass
+    self.assertEqual(self.problems(), [])
+                     ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_exec_forms_pass (test_check_image_root.QuadletHealth.test_exec_forms_pass) (line='PodmanArgs=--memory=1g')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 837, in test_exec_forms_pass
+    self.assertEqual(self.problems(), [])
+                     ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_exec_forms_pass (test_check_image_root.QuadletHealth.test_exec_forms_pass) (line='Environment=HEALTH=1')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 837, in test_exec_forms_pass
+    self.assertEqual(self.problems(), [])
+                     ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='a plain string: CMD-SHELL (hc14)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 860, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+                                                                                ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='CMD-SHELL in the array (hc02)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 860, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+                                                                                ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='exec, but not the one form (hc03)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 860, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+                                                                                ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='not JSON: CMD-SHELL (hc04)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 860, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+                                                                                ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='quoted: CMD-SHELL (hc07)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 860, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+                                                                                ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='a trailing comment: CMD-SHELL (hc15)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 860, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+                                                                                ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='disabled (hc06)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 860, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+                                                                                ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='disabled (hc13)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 860, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+                                                                                ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='refused by Podman (hc12)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 860, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+                                                                                ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='empty')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 860, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+                                                                                ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='an empty item')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 860, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+                                                                                ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='not an absolute path')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 860, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+                                                                                ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='not all strings')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 860, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+                                                                                ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='not an array')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 860, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+                                                                                ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='a JSON string, not an array')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 860, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+                                                                                ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='the key in another case (hc11)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 860, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+                                                                                ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='the startup check: CMD-SHELL (hs01)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 860, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+                                                                                ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_health_options_through_podman_args_are_findings (test_check_image_root.QuadletHealth.test_health_options_through_podman_args_are_findings) (line='PodmanArgs=--health-cmd=/standin\\x20probe')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 877, in test_health_options_through_podman_args_are_findings
+    self.assertFinds(self.UNIT + ": line 3: PodmanArgs= sets a health option", self.problems())
+                                                                               ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_health_options_through_podman_args_are_findings (test_check_image_root.QuadletHealth.test_health_options_through_podman_args_are_findings) (line='PodmanArgs=--health-cmd "/standin probe"')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 877, in test_health_options_through_podman_args_are_findings
+    self.assertFinds(self.UNIT + ": line 3: PodmanArgs= sets a health option", self.problems())
+                                                                               ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_health_options_through_podman_args_are_findings (test_check_image_root.QuadletHealth.test_health_options_through_podman_args_are_findings) (line='PodmanArgs=--memory=1g --health-startup-cmd "/standin startup"')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 877, in test_health_options_through_podman_args_are_findings
+    self.assertFinds(self.UNIT + ": line 3: PodmanArgs= sets a health option", self.problems())
+                                                                               ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_health_options_through_podman_args_are_findings (test_check_image_root.QuadletHealth.test_health_options_through_podman_args_are_findings) (line='PodmanArgs = --HEALTH-CMD x')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 877, in test_health_options_through_podman_args_are_findings
+    self.assertFinds(self.UNIT + ": line 3: PodmanArgs= sets a health option", self.problems())
+                                                                               ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_links_in_or_on_the_way_to_the_unit_folders_are_findings (test_check_image_root.QuadletHealth.test_links_in_or_on_the_way_to_the_unit_folders_are_findings) (linked='etc/containers/systemd/svc.container')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 928, in test_links_in_or_on_the_way_to_the_unit_folders_are_findings
+    self.assertFinds(fragment, self.problems())
+                               ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_links_in_or_on_the_way_to_the_unit_folders_are_findings (test_check_image_root.QuadletHealth.test_links_in_or_on_the_way_to_the_unit_folders_are_findings) (linked='etc/containers/systemd/linked')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 928, in test_links_in_or_on_the_way_to_the_unit_folders_are_findings
+    self.assertFinds(fragment, self.problems())
+                               ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_links_in_or_on_the_way_to_the_unit_folders_are_findings (test_check_image_root.QuadletHealth.test_links_in_or_on_the_way_to_the_unit_folders_are_findings) (linked='usr/share/containers/systemd')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 928, in test_links_in_or_on_the_way_to_the_unit_folders_are_findings
+    self.assertFinds(fragment, self.problems())
+                               ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_links_in_or_on_the_way_to_the_unit_folders_are_findings (test_check_image_root.QuadletHealth.test_links_in_or_on_the_way_to_the_unit_folders_are_findings) (linked='etc/containers')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 928, in test_links_in_or_on_the_way_to_the_unit_folders_are_findings
+    self.assertFinds(fragment, self.problems())
+                               ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_links_in_or_on_the_way_to_the_unit_folders_are_findings (test_check_image_root.QuadletHealth.test_links_in_or_on_the_way_to_the_unit_folders_are_findings) (linked='etc')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 928, in test_links_in_or_on_the_way_to_the_unit_folders_are_findings
+    self.assertFinds(fragment, self.problems())
+                               ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_links_in_or_on_the_way_to_the_unit_folders_are_findings (test_check_image_root.QuadletHealth.test_links_in_or_on_the_way_to_the_unit_folders_are_findings)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 932, in test_links_in_or_on_the_way_to_the_unit_folders_are_findings
+    self.assertEqual(self.problems(), [])
+                     ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+ERROR: test_no_unit_folders_no_finding (test_check_image_root.QuadletHealth.test_no_unit_folders_no_finding)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 823, in test_no_unit_folders_no_finding
+    self.assertEqual(self.problems(), [])
+                     ~~~~~~~~~~~~~^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 816, in problems
+    return cir.check_quadlet_health(self.root.path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_image_root' has no attribute 'check_quadlet_health'
+
+======================================================================
+FAIL: test_the_checks_run_on_the_image (test_check_image_root.QuadletHealth.test_the_checks_run_on_the_image)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 820, in test_the_checks_run_on_the_image
+    self.assertFinds(self.UNIT + ": line 3: HealthCmd= is not the exec form")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 3: HealthCmd= is not the exec form', got []
+
+----------------------------------------------------------------------
+Ran 206 tests in 0.120s
+
+FAILED (failures=1, errors=53)
