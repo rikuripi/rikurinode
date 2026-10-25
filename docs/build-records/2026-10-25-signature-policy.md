@@ -64,3 +64,11 @@
 3. The main key, in an empty folder outside any synced folder: `cosign generate-key-pair --output-key-prefix rikuri-main`, with a password from a password manager. Put `rikuri-main.key` and the password into the Environment's secrets `COSIGN_PRIVATE_KEY` and `COSIGN_PASSWORD` (`gh secret set … --env image-publish`), then delete the `.key` file.
 4. The spare key, on removable media: `cosign generate-key-pair --output-key-prefix rikuri-spare`; the `.key` file and its password kept offline, in two places, never in a cloud folder.
 5. Give this session `rikuri-main.pub` and `rikuri-spare.pub` (public halves only).
+
+### Owner steps, session of 2026-10-25 (paused by the owner: "Let's do this tomorrow. We'll start over.")
+
+- **The Environment** `image-publish` exists: deployment branches `main` only (`custom_branch_policies`, one rule `main`, read back through the API). Required reviewers are not offered for a private repository on this plan (GitHub's documentation: only public repositories), so the owner chose **"You start each publish (Recommended)"**: 2b's publish job runs only on `workflow_dispatch` from `main`, never on a merge. `can_admins_bypass` stays `true`; the page does not offer the switch on this plan, and the owner is the only admin. A dated clarification of the Task Contract's 2b plan and of ADR 0004's "only a job on `main`" follows in 2b.
+- **The keys: not finished; start over.** Several runs overlapped: commands started from this session's terminal pane begin in the repository folder, and some key pairs were written there (git ignores `*.key`; this session never opened a private file). At the pause, by file name only:
+  - GitHub: `COSIGN_PRIVATE_KEY` (04:27:07 UTC) and `COSIGN_PASSWORD` (04:27:38 UTC), whose match is unknown; both to be replaced.
+  - `~/rikuri-keys`: one main pair (21:25:51 local); the repository folder: one stray `rikuri-main.pub`; the stick `/Volumes/Rikuri`: one spare pair (21:38:48 local).
+- **Lesson for the restart:** the owner runs the key steps as one short list in Terminal.app, outside this session, with full paths, and tests the password (`cosign public-key --key …`) before storing it.
