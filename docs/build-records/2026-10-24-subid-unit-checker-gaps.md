@@ -16,10 +16,11 @@
    - `image/check_image_root.py`, `check_containers_subid`:
      - the unit is read as a closed world: only its keys, each once, each with its exact value, in its section, in the one line form (the rules below);
      - its own drop-in folders and a mask in `/usr/lib` or `/etc`, and `rikuri-.service.d` prefix drop-ins, are findings.
+     - Clarified in repair 1 (2026-10-24, verifier I1): every path systemd reads for the unit in a folder an image can ship (0b, "No override in the image"), and a link on the way to one.
    - Tests in `image/tests/test_check_image_root.py`.
    - Risk tier: **high-risk** (the checker is a control).
    - **Not included:**
-     - Fedora's every-service drop-ins (`/usr/lib/systemd/system/service.d/`), which are Fedora's; on 2026-10-24 only `10-timeout-abort.conf` (`TimeoutStopFailureMode=abort`), read in `rikuri-drill`;
+     - Fedora's every-service drop-ins (`/usr/lib/systemd/system/service.d/`), which are Fedora's (the same folder under `/etc` and `/usr/local` is refused since repair 1); on 2026-10-24 only `10-timeout-abort.conf` (`TimeoutStopFailureMode=abort`), read in `rikuri-drill`;
      - `/run` (not in an image);
      - any other unit;
      - the drill.
@@ -54,12 +55,17 @@
     - `[Service]`: `Type=oneshot`, `RemainAfterExit=yes`, `ExecStart=/usr/libexec/rikuri/containers-subid`;
     - `[Install]`: `WantedBy=sysinit.target`;
   - every key is present.
-- [x] **No override in the image:** none may exist, as a file, folder or link (`os.path.lexists`):
+- [x] **No override in the image** (as first written; superseded in repair 1, below): none may exist, as a file, folder or link (`os.path.lexists`):
   - `usr/lib/systemd/system/rikuri-containers-subid.service.d`;
   - `usr/lib/systemd/system/rikuri-.service.d`;
   - `etc/systemd/system/rikuri-containers-subid.service`, a mask or a copy;
   - `etc/systemd/system/rikuri-containers-subid.service.d`;
   - `etc/systemd/system/rikuri-.service.d`.
+- [x] **No override in the image, repair 1** (`SUBID_OVERRIDES`, 23 paths, generated from the unit's name):
+  - in each unit folder an image can ship (`etc/systemd/system.control`, `etc/systemd/system`, `etc/systemd/system.attached`, `usr/local/lib/systemd/system`, `usr/lib/systemd/system`; `systemd-analyze unit-paths`, evidence 05; the `/run` ones are not in an image):
+    - `rikuri-containers-subid.service.d`, `rikuri-containers-.service.d`, `rikuri-.service.d`;
+  - in each of those but `usr/lib/systemd/system`: the unit itself (a copy, or a mask) and `service.d`;
+  - nothing may exist at any of them, as a file, folder or link, and no folder on the way to one may be a link (it could lead, on a node, where the checker's machine has nothing).
 - [x] **systemd's own view in `rikuri-drill`** (this session, booted `gbp`):
   - `DropInPaths=/usr/lib/systemd/system/service.d/10-timeout-abort.conf` only;
   - `RemainAfterExit=yes`, `Type=oneshot`, `DefaultDependencies=no`;
@@ -68,7 +74,7 @@
 
 ## Evidence log
 
-All test runs were in `rikuri-drill` with `python3 -m unittest discover -s image/tests` (`safe-run.sh` refuses on macOS; the CI gate runs them through it); `tar`'s clock warnings are filtered from the kept output.
+All test runs were in `rikuri-drill` with `python3 -m unittest discover -s image/tests` (`safe-run.sh` refuses on macOS; the CI gate runs them through it); `tar`'s clock warnings are filtered from the kept output (from 06 on, every `tar:` line; 01 to 04 keep its macOS metadata warnings, verifier nit 4).
 
 - **Red** (`01-red-tests.out`, commit `2b46a25`): 191 tests, 22 failures. Every one is a case the old presence rule passed:
   - 15 unit cases, among them `RemainAfterExit=yes` removed, a later `RemainAfterExit=no`, a second `ExecStart=`, an empty `Before=`, `Conflicts=` or `After=` removed, an extra key or condition, and an override section;
@@ -93,3 +99,34 @@ All test runs were in `rikuri-drill` with `python3 -m unittest discover -s image
     - a link to a path the checker's machine lacks and a node may have.
   - Then all ten failed (1, 5, 15, 1, 1, 5 errors, 3, 1, 1, 1).
 - **Green** (`04-green-tests.out`): 191 tests, OK.
+
+### Verifier pass 1 and repair cycle 1
+
+- **Verifier, pass 1: FAIL**, one Important finding.
+  - **I1:** `SUBID_OVERRIDES` missed `rikuri-containers-.service.d`. systemd reads a drop-in folder for every dash prefix of the name.
+  - **Probed** (`05-dropin-prefix-probe.out`): a throwaway `rikuri-probe-unit.service` in `rikuri-drill`, with a drop-in of a distinct name in each folder. systemd 259 read all three (`rikuri-probe-unit.service.d`, `rikuri-probe-.service.d`, `rikuri-.service.d`) and Fedora's `service.d`; removed after (`LoadState=not-found`). The same probe listed the unit folders and showed `/usr/local` is a folder, not a link, in this image.
+  - CI at the time: the Full gate (run 40147119744) passed; the OS image run (40147119705) was still running. The repair push replaces it.
+- **Repair 1:**
+  - **Red** (`06-repair1-red.out`, commit `429acf8`): 194 tests, `FAILED (failures=20)`:
+    - the list against every path systemd reads (one test);
+    - each path as a finding: 18 of the 23 subtests (the 5 old paths passed);
+    - a linked `etc/systemd` (one test).
+    - The new empty-`Description=` case (nit 2) passed at red: the rule already required a value.
+  - **Fix** (commit `c2b56ab`):
+    - `SUBID_OVERRIDES` is generated from the unit's name and `SUBID_UNIT_DIRS` (0b, repair 1);
+    - `_override_problem` walks each path: absent is fine, a link on the way is a finding ("reached through a link at …"), and anything at the end is one.
+    - In the booted image of `rikuri-drill`: `/etc`, `/etc/systemd`, `/etc/systemd/system`, `/usr/local`, `/usr/local/lib` are folders; the rest of the paths are absent.
+  - **Green** (`07-repair1-green.out`): 194 tests, OK.
+  - **Mutants** (`08-repair1-mutants.out`, each with its diff), all red:
+    - R1, the middle prefix dropped: 6 failures;
+    - R2, `usr/local/lib/systemd/system` dropped: 6;
+    - R3, the unit itself dropped outside `/usr/lib`: 7;
+    - R4, a link on the way ignored: 1;
+    - R5, `lexists` weakened to `exists` (a dangling link): 1;
+    - R6, `service.d` dropped: 5.
+- **Nits:**
+  - **Nit 1** (a comment ending in `\`): probed (`09-comment-backslash-probe.out`). systemd 259 does not join a comment with the next line: `DefaultDependencies=no` after `# … \` reads as `no`. So the checker, which skips such a comment, reads it as systemd does.
+  - **Nit 2:** an empty `Description=` is now a case, and a finding.
+  - **Nit 3:** a link on the way is now a finding (above).
+  - **Nit 4:** the wording above. The kept files are not edited.
+  - **Nit 5:** `usr/local/lib/systemd/system`, `etc/systemd/system.control`, `etc/systemd/system.attached` and `etc/systemd/system/service.d` are now covered. Still not covered: `/usr/lib/systemd/system/service.d` (Fedora's own, Scope) and `/run` (not in an image).

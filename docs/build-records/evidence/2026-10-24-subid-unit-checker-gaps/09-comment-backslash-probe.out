@@ -1,0 +1,14 @@
+## unit file:
+[Unit]$
+Description=probe$
+# a comment ending in a backslash \$
+DefaultDependencies=no$
+[Service]$
+Type=oneshot$
+ExecStart=/usr/bin/true$
+## systemd reads:
+Description=probe
+DefaultDependencies=no
+## removed:
+LoadState=not-found
+systemd 259 (259.10-1.fc44)
