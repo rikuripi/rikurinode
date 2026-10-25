@@ -67,3 +67,29 @@
   - `Before=sysinit.target shutdown.target`, `Conflicts=shutdown.target`.
 
 ## Evidence log
+
+All test runs were in `rikuri-drill` with `python3 -m unittest discover -s image/tests` (`safe-run.sh` refuses on macOS; the CI gate runs them through it); `tar`'s clock warnings are filtered from the kept output.
+
+- **Red** (`01-red-tests.out`, commit `2b46a25`): 191 tests, 22 failures. Every one is a case the old presence rule passed:
+  - 15 unit cases, among them `RemainAfterExit=yes` removed, a later `RemainAfterExit=no`, a second `ExecStart=`, an empty `Before=`, `Conflicts=` or `After=` removed, an extra key or condition, and an override section;
+  - 7 override cases.
+
+  Two unit cases already failed the old rule and passed at red (spaces around `=`, a continuation line in `ExecStart`), because the line no longer read as the required one. The first red run also had an error: a failed subtest skipped its cleanup, so the next one found the folder. The cleanup moved into `finally` before the red commit.
+- **Fix:**
+  - `subid_unit_problems(data)` reads the unit by the 0b rules and names each problem by its line;
+  - `check_containers_subid` uses it, and refuses each path in `SUBID_OVERRIDES` that `os.path.lexists`;
+  - the shipped unit reads as `[]`.
+- **systemd's reading, probed** (`02-systemd-probe.out`): a throwaway unit in `rikuri-drill` (removed after, `LoadState=not-found`):
+  - `Description=probe \` followed by `DefaultDependencies=no` gave `Description=probe  DefaultDependencies=no` and `DefaultDependencies=yes`;
+  - two `ExecStart=/usr/bin/true` lines gave two commands.
+
+  So a line-by-line reading that ignores continuations would pass a unit that systemd runs after `sysinit.target`.
+- **Mutants** (`03-mutants.out`, each kept as its diff):
+  - ten mutants of the new rules. Mutants 1 (the duplicate-key rule), 4 (the duplicate-section rule), 5 (the continuation rule) and 9 (`lexists` weakened to `exists`) **survived** the first tests.
+  - Four cases were added, after the red commit, to kill them. Reason: each adds a stricter case and loosens none.
+    - the same `ExecStart=` twice;
+    - a second, empty `[Install]`;
+    - the continuation that swallows `DefaultDependencies=no`;
+    - a link to a path the checker's machine lacks and a node may have.
+  - Then all ten failed (1, 5, 15, 1, 1, 5 errors, 3, 1, 1, 1).
+- **Green** (`04-green-tests.out`): 191 tests, OK.
