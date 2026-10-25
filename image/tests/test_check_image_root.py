@@ -371,6 +371,8 @@ class CheckImageRoot(unittest.TestCase):
             ("DefaultDependencies=no\n", "DefaultDependencies=no\nConditionPathExists=/nope\n",
              "a condition that would skip it"),
             ("Type=oneshot", "Type = oneshot", "spaces around ="),
+            ("Description=Podman's containers range in /etc/subuid and /etc/subgid", "Description=",
+             "an empty Description (verifier nit 2)"),
             ("ExecStart=/usr/libexec/rikuri/containers-subid\n",
              "ExecStart=/usr/libexec/rikuri/containers-subid \\\n  --other\n", "a continuation line"),
             ("Description=Podman's", "Description=Podman\u2019s", "a byte outside printable ASCII"),
@@ -408,7 +410,47 @@ class CheckImageRoot(unittest.TestCase):
         self.root.write(SUBID_UNIT, text)
         self.assertEqual(cir.check_containers_subid(self.root.path), [])
 
-    def test_subid_unit_overrides_in_the_image_are_findings(self):
+    # Repair 1 (verifier I1, evidence 05): systemd reads a drop-in folder for every
+    # dash prefix of the name, in every unit folder an image can ship.
+    UNIT_DIRS = ("etc/systemd/system.control", "etc/systemd/system", "etc/systemd/system.attached",
+                 "usr/local/lib/systemd/system", "usr/lib/systemd/system")
+    DROPINS = ("rikuri-containers-subid.service.d", "rikuri-containers-.service.d", "rikuri-.service.d")
+
+    def expected_overrides(self):
+        paths = set()
+        for d in self.UNIT_DIRS:
+            paths.update(d + "/" + name for name in self.DROPINS)
+            if d != "usr/lib/systemd/system":    # the unit itself, and Fedora's service.d, live there
+                paths.update((d + "/rikuri-containers-subid.service", d + "/service.d"))
+        return paths
+
+    def test_subid_overrides_are_every_path_systemd_reads(self):
+        self.assertEqual(set(cir.SUBID_OVERRIDES), self.expected_overrides())
+
+    def test_each_override_path_is_a_finding(self):
+        for rel in sorted(self.expected_overrides()):
+            with self.subTest(rel=rel):
+                full = os.path.join(self.root.path, rel)
+                try:
+                    self.root.write(rel + "/50-x.conf" if rel.endswith(".d") else rel, "[Service]\nRemainAfterExit=no\n")
+                    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+                finally:
+                    if os.path.isdir(full):
+                        shutil.rmtree(full)
+                    elif os.path.lexists(full):
+                        os.remove(full)
+        self.assertEqual(cir.check_containers_subid(self.root.path), [])
+
+    def test_a_link_on_the_way_to_an_override_path_is_a_finding(self):
+        # Verifier nit 3: lexists followed a linked folder on the way into the checker's machine.
+        outside = tempfile.mkdtemp(prefix="outside-")
+        self.addCleanup(shutil.rmtree, outside)
+        os.makedirs(os.path.join(self.root.path, "etc"), exist_ok=True)
+        self.root.link("etc/systemd", outside)
+        self.assertFinds("etc/systemd/system/rikuri-containers-subid.service.d: reached through a link",
+                         cir.check_containers_subid(self.root.path))
+
+    def test_subid_overrides_in_the_image_are_findings(self):
         for rel, kind in (("usr/lib/systemd/system/rikuri-containers-subid.service.d", "folder"),
                           ("usr/lib/systemd/system/rikuri-.service.d", "folder"),
                           ("etc/systemd/system/rikuri-containers-subid.service", "mask"),

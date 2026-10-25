@@ -1,0 +1,326 @@
+Python 3.14.8
+.....F....................FFFFFFFFFFFFFFFFFF...........................F...........................................................................rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmpsfe_tmrt/lib/rikuri/update-not-applied
+rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmpsfe_tmrt/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmph5d9bcm_/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to remount /boot writable (exit 32); greenboot will roll this healthy node back
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to clear greenboot_next_deployment_id (exit 1); greenboot will roll this healthy node back
+rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to clear greenboot_next_deployment_id (exit 1); greenboot will roll this healthy node back
+.rikuri-unapplied-update: cannot read /boot/grub2/grubenv (exit 1); greenboot decides
+.rikuri-unapplied-update: cannot read /boot/grub2/grubenv (exit 1); greenboot decides
+..rikuri-unapplied-update: unknown: no deployments listed
+rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa booted and is on trial; greenboot decides
+.rikuri-unapplied-update: no rollback trigger set; nothing to do
+..rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa booted and is on trial; greenboot decides
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmp7nxp1vf9/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmpl_zp08nj/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: unknown: no deployments listed
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmps48l2bt8/lib/rikuri/update-not-applied
+..................................................
+======================================================================
+FAIL: test_a_link_on_the_way_to_an_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_a_link_on_the_way_to_an_override_path_is_a_finding)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 450, in test_a_link_on_the_way_to_an_override_path_is_a_finding
+    self.assertFinds("etc/systemd/system/rikuri-containers-subid.service.d: reached through a link",
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     cir.check_containers_subid(self.root.path))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/systemd/system/rikuri-containers-subid.service.d: reached through a link', got []
+
+======================================================================
+FAIL: test_each_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_each_override_path_is_a_finding) (rel='etc/systemd/system.attached/rikuri-.service.d')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 436, in test_each_override_path_is_a_finding
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/systemd/system.attached/rikuri-.service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_each_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_each_override_path_is_a_finding) (rel='etc/systemd/system.attached/rikuri-containers-.service.d')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 436, in test_each_override_path_is_a_finding
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/systemd/system.attached/rikuri-containers-.service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_each_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_each_override_path_is_a_finding) (rel='etc/systemd/system.attached/rikuri-containers-subid.service')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 436, in test_each_override_path_is_a_finding
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/systemd/system.attached/rikuri-containers-subid.service: overrides the unit', got []
+
+======================================================================
+FAIL: test_each_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_each_override_path_is_a_finding) (rel='etc/systemd/system.attached/rikuri-containers-subid.service.d')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 436, in test_each_override_path_is_a_finding
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/systemd/system.attached/rikuri-containers-subid.service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_each_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_each_override_path_is_a_finding) (rel='etc/systemd/system.attached/service.d')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 436, in test_each_override_path_is_a_finding
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/systemd/system.attached/service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_each_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_each_override_path_is_a_finding) (rel='etc/systemd/system.control/rikuri-.service.d')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 436, in test_each_override_path_is_a_finding
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/systemd/system.control/rikuri-.service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_each_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_each_override_path_is_a_finding) (rel='etc/systemd/system.control/rikuri-containers-.service.d')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 436, in test_each_override_path_is_a_finding
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/systemd/system.control/rikuri-containers-.service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_each_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_each_override_path_is_a_finding) (rel='etc/systemd/system.control/rikuri-containers-subid.service')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 436, in test_each_override_path_is_a_finding
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/systemd/system.control/rikuri-containers-subid.service: overrides the unit', got []
+
+======================================================================
+FAIL: test_each_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_each_override_path_is_a_finding) (rel='etc/systemd/system.control/rikuri-containers-subid.service.d')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 436, in test_each_override_path_is_a_finding
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/systemd/system.control/rikuri-containers-subid.service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_each_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_each_override_path_is_a_finding) (rel='etc/systemd/system.control/service.d')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 436, in test_each_override_path_is_a_finding
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/systemd/system.control/service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_each_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_each_override_path_is_a_finding) (rel='etc/systemd/system/rikuri-containers-.service.d')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 436, in test_each_override_path_is_a_finding
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/systemd/system/rikuri-containers-.service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_each_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_each_override_path_is_a_finding) (rel='etc/systemd/system/service.d')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 436, in test_each_override_path_is_a_finding
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/systemd/system/service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_each_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_each_override_path_is_a_finding) (rel='usr/lib/systemd/system/rikuri-containers-.service.d')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 436, in test_each_override_path_is_a_finding
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/lib/systemd/system/rikuri-containers-.service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_each_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_each_override_path_is_a_finding) (rel='usr/local/lib/systemd/system/rikuri-.service.d')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 436, in test_each_override_path_is_a_finding
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/local/lib/systemd/system/rikuri-.service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_each_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_each_override_path_is_a_finding) (rel='usr/local/lib/systemd/system/rikuri-containers-.service.d')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 436, in test_each_override_path_is_a_finding
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/local/lib/systemd/system/rikuri-containers-.service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_each_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_each_override_path_is_a_finding) (rel='usr/local/lib/systemd/system/rikuri-containers-subid.service')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 436, in test_each_override_path_is_a_finding
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/local/lib/systemd/system/rikuri-containers-subid.service: overrides the unit', got []
+
+======================================================================
+FAIL: test_each_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_each_override_path_is_a_finding) (rel='usr/local/lib/systemd/system/rikuri-containers-subid.service.d')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 436, in test_each_override_path_is_a_finding
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/local/lib/systemd/system/rikuri-containers-subid.service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_each_override_path_is_a_finding (test_check_image_root.CheckImageRoot.test_each_override_path_is_a_finding) (rel='usr/local/lib/systemd/system/service.d')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 436, in test_each_override_path_is_a_finding
+    self.assertFinds(rel + ": overrides the unit", cir.check_containers_subid(self.root.path))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'usr/local/lib/systemd/system/service.d: overrides the unit', got []
+
+======================================================================
+FAIL: test_subid_overrides_are_every_path_systemd_reads (test_check_image_root.CheckImageRoot.test_subid_overrides_are_every_path_systemd_reads)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 428, in test_subid_overrides_are_every_path_systemd_reads
+    self.assertEqual(set(cir.SUBID_OVERRIDES), self.expected_overrides())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Items in the second set but not the first:
+'etc/systemd/system.control/rikuri-containers-.service.d'
+'usr/local/lib/systemd/system/rikuri-containers-subid.service'
+'etc/systemd/system.attached/rikuri-containers-subid.service.d'
+'etc/systemd/system.control/rikuri-.service.d'
+'usr/local/lib/systemd/system/service.d'
+'etc/systemd/system.control/rikuri-containers-subid.service.d'
+'etc/systemd/system.attached/rikuri-.service.d'
+'etc/systemd/system/rikuri-containers-.service.d'
+'etc/systemd/system.attached/rikuri-containers-.service.d'
+'etc/systemd/system.attached/rikuri-containers-subid.service'
+'usr/local/lib/systemd/system/rikuri-containers-.service.d'
+'usr/lib/systemd/system/rikuri-containers-.service.d'
+'etc/systemd/system/service.d'
+'etc/systemd/system.control/service.d'
+'usr/local/lib/systemd/system/rikuri-.service.d'
+'usr/local/lib/systemd/system/rikuri-containers-subid.service.d'
+'etc/systemd/system.control/rikuri-containers-subid.service'
+'etc/systemd/system.attached/service.d'
+
+----------------------------------------------------------------------
+Ran 194 tests in 0.090s
+
+FAILED (failures=20)
