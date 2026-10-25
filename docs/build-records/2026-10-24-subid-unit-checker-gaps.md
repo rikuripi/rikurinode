@@ -5,8 +5,8 @@
 | **Date** | 2026-10-24 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/subid-unit-checker-gaps`, from `main` at `6878ac4`, in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS (repair 2 pushed) |
+| **Commits** | red `2b46a25`, fix `237c50b`, record `40bc447`; repair 1: red `429acf8`, fix `c2b56ab`, record `73445bd`; repair 2: tests and record `fd308ba`; merged as `4c69110` (#43); this close-out |
+| **Status** | DONE: pull request #43 green at `fd308ba` and merged by the owner (`Full gate (Ubuntu)` [run 40148516843](https://github.com/rikuripi/rikurinode/actions/runs/40148516843); the image build, its check "0 finding(s)", and the drill [run 40148516831](https://github.com/rikuripi/rikurinode/actions/runs/40148516831), 7 of 7 checks Pass) |
 | **Change type** | fix (the image checker, a control) |
 
 ## Task Contract
@@ -141,3 +141,33 @@ All test runs were in `rikuri-drill` with `python3 -m unittest discover -s image
 - **Repair 2** (test only; the checker is unchanged):
   - `test_a_link_at_any_folder_on_the_way_is_a_finding`: a link at `etc`, `etc/systemd`, `etc/systemd/system` and `usr/local/lib/systemd/system`, each a subtest. Reason for a test change after the red commits: it adds cases and loosens none.
   - **Before and after** (`10-repair2-mutants.out`, each mutant with its diff): without the new test, M1 and M7 each gave 194 tests OK (the survival, reproduced); with it, M1 gives 2 failures and M7 1; unmutated, 195 tests OK.
+
+### Verifier check of repair 2 and CI
+
+- **Verifier, a check of `fd308ba` only** (the owner's decision above): **no Important finding.**
+  - The checker is unchanged, and no test line was removed.
+  - It reproduced M1 and M7 surviving at `fd308ba~1` and failing at `fd308ba` (2 failures and 1, the subtests `etc/systemd/system`, `usr/local/lib/systemd/system` and `etc`).
+  - The cleanup between subtests is sound; the record matches.
+  - Its nits, for the backlog: the `etc` case matches its finding by substring (it could also match "at etc/systemd", which cannot arise in that subtest); the `usr/local` case leaves empty parent folders in the fixture (harmless).
+- **CI on `fd308ba`:**
+  - `Full gate (Ubuntu)` Pass (run 40148516843).
+  - The OS image Pass (run 40148516831): "check_image_root: 0 finding(s)", so the new rules find nothing in the shipped image; the drill 7 of 7, with "the containers range at the first boot: … greenboot's wanted check passed: True".
+- **Earlier CI runs:** on `40bc447`, the Full gate passed (40147119744) and the image run was cancelled by the repair-1 push (40147119705, no result); on `73445bd`, both passed (40147665443, 40147665289).
+
+## 5. Close Out
+
+- [x] **Done when:**
+  - red, then green: Pass (the first change and repair 1; repair 2 added tests only, shown by its mutants before and after);
+  - every hand mutant red, each kept as its diff: Pass (03, 08, 10);
+  - the shipped image passes the checker in CI and the CI drill passes: Pass;
+  - Full gate: Pass;
+  - verifier with no Important finding: Pass, after repair 2, on the owner's decision.
+- [x] **Limits:**
+  - Repair cycles: 2 of 2.
+  - Review rounds: 2 of 2, plus the owner-authorized check of `fd308ba` alone.
+  - CI drill development runs: 3, against a limit of 2 (`40bc447` cancelled, `73445bd` passed, `fd308ba` passed). The owner authorized the third, after its cost was stated. This close-out touches only `docs/`, so the image workflow skips its drill.
+  - Time: beyond the 1 hour 30 minutes budget in working time, because of the two repairs.
+- [x] **Backlog, not started:**
+  - follow-up pass nit n1: if a later base image makes `/usr/local` a link (as older rpm-ostree images did), every `usr/local` path becomes a finding. That fails loudly, which is safe, but the rule would need a decision then;
+  - follow-up pass nit n2: generators shipped in the image (`usr/lib/systemd/system-generators`) could write overrides into `/run`, which this check does not read;
+  - the each-path and link-position tests leave empty parent folders in the fixture; the `etc` link case matches by substring.
