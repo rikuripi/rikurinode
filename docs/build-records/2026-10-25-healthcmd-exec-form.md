@@ -85,3 +85,11 @@ All test runs were in `rikuri-drill` with `python3 -m unittest discover -s image
 
 - **Probes** (`01` to `04`, each with its script): as in 0b.
 - **Red** (`05-red-tests.out`): 206 tests, `FAILED (failures=1, errors=53)`. Every error is the missing `check_quadlet_health`; the failure is `check_root` not running it. A first try ran 287 tests: the new class inherited the old class's tests and ran them twice; it now takes only `setUp` and `assertFinds`.
+- **Fix** (commit `2bfe529`):
+  - `check_quadlet_health(root)` walks both unit folders by the 0b rule, and `quadlet_health_problems(data)` reads each file, naming each problem by its line;
+  - `check_root` runs it; the module's docstring states the one form.
+- **Mutants** (`06-mutants.out`, each kept as its diff): sixteen mutants of the new rules, first on `2bfe529`. Fourteen failed. Two **survived**, and each showed a rule that guards nothing, so the rule went, not a test added (commit `e5c16bb`):
+  - Q3, empty items allowed: only an empty item after the first one reaches it, and Podman passes an empty argument without a shell;
+  - Q13, the value not trimmed: Python's JSON reader already skips spaces around the array (probe hc05, hc16, hc17 show Podman does too).
+  - The other fourteen, run again on `e5c16bb`, all failed: Q1, ASCII not required (1 failure); Q2, the absolute path (5); Q4, an empty array (1 error); Q5, continuations (3); Q6, `PodmanArgs=` (4); Q7, `HealthStartupCmd=` (1); Q8, the key's case (1); Q9, `usr/share/containers/systemd` (4); Q10, a link inside (2); Q11, a link on the way (2); Q12, subfolders (6); Q14, a `#` inside a line taken as a comment (1); Q15, an array not required (1 failure, 1 error); Q16, a unit folder that is a file (1).
+- **Green** (`07-green-tests.out`, on `e5c16bb`): 206 tests, OK.
