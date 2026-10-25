@@ -5,8 +5,8 @@
 | **Date** | 2026-10-25 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/healthcmd-exec-form`, from `main` at `c002545`, in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | red `ca37a4a`, check `2bfe529`, simplification `e5c16bb`, record `0264166`; merged as `0684f7d` (#45, before repair 1); repair 1: red `2f16e42`, fix `a57f4a3`, record `cb6b54c`; merged as `1ebc17a` (#46); this close-out |
+| **Status** | DONE: pull request #46 green at `cb6b54c` and merged by the owner (`Full gate (Ubuntu)` [run 40156977044](https://github.com/rikuripi/rikurinode/actions/runs/40156977044); the image build, its check "0 finding(s)", and the drill [run 40156976968](https://github.com/rikuripi/rikurinode/actions/runs/40156976968), 7 of 7 checks Pass) |
 | **Change type** | feature (the image checker, a control) |
 
 ## Task Contract
@@ -118,3 +118,40 @@ All test runs were in `rikuri-drill` with `python3 -m unittest discover -s image
   - **Fix** (commit `a57f4a3`): the rule of 0b, repair 1. The line's ASCII rule stands on its own, and `_exec_form` also refuses a non-printable value, so the earlier test of a tab inside the array still gets its exec-form finding. `%` and `$` are refused by the item characters, not by a separate test (a separate one would guard nothing). The three dead skip rules are gone.
   - **Green** (`10-repair1-green.out`, on `a57f4a3`): 209 tests, OK.
   - **Mutants** (`11-repair1-mutants.out`, each with its diff), all red: R1, one item allowed (2 failures); R2, any item characters (4); R3, a backslash allowed (1); R4, non-printable values (1); R5, the line's ASCII rule (5); R6, `PodmanArgs=` by `health` only (5); R7, without `%` and `$` (2); R8, without quotes (2); R9, without the backslash (1); R10, the non-regular-file rule (1, verifier I4).
+
+### The merge of #45 before repair 1
+
+- The owner merged #45 at 03:03:05 UTC on 2026-10-25, with its head at `0264166`, the revision verifier pass 1 had failed. The repair's commits were made at 03:03 and 03:04 and pushed after the merge, so they reached the branch and not `main`, and no CI ran on them there.
+- So `main` held the weaker check (the one-item array and the hidden `PodmanArgs=` options passing) from `0684f7d` until `1ebc17a`. No Quadlet unit ships yet, so no image or node depended on it.
+- Pull request #46 carried the three repair commits, unchanged, from the same branch. Its CI was the repair's first, and this task's second, CI drill run.
+
+### Verifier follow-up pass and CI
+
+- **Verifier, follow-up pass: no Important finding.** Verdict "not yet proven" only because CI had not run on `cb6b54c`; #46's CI then did.
+  - I1 to I4 closed. It reproduced red (209 tests, 18 failures) and green, and reran R1 to R10 with the counts in `11`. Its own extra mutants (each `PodmanArgs=` character, any first item, no list required, an unanchored item pattern, a case-sensitive `health`) were all killed.
+  - It compared the line reading with Quadlet's parser and Python's JSON reader with Go's on what can still pass, and found no shell form left. `GlobalArgs=--health-cmd` gives no finding, but Podman refuses that option before `run`: a failed unit, not a shell probe.
+  - No test changed after the repair's red commit; the one change after the first red commit has its reason above.
+- **CI on `cb6b54c`** (#46):
+  - `Full gate (Ubuntu)` Pass (run 40156977044).
+  - The OS image Pass (run 40156976968): "check_image_root: 0 finding(s)", with every line of the unit folders now required to be ASCII; the drill 7 of 7.
+- **CI on `0264166`** (#45): the Full gate (40156195362) and the image and drill (40156195408) passed, for the revision before the repair.
+
+## 5. Close Out
+
+- [x] **Done when:**
+  - Quadlet's folders and Podman's reading probed and kept: Pass (`01` to `04`, `08`);
+  - red, then green: Pass (`05` and `07`; `09` and `10`);
+  - every hand mutant red, each kept as its diff: Pass (`06`, with the two survivors removed as rules that guard nothing; `11`);
+  - the shipped image passes the checker in CI and the CI drill passes: Pass, on `cb6b54c`;
+  - Full gate: Pass;
+  - verifier with no Important finding: Pass, after repair 1.
+- [x] **Limits:**
+  - Repair cycles: 1 of 2.
+  - Review rounds: 2 of 2.
+  - CI drill development runs: 2 of 2 (`0264166`, `cb6b54c`). This close-out touches only `docs/`, so the image workflow skips its drill.
+  - Time: within the 2-hour budget in working time.
+- [x] **Backlog, not started:**
+  - follow-up nit 1: the `continue` after a continuation-line finding guards nothing (a mutant without it survives);
+  - follow-up nit 2: rootless units an image could seed through `/etc/skel/.config/containers/systemd/` are not read, and "Not checked here" does not list them;
+  - "Not checked here" above: an image's own `HEALTHCHECK` (the service-image contents check), a `.kube` unit's probes, a systemd drop-in for the generated service;
+  - a `Notify=healthy` unit without a `HealthCmd=` (Scope).
