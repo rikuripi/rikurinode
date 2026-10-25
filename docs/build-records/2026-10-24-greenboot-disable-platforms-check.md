@@ -5,8 +5,8 @@
 | **Date** | 2026-10-24 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/greenboot-disable-platforms-check`, from `main` at `0223018`, in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | red `23c905f`, change `68e0081`, record `8259dcf`; repair 1: red `31470f7`, fix `ae304c2`; merged as `5a21526` (#41); this close-out |
+| **Status** | DONE: pull request #41 green at `ae304c2` and merged by the owner (`Full gate (Ubuntu)` [run 40143086435](https://github.com/rikuripi/rikurinode/actions/runs/40143086435); the image build, its check "0 finding(s)", and the drill [run 40143086432](https://github.com/rikuripi/rikurinode/actions/runs/40143086432), 7 of 7 checks Pass) |
 | **Change type** | ops (the OS image's health check configuration) |
 
 ## Task Contract
@@ -101,3 +101,33 @@ All test runs were in `rikuri-drill` with `python3 -m unittest discover -s image
   - **Nits 2 and 3:** the 0b citation, corrected above.
   - **Nit 4:** `greenboot.conf`'s "a node never updates from" is the design (bootc following the node's image), observed in the drill only; the production registry path does not exist yet, and the `fedora-iot` remote stays in the image. The comment is left as it is: changing it would change the image file behind evidence 03, for wording only.
   - **Nit 5**, backlog: `test_every_probe_case_but_the_shipped_file_is_a_finding` asserts some finding, not a format one. The verifier re-derived each case's findings by hand (format, except case 02 by design). This predates the change.
+
+### Verifier follow-up pass and CI
+
+- **Verifier, follow-up pass: no Important finding.**
+  - I1 is closed, by reading: each of the four mutants in `06` is caught.
+  - The stand-in replaces only the boot wait, bootc's status, three harmless commands and the journals.
+  - The report line keeps its words, and no test was loosened (52 lines added, none deleted, since `31470f7`).
+  - Its one nit, for the backlog: `06` keeps a one-line description per mutant, not the mutated code.
+- **CI on `ae304c2`:**
+  - `Full gate (Ubuntu)` Pass (run 40143086435).
+  - The OS image Pass (run 40143086432): "check_image_root: 0 finding(s)"; the drill 7 of 7, its first boot reporting "DNS check skipped: True; update-platforms check skipped: True".
+  - The drill run on `8259dcf` (40142745536) was cancelled by the repair's push and counts as no result.
+
+## 5. Close Out
+
+- [x] **Done when:**
+  - red, then green: Pass;
+  - the VM boot with both checks skipped and the containers-range check passing: Pass;
+  - the CI drill 7 of 7 with the new line: Pass;
+  - Full gate: Pass;
+  - verifier with no Important finding after repair 1: Pass.
+- [x] **Limits:**
+  - Repair cycles: 1 of 2.
+  - Review rounds: 2 of 2.
+  - CI drill development runs: 2 of 2 (`8259dcf` cancelled, `ae304c2` passed). This close-out touches only `docs/`, so the image workflow skips its drill.
+  - Time: within the budget in working time.
+- [x] **Backlog, not started:**
+  - pass 1 nit 5: the probe-case test asserts some finding, not a format one;
+  - follow-up nit: keep each mutant's diff in the evidence, not only its description (earlier records too);
+  - pass 1 nit 4: `greenboot.conf`'s "a node never updates from" holds once the production registry path exists; reword it, or remove the `fedora-iot` remote, when that path is built.
