@@ -826,7 +826,6 @@ class QuadletHealth(unittest.TestCase):
         for line in ('HealthCmd=["/standin", "probe"]',
                      'HealthCmd=   ["/standin","probe"]   ',      # probe hc05, hc16, hc17: Podman reads CMD
                      'HealthCmd = ["/standin", "probe"]',          # hc10: Quadlet reads the key
-                     'HealthCmd=["/standin"]',
                      'HealthStartupCmd=["/standin", "startup"]',
                      '# HealthCmd=/standin probe',                 # a comment
                      '; HealthCmd=/standin probe',
@@ -840,6 +839,17 @@ class QuadletHealth(unittest.TestCase):
         for line, why in (('HealthCmd=/standin probe', "a plain string: CMD-SHELL (hc14)"),
                           ('HealthCmd=["CMD-SHELL", "/standin probe"]', "CMD-SHELL in the array (hc02)"),
                           ('HealthCmd=["CMD", "/standin", "probe"]', "exec, but not the one form (hc03)"),
+                          # Repair 1 (verifier I1, probe hr01): Podman takes the exec form only with
+                          # two items or more. This case moved here from test_exec_forms_pass.
+                          ('HealthCmd=["/standin"]', "one item: CMD-SHELL (hr01)"),
+                          ('HealthStartupCmd=["/standin"]', "one item, the startup check"),
+                          # Repair 1 (verifier I2): systemd expands these in ExecStart after Quadlet.
+                          ('HealthCmd=["/standin", "%i"]', "a specifier"),
+                          ('HealthCmd=["/standin", "${X}"]', "a variable"),
+                          ('HealthCmd=["/standin", "$X"]', "a bare variable"),
+                          ('HealthCmd=["/standin", "pro\\u0062e"]', "a JSON escape"),
+                          ('HealthCmd=["/standin", "pro\\"be"]', "a quote inside an item"),
+                          ('HealthCmd=["/standin", "probe now"]', "a space inside an item"),
                           ('HealthCmd=[/standin, probe]', "not JSON: CMD-SHELL (hc04)"),
                           ('HealthCmd="[\\"/standin\\", \\"probe\\"]"', "quoted: CMD-SHELL (hc07)"),
                           ('HealthCmd=["/standin", "probe"] # trailing', "a trailing comment: CMD-SHELL (hc15)"),
@@ -875,6 +885,35 @@ class QuadletHealth(unittest.TestCase):
             with self.subTest(line=line):
                 self.unit(line)
                 self.assertFinds(self.UNIT + ": line 3: PodmanArgs= sets a health option", self.problems())
+
+    def test_health_options_hidden_in_podman_args_are_findings(self):
+        # Repair 1 (verifier I3, probes hr04, hr05): Quadlet unescapes and unquotes PodmanArgs=,
+        # and systemd expands % and $ in it.
+        for line in ('PodmanArgs=--\\x68ealth-cmd=/standin\\x20probe',
+                     'PodmanArgs=--hea""lth-cmd "/standin probe"',
+                     "PodmanArgs=--hea''lth-cmd x",
+                     'PodmanArgs=--%i=x',
+                     'PodmanArgs=--${H}=x'):
+            with self.subTest(line=line):
+                self.unit(line)
+                self.assertFinds(self.UNIT + ": line 3: PodmanArgs= sets a health option", self.problems())
+
+    def test_a_byte_outside_printable_ascii_anywhere_is_a_finding(self):
+        # Repair 1 (verifier I3, probes hr02, hr03): Quadlet trims 0xA0 before '=' as a space.
+        for data in (b"[Container]\nHealthCmd\xa0=/standin probe\n",
+                     b"[Container]\nPodmanArgs\x85=--health-cmd=/standin\n",
+                     b"[Container]\nDescription=caf\xc3\xa9\n",
+                     b"[Container]\nEnvironment=A=1\r\n",
+                     b"[Container]\nEnvironment=A=\t1\n"):
+            with self.subTest(data=data):
+                self.root.write_bytes(self.UNIT, data)
+                self.assertFinds(self.UNIT + ": line 2: outside printable ASCII", self.problems())
+
+    def test_a_fifo_in_a_unit_folder_is_a_finding(self):
+        # Repair 1 (verifier I4): the non-regular-file rule had no test.
+        os.makedirs(os.path.join(self.root.path, "etc/containers/systemd"))
+        os.mkfifo(os.path.join(self.root.path, "etc/containers/systemd/svc.container"))
+        self.assertFinds(self.UNIT + ": not a regular file", self.problems())
 
     def test_a_continuation_line_is_a_finding(self):
         # Probe hc08: Quadlet joins it to the next line.
