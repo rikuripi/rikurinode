@@ -450,6 +450,27 @@ class CheckImageRoot(unittest.TestCase):
         self.assertFinds("etc/systemd/system/rikuri-containers-subid.service.d: reached through a link",
                          cir.check_containers_subid(self.root.path))
 
+    def test_a_link_at_any_folder_on_the_way_is_a_finding(self):
+        # Verifier follow-up I2: a link at the first folder (etc) or at the last one before
+        # the name (the unit folder itself) passed a weakened walk; each position is a case.
+        outside = tempfile.mkdtemp(prefix="outside-")
+        self.addCleanup(shutil.rmtree, outside)
+        for linked, rel in (("etc", "etc/systemd/system/rikuri-containers-subid.service.d"),
+                            ("etc/systemd", "etc/systemd/system/rikuri-containers-subid.service.d"),
+                            ("etc/systemd/system", "etc/systemd/system/rikuri-containers-subid.service.d"),
+                            ("usr/local/lib/systemd/system", "usr/local/lib/systemd/system/rikuri-.service.d")):
+            with self.subTest(linked=linked):
+                full = os.path.join(self.root.path, linked)
+                try:
+                    if os.path.isdir(full) and not os.path.islink(full):
+                        shutil.rmtree(full)
+                    self.root.link(linked, outside)
+                    self.assertFinds("%s: reached through a link at %s" % (rel, linked),
+                                     cir.check_containers_subid(self.root.path))
+                finally:
+                    if os.path.lexists(full):
+                        os.remove(full)
+
     def test_subid_overrides_in_the_image_are_findings(self):
         for rel, kind in (("usr/lib/systemd/system/rikuri-containers-subid.service.d", "folder"),
                           ("usr/lib/systemd/system/rikuri-.service.d", "folder"),

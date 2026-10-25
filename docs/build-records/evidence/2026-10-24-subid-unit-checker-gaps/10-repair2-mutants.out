@@ -1,0 +1,27 @@
+=== mutant M1, before the new test
+@@ -373 +373 @@ def _override_problem(root: str, rel: str):
+-        if n < len(parts) and os.path.islink(path):
++        if n < len(parts) - 1 and os.path.islink(path):
+Ran 194 tests in 0.105s
+OK
+=== mutant M7, before the new test
+@@ -373 +373 @@ def _override_problem(root: str, rel: str):
+-        if n < len(parts) and os.path.islink(path):
++        if n > 1 and n < len(parts) and os.path.islink(path):
+Ran 194 tests in 0.100s
+OK
+=== mutant M1, after the new test
+@@ -373 +373 @@ def _override_problem(root: str, rel: str):
+-        if n < len(parts) and os.path.islink(path):
++        if n < len(parts) - 1 and os.path.islink(path):
+Ran 195 tests in 0.110s
+FAILED (failures=2)
+=== mutant M7, after the new test
+@@ -373 +373 @@ def _override_problem(root: str, rel: str):
+-        if n < len(parts) and os.path.islink(path):
++        if n > 1 and n < len(parts) and os.path.islink(path):
+Ran 195 tests in 0.130s
+FAILED (failures=1)
+=== no mutant, after the new test
+Ran 195 tests in 0.104s
+OK

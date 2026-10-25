@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/subid-unit-checker-gaps`, from `main` at `6878ac4`, in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Status** | IN PROGRESS (repair 2 pushed) |
 | **Change type** | fix (the image checker, a control) |
 
 ## Task Contract
@@ -130,3 +130,14 @@ All test runs were in `rikuri-drill` with `python3 -m unittest discover -s image
   - **Nit 3:** a link on the way is now a finding (above).
   - **Nit 4:** the wording above. The kept files are not edited.
   - **Nit 5:** `usr/local/lib/systemd/system`, `etc/systemd/system.control`, `etc/systemd/system.attached` and `etc/systemd/system/service.d` are now covered. Still not covered: `/usr/lib/systemd/system/service.d` (Fedora's own, Scope) and `/run` (not in an image).
+
+### Verifier follow-up pass, the owner's decision and repair cycle 2
+
+- **Verifier, follow-up pass: FAIL**, one new Important finding.
+  - I1 and nits 1 to 5 are closed. The verifier reproduced the red count (20 failures at `429acf8`) and the green run, and checked the 23 paths against evidence 05.
+  - **I2:** two weakened walks in `_override_problem` survived. **M1** (`n < len(parts) - 1`) ignores a link at the unit folder itself; **M7** (`n > 1 and`) ignores a link at the first folder. The one link test linked `etc/systemd`, a middle folder.
+  - Backlog nits: `usr/local` becoming a link in a later base image would fail the image check loudly (safe); generators in the image could write overrides into `/run` (outside Scope); the each-path test leaves the parent folders it creates (harmless).
+- **The owner's decision** (2026-10-24), asked because a new Important finding in the follow-up round goes to the owner: "Add tests in #43 (Recommended)". The question stated the cost: one more push, a **third CI drill run** beyond this contract's two, and a check of the new lines only.
+- **Repair 2** (test only; the checker is unchanged):
+  - `test_a_link_at_any_folder_on_the_way_is_a_finding`: a link at `etc`, `etc/systemd`, `etc/systemd/system` and `usr/local/lib/systemd/system`, each a subtest. Reason for a test change after the red commits: it adds cases and loosens none.
+  - **Before and after** (`10-repair2-mutants.out`, each mutant with its diff): without the new test, M1 and M7 each gave 194 tests OK (the survival, reproduced); with it, M1 gives 2 failures and M7 1; unmutated, 195 tests OK.
