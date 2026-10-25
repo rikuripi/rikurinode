@@ -82,13 +82,29 @@ SUBID_KEYS = {"[Unit]": {"Description": None, "DefaultDependencies": "no", "Afte
               "[Service]": {"Type": "oneshot", "RemainAfterExit": "yes", "ExecStart": "/" + SUBID_CHECK},
               "[Install]": {"WantedBy": "sysinit.target"}}
 UNIT_KEY_LINE = re.compile(r"^([A-Za-z][A-Za-z0-9]*)=(.*)$")
-# Each would override the unit on a node (systemd.unit(5): drop-ins by name and
-# by the "rikuri-" prefix; /etc over /usr/lib, a link to /dev/null masks it).
-SUBID_OVERRIDES = ("usr/lib/systemd/system/rikuri-containers-subid.service.d",
-                   "usr/lib/systemd/system/rikuri-.service.d",
-                   "etc/systemd/system/rikuri-containers-subid.service",
-                   "etc/systemd/system/rikuri-containers-subid.service.d",
-                   "etc/systemd/system/rikuri-.service.d")
+# Each would override the unit on a node. systemd.unit(5), probed in systemd 259
+# (docs/build-records/evidence/2026-10-24-subid-unit-checker-gaps/05-*): every unit
+# folder an image can ship, a drop-in folder for the name and for each of its dash
+# prefixes, and, outside /usr/lib (where the unit and Fedora's own every-service
+# drop-ins live), the unit itself (a copy, or a link to /dev/null that masks it)
+# and service.d.
+SUBID_UNIT_DIRS = ("etc/systemd/system.control", "etc/systemd/system", "etc/systemd/system.attached",
+                   "usr/local/lib/systemd/system", "usr/lib/systemd/system")
+
+
+def _subid_overrides() -> tuple:
+    name = os.path.basename(SUBID_UNIT)
+    words = name[:-len(".service")].split("-")
+    dropins = [name + ".d"] + ["-".join(words[:n]) + "-.service.d" for n in range(len(words) - 1, 0, -1)]
+    paths = []
+    for d in SUBID_UNIT_DIRS:
+        paths += [d + "/" + x for x in dropins]
+        if d != os.path.dirname(SUBID_UNIT):
+            paths += [d + "/" + name, d + "/service.d"]
+    return tuple(paths)
+
+
+SUBID_OVERRIDES = _subid_overrides()
 SUBID_TARGETS = ("../rikuri-containers-subid.service", "/" + SUBID_UNIT)
 # greenboot's wanted check of it: logged at every boot, never a rollback, since
 # no image can repair /etc (docs/build-records/2026-10-24-greenboot-subid-wanted.md).
@@ -345,6 +361,20 @@ def subid_unit_problems(data: bytes) -> list:
     return problems
 
 
+def _override_problem(root: str, rel: str):
+    """Why <root>/<rel> would override the unit, or None when nothing is there.
+    A link on the way is a finding itself: on a node it may lead to a folder
+    the checker's machine does not have (lexists alone would follow it here)."""
+    path, parts = root, rel.split("/")
+    for n, part in enumerate(parts, 1):
+        path = os.path.join(path, part)
+        if not os.path.lexists(path):
+            return None
+        if n < len(parts) and os.path.islink(path):
+            return "reached through a link at %s; the image must not ship it" % "/".join(parts[:n])
+    return "overrides the unit on every node; the image must not ship it"
+
+
 def check_containers_subid(root: str) -> list:
     found = []
     path = _regular(root, SUBID_CHECK)
@@ -359,8 +389,9 @@ def check_containers_subid(root: str) -> list:
     else:
         found += ["%s: %s" % (SUBID_UNIT, p) for p in subid_unit_problems(data)]
     for rel in SUBID_OVERRIDES:
-        if os.path.lexists(os.path.join(root, rel)):
-            found.append("%s: overrides the unit on every node; the image must not ship it" % rel)
+        problem = _override_problem(root, rel)
+        if problem:
+            found.append("%s: %s" % (rel, problem))
     wants = os.path.join(root, SUBID_WANTS)
     hit = _lstat_in(root, os.path.dirname(SUBID_WANTS))
     if hit is None or not os.path.islink(wants):
