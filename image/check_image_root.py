@@ -36,12 +36,16 @@ an age secret key (`AGE-SECRET-KEY-1…`); a `PrivateKey =` line in a file under
 etc/wireguard. Not scanned: Fedora's own files under /usr (they ship test keys);
 the project's additions there are covered by the gate's secret scan.
 
-A Quadlet health command is accepted in one form only, the exec form: a JSON
-array of strings whose first is an absolute path, in printable ASCII. Podman
-runs any other form through /bin/sh -c, which a shell-less image lacks, so the
-unit never becomes ready and nothing says why. Every file in the unit folders
-is read, and a link, a continuation line or a health option in PodmanArgs= is a
-finding (docs/build-records/2026-10-25-healthcmd-exec-form.md).
+A Quadlet HealthCmd= or HealthStartupCmd= is accepted in one form only, the exec
+form: a JSON array of two or more items, each of plain characters (no space,
+quote, backslash, % or $, which Quadlet or systemd would change), the first an
+absolute path. Podman runs any other form through /bin/sh -c, which a shell-less
+image lacks, so the unit never becomes ready and nothing says why. Every file in
+the unit folders is read and must be printable ASCII; a link, a continuation
+line, or a PodmanArgs= that names health or holds a character Quadlet unescapes
+or systemd expands is a finding. Not covered: a .kube unit's YAML probes, a
+systemd drop-in for the generated service, and an image's own HEALTHCHECK
+(docs/build-records/2026-10-25-healthcmd-exec-form.md).
 """
 from __future__ import annotations
 
@@ -123,6 +127,8 @@ PRINTABLE_LINE = re.compile(rb"^[\x20-\x7e]*$")
 QUADLET_DIRS = ("etc/containers/systemd", "usr/share/containers/systemd")
 QUADLET_KEY_LINE = re.compile(r"^\s*([A-Za-z]+)\s*=(.*)$")
 QUADLET_HEALTH_KEYS = ("healthcmd", "healthstartupcmd")
+QUADLET_ARG = re.compile(r"^[A-Za-z0-9_./:=,+@-]+$")
+QUADLET_ARGS_UNSAFE = re.compile(r"""health|["'\\%$]""", re.IGNORECASE)
 KEY_LINE = re.compile(rb"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
 ATTEMPTS_VALUE = re.compile(rb"^[0-9]+$")
 DISABLED_VALUE = re.compile(rb'^\((?:"[A-Za-z0-9_.-]+"(?: "[A-Za-z0-9_.-]+")*)?\)$')
@@ -494,15 +500,17 @@ def check_subid_wanted(root: str) -> list:
     return found
 
 
-def _exec_form(line: bytes, value: str) -> bool:
-    if not PRINTABLE_LINE.match(line):
+def _exec_form(value: str) -> bool:
+    if not all(" " <= c <= "~" for c in value) or "\\" in value:
+        # A JSON escape could hide any character in an item; % and $ cannot pass QUADLET_ARG.
         return False
     try:
         argv = json.loads(value)
     except ValueError:
         return False
-    return (isinstance(argv, list) and len(argv) > 0 and all(isinstance(a, str) for a in argv)
-            and argv[0].startswith("/"))
+    # Two items or more: Podman runs a one-item array through the shell (probe hr01).
+    return (isinstance(argv, list) and len(argv) > 1
+            and all(isinstance(a, str) and QUADLET_ARG.match(a) for a in argv) and argv[0].startswith("/"))
 
 
 def quadlet_health_problems(data: bytes) -> list:
@@ -510,23 +518,25 @@ def quadlet_health_problems(data: bytes) -> list:
     command through a shell, or that this one-line reading cannot vouch for."""
     problems = []
     for n, line in enumerate(data.split(b"\n"), 1):
-        text = line.decode("utf-8", errors="replace").rstrip("\r")
+        if not PRINTABLE_LINE.match(line):
+            problems.append("line %d: outside printable ASCII; Quadlet trims some such bytes as "
+                            "spaces, which this check does not" % n)
+        text = line.decode("utf-8", errors="replace")
         if text.rstrip().endswith("\\"):
             problems.append("line %d: a continuation line; Quadlet joins it to the next, and this "
                             "check reads one line at a time" % n)
-            continue
-        if text.lstrip()[:1] in ("", "#", ";", "["):
             continue
         m = QUADLET_KEY_LINE.match(text)
         if not m:
             continue
         key, value = m.group(1), m.group(2)
-        if key.lower() in QUADLET_HEALTH_KEYS and not _exec_form(line, value):
+        if key.lower() in QUADLET_HEALTH_KEYS and not _exec_form(value):
             problems.append("line %d: %s= is not the exec form (a JSON array whose first item is an "
                             "absolute path); Podman would run it through /bin/sh -c, which a "
                             "shell-less image lacks" % (n, key))
-        elif key.lower() == "podmanargs" and "health" in value.lower():
-            problems.append("line %d: PodmanArgs= sets a health option; set it with HealthCmd= or "
+        elif key.lower() == "podmanargs" and QUADLET_ARGS_UNSAFE.search(value):
+            problems.append("line %d: PodmanArgs= sets a health option, or holds a character Quadlet "
+                            "unescapes or systemd expands; set health with HealthCmd= or "
                             "HealthStartupCmd= in the exec form" % n)
     return problems
 
