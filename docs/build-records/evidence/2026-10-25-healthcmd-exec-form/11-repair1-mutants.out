@@ -1,0 +1,61 @@
+##### repair 1 mutants, on a57f4a3
+=== mutant R1
+@@ -512 +512 @@ def _exec_form(value: str) -> bool:
+-    return (isinstance(argv, list) and len(argv) > 1
++    return (isinstance(argv, list) and len(argv) > 0
+Ran 209 tests in 0.117s
+FAILED (failures=2)
+=== mutant R2
+@@ -130 +130 @@ QUADLET_HEALTH_KEYS = ("healthcmd", "healthstartupcmd")
+-QUADLET_ARG = re.compile(r"^[A-Za-z0-9_./:=,+@-]+$")
++QUADLET_ARG = re.compile(r"^.+$")
+Ran 209 tests in 0.122s
+FAILED (failures=4)
+=== mutant R3
+@@ -504 +504 @@ def _exec_form(value: str) -> bool:
+-    if not all(" " <= c <= "~" for c in value) or "\\" in value:
++    if not all(" " <= c <= "~" for c in value):
+Ran 209 tests in 0.125s
+FAILED (failures=1)
+=== mutant R4
+@@ -504 +504 @@ def _exec_form(value: str) -> bool:
+-    if not all(" " <= c <= "~" for c in value) or "\\" in value:
++    if "\\" in value:
+Ran 209 tests in 0.117s
+FAILED (failures=1)
+=== mutant R5
+@@ -521 +521 @@ def quadlet_health_problems(data: bytes) -> list:
+-        if not PRINTABLE_LINE.match(line):
++        if False:
+Ran 209 tests in 0.174s
+FAILED (failures=5)
+=== mutant R6
+@@ -131 +131 @@ QUADLET_ARG = re.compile(r"^[A-Za-z0-9_./:=,+@-]+$")
+-QUADLET_ARGS_UNSAFE = re.compile(r"""health|["'\\%$]""", re.IGNORECASE)
++QUADLET_ARGS_UNSAFE = re.compile(r"""health""", re.IGNORECASE)
+Ran 209 tests in 0.127s
+FAILED (failures=5)
+=== mutant R7
+@@ -131 +131 @@ QUADLET_ARG = re.compile(r"^[A-Za-z0-9_./:=,+@-]+$")
+-QUADLET_ARGS_UNSAFE = re.compile(r"""health|["'\\%$]""", re.IGNORECASE)
++QUADLET_ARGS_UNSAFE = re.compile(r"""health|["'\\]""", re.IGNORECASE)
+Ran 209 tests in 0.119s
+FAILED (failures=2)
+=== mutant R8
+@@ -131 +131 @@ QUADLET_ARG = re.compile(r"^[A-Za-z0-9_./:=,+@-]+$")
+-QUADLET_ARGS_UNSAFE = re.compile(r"""health|["'\\%$]""", re.IGNORECASE)
++QUADLET_ARGS_UNSAFE = re.compile(r"""health|[\\%$]""", re.IGNORECASE)
+Ran 209 tests in 0.124s
+FAILED (failures=2)
+=== mutant R9
+@@ -131 +131 @@ QUADLET_ARG = re.compile(r"^[A-Za-z0-9_./:=,+@-]+$")
+-QUADLET_ARGS_UNSAFE = re.compile(r"""health|["'\\%$]""", re.IGNORECASE)
++QUADLET_ARGS_UNSAFE = re.compile(r"""health|["'%$]""", re.IGNORECASE)
+Ran 209 tests in 0.125s
+FAILED (failures=1)
+=== mutant R10
+@@ -572 +572 @@ def check_quadlet_health(root: str) -> list:
+-                    elif not stat.S_ISDIR(st.st_mode):
++                    elif False:
+Ran 209 tests in 0.127s
+FAILED (failures=1)

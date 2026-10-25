@@ -1,0 +1,283 @@
+Python 3.14.8
+.................................................................................FFFFF.......FFFFFFFFFFFFF......................................................rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmp_fpsbxmi/lib/rikuri/update-not-applied
+rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmp_fpsbxmi/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmpxvwq_6dz/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to remount /boot writable (exit 32); greenboot will roll this healthy node back
+rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+.rikuri-unapplied-update: FAILED to clear greenboot_next_deployment_id (exit 1); greenboot will roll this healthy node back
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: FAILED to clear greenboot_next_deployment_id (exit 1); greenboot will roll this healthy node back
+.rikuri-unapplied-update: cannot read /boot/grub2/grubenv (exit 1); greenboot decides
+.rikuri-unapplied-update: cannot read /boot/grub2/grubenv (exit 1); greenboot decides
+rikuri-unapplied-update: unknown: no deployments listed
+..rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa booted and is on trial; greenboot decides
+.rikuri-unapplied-update: no rollback trigger set; nothing to do
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa booted and is on trial; greenboot decides
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmpn27tyt2k/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmp85qglolw/lib/rikuri/update-not-applied
+.rikuri-unapplied-update: unknown: no deployments listed
+.rikuri-unapplied-update: update sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa was never applied: the default deployment sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb booted unchanged
+rikuri-unapplied-update: cleared greenboot_next_deployment_id; the node stays on sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; recorded in /tmp/tmp8ykot50y/lib/rikuri/update-not-applied
+..................................................
+======================================================================
+FAIL: test_a_byte_outside_printable_ascii_anywhere_is_a_finding (test_check_image_root.QuadletHealth.test_a_byte_outside_printable_ascii_anywhere_is_a_finding) (data=b'[Container]\nHealthCmd\xa0=/standin probe\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 910, in test_a_byte_outside_printable_ascii_anywhere_is_a_finding
+    self.assertFinds(self.UNIT + ": line 2: outside printable ASCII", self.problems())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 2: outside printable ASCII', got []
+
+======================================================================
+FAIL: test_a_byte_outside_printable_ascii_anywhere_is_a_finding (test_check_image_root.QuadletHealth.test_a_byte_outside_printable_ascii_anywhere_is_a_finding) (data=b'[Container]\nPodmanArgs\x85=--health-cmd=/standin\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 910, in test_a_byte_outside_printable_ascii_anywhere_is_a_finding
+    self.assertFinds(self.UNIT + ": line 2: outside printable ASCII", self.problems())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 2: outside printable ASCII', got []
+
+======================================================================
+FAIL: test_a_byte_outside_printable_ascii_anywhere_is_a_finding (test_check_image_root.QuadletHealth.test_a_byte_outside_printable_ascii_anywhere_is_a_finding) (data=b'[Container]\nDescription=caf\xc3\xa9\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 910, in test_a_byte_outside_printable_ascii_anywhere_is_a_finding
+    self.assertFinds(self.UNIT + ": line 2: outside printable ASCII", self.problems())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 2: outside printable ASCII', got []
+
+======================================================================
+FAIL: test_a_byte_outside_printable_ascii_anywhere_is_a_finding (test_check_image_root.QuadletHealth.test_a_byte_outside_printable_ascii_anywhere_is_a_finding) (data=b'[Container]\nEnvironment=A=1\r\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 910, in test_a_byte_outside_printable_ascii_anywhere_is_a_finding
+    self.assertFinds(self.UNIT + ": line 2: outside printable ASCII", self.problems())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 2: outside printable ASCII', got []
+
+======================================================================
+FAIL: test_a_byte_outside_printable_ascii_anywhere_is_a_finding (test_check_image_root.QuadletHealth.test_a_byte_outside_printable_ascii_anywhere_is_a_finding) (data=b'[Container]\nEnvironment=A=\t1\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 910, in test_a_byte_outside_printable_ascii_anywhere_is_a_finding
+    self.assertFinds(self.UNIT + ": line 2: outside printable ASCII", self.problems())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 2: outside printable ASCII', got []
+
+======================================================================
+FAIL: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='one item: CMD-SHELL (hr01)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 870, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 3: HealthCmd= is not the exec form', got []
+
+======================================================================
+FAIL: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='one item, the startup check')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 870, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 3: HealthStartupCmd= is not the exec form', got []
+
+======================================================================
+FAIL: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='a specifier')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 870, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 3: HealthCmd= is not the exec form', got []
+
+======================================================================
+FAIL: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='a variable')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 870, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 3: HealthCmd= is not the exec form', got []
+
+======================================================================
+FAIL: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='a bare variable')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 870, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 3: HealthCmd= is not the exec form', got []
+
+======================================================================
+FAIL: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='a JSON escape')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 870, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 3: HealthCmd= is not the exec form', got []
+
+======================================================================
+FAIL: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='a quote inside an item')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 870, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 3: HealthCmd= is not the exec form', got []
+
+======================================================================
+FAIL: test_forms_podman_runs_through_a_shell_or_never_runs_are_findings (test_check_image_root.QuadletHealth.test_forms_podman_runs_through_a_shell_or_never_runs_are_findings) (why='a space inside an item')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 870, in test_forms_podman_runs_through_a_shell_or_never_runs_are_findings
+    self.assertFinds("%s: line 3: %s= is not the exec form" % (self.UNIT, key), self.problems())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 3: HealthCmd= is not the exec form', got []
+
+======================================================================
+FAIL: test_health_options_hidden_in_podman_args_are_findings (test_check_image_root.QuadletHealth.test_health_options_hidden_in_podman_args_are_findings) (line='PodmanArgs=--\\x68ealth-cmd=/standin\\x20probe')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 899, in test_health_options_hidden_in_podman_args_are_findings
+    self.assertFinds(self.UNIT + ": line 3: PodmanArgs= sets a health option", self.problems())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 3: PodmanArgs= sets a health option', got []
+
+======================================================================
+FAIL: test_health_options_hidden_in_podman_args_are_findings (test_check_image_root.QuadletHealth.test_health_options_hidden_in_podman_args_are_findings) (line='PodmanArgs=--hea""lth-cmd "/standin probe"')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 899, in test_health_options_hidden_in_podman_args_are_findings
+    self.assertFinds(self.UNIT + ": line 3: PodmanArgs= sets a health option", self.problems())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 3: PodmanArgs= sets a health option', got []
+
+======================================================================
+FAIL: test_health_options_hidden_in_podman_args_are_findings (test_check_image_root.QuadletHealth.test_health_options_hidden_in_podman_args_are_findings) (line="PodmanArgs=--hea''lth-cmd x")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 899, in test_health_options_hidden_in_podman_args_are_findings
+    self.assertFinds(self.UNIT + ": line 3: PodmanArgs= sets a health option", self.problems())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 3: PodmanArgs= sets a health option', got []
+
+======================================================================
+FAIL: test_health_options_hidden_in_podman_args_are_findings (test_check_image_root.QuadletHealth.test_health_options_hidden_in_podman_args_are_findings) (line='PodmanArgs=--%i=x')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 899, in test_health_options_hidden_in_podman_args_are_findings
+    self.assertFinds(self.UNIT + ": line 3: PodmanArgs= sets a health option", self.problems())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 3: PodmanArgs= sets a health option', got []
+
+======================================================================
+FAIL: test_health_options_hidden_in_podman_args_are_findings (test_check_image_root.QuadletHealth.test_health_options_hidden_in_podman_args_are_findings) (line='PodmanArgs=--${H}=x')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 899, in test_health_options_hidden_in_podman_args_are_findings
+    self.assertFinds(self.UNIT + ": line 3: PodmanArgs= sets a health option", self.problems())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/var/home/drill/image-tests/image/tests/test_check_image_root.py", line 174, in assertFinds
+    self.assertTrue(any(fragment in f for f in found),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "expected a finding with %r, got %r" % (fragment, found))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : expected a finding with 'etc/containers/systemd/svc.container: line 3: PodmanArgs= sets a health option', got []
+
+----------------------------------------------------------------------
+Ran 209 tests in 0.130s
+
+FAILED (failures=18)

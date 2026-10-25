@@ -1,0 +1,28 @@
+## the unit lines, as written:
+--- /etc/containers/systemd/hr01.container
+HealthCmd=["/standin"]$
+--- /etc/containers/systemd/hr02.container
+HealthCmdM- =/standin probe$
+--- /etc/containers/systemd/hr03.container
+PodmanArgsM- =--health-cmd=/standin$
+--- /etc/containers/systemd/hr04.container
+PodmanArgs=--\x68ealth-cmd=/standin\x20probe$
+--- /etc/containers/systemd/hr05.container
+PodmanArgs=--hea""lth-cmd "/standin probe"$
+## quadlet -dryrun:
+exit 0
+---hr01.service---
+  ExecStart=/usr/bin/podman run --health-cmd "[\"/standin\"]" localhost/rikuri-os:gbp
+---hr02.service---
+  ExecStart=/usr/bin/podman run --health-cmd "/standin\x20probe" localhost/rikuri-os:gbp
+---hr03.service---
+  ExecStart=/usr/bin/podman run --health-cmd=/standin localhost/rikuri-os:gbp
+---hr04.service---
+  ExecStart=/usr/bin/podman run "--health-cmd=/standin\x20probe" localhost/rikuri-os:gbp
+---hr05.service---
+  ExecStart=/usr/bin/podman run --health-cmd "/standin\x20probe" localhost/rikuri-os:gbp
+## Podman's record of a one-item array:
+["CMD-SHELL","/standin"]
+two items: ["CMD","/standin","probe"]
+## cleanup
+left in /etc/containers/systemd: 0; probe containers left: 0
