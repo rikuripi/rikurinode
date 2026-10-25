@@ -1,0 +1,183 @@
+##### first run, on 2bfe529
+=== mutant Q1
+@@ -498,2 +497,0 @@ def _exec_form(line: bytes, value: str) -> bool:
+-    if not PRINTABLE_LINE.match(line):
+-        return False
+Ran 206 tests in 0.126s
+FAILED (failures=1)
+=== mutant Q2
+@@ -504,2 +504 @@ def _exec_form(line: bytes, value: str) -> bool:
+-    return (isinstance(argv, list) and len(argv) > 0 and all(isinstance(a, str) and a for a in argv)
+-            and argv[0].startswith("/"))
++    return (isinstance(argv, list) and len(argv) > 0 and all(isinstance(a, str) and a for a in argv))
+Ran 206 tests in 0.115s
+FAILED (failures=4)
+=== mutant Q3
+@@ -504 +504 @@ def _exec_form(line: bytes, value: str) -> bool:
+-    return (isinstance(argv, list) and len(argv) > 0 and all(isinstance(a, str) and a for a in argv)
++    return (isinstance(argv, list) and len(argv) > 0 and all(isinstance(a, str) for a in argv)
+Ran 206 tests in 0.121s
+OK
+=== mutant Q4
+@@ -504 +504 @@ def _exec_form(line: bytes, value: str) -> bool:
+-    return (isinstance(argv, list) and len(argv) > 0 and all(isinstance(a, str) and a for a in argv)
++    return (isinstance(argv, list) and all(isinstance(a, str) and a for a in argv)
+Ran 206 tests in 0.119s
+FAILED (errors=1)
+=== mutant Q5
+@@ -514 +514 @@ def quadlet_health_problems(data: bytes) -> list:
+-        if text.rstrip().endswith("\\"):
++        if False:
+Ran 206 tests in 0.121s
+FAILED (failures=3)
+=== mutant Q6
+@@ -528 +528 @@ def quadlet_health_problems(data: bytes) -> list:
+-        elif key.lower() == "podmanargs" and "health" in value.lower():
++        elif False:
+Ran 206 tests in 0.117s
+FAILED (failures=4)
+=== mutant Q7
+@@ -125 +125 @@ QUADLET_KEY_LINE = re.compile(r"^\s*([A-Za-z]+)\s*=(.*)$")
+-QUADLET_HEALTH_KEYS = ("healthcmd", "healthstartupcmd")
++QUADLET_HEALTH_KEYS = ("healthcmd",)
+Ran 206 tests in 0.119s
+FAILED (failures=1)
+=== mutant Q8
+@@ -524 +524 @@ def quadlet_health_problems(data: bytes) -> list:
+-        if key.lower() in QUADLET_HEALTH_KEYS and not _exec_form(line, value):
++        if key in ("HealthCmd", "HealthStartupCmd") and not _exec_form(line, value):
+Ran 206 tests in 0.113s
+FAILED (failures=1)
+=== mutant Q9
+@@ -123 +123 @@ PRINTABLE_LINE = re.compile(rb"^[\x20-\x7e]*$")
+-QUADLET_DIRS = ("etc/containers/systemd", "usr/share/containers/systemd")
++QUADLET_DIRS = ("etc/containers/systemd",)
+Ran 206 tests in 0.115s
+FAILED (failures=4)
+=== mutant Q10
+@@ -556 +556 @@ def check_quadlet_health(root: str) -> list:
+-                    if stat.S_ISLNK(st.st_mode):
++                    if False:
+Ran 206 tests in 0.117s
+FAILED (failures=2)
+=== mutant Q11
+@@ -542 +542 @@ def check_quadlet_health(root: str) -> list:
+-            if os.path.islink(path):
++            if k == len(parts) and os.path.islink(path):
+Ran 206 tests in 0.118s
+FAILED (failures=2)
+=== mutant Q12
+@@ -551 +551 @@ def check_quadlet_health(root: str) -> list:
+-            for top, dirs, files in os.walk(path):
++            for top, dirs, files in [next(os.walk(path))]:
+Ran 206 tests in 0.120s
+FAILED (failures=6)
+=== mutant Q13
+@@ -501 +501 @@ def _exec_form(line: bytes, value: str) -> bool:
+-        argv = json.loads(value.strip())
++        argv = json.loads(value)
+Ran 206 tests in 0.116s
+OK
+=== mutant Q14
+@@ -518 +518 @@ def quadlet_health_problems(data: bytes) -> list:
+-        if text.lstrip()[:1] in ("", "#", ";", "["):
++        if text.lstrip()[:1] in ("", "#", ";", "[") or "#" in text:
+Ran 206 tests in 0.118s
+FAILED (failures=1)
+=== mutant Q15
+@@ -504 +504 @@ def _exec_form(line: bytes, value: str) -> bool:
+-    return (isinstance(argv, list) and len(argv) > 0 and all(isinstance(a, str) and a for a in argv)
++    return (len(argv) > 0 and all(isinstance(a, str) and a for a in argv)
+Ran 206 tests in 0.120s
+FAILED (failures=1, errors=1)
+=== mutant Q16
+@@ -549 +548,0 @@ def check_quadlet_health(root: str) -> list:
+-                found.append("%s: not a folder" % d)
+Ran 206 tests in 0.117s
+FAILED (failures=1)
+
+##### the same mutants on 2bfe529's successor (Q3 and Q13's lines removed), e5c16bb
+=== mutant Q1
+@@ -498,2 +497,0 @@ def _exec_form(line: bytes, value: str) -> bool:
+-    if not PRINTABLE_LINE.match(line):
+-        return False
+Ran 206 tests in 0.115s
+FAILED (failures=1)
+=== mutant Q2
+@@ -504,2 +504 @@ def _exec_form(line: bytes, value: str) -> bool:
+-    return (isinstance(argv, list) and len(argv) > 0 and all(isinstance(a, str) for a in argv)
+-            and argv[0].startswith("/"))
++    return (isinstance(argv, list) and len(argv) > 0 and all(isinstance(a, str) for a in argv))
+Ran 206 tests in 0.117s
+FAILED (failures=5)
+=== mutant Q4
+@@ -504 +504 @@ def _exec_form(line: bytes, value: str) -> bool:
+-    return (isinstance(argv, list) and len(argv) > 0 and all(isinstance(a, str) for a in argv)
++    return (isinstance(argv, list) and all(isinstance(a, str) for a in argv)
+Ran 206 tests in 0.120s
+FAILED (errors=1)
+=== mutant Q5
+@@ -514 +514 @@ def quadlet_health_problems(data: bytes) -> list:
+-        if text.rstrip().endswith("\\"):
++        if False:
+Ran 206 tests in 0.119s
+FAILED (failures=3)
+=== mutant Q6
+@@ -528 +528 @@ def quadlet_health_problems(data: bytes) -> list:
+-        elif key.lower() == "podmanargs" and "health" in value.lower():
++        elif False:
+Ran 206 tests in 0.134s
+FAILED (failures=4)
+=== mutant Q7
+@@ -125 +125 @@ QUADLET_KEY_LINE = re.compile(r"^\s*([A-Za-z]+)\s*=(.*)$")
+-QUADLET_HEALTH_KEYS = ("healthcmd", "healthstartupcmd")
++QUADLET_HEALTH_KEYS = ("healthcmd",)
+Ran 206 tests in 0.121s
+FAILED (failures=1)
+=== mutant Q8
+@@ -524 +524 @@ def quadlet_health_problems(data: bytes) -> list:
+-        if key.lower() in QUADLET_HEALTH_KEYS and not _exec_form(line, value):
++        if key in ("HealthCmd", "HealthStartupCmd") and not _exec_form(line, value):
+Ran 206 tests in 0.118s
+FAILED (failures=1)
+=== mutant Q9
+@@ -123 +123 @@ PRINTABLE_LINE = re.compile(rb"^[\x20-\x7e]*$")
+-QUADLET_DIRS = ("etc/containers/systemd", "usr/share/containers/systemd")
++QUADLET_DIRS = ("etc/containers/systemd",)
+Ran 206 tests in 0.119s
+FAILED (failures=4)
+=== mutant Q10
+@@ -556 +556 @@ def check_quadlet_health(root: str) -> list:
+-                    if stat.S_ISLNK(st.st_mode):
++                    if False:
+Ran 206 tests in 0.122s
+FAILED (failures=2)
+=== mutant Q11
+@@ -542 +542 @@ def check_quadlet_health(root: str) -> list:
+-            if os.path.islink(path):
++            if k == len(parts) and os.path.islink(path):
+Ran 206 tests in 0.120s
+FAILED (failures=2)
+=== mutant Q12
+@@ -551 +551 @@ def check_quadlet_health(root: str) -> list:
+-            for top, dirs, files in os.walk(path):
++            for top, dirs, files in [next(os.walk(path))]:
+Ran 206 tests in 0.125s
+FAILED (failures=6)
+=== mutant Q14
+@@ -518 +518 @@ def quadlet_health_problems(data: bytes) -> list:
+-        if text.lstrip()[:1] in ("", "#", ";", "["):
++        if text.lstrip()[:1] in ("", "#", ";", "[") or "#" in text:
+Ran 206 tests in 0.125s
+FAILED (failures=1)
+=== mutant Q15
+@@ -504 +504 @@ def _exec_form(line: bytes, value: str) -> bool:
+-    return (isinstance(argv, list) and len(argv) > 0 and all(isinstance(a, str) for a in argv)
++    return (len(argv) > 0 and all(isinstance(a, str) for a in argv)
+Ran 206 tests in 0.117s
+FAILED (failures=1, errors=1)
+=== mutant Q16
+@@ -549 +548,0 @@ def check_quadlet_health(root: str) -> list:
+-                found.append("%s: not a folder" % d)
+Ran 206 tests in 0.120s
+FAILED (failures=1)

@@ -1,0 +1,6 @@
+## folders named in /usr/libexec/podman/quadlet (grep -a):
+/etc/containers/systemd/run/containers/systemdreflect
+/usr/share/containers/systemdsync
+## rpm: podman-5.8.9-1.fc44.aarch64
+## the man page's search paths, if shipped:
+/usr/share/man/man5/podman-systemd.unit.5.gz

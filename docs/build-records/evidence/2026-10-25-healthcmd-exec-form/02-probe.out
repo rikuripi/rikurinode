@@ -1,0 +1,27 @@
+## folders named in the quadlet binary:
+bash: line 6: strings: command not found
+## quadlet -dryrun -v:
+exit 0
+  quadlet-generator[6041]: Loading source unit file /etc/containers/systemd/hs01.container
+  quadlet-generator[6041]: Loading source unit file /etc/containers/systemd/hs02.container
+  quadlet-generator[6041]: Loading source unit file /etc/containers/systemd/hs03.container
+  quadlet-generator[6041]: Loading source unit file /etc/containers/systemd/hs04.container
+  quadlet-generator[6041]: Loading source unit file /etc/containers/systemd/hs06.container
+  quadlet-generator[6041]: Loading source unit file /var/tmp/hclinked/hs05.container
+---hs01.service---
+  ExecStart=/usr/bin/podman run --name systemd-%N --replace --rm --cgroups=split -d --health-cmd "[\"/standin\",\x20\"probe\"]" --health-startup-cmd "/standin\x20startup" localhost/rikuri-os:gbp
+---hs02.service---
+  ExecStart=/usr/bin/podman run --name systemd-%N --replace --rm --cgroups=split -d "--health-cmd=/standin\x20probe" localhost/rikuri-os:gbp
+---hs03.service---
+  ExecStart=/usr/bin/podman run --name systemd-%N --replace --rm --cgroups=split -d --health-cmd "/standin\x20probe" localhost/rikuri-os:gbp
+---hs04.service---
+  ExecStart=/usr/bin/podman run --name systemd-%N --replace --rm --cgroups=split -d --health-cmd "[\"/standin\",\x20\"probe\"]" --health-cmd "/standin\x20probe" localhost/rikuri-os:gbp
+---hs06.service---
+  ExecStart=/usr/bin/podman run --name systemd-%N --replace --rm --cgroups=split -d --health-cmd "/standin\x20probe" localhost/rikuri-os:gbp
+---hs05.service---
+  ExecStart=/usr/bin/podman run --name systemd-%N --replace --rm --cgroups=split -d --health-cmd "/standin\x20probe" localhost/rikuri-os:gbp
+## Podman's record:
+hs01: test ["CMD","/standin","probe"]; startup {"Test":["CMD-SHELL","/standin startup"],"Interval":30000000000,"Timeout":30000000000}
+hs04: test ["CMD-SHELL","/standin probe"]; startup null
+## cleanup
+left in /etc/containers/systemd: 0; probe containers left: 0

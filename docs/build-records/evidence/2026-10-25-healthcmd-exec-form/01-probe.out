@@ -1,0 +1,188 @@
+## podman: podman version 5.8.9; systemd: systemd 259 (259.10-1.fc44)
+## the unit files, as written:
+--- /etc/containers/systemd/container.d/50-type.conf
+[Container]$
+Environment=DROPIN_TYPE=1$
+--- /etc/containers/systemd/hc01.container
+[Container]$
+Image=localhost/rikuri-os:gbp$
+HealthCmd=["/standin", "probe"]$
+--- /etc/containers/systemd/hc02.container
+[Container]$
+Image=localhost/rikuri-os:gbp$
+HealthCmd=["CMD-SHELL", "/standin probe"]$
+--- /etc/containers/systemd/hc03.container
+[Container]$
+Image=localhost/rikuri-os:gbp$
+HealthCmd=["CMD", "/standin", "probe"]$
+--- /etc/containers/systemd/hc04.container
+[Container]$
+Image=localhost/rikuri-os:gbp$
+HealthCmd=[/standin, probe]$
+--- /etc/containers/systemd/hc05.container
+[Container]$
+Image=localhost/rikuri-os:gbp$
+HealthCmd=   ["/standin", "probe"]   $
+--- /etc/containers/systemd/hc06.container
+[Container]$
+Image=localhost/rikuri-os:gbp$
+HealthCmd=none$
+--- /etc/containers/systemd/hc07.container
+[Container]$
+Image=localhost/rikuri-os:gbp$
+HealthCmd="[\"/standin\", \"probe\"]"$
+--- /etc/containers/systemd/hc08.container
+[Container]$
+Image=localhost/rikuri-os:gbp$
+HealthCmd=["/standin", \$
+  "probe"]$
+--- /etc/containers/systemd/hc09.container
+[Container]$
+Image=localhost/rikuri-os:gbp$
+HealthCmd=["/standin", "probe"]$
+HealthCmd=/standin probe$
+--- /etc/containers/systemd/hc10.container
+[Container]$
+Image=localhost/rikuri-os:gbp$
+HealthCmd = ["/standin", "probe"]$
+--- /etc/containers/systemd/hc11.container
+[Container]$
+Image=localhost/rikuri-os:gbp$
+healthcmd=/standin probe$
+--- /etc/containers/systemd/hc12.container
+[Container]$
+Image=localhost/rikuri-os:gbp$
+HealthCmd=[]$
+--- /etc/containers/systemd/hc13.container
+[Container]$
+Image=localhost/rikuri-os:gbp$
+HealthCmd=["NONE"]$
+--- /etc/containers/systemd/hc14.container
+[Container]$
+Image=localhost/rikuri-os:gbp$
+HealthCmd=/standin probe$
+--- /etc/containers/systemd/hc15.container
+[Container]$
+Image=localhost/rikuri-os:gbp$
+HealthCmd=["/standin", "probe"] # trailing$
+--- /etc/containers/systemd/hcprobe-.container.d/50-prefix.conf
+[Container]$
+Environment=DROPIN_PREFIX=1$
+--- /etc/containers/systemd/hcprobe-a.container
+[Container]$
+Image=localhost/rikuri-os:gbp$
+Environment=FROM=main$
+--- /etc/containers/systemd/hcprobe-a.container.d/50-name.conf
+[Container]$
+Environment=DROPIN_NAME=1$
+--- /etc/containers/systemd/sub/hcprobe-sub.container
+[Container]$
+Image=localhost/rikuri-os:gbp$
+Environment=FROM=subfolder$
+## quadlet -dryrun -v (stderr: the folders and files it reads):
+exit 1
+  quadlet-generator[5572]: Loading source unit file /etc/containers/systemd/hc01.container
+  quadlet-generator[5572]: Loading source unit file /etc/containers/systemd/hc02.container
+  quadlet-generator[5572]: Loading source unit file /etc/containers/systemd/hc03.container
+  quadlet-generator[5572]: Loading source unit file /etc/containers/systemd/hc04.container
+  quadlet-generator[5572]: Loading source unit file /etc/containers/systemd/hc05.container
+  quadlet-generator[5572]: Loading source unit file /etc/containers/systemd/hc06.container
+  quadlet-generator[5572]: Loading source unit file /etc/containers/systemd/hc07.container
+  quadlet-generator[5572]: Loading source unit file /etc/containers/systemd/hc08.container
+  quadlet-generator[5572]: Loading source unit file /etc/containers/systemd/hc09.container
+  quadlet-generator[5572]: Loading source unit file /etc/containers/systemd/hc10.container
+  quadlet-generator[5572]: Loading source unit file /etc/containers/systemd/hc11.container
+  quadlet-generator[5572]: Loading source unit file /etc/containers/systemd/hc12.container
+  quadlet-generator[5572]: Loading source unit file /etc/containers/systemd/hc13.container
+  quadlet-generator[5572]: Loading source unit file /etc/containers/systemd/hc14.container
+  quadlet-generator[5572]: Loading source unit file /etc/containers/systemd/hc15.container
+  quadlet-generator[5572]: Loading source unit file /etc/containers/systemd/hcprobe-a.container
+  quadlet-generator[5572]: Loading source unit file /etc/containers/systemd/sub/hcprobe-sub.container
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/container.d/50-type.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/container.d/50-type.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/container.d/50-type.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/container.d/50-type.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/container.d/50-type.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/container.d/50-type.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/container.d/50-type.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/container.d/50-type.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/container.d/50-type.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/container.d/50-type.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/container.d/50-type.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/container.d/50-type.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/container.d/50-type.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/container.d/50-type.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/container.d/50-type.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/hcprobe-a.container.d/50-name.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/hcprobe-.container.d/50-prefix.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/container.d/50-type.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/hcprobe-.container.d/50-prefix.conf
+  quadlet-generator[5572]: Loading source drop-in file /etc/containers/systemd/container.d/50-type.conf
+  quadlet-generator[5572]: processing encountered some errors
+## per unit: the Environment= or health-cmd Quadlet hands Podman:
+---hc01.service---
+  --env DROPIN_TYPE=1
+  --health-cmd "[\"/standin\",\x20\"probe\"]" localhost/rikuri-os:gbp
+---hc02.service---
+  --env DROPIN_TYPE=1
+  --health-cmd "[\"CMD-SHELL\",\x20\"/standin\x20probe\"]" localhost/rikuri-os:gbp
+---hc03.service---
+  --env DROPIN_TYPE=1
+  --health-cmd "[\"CMD\",\x20\"/standin\",\x20\"probe\"]" localhost/rikuri-os:gbp
+---hc04.service---
+  --env DROPIN_TYPE=1
+  --health-cmd "[/standin,\x20probe]" localhost/rikuri-os:gbp
+---hc05.service---
+  --env DROPIN_TYPE=1
+  --health-cmd "[\"/standin\",\x20\"probe\"]" localhost/rikuri-os:gbp
+---hc06.service---
+  --env DROPIN_TYPE=1
+  --health-cmd none localhost/rikuri-os:gbp
+---hc07.service---
+  --env DROPIN_TYPE=1
+  --health-cmd "[\\\"/standin\\\",\x20\\\"probe\\\"]" localhost/rikuri-os:gbp
+---hc08.service---
+  --env DROPIN_TYPE=1
+  --health-cmd "[\"/standin\",\x20\"probe\"]" localhost/rikuri-os:gbp
+---hc09.service---
+  --env DROPIN_TYPE=1
+  --health-cmd "/standin\x20probe" localhost/rikuri-os:gbp
+---hc10.service---
+  --env DROPIN_TYPE=1
+  --health-cmd "[\"/standin\",\x20\"probe\"]" localhost/rikuri-os:gbp
+---hc12.service---
+  --env DROPIN_TYPE=1
+  --health-cmd [] localhost/rikuri-os:gbp
+---hc13.service---
+  --env DROPIN_TYPE=1
+  --health-cmd "[\"NONE\"]" localhost/rikuri-os:gbp
+---hc14.service---
+  --env DROPIN_TYPE=1
+  --health-cmd "/standin\x20probe" localhost/rikuri-os:gbp
+---hc15.service---
+  --env DROPIN_TYPE=1
+  --health-cmd "[\"/standin\",\x20\"probe\"]\x20#\x20trailing" localhost/rikuri-os:gbp
+---hcprobe-a.service---
+  --env DROPIN_NAME=1
+  --env DROPIN_PREFIX=1
+  --env DROPIN_TYPE=1
+  --env FROM=main localhost/rikuri-os:gbp
+---hcprobe-sub.service---
+  --env DROPIN_PREFIX=1
+  --env DROPIN_TYPE=1
+  --env FROM=subfolder localhost/rikuri-os:gbp
+## Podman's record of each form (podman create, never started):
+hc01: ["CMD","/standin","probe"]
+hc02: ["CMD-SHELL","/standin probe"]
+hc03: ["CMD","/standin","probe"]
+hc04: ["CMD-SHELL","[/standin, probe]"]
+hc06: ["NONE"]
+hc07: ["CMD-SHELL","\"[\\\"/standin\\\", \\\"probe\\\"]\""]
+hc12: create refused: Error: must define a healthcheck command for all healthchecks
+hc13: ["NONE"]
+hc14: ["CMD-SHELL","/standin probe"]
+hc15: ["CMD-SHELL","[\"/standin\", \"probe\"] # trailing"]
+hc16: ["CMD","/standin","probe"]
+hc17: ["CMD","/standin","probe"]
+## cleanup
+left in /etc/containers/systemd: 0; probe containers left: 0

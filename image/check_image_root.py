@@ -35,10 +35,18 @@ host key under etc/ssh, by name; a Tor onion service key by name
 an age secret key (`AGE-SECRET-KEY-1…`); a `PrivateKey =` line in a file under
 etc/wireguard. Not scanned: Fedora's own files under /usr (they ship test keys);
 the project's additions there are covered by the gate's secret scan.
+
+A Quadlet health command is accepted in one form only, the exec form: a JSON
+array of strings whose first is an absolute path, in printable ASCII. Podman
+runs any other form through /bin/sh -c, which a shell-less image lacks, so the
+unit never becomes ready and nothing says why. Every file in the unit folders
+is read, and a link, a continuation line or a health option in PodmanArgs= is a
+finding (docs/build-records/2026-10-25-healthcmd-exec-form.md).
 """
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import stat
@@ -111,6 +119,10 @@ SUBID_TARGETS = ("../rikuri-containers-subid.service", "/" + SUBID_UNIT)
 SUBID_WANTED = "usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid"
 # The one form of a line read alike by greenboot and this check (the docstring).
 PRINTABLE_LINE = re.compile(rb"^[\x20-\x7e]*$")
+# Quadlet's rootful unit folders an image can ship (podman-systemd.unit(5); /run is not in one).
+QUADLET_DIRS = ("etc/containers/systemd", "usr/share/containers/systemd")
+QUADLET_KEY_LINE = re.compile(r"^\s*([A-Za-z]+)\s*=(.*)$")
+QUADLET_HEALTH_KEYS = ("healthcmd", "healthstartupcmd")
 KEY_LINE = re.compile(rb"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
 ATTEMPTS_VALUE = re.compile(rb"^[0-9]+$")
 DISABLED_VALUE = re.compile(rb'^\((?:"[A-Za-z0-9_.-]+"(?: "[A-Za-z0-9_.-]+")*)?\)$')
@@ -482,10 +494,80 @@ def check_subid_wanted(root: str) -> list:
     return found
 
 
+def _exec_form(line: bytes, value: str) -> bool:
+    if not PRINTABLE_LINE.match(line):
+        return False
+    try:
+        argv = json.loads(value)
+    except ValueError:
+        return False
+    return (isinstance(argv, list) and len(argv) > 0 and all(isinstance(a, str) for a in argv)
+            and argv[0].startswith("/"))
+
+
+def quadlet_health_problems(data: bytes) -> list:
+    """Each line of a file in Quadlet's folders that would let Podman run a health
+    command through a shell, or that this one-line reading cannot vouch for."""
+    problems = []
+    for n, line in enumerate(data.split(b"\n"), 1):
+        text = line.decode("utf-8", errors="replace").rstrip("\r")
+        if text.rstrip().endswith("\\"):
+            problems.append("line %d: a continuation line; Quadlet joins it to the next, and this "
+                            "check reads one line at a time" % n)
+            continue
+        if text.lstrip()[:1] in ("", "#", ";", "["):
+            continue
+        m = QUADLET_KEY_LINE.match(text)
+        if not m:
+            continue
+        key, value = m.group(1), m.group(2)
+        if key.lower() in QUADLET_HEALTH_KEYS and not _exec_form(line, value):
+            problems.append("line %d: %s= is not the exec form (a JSON array whose first item is an "
+                            "absolute path); Podman would run it through /bin/sh -c, which a "
+                            "shell-less image lacks" % (n, key))
+        elif key.lower() == "podmanargs" and "health" in value.lower():
+            problems.append("line %d: PodmanArgs= sets a health option; set it with HealthCmd= or "
+                            "HealthStartupCmd= in the exec form" % n)
+    return problems
+
+
+def check_quadlet_health(root: str) -> list:
+    found = []
+    for d in QUADLET_DIRS:
+        path, parts = root, d.split("/")
+        for k, part in enumerate(parts, 1):
+            path = os.path.join(path, part)
+            if not os.path.lexists(path):
+                break
+            if os.path.islink(path):
+                found.append("%s: a link; Quadlet follows it, and the image must not ship one in its unit "
+                             "folders" % d if k == len(parts) else
+                             "%s: reached through a link at %s" % (d, "/".join(parts[:k])))
+                break
+        else:
+            if not os.path.isdir(path):
+                found.append("%s: not a folder" % d)
+                continue
+            for top, dirs, files in os.walk(path):
+                for name in sorted(dirs + files):
+                    full = os.path.join(top, name)
+                    rel = os.path.relpath(full, root).replace(os.sep, "/")
+                    st = os.lstat(full)
+                    if stat.S_ISLNK(st.st_mode):
+                        found.append("%s: a link; Quadlet follows it, and the image must not ship one in "
+                                     "its unit folders" % rel)
+                    elif stat.S_ISREG(st.st_mode):
+                        with open(full, "rb") as f:
+                            found += ["%s: %s" % (rel, p) for p in quadlet_health_problems(f.read())]
+                    elif not stat.S_ISDIR(st.st_mode):
+                        found.append("%s: not a regular file" % rel)
+    return found
+
+
 def check_root(root: str, release: str, note=lambda line: None) -> list:
     return (check_os_release(root, release) + check_greenboot(root) + check_unapplied_update(root)
             + check_trigger_at_shutdown(root) + check_containers_subid(root) + check_subid_wanted(root)
-            + check_no_private_keys(root, note))
+            + check_quadlet_health(root) + check_no_private_keys(root, note))
 
 
 def main(argv=None) -> int:
