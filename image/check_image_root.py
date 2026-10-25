@@ -498,10 +498,10 @@ def _exec_form(line: bytes, value: str) -> bool:
     if not PRINTABLE_LINE.match(line):
         return False
     try:
-        argv = json.loads(value.strip())
+        argv = json.loads(value)
     except ValueError:
         return False
-    return (isinstance(argv, list) and len(argv) > 0 and all(isinstance(a, str) and a for a in argv)
+    return (isinstance(argv, list) and len(argv) > 0 and all(isinstance(a, str) for a in argv)
             and argv[0].startswith("/"))
 
 

@@ -70,7 +70,7 @@
   - a unit folder that is a link, is reached through one, or is not a folder: a finding;
   - a link or a non-regular file inside: a finding (Quadlet follows links; the checker would not see what one reaches on a node);
   - a line ending in `\`, a comment included: a finding (the checker reads one line at a time);
-  - a `HealthCmd=` or `HealthStartupCmd=` line, its key in any case and spaces around `=` allowed: its value, trimmed, must be printable ASCII without tabs, and a JSON array of non-empty strings whose first is an absolute path. Each line is checked, so a later one cannot replace a good one unseen;
+  - a `HealthCmd=` or `HealthStartupCmd=` line, its key in any case and spaces around `=` allowed: its value must be printable ASCII without tabs, and a JSON array of strings whose first is an absolute path (spaces around it are JSON's own). Each line is checked, so a later one cannot replace a good one unseen;
   - a `PodmanArgs=` line whose value names `health` in any case: a finding (set health with the keys above).
   - Comments (`#`, `;`), blank lines and sections are skipped.
 - [x] **Stricter than Podman, on purpose:** `["CMD", …]` and non-ASCII items are exec form to Podman but findings here; `none` and `["NONE"]` need no shell, but a shipped unit has no reason to turn its check off. One form, which this check and Go's JSON reader read alike.
