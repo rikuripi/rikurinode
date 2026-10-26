@@ -6,11 +6,12 @@ security built in, decided 2026-10-18; D18, the lobby zone, D19, remote
 and expert access, an amendment to F3 (D16) in ADR 0012, D20, Nix-built
 images as one experiment, and D21, the runbook executor, proposed and
 decided 2026-10-20; D22, the boot-cause record and UPS support in stage 1,
-decided 2026-10-21.** D13 and D14 were clarified, not changed, on
+decided 2026-10-21; D23, the frontend's stack, decided 2026-10-25.** D13
+and D14 were clarified, not changed, on
 2026-10-21 (ADR 0007, "Clarification (2026-10-21)";
 `docs/build-records/2026-10-21-adr-0007-clarification-rootless-and-pods.md`).
-Of its twenty-two owner decisions
-(§7), twenty are taken — D2, Podman with Quadlet; D3, Rust; D5, rootless
+Of its twenty-three owner decisions
+(§7), twenty-one are taken — D2, Podman with Quadlet; D3, Rust; D5, rootless
 with an ID range per container, superseded by D13, rootful with an ID range
 per container; D6 and D7, the OS image public on GitHub's registry and signed
 by a key in CI with an offline spare; D8, CI minutes; D9, Fedora's DNS boot
@@ -21,9 +22,12 @@ learning, cloud, models and voice; D17, security built in: the threat
 model, a security slice per stage, the advisory intake loop and AISecurity
 as a pinned dependency; D18 to D21, the lobby zone, remote and expert
 access, Nix-built images as one experiment and the runbook executor; D22,
-the boot-cause record and UPS support in stage 1
+the boot-cause record and UPS support in stage 1; D23, the frontend's
+stack: Svelte with Vite, Lightweight Charts, server-sent events, ts-rs and
+the UI embedded in the control plane's binary
 (ADRs 0001 to 0014,
 `docs/build-records/2026-10-21-boot-cause-and-ups.md` for D22,
+`docs/build-records/2026-10-25-d23-frontend-stack.md` for D23,
 `docs/build-records/2026-10-17-plan-review.md`,
 `docs/build-records/2026-10-18-assistant-plan.md` and
 `docs/build-records/2026-10-18-security-plan.md` and
@@ -31,7 +35,7 @@ the boot-cause record and UPS support in stage 1
 recorded in §7 only) — and two are open (D1, the
 Pi 5; D4, the first mainnet amount); nothing that depends on an open one is
 built. Facts about outside software were checked on 2026-10-11,
-2026-10-17, 2026-10-18, 2026-10-20 and 2026-10-21 and carry their source (§9); re-check them before acting on them.
+2026-10-17, 2026-10-18, 2026-10-20, 2026-10-21 and 2026-10-25 and carry their source (§9); re-check them before acting on them.
 
 ## In one page
 
@@ -370,6 +374,7 @@ and the backend refuses to run against a version it was not tested with.
 | D20 | How the service images are built (stage 2; §4.2) | **One experiment on bitcoind first: an image built by Nix from nothing**, holding only the program, its runtime closure and one exec-form probe, contents listed by `nix path-info -r` and refused if they hold a shell, package manager, coreutils or curl; nixpkgs pinned by commit; Nix as a build tool only, never on the node; kept for every image only if all of ADR 0013's criteria hold (contents, the stage 2 drills, health without a shell, bound to the image, provenance under §4.2, repeatable builds, cost, the adoption inspection); costs: a second toolchain for one maintainer, no `exec` into a container, and patching an upstream binary to run from nothing changes the bytes its signature covered. **Fallback: a Containerfile from `scratch`** with the binary, the probe and the same contents check; costs: no automatic closure listing. **Shell-bearing base images:** a shell and a package manager in every container. | **Decided: the experiment** (owner, 2026-10-20; ADR 0013; same record); Nix itself only if the experiment keeps |
 | D21 | How the control plane repairs (stages 2 to 7; ADR 0005) | **Typed Rust runbooks over a closed action enum, compiled into the image:** each with an issue type, a precheck, one action, a validate probe, an undo, a budget and a tier; every action one call through systemd, Tor's control port or the root helper, never a shell (`std::process::Command` banned by clippy, a control change still to make); attempts recorded before acting and budgeted (HEAL-03); tier 4 effects (moving funds, deleting or restoring channel data, downgrading LND, disabling SELinux, the firewall or signature checks) not expressible; read-only credentials only; costs: a runbook change is a release, not a fix on a node. **Runbooks as YAML or TOML data:** gives up the compiler's exhaustive check and needs its own validator (HEAL-04). **Shell scripts or a generic command action with an allowlist:** EXEC-01, EXEC-04, AI-02. | **Decided** (owner, 2026-10-20; ADR 0014; same record) |
 | D22 | Why the node restarted, and a UPS (§4.1) | **Both in stage 1, beside the rollback they protect:** the boot-cause record, its rollback rule and UPS support built and drilled with stage 1's rollback; costs: a larger stage 1; more code on the rollback path; a UPS service in the image (run as root, reading a new USB device); only the UPS models at hand can be drilled. **The boot-cause record in stage 1, the UPS later:** costs: until then every power cut is an unclean stop. **Both later:** costs: stage 1's drill cannot tell a power cut from a failed update, and greenboot's open reports (§2) show where that leads. | **Decided: both in stage 1** (owner, 2026-10-21, "can we just include boot-cause rule and UPS support as stage one? If they are all about reboot and rollback."; `docs/build-records/2026-10-21-boot-cause-and-ups.md`); no update applied on battery (owner, 2026-10-21, option B of the same record) |
+| D23 | The frontend's stack, inside D15's shape (stages 1 and 8) | **Framework: Svelte with plain Vite**, no SvelteKit (Svelte's own guide describes this setup); chosen for a smaller dependency tree, which the first UI slice measures; costs: fewer ready-made libraries than React, and a router to choose (the guide says one is likely needed). **React with Vite:** more ready-made libraries; costs: a larger set of packages to inspect and pin. **Charts: TradingView's Lightweight Charts**, loaded only on the pages that draw charts; Apache-2.0, which "requires specifying TradingView as the product creator": the attribution notice from its NOTICE file and a link to TradingView on a page users can reach, the link met by its `attributionLogo` option. **Live data: server-sent events**, one pipe from the control plane for sync progress, service status and the assistant's streamed replies, under four rules: (1) one stream per browser, carrying every topic and shared by its open tabs, since without HTTP/2 a browser holds at most six connections to one site across all its tabs and the control plane serves HTTP/1.1; costs: the sharing between tabs is code to write and test; (2) authenticated by the session cookie on the same origin, never by a token in the URL (an EventSource cannot send an `Authorization` header); (3) resumed after a reconnect with `Last-Event-ID`; (4) a dropped stream turns every value it fed to stale in the UI, never left showing its last value (EVID-04). **Polling:** costs: a request per gauge per interval, and staleness hidden between polls. **WebSockets:** costs: a second protocol, and authentication and reconnection written by hand. **Types: ts-rs**, a derive on the Rust types the API sends; `cargo test` writes the TypeScript files and CI fails when they differ from the committed ones, so a renamed field fails the pull request; it reads serde's attributes; MIT; no npm package; its README adds it as an ordinary dependency, so the UI slice keeps it out of the shipped binary (a dev-dependency, the derive under `cfg_attr(test, ...)`) and shows the binary's dependency tree without it, or reports that it cannot; costs: types only, so a short hand-written module maps routes to them. **specta:** the same idea; costs: its 2.0 has been in release candidates since 2023-07-17. **utoipa and OpenAPI:** a full description of routes and types; costs: a second generator to turn that description into TypeScript, and an annotation on every route, worth it only if outside programs call the API, which none does. **Serving: the built UI embedded in the control plane's binary**, served from a fixed table of files: the UI and the backend cannot be out of step, no path from a request reaches the disk, and since every script is one of the embedded files the CSP's `script-src` needs no inline script and no outside origin; the embedding crate must embed in every build, tests included, and is chosen after AGENTS.md §2's inspection; costs: a UI change needs a new binary, so it reaches a node only in a release (D12). **Files in the image beside the binary:** the same rollback (D12); costs: a directory served from disk, and a binary and a UI that a fault could pair wrongly. **No Python on the node or in the UI's build:** nothing in this plan, the assistant plan or the ADRs needs it (the engine is llama.cpp's server, ADR 0008; the action templates are stage 7's Rust; the repository's quality tools are Python and stay so); a need for it later is its own decision. | **Decided** (owner, 2026-10-25, "Svelte is fine with plain Vite. Keep Lightweight Charts as is. Ok with Server-sent events with those 4 rules." and "Embedding: whichever is more secure or reliable."; ts-rs on this plan's recommendation, "Yes. [...] ts-rs for the types [...] no Python"; `docs/build-records/2026-10-25-d23-frontend-stack.md`). Every package still gets AGENTS.md §2's inspection when the UI slice adds it |
 
 Later, with their stage: how LND's wallet is unlocked after a reboot (a
 password stored on the node, or the owner unlocking it in the app — gap G9;
@@ -457,3 +462,12 @@ Read 2026-10-21, for D22 and §2's greenboot row
 (`docs/build-records/2026-10-21-boot-cause-and-ups.md`):
 
 - greenboot: [rollback trigger never runs at shutdown](https://github.com/fedora-iot/greenboot-rs/issues/218); [a healthy host rolled back when finalize-staged fails](https://github.com/fedora-iot/greenboot-rs/issues/219); [boot counter on md RAID1](https://github.com/fedora-iot/greenboot-rs/issues/220); [a fix proposed for #217, a pull request](https://github.com/fedora-iot/greenboot-rs/pull/221); [default health checks and bootc](https://github.com/fedora-iot/greenboot-rs/issues/212); [releases](https://github.com/fedora-iot/greenboot-rs/releases) (v0.16.4, 2026-08-18); [the rollback trigger unit at v0.16.4](https://github.com/fedora-iot/greenboot-rs/blob/v0.16.4/usr/lib/systemd/system/greenboot-set-rollback-trigger.service); [ostree's finalize-staged unit](https://github.com/ostreedev/ostree/blob/main/src/boot/ostree-finalize-staged.service) (`Conflicts=final.target`).
+
+Read 2026-10-25, for D23
+(`docs/build-records/2026-10-25-d23-frontend-stack.md`):
+
+- ts-rs: [README](https://github.com/Aleph-Alpha/ts-rs) (`#[ts(export)]` "generates a test which writes the bindings"; `serde-compat` "enabled by default"; MIT; its Get started adds it under `[dependencies]`); [crates.io](https://crates.io/crates/ts-rs) (12.0.1, 2026-01-31).
+- specta: [crates.io](https://crates.io/crates/specta) (newest stable 1.0.5, 2023-07-17; 2.0.0-rc.1 the same day; rc.27 on 2026-10-21).
+- Lightweight Charts: [README, License](https://github.com/tradingview/lightweight-charts) (Apache-2.0; "requires specifying TradingView as the product creator"; the NOTICE file's attribution notice and a link to TradingView; the `attributionLogo` option meets the link requirement).
+- Svelte: [Getting started](https://svelte.dev/docs/svelte/getting-started) (Svelte "directly with Vite via vite-plugin-svelte"; a routing library likely needed).
+- Server-sent events: [MDN, EventSource](https://developer.mozilla.org/en-US/docs/Web/API/EventSource) (without HTTP/2, six connections "per browser + domain", "across all of the tabs"; the constructor's one option is credentials mode); [WHATWG HTML](https://html.spec.whatwg.org/multipage/server-sent-events.html) (`Last-Event-ID` on reconnection).
