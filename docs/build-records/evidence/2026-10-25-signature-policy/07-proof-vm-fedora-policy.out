@@ -1,0 +1,11 @@
+2
+rc=1
+| 1 | signed by the main key | accepted | accepted | PASS |
+| 2 | signed by the spare key | accepted | accepted | PASS |
+| 3 | signed by the main key, read by digest | accepted | accepted | PASS |
+| 4 | unsigned | refused: A signature was required, but no signature exists | accepted | MISS: accepted; expected a refusal (A signature was required, but no signature exists) |
+| 5 | signed by a key the node does not trust | refused: cryptographic signature verification failed | accepted | MISS: accepted; expected a refusal (cryptographic signature verification failed) |
+| 6 | signed by the main key as another repository | refused: Signature for identity | accepted | MISS: accepted; expected a refusal (Signature for identity) |
+| 7 | carrying another image's valid signature | refused: Signature for digest | accepted | MISS: accepted; expected a refusal (Signature for digest) |
+| 8 | another repository, unsigned (outside the policy's scope) | accepted | accepted | PASS |
+4 of 8 cases as expected

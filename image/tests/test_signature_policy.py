@@ -124,7 +124,7 @@ class Argv(unittest.TestCase):
         self.assertNotIn("--insecure-policy", argv)
         for n, a in enumerate(argv[:i]):
             if a == "-v":
-                self.assertTrue(argv[n + 1].endswith(":ro"), argv[n + 1])
+                self.assertIn("ro", argv[n + 1].rsplit(":", 1)[1].split(","), argv[n + 1])
 
     def test_cosign_signs_in_the_older_format_by_digest_without_a_log(self):
         argv = sp.sign_argv("/t/cosign", "/w/main.key", sp.IMAGE_REPO + ":main", sp.LOCAL_REPO + "@sha256:" + "a" * 64)

@@ -6,9 +6,12 @@ name: OS image
 # this machine never build it: the image exists only here.
 # The drill job boots the image in a KVM VM and runs the rollback drill (stage 1
 # changes 3 and 4; image/drill/vm_drill.py): on image changes and weekly
-# (owner, 2026-10-12). Not yet: signing and publishing (change 2).
+# (owner, 2026-10-12). The build job also proves the node's signature policy on
+# the built image, with throwaway keys (change 2a; image/drill/signature_policy.py).
+# Not yet: publishing and signing with the real key (change 2b).
 # Records: docs/build-records/2026-10-12-stage1-os-image.md,
-# docs/build-records/2026-10-22-ci-vm-drill.md
+# docs/build-records/2026-10-22-ci-vm-drill.md,
+# docs/build-records/2026-10-25-signature-policy.md
 
 on:
   # Every pull request starts the workflow, so its jobs can be required checks;
@@ -35,6 +38,12 @@ env:
   # The release image/Containerfile's base must be; the check fails otherwise.
   FEDORA_RELEASE: "44"
   IMAGE: localhost/rikuri-os:ci
+  # The signature proof's tools: release binaries, checked against these SHA-256
+  # (GitHub's release asset digests, read 2026-10-28). Apache-2.0 both.
+  COSIGN_VERSION: v3.1.4
+  COSIGN_SHA256: 424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa
+  REGISTRY_VERSION: 3.1.2
+  REGISTRY_SHA256: 40df2224d410f72ae425c3371873b078bbdbda3b8b612be9571f0e6751f3acc8
 
 jobs:
   changes:
@@ -98,6 +107,23 @@ jobs:
           root="$(sudo podman image mount "$IMAGE")"
           sudo python3 image/check_image_root.py "$root" --fedora "$FEDORA_RELEASE"
           sudo podman image unmount "$IMAGE"
+      - name: Fetch the signature proof's tools (cosign, a registry; pinned by SHA-256)
+        run: |
+          mkdir "$RUNNER_TEMP/sig-tools"
+          cd "$RUNNER_TEMP/sig-tools"
+          curl -fsSL --retry 3 -o cosign \
+            "https://github.com/sigstore/cosign/releases/download/$COSIGN_VERSION/cosign-linux-amd64"
+          curl -fsSL --retry 3 -o registry.tar.gz \
+            "https://github.com/distribution/distribution/releases/download/v$REGISTRY_VERSION/registry_${REGISTRY_VERSION}_linux_amd64.tar.gz"
+          printf '%s  cosign\n%s  registry.tar.gz\n' "$COSIGN_SHA256" "$REGISTRY_SHA256" | sha256sum -c -
+          tar xzf registry.tar.gz registry
+          chmod +x cosign registry
+          echo "### Signature proof's tools: cosign $COSIGN_VERSION, registry $REGISTRY_VERSION (SHA-256 checked)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Prove the signature policy (the image's own skopeo and policy; throwaway keys, a registry on 127.0.0.1)
+        run: |
+          python3 -I image/drill/signature_policy.py --image "$IMAGE" \
+            --cosign "$RUNNER_TEMP/sig-tools/cosign" --registry "$RUNNER_TEMP/sig-tools/registry" \
+            --workdir "$RUNNER_TEMP/sig-proof"
       - name: Record what was built
         if: always()
         run: |
