@@ -48,6 +48,9 @@ class PassRule(unittest.TestCase):
     def test_the_reason_must_come_from_the_policy(self):
         # The reason's text alone, without containers/image's "Source image rejected", is not enough.
         self.assertIn("another reason", sp.miss(1, sp.NO_SIGNATURE, sp.NO_SIGNATURE))
+        # Nor the reason before it: only what containers/image says it rejected for counts
+        # (verifier pass 1, nit 2).
+        self.assertIn("another reason", sp.miss(1, sp.NO_SIGNATURE + "\n" + REJECTED + sp.BAD_SIGNATURE, sp.NO_SIGNATURE))
 
 
 class Cases(unittest.TestCase):

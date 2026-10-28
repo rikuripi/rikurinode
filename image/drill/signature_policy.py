@@ -85,6 +85,18 @@ def miss(returncode: int, output: str, expect):
     return "refused for another reason: " + last
 
 
+def registry_env(environ) -> dict:
+    """The environment without REGISTRY_*: the registry reads each as a config
+    override (CI run 40776852353, evidence 08)."""
+    return {k: v for k, v in environ.items() if not k.startswith("REGISTRY_")}
+
+
+def registry_failure(returncode, log: str) -> str:
+    """Why the proof stops when the registry did not answer: its exit and its log."""
+    state = "exit %d" % returncode if returncode is not None else "still running, not answering"
+    return "signature_policy: the registry did not start (%s); its log:\n%s" % (state, log.strip() or "(empty)")
+
+
 def ci_registries_d(shipped: str) -> str:
     """The shipped registries.d file, with the local registry's name for the image's."""
     if shipped.count(IMAGE_REPO + ":") != 1:
@@ -144,8 +156,9 @@ def main(argv=None) -> int:
     with open(os.path.join(w, "reg.yml"), "w") as f:
         f.write("version: 0.1\nstorage:\n  filesystem:\n    rootdirectory: %s/reg\nhttp:\n  addr: %s\n"
                 "log:\n  level: error\n" % (w, REG))
-    registry = subprocess.Popen([args.registry, "serve", os.path.join(w, "reg.yml")],
-                                stdout=open(os.path.join(w, "registry.log"), "w"), stderr=subprocess.STDOUT)
+    log = os.path.join(w, "registry.log")
+    registry = subprocess.Popen([args.registry, "serve", os.path.join(w, "reg.yml")], env=registry_env(os.environ),
+                                stdout=open(log, "w"), stderr=subprocess.STDOUT)
     pushed = []
     try:
         for _ in range(100):
@@ -155,7 +168,8 @@ def main(argv=None) -> int:
             except OSError:
                 time.sleep(0.2)
         else:
-            sys.exit("signature_policy: the registry did not start (%s/registry.log)" % w)
+            with open(log) as f:
+                sys.exit(registry_failure(registry.poll(), f.read()))
         env = dict(os.environ, COSIGN_PASSWORD="")
         for k in sorted({c.key for c in CASES if c.key} | set(KEYS)):
             must([args.cosign, "generate-key-pair", "--output-key-prefix", os.path.join(w, k)], env=env)

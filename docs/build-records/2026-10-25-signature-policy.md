@@ -62,7 +62,7 @@
     - `etc/containers/policy.json`: Fedora's own policy (`insecureAcceptAnything` by default, `docker-daemon` as Fedora has it) plus one scope, `ghcr.io/rikuripi/rikurinode`: `sigstoreSigned`, `keyPaths` the two keys, `signedIdentity` `matchRepository`. Every other image is as Fedora has it (ADR 0004, D7: "only for this image").
     - `etc/containers/registries.d/rikuri.yaml`: `use-sigstore-attachments: true` for the scope.
     - `usr/share/rikuri/signing/rikuri-main.pub` and `rikuri-spare.pub`, the owner's. The keys live under `/usr`, which only an image changes, so a key can be replaced by an update; the policy lives in `/etc`, where a node that never edited it takes each image's copy by the `/etc` merge (probe 1).
-  - **The checker** (`check_signature_policy`, in `check_root`): the policy parsed as JSON with no key twice, equal to `POLICY_EXPECTED` (so case-blind duplicates such as `Default`, a second requirement, any other scope, transport, key path or identity rule are findings); the registries.d file exactly its three lines, comments in column 0 and blank lines aside, in printable ASCII (YAML may read NEL as a line break); no other file in `registries.d` naming `rikuripi` (containers/image fails every pull of a scope two files configure), and no link there; the keys by SHA-256, pinned to the fingerprints above; and no `.config/containers` under `var/roothome` or a real `root`, and `root` a link only to `var/roothome`.
+  - **The checker** (`check_signature_policy`, in `check_root`): the policy parsed as JSON with no key twice, equal to `POLICY_EXPECTED` (so an unknown key such as `Default`, which containers/image would refuse, a second requirement, any other scope, transport, key path or identity rule are findings); the registries.d file exactly its three lines, comments in column 0 and blank lines aside, in printable ASCII (YAML may read NEL as a line break); no other file in `registries.d` naming `rikuripi` (containers/image fails every pull of a scope two files configure), and no link there; the keys by SHA-256, pinned to the fingerprints above; and no `.config/containers` under `var/roothome` or a real `root`, and `root` a link only to `var/roothome`.
   - **The CI proof** (`image/drill/signature_policy.py`, in the build job after the checker, on the image just built): the registry's and cosign's release binaries, checked by SHA-256; throwaway keys; tiny test images, each with its own content; cosign signs by digest in the older format, with no transparency log. The image's own skopeo, under the image's own `policy.json` and `rikuri.yaml`, reads each case as `ghcr.io/rikuripi/rikurinode`. Into its container go only, read-only: the two throwaway public keys over the owner's (the policy's key paths stay), a `registries.conf.d` prefix rewrite to the local registry (never a mirror, which would fall back to ghcr.io), and the shipped `rikuri.yaml` with the local registry's name, made from the image's own file. A refusal passes only with containers/image's "Source image rejected:" and the case's own reason; any other failure is a miss.
   - **Rejected:**
     - a registry container image: distribution's release binary needs no digest of an image from Docker Hub, and the job already downloads from GitHub;
@@ -93,6 +93,38 @@ All test runs were in `rikuri-drill` (`safe-run.sh` refuses on macOS; the CI gat
 - **The VM after:** this task's test images, folders and throwaway keys removed; earlier tasks' images left as they were.
 - **Knowledge layer:** nothing a user sees changes until 2b publishes; no help page or runbook covers updates yet, and the README's status stays as it is.
 - **CI:** (to fill: the pull request's runs.)
+
+### Verifier pass 1 and repair cycle 1 (2026-10-28)
+
+- **CI, first run** (run 40776852353 at `dc83b1f`): `Full gate (Ubuntu)` passed; the build job's checker passed on the built image (`check_image_root: 0 finding(s)`); the proof failed: "signature_policy: the registry did not start (…/registry.log)", nothing more.
+- **Verifier pass 1: FAIL**, one Important finding.
+  - **I1:** the proof fails on the pull request, and its cause is not captured (the wait never polls the registry, and its log is not printed).
+  - **Minor:**
+    - **M1:** the policy keeps Fedora's `insecureAcceptAnything` default, which bootc's `--enforce-container-sigpolicy` and `ostree-image-signed:` refuse (research of 2026-10-12, lines 99 to 102), so a node can use only bootc's unverified path, whose use of the scoped policy is not yet confirmed;
+    - **M2:** the policy applies only when the node tracks exactly `ghcr.io/rikuripi/rikurinode`.
+  - **Nits:**
+    1. the registries.d search for `rikuripi` misses a YAML-escaped name, and a folder named `*.yaml`: both fail closed;
+    2. six surviving verifier mutants, each judged equivalent; one, `miss()` taking the reason anywhere in the output, is in the proof's refusal rule;
+    3. two imprecise test names;
+    4. `sha256sum -c` without `--strict`;
+    5. the tools trusted through GitHub's asset digests only.
+- **Cause, reproduced** (`08-registry-env-repro.out`, `rikuri-drill`): the workflow's `REGISTRY_VERSION: 3.1.2` reached the registry, which reads every `REGISTRY_*` variable as a config override: "parsing environment variable REGISTRY_VERSION: strconv.ParseUint: parsing \"1.2\": invalid syntax", exit 1. Without it, the registry serves. The VM run (06) had no such variable.
+- **Red** (repair 1): three tests in `test_signature_policy.py`, `Registry`: the registry's environment has no `REGISTRY_*`; a failed start reports its exit and its log; the workflow names no `REGISTRY_*` variable. `FAILED (failures=1, errors=2)` in `rikuri-drill`.
+- **Fix** (repair 1):
+  - `registry_env()` starts the registry without any `REGISTRY_*` variable;
+  - `registry_failure()` reports its exit code (or that it is still running) and its log;
+  - the workflow's pins are renamed `DISTRIBUTION_VERSION` and `DISTRIBUTION_SHA256`.
+  - Also, from the verifier's points:
+    - a test that a reason before "Source image rejected:" does not count (nit 2's `miss()` mutant now fails; a stronger test);
+    - `sha256sum --strict` (nit 4);
+    - the two test names corrected (nit 3), and the design's wording here.
+- **Left as they are, with reasons:**
+  - nit 1: both cases fail closed, and refusing every registries.d file but Fedora's own would tie the checker to Fedora's file names;
+  - nit 2's other five mutants: equivalent, as the verifier found;
+  - nit 5: release signatures and provenance for CI-only tools, a backlog item.
+- **For 2c, recorded now (M1, M2):**
+  - 2c's drill must show whether bootc's default path applies the scoped policy to an update from `ghcr.io/rikuripi/rikurinode`, and that `bootc status` names exactly that reference.
+  - If it does not apply it, the remedy is a stricter default (`reject`, with exceptions for local storage and the images the node runs), a behaviour-changing default and the owner's choice.
 
 ## Owner steps (2026-10-25, given to the owner; private keys never enter this session)
 

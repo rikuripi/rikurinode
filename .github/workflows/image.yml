@@ -39,11 +39,12 @@ env:
   FEDORA_RELEASE: "44"
   IMAGE: localhost/rikuri-os:ci
   # The signature proof's tools: release binaries, checked against these SHA-256
-  # (GitHub's release asset digests, read 2026-10-28). Apache-2.0 both.
+  # (GitHub's release asset digests, read 2026-10-28). Apache-2.0 both. Never a
+  # REGISTRY_* name: the registry reads those as config (CI run 40776852353).
   COSIGN_VERSION: v3.1.4
   COSIGN_SHA256: 424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa
-  REGISTRY_VERSION: 3.1.2
-  REGISTRY_SHA256: 40df2224d410f72ae425c3371873b078bbdbda3b8b612be9571f0e6751f3acc8
+  DISTRIBUTION_VERSION: 3.1.2
+  DISTRIBUTION_SHA256: 40df2224d410f72ae425c3371873b078bbdbda3b8b612be9571f0e6751f3acc8
 
 jobs:
   changes:
@@ -114,11 +115,11 @@ jobs:
           curl -fsSL --retry 3 -o cosign \
             "https://github.com/sigstore/cosign/releases/download/$COSIGN_VERSION/cosign-linux-amd64"
           curl -fsSL --retry 3 -o registry.tar.gz \
-            "https://github.com/distribution/distribution/releases/download/v$REGISTRY_VERSION/registry_${REGISTRY_VERSION}_linux_amd64.tar.gz"
-          printf '%s  cosign\n%s  registry.tar.gz\n' "$COSIGN_SHA256" "$REGISTRY_SHA256" | sha256sum -c -
+            "https://github.com/distribution/distribution/releases/download/v$DISTRIBUTION_VERSION/registry_${DISTRIBUTION_VERSION}_linux_amd64.tar.gz"
+          printf '%s  cosign\n%s  registry.tar.gz\n' "$COSIGN_SHA256" "$DISTRIBUTION_SHA256" | sha256sum --strict -c -
           tar xzf registry.tar.gz registry
           chmod +x cosign registry
-          echo "### Signature proof's tools: cosign $COSIGN_VERSION, registry $REGISTRY_VERSION (SHA-256 checked)" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Signature proof's tools: cosign $COSIGN_VERSION, registry $DISTRIBUTION_VERSION (SHA-256 checked)" >> "$GITHUB_STEP_SUMMARY"
       - name: Prove the signature policy (the image's own skopeo and policy; throwaway keys, a registry on 127.0.0.1)
         run: |
           python3 -I image/drill/signature_policy.py --image "$IMAGE" \
