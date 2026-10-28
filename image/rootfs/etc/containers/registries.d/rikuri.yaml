@@ -1,0 +1,6 @@
+# The node's OS image is signed with cosign; containers/image finds the
+# signature as a sigstore attachment next to the image in the registry.
+# Record: docs/build-records/2026-10-25-signature-policy.md
+docker:
+  ghcr.io/rikuripi/rikurinode:
+    use-sigstore-attachments: true
