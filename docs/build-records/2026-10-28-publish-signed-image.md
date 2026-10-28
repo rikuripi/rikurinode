@@ -91,8 +91,6 @@
 ## Evidence log
 
 - **Probe 5:** as in 0b. tar's clock-skew warnings (the VM's clock) are left out of `01-probe.out`.
-
-## Owner steps (after the merge)
 - **Red** (`rikuri-drill`): `image/tests/test_publish.py` fails to import the missing `publish`; `scripts/quality/tests/test_workflows.py` ran 21 tests, `FAILED (errors=10)`, the ten new `Publish` tests (no `publish.yml`). The 11 existing tests pass. The module's docstring names the new tests.
 - **Green** (`rikuri-drill`, on the fix commit): `image/tests`, 259 tests, OK (`test_publish.py`, 13); `scripts/quality/tests/test_workflows.py`, 21 tests, OK; `test_osv_audit.py` OK (it audits every `uses:`, `publish.yml`'s included). The quality suite's other tests need git and `.claude/`, which the VM copy lacks; CI's gate runs them. `publish.py tag` by hand: attempt 1 printed `44.20261028.3`; attempt 2 refused, exit 1.
 - **Mutants** (`02-mutants.py`, `02-mutants.out`): seventeen, each weakening one rule of `publish.py` (m1 to m8) or `publish.yml` (m9 to m17). Each is KILLED by a failing test, and both suites pass once restored. A first run counted every workflow mutant as killed because `-m unittest <path>` could not import the test file. The script now runs the file directly, and counts a kill only when the tests ran.
@@ -101,6 +99,8 @@
   - `.github/workflows/image.yml`: one comment line.
   - No gate, check or test was removed or loosened.
 - **Knowledge layer:** `docs/runbooks/publish-os-image.md` (new; the owner's steps, the package made public, what to do when a job fails); ADR 0004's clarification; README's status. A node user sees nothing new: no node follows a fixed name.
+
+## Owner steps (after the merge)
 
 1. Merge the pull request once CI is green.
 2. Start one publish (`docs/runbooks/publish-os-image.md`, "Publish").
