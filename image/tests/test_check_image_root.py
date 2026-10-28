@@ -31,6 +31,12 @@ SUBID_UNIT = "usr/lib/systemd/system/rikuri-containers-subid.service"
 SUBID_WANTS = "usr/lib/systemd/system/sysinit.target.wants/rikuri-containers-subid.service"
 # greenboot's wanted check of it (docs/build-records/2026-10-24-greenboot-subid-wanted.md).
 SUBID_WANTED = "usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid"
+# The signature policy for the node's OS image (docs/build-records/2026-10-25-signature-policy.md).
+POLICY = "etc/containers/policy.json"
+REGISTRIES_D_FILE = "etc/containers/registries.d/rikuri.yaml"
+MAIN_PUB = "usr/share/rikuri/signing/rikuri-main.pub"
+SPARE_PUB = "usr/share/rikuri/signing/rikuri-spare.pub"
+SIGNATURE_FILES = (POLICY, REGISTRIES_D_FILE, MAIN_PUB, SPARE_PUB)
 
 
 def shipped_file(rel) -> bytes:
@@ -127,6 +133,8 @@ class Root:
             self.link(SUBID_WANTS, "../rikuri-containers-subid.service")
         if os.path.exists(os.path.join(HERE, "..", "rootfs", SUBID_WANTED)):
             self.write_bytes(SUBID_WANTED, shipped_file(SUBID_WANTED), mode=0o755)
+        for rel in SIGNATURE_FILES:
+            self.write_bytes(rel, shipped_file(rel))
         self.write("etc/ssh/sshd_config", "PermitRootLogin no\n")
 
     def _fresh(self, rel):
@@ -196,7 +204,7 @@ class CheckImageRoot(unittest.TestCase):
             self.assertEqual(cir.main([os.path.join(self.root.path, "nope"), "--fedora", "44"]), 2)
         self.assertIn("FAIL usr/lib/os-release: VERSION_ID is '44', expected '45'", out.getvalue())
         # F3: the scan says what it read, so an empty scan is visible in the CI log.
-        self.assertIn("scan etc: 2 file(s) read", out.getvalue())
+        self.assertIn("scan etc: 4 file(s) read", out.getvalue())
 
     # --- the release ---------------------------------------------------------
     def test_wrong_release(self):
@@ -788,7 +796,7 @@ class CheckImageRoot(unittest.TestCase):
         found, notes = self.root.check_with_notes()
         self.assertEqual(found, [])
         self.assertEqual([n.split(":")[0] for n in notes], ["scan " + t for t in cir.SECRET_DIRS])
-        self.assertIn("scan etc: 2 file(s) read", notes)
+        self.assertIn("scan etc: 4 file(s) read", notes)
         self.assertIn("scan var: skipped (absent)", notes)
 
     def test_etc_without_a_regular_file_is_a_finding(self):
@@ -973,6 +981,190 @@ class QuadletHealth(unittest.TestCase):
     def test_a_unit_folder_that_is_a_file_is_a_finding(self):
         self.root.write("usr/share/containers/systemd", "not a folder\n")
         self.assertFinds("usr/share/containers/systemd: not a folder", self.problems())
+
+
+# Fedora IoT 44's own file (evidence 2026-10-25-signature-policy/01-probe.out): any image, signed or not.
+FEDORA_POLICY = """{
+    "default": [
+        {
+            "type": "insecureAcceptAnything"
+        }
+    ],
+    "transports":
+        {
+            "docker-daemon":
+                {
+                    "": [{"type":"insecureAcceptAnything"}]
+                }
+        }
+}
+"""
+
+
+class SignaturePolicy(unittest.TestCase):
+    """The node refuses an OS image this project did not sign: the policy, the
+    registries.d file that makes containers/image look for the signature, and the
+    two public keys, exactly as shipped (docs/build-records/2026-10-25-signature-policy.md;
+    the policy's behaviour probed in evidence 03 and 04, and proven in CI)."""
+
+    setUp = CheckImageRoot.setUp
+    assertFinds = CheckImageRoot.assertFinds
+
+    def problems(self):
+        return cir.check_signature_policy(self.root.path)
+
+    def policy_text(self):
+        return shipped_file(POLICY).decode("ascii")
+
+    def test_the_shipped_files_pass(self):
+        self.assertEqual(self.problems(), [])
+
+    def test_the_check_runs_on_the_image(self):
+        self.root.write(POLICY, FEDORA_POLICY)
+        self.assertFinds(POLICY + ": not the signature policy")
+
+    def test_each_file_missing_is_a_finding(self):
+        for rel in SIGNATURE_FILES:
+            with self.subTest(rel=rel):
+                self.root.remove(rel)
+                try:
+                    self.assertFinds(rel + ": missing, or not a regular file", self.problems())
+                finally:
+                    self.root.write_bytes(rel, shipped_file(rel))
+
+    def test_each_file_as_a_link_does_not_count(self):
+        for rel in SIGNATURE_FILES:
+            with self.subTest(rel=rel):
+                copy = rel + ".real"
+                self.root.write_bytes(copy, shipped_file(rel))
+                self.root.link(rel, os.path.basename(copy))
+                try:
+                    self.assertFinds(rel + ": missing, or not a regular file", self.problems())
+                finally:
+                    self.root.remove(copy)
+                    self.root.write_bytes(rel, shipped_file(rel))
+
+    def test_fedoras_default_policy_is_a_finding(self):
+        self.root.write(POLICY, FEDORA_POLICY)
+        self.assertFinds(POLICY + ": not the signature policy", self.problems())
+
+    def test_every_change_to_the_policy_is_a_finding(self):
+        s = self.policy_text()
+        mutants = {
+            "the spare key dropped": s.replace(',\n                        "/usr/share/rikuri/signing/rikuri-spare.pub"', ""),
+            "another key path": s.replace("rikuri-spare.pub", "rikuri-other.pub"),
+            "a wider scope": s.replace('"ghcr.io/rikuripi/rikurinode"', '"ghcr.io/rikuripi"'),
+            "another scope": s.replace("ghcr.io/rikuripi/rikurinode", "ghcr.io/rikuripi/rikurinod"),
+            "accept anything for the image": s.replace('"type": "sigstoreSigned"', '"type": "insecureAcceptAnything"'),
+            "signedBy (GPG) instead": s.replace("sigstoreSigned", "signedBy"),
+            "another identity rule": s.replace("matchRepository", "matchRepoDigestOrExact"),
+            "a reject default": s.replace('"insecureAcceptAnything"\n        }\n    ],', '"reject"\n        }\n    ],', 1),
+            "a second key, Default (containers/image refuses an unknown key)": s.replace('    "default"', '    "Default": [{"type": "insecureAcceptAnything"}],\n    "default"', 1),
+            "default twice": s.replace('    "transports"', '    "default": [{"type": "insecureAcceptAnything"}],\n    "transports"', 1),
+            "a second requirement": s.replace('            ]\n        },\n        "docker-daemon"',
+                                              '            , {"type": "insecureAcceptAnything"}]\n        },\n        "docker-daemon"', 1),
+            "another transport": s.replace('"docker-daemon"', '"oci"'),
+            "not JSON": s + "}",
+            "a byte-order mark": "\ufeff" + s,
+            "a byte outside printable ASCII": s.replace("matchRepository", "matchRepository\u00a0"),
+        }
+        for name, text in mutants.items():
+            with self.subTest(mutant=name):
+                self.assertNotEqual(text, s)
+                self.root.write(POLICY, text)
+                self.assertFinds(POLICY + ": ", self.problems())
+
+    def test_whitespace_and_order_are_free(self):
+        import json
+        data = json.loads(self.policy_text())
+        self.root.write(POLICY, json.dumps(dict(reversed(list(data.items())))))
+        self.assertEqual(self.problems(), [])
+
+    def test_every_change_to_the_registries_d_file_is_a_finding(self):
+        s = shipped_file(REGISTRIES_D_FILE).decode("ascii")
+        mutants = {
+            "attachments off": s.replace("use-sigstore-attachments: true", "use-sigstore-attachments: false"),
+            "attachments gone": s.replace("    use-sigstore-attachments: true\n", ""),
+            "another scope": s.replace("ghcr.io/rikuripi/rikurinode", "ghcr.io/rikuripi"),
+            "a lookaside too": s + "    lookaside: https://example.invalid/sigstore\n",
+            "default-docker instead": s.replace("docker:\n  ghcr.io/rikuripi/rikurinode:", "default-docker:"),
+            "a tab": s.replace("    use-sigstore", "\tuse-sigstore"),
+            "an indented comment": s + "  # a note\n",
+            "a byte outside printable ASCII": s.replace("true", "true\u00a0"),
+            # YAML may read NEL as a line break, so the comment's tail would be a key.
+            "a NEL in a comment": s + "# note\u0085    lookaside: https://example.invalid/\n",
+        }
+        for name, text in mutants.items():
+            with self.subTest(mutant=name):
+                self.assertNotEqual(text, s)
+                self.root.write(REGISTRIES_D_FILE, text)
+                self.assertFinds(REGISTRIES_D_FILE + ": ", self.problems())
+
+    def test_comments_and_blank_lines_in_the_registries_d_file_are_free(self):
+        s = shipped_file(REGISTRIES_D_FILE).decode("ascii")
+        self.root.write(REGISTRIES_D_FILE, "# another note\n\n" + s + "\n# the end\n")
+        self.assertEqual(self.problems(), [])
+
+    def test_another_registries_d_file_naming_the_image_is_a_finding(self):
+        # containers/image fails every pull of a scope two files configure.
+        self.root.write("etc/containers/registries.d/other.yaml",
+                        "docker:\n  ghcr.io/rikuripi/rikurinode:\n    lookaside: https://example.invalid/\n")
+        self.assertFinds("etc/containers/registries.d/other.yaml: names ghcr.io/rikuripi", self.problems())
+
+    def test_fedoras_own_registries_d_files_are_free(self):
+        self.root.write("etc/containers/registries.d/default.yaml", "default-docker:\n")
+        self.root.write("etc/containers/registries.d/registry.redhat.io.yaml",
+                        "docker:\n     registry.redhat.io:\n         lookaside: https://registry.redhat.io/containers/sigstore\n")
+        self.assertEqual(self.problems(), [])
+
+    def test_a_link_in_the_registries_d_folder_is_a_finding(self):
+        self.root.link("etc/containers/registries.d/linked.yaml", "/elsewhere/linked.yaml")
+        self.assertFinds("etc/containers/registries.d/linked.yaml: a link", self.problems())
+
+    def test_a_changed_key_is_a_finding(self):
+        main, spare = shipped_file(MAIN_PUB), shipped_file(SPARE_PUB)
+        for rel, data in ((MAIN_PUB, spare), (SPARE_PUB, main), (MAIN_PUB, main + b"\n")):
+            with self.subTest(rel=rel, data=data[-8:]):
+                self.root.write_bytes(rel, data)
+                try:
+                    self.assertFinds(rel + ": not the key", self.problems())
+                finally:
+                    self.root.write_bytes(rel, shipped_file(rel))
+
+    def test_the_shipped_keys_are_the_owners(self):
+        # The fingerprints in the Build Record (owner steps, 2026-10-28).
+        import hashlib
+        self.assertEqual(hashlib.sha256(shipped_file(MAIN_PUB)).hexdigest(),
+                         "605548bfcc3a4d6f0a85b17ef7ccb8af20507ddbd22d1473b84a769d4a990c0d")
+        self.assertEqual(hashlib.sha256(shipped_file(SPARE_PUB)).hexdigest(),
+                         "49dc526a92bceec51a81fda2e99b17546d1f142f1d4ccc84e76c513424fc0ba8")
+
+    def test_roots_own_containers_config_is_a_finding(self):
+        # containers/image reads $HOME/.config/containers/policy.json instead of
+        # /etc's when it exists (evidence 04, case 10), and bootc runs as root.
+        for rel in ("var/roothome/.config/containers/policy.json",
+                    "var/roothome/.config/containers/registries.d/x.yaml",
+                    "root/.config/containers/policy.json"):
+            with self.subTest(rel=rel):
+                self.root.write(rel, "{}\n")
+                try:
+                    self.assertFinds(rel.split("/.config/")[0] + "/.config/containers: ", self.problems())
+                finally:
+                    shutil.rmtree(os.path.join(self.root.path, rel.split("/")[0]))
+
+    def test_root_as_ostrees_link_into_var_is_free(self):
+        for target in ("var/roothome", "/var/roothome"):
+            with self.subTest(target=target):
+                self.root.link("root", target)
+                try:
+                    self.assertEqual(self.problems(), [])
+                finally:
+                    self.root.remove("root")
+
+    def test_root_as_another_link_is_a_finding(self):
+        self.root.link("root", "/elsewhere")
+        self.assertFinds("root: a link to /elsewhere", self.problems())
+
 
 if __name__ == "__main__":
     unittest.main()

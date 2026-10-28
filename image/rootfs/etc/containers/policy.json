@@ -1,0 +1,30 @@
+{
+    "default": [
+        {
+            "type": "insecureAcceptAnything"
+        }
+    ],
+    "transports": {
+        "docker": {
+            "ghcr.io/rikuripi/rikurinode": [
+                {
+                    "type": "sigstoreSigned",
+                    "keyPaths": [
+                        "/usr/share/rikuri/signing/rikuri-main.pub",
+                        "/usr/share/rikuri/signing/rikuri-spare.pub"
+                    ],
+                    "signedIdentity": {
+                        "type": "matchRepository"
+                    }
+                }
+            ]
+        },
+        "docker-daemon": {
+            "": [
+                {
+                    "type": "insecureAcceptAnything"
+                }
+            ]
+        }
+    }
+}

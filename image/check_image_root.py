@@ -46,10 +46,23 @@ line, or a PodmanArgs= that names health or holds a character Quadlet unescapes
 or systemd expands is a finding. Not covered: a .kube unit's YAML probes, a
 systemd drop-in for the generated service, and an image's own HEALTHCHECK
 (docs/build-records/2026-10-25-healthcmd-exec-form.md).
+
+The node accepts its OS image, ghcr.io/rikuripi/rikurinode, only signed by the
+main or the spare key (ADR 0004, D6 and D7): etc/containers/policy.json, parsed
+as JSON with no key twice, must equal POLICY_EXPECTED; the registries.d file that
+makes containers/image look for cosign's signature must be exactly its three
+lines (comments in column 0 and blank lines aside); no other registries.d file
+may name the image, nor be a link; the two public keys must be the owner's, by
+SHA-256; and root's own containers config, which containers/image reads instead
+of /etc's, must not be in the image. The policy is ASCII; the registries.d file
+printable ASCII. The policy's
+behaviour is proven in CI (.github/workflows/image.yml) and was probed in
+docs/build-records/evidence/2026-10-25-signature-policy/ (03, 04).
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -129,6 +142,29 @@ QUADLET_KEY_LINE = re.compile(r"^\s*([A-Za-z]+)\s*=(.*)$")
 QUADLET_HEALTH_KEYS = ("healthcmd", "healthstartupcmd")
 QUADLET_ARG = re.compile(r"^[A-Za-z0-9_./:=,+@-]+$")
 QUADLET_ARGS_UNSAFE = re.compile(r"""health|["'\\%$]""", re.IGNORECASE)
+# The node's OS image is accepted only signed by the main or the spare key
+# (ADR 0004, D6 and D7; docs/build-records/2026-10-25-signature-policy.md). The
+# keys' SHA-256 are the owner's (that record, owner steps of 2026-10-28).
+IMAGE_REPO = "ghcr.io/rikuripi/rikurinode"
+POLICY = "etc/containers/policy.json"
+SIGNING_KEYS = {"usr/share/rikuri/signing/rikuri-main.pub":
+                "605548bfcc3a4d6f0a85b17ef7ccb8af20507ddbd22d1473b84a769d4a990c0d",
+                "usr/share/rikuri/signing/rikuri-spare.pub":
+                "49dc526a92bceec51a81fda2e99b17546d1f142f1d4ccc84e76c513424fc0ba8"}
+# Fedora's own policy, plus the image's scope. Any other image keeps Fedora's default.
+POLICY_EXPECTED = {
+    "default": [{"type": "insecureAcceptAnything"}],
+    "transports": {
+        "docker": {IMAGE_REPO: [{"type": "sigstoreSigned", "keyPaths": ["/" + k for k in SIGNING_KEYS],
+                                 "signedIdentity": {"type": "matchRepository"}}]},
+        "docker-daemon": {"": [{"type": "insecureAcceptAnything"}]}}}
+REGISTRIES_D = "etc/containers/registries.d"
+REGISTRIES_D_FILE = REGISTRIES_D + "/rikuri.yaml"
+REGISTRIES_D_LINES = ["docker:", "  " + IMAGE_REPO + ":", "    use-sigstore-attachments: true"]
+# containers/image reads $HOME/.config/containers/policy.json instead of /etc's
+# (evidence 04, case 10); bootc runs as root, whose home is /root, a link into var.
+ROOT_HOMES = ("var/roothome", "root")
+ROOT_HOME_LINKS = ("var/roothome", "/var/roothome")
 KEY_LINE = re.compile(rb"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
 ATTEMPTS_VALUE = re.compile(rb"^[0-9]+$")
 DISABLED_VALUE = re.compile(rb'^\((?:"[A-Za-z0-9_.-]+"(?: "[A-Za-z0-9_.-]+")*)?\)$')
@@ -379,7 +415,7 @@ def subid_unit_problems(data: bytes) -> list:
     return problems
 
 
-def _override_problem(root: str, rel: str):
+def _override_problem(root: str, rel: str, effect="overrides the unit on every node"):
     """Why <root>/<rel> would override the unit, or None when nothing is there.
     A link on the way is a finding itself: on a node it may lead to a folder
     the checker's machine does not have (lexists alone would follow it here)."""
@@ -390,7 +426,7 @@ def _override_problem(root: str, rel: str):
             return None
         if n < len(parts) and os.path.islink(path):
             return "reached through a link at %s; the image must not ship it" % "/".join(parts[:n])
-    return "overrides the unit on every node; the image must not ship it"
+    return effect + "; the image must not ship it"
 
 
 def check_containers_subid(root: str) -> list:
@@ -574,10 +610,94 @@ def check_quadlet_health(root: str) -> list:
     return found
 
 
+def _unique_keys(pairs):
+    keys = [k for k, _ in pairs]
+    twice = sorted({k for k in keys if keys.count(k) > 1})
+    if twice:
+        raise ValueError("%s twice" % ", ".join(twice))
+    return dict(pairs)
+
+
+def policy_problems(data: bytes) -> list:
+    """Why policy.json is not POLICY_EXPECTED; [] when it is. A byte outside ASCII
+    fails the decode; JSON's other whitespace (tab, CR) Go and Python read alike."""
+    try:
+        policy = json.loads(data.decode("ascii"), object_pairs_hook=_unique_keys)
+    except ValueError as e:
+        return ["not JSON, or a key twice (%s)" % e]
+    if policy != POLICY_EXPECTED:
+        return ["not the signature policy the node relies on (only images of %s signed by %s, any other "
+                "image as Fedora has it); a node would accept an OS image this project did not sign, or "
+                "refuse its own" % (IMAGE_REPO, " or ".join(os.path.basename(k) for k in SIGNING_KEYS))]
+    return []
+
+
+def registries_d_problems(data: bytes) -> list:
+    """Why the registries.d file is not exactly REGISTRIES_D_LINES; [] when it is."""
+    problems, kept = [], []
+    lines = data.split(b"\n")
+    if lines and lines[-1] == b"":
+        lines.pop()
+    for n, line in enumerate(lines, 1):
+        if not PRINTABLE_LINE.match(line):
+            problems.append("line %d: outside printable ASCII (a tab included)" % n)
+        elif line and not line.startswith(b"#"):
+            kept.append(line.decode("ascii"))
+    if not problems and kept != REGISTRIES_D_LINES:
+        problems.append("not exactly %r (comments in column 0 and blank lines aside); containers/image "
+                        "would not look for the image's signature, and the node would refuse every "
+                        "update" % "\n".join(REGISTRIES_D_LINES))
+    return problems
+
+
+def check_signature_policy(root: str) -> list:
+    found = []
+    for rel, check in ((POLICY, policy_problems), (REGISTRIES_D_FILE, registries_d_problems)):
+        data = _read_bytes(root, rel)
+        if data is None:
+            found.append("%s: missing, or not a regular file (a node would accept any OS image)" % rel)
+        else:
+            found += ["%s: %s" % (rel, p) for p in check(data)]
+    folder = _dir(root, REGISTRIES_D)
+    for name in sorted(os.listdir(folder)) if folder else []:
+        rel = REGISTRIES_D + "/" + name
+        if rel == REGISTRIES_D_FILE:
+            continue
+        st = os.lstat(os.path.join(folder, name))
+        if stat.S_ISLNK(st.st_mode):
+            found.append("%s: a link; containers/image follows it, and the image must not ship one" % rel)
+        elif stat.S_ISREG(st.st_mode):
+            with open(os.path.join(folder, name), "rb") as f:
+                if b"rikuripi" in f.read():
+                    found.append("%s: names ghcr.io/rikuripi; only %s may, and containers/image fails "
+                                 "every pull of a scope two files configure" % (rel, REGISTRIES_D_FILE))
+    for rel, want in SIGNING_KEYS.items():
+        data = _read_bytes(root, rel)
+        if data is None:
+            found.append("%s: missing, or not a regular file (the policy's key; the node would refuse "
+                         "every update)" % rel)
+        elif hashlib.sha256(data).hexdigest() != want:
+            found.append("%s: not the key the policy trusts (sha256 %s, expected %s)"
+                         % (rel, hashlib.sha256(data).hexdigest(), want))
+    for home in ROOT_HOMES:
+        if os.path.islink(os.path.join(root, home)):
+            target = os.readlink(os.path.join(root, home))
+            if target not in ROOT_HOME_LINKS:
+                found.append("%s: a link to %s; root's containers config there would replace /etc's, "
+                             "unseen by this check" % (home, target))
+            continue
+        rel = home + "/.config/containers"
+        problem = _override_problem(root, rel, "replaces /etc/containers' policy and registries.d for root, "
+                                    "who runs bootc")
+        if problem:
+            found.append("%s: %s" % (rel, problem))
+    return found
+
+
 def check_root(root: str, release: str, note=lambda line: None) -> list:
     return (check_os_release(root, release) + check_greenboot(root) + check_unapplied_update(root)
             + check_trigger_at_shutdown(root) + check_containers_subid(root) + check_subid_wanted(root)
-            + check_quadlet_health(root) + check_no_private_keys(root, note))
+            + check_quadlet_health(root) + check_signature_policy(root) + check_no_private_keys(root, note))
 
 
 def main(argv=None) -> int:

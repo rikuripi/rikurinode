@@ -1,0 +1,53 @@
++ /home/drill/sp3in/cosign generate-key-pair --output-key-prefix /var/tmp/sp-proof/main
++ /home/drill/sp3in/cosign generate-key-pair --output-key-prefix /var/tmp/sp-proof/spare
++ /home/drill/sp3in/cosign generate-key-pair --output-key-prefix /var/tmp/sp-proof/untrusted
++ sudo podman run --rm --network=host localhost/rikuri-os:sp cat /etc/containers/registries.d/rikuri.yaml
++ sudo podman build -q --network=none -t 127.0.0.1:5000/rikuripi/rikurinode:main /var/tmp/sp-proof/img-main
++ sudo podman push -q --tls-verify=false --digestfile /var/tmp/sp-proof/img-main.digest 127.0.0.1:5000/rikuripi/rikurinode:main
++ sudo podman build -q --network=none -t 127.0.0.1:5000/rikuripi/rikurinode:spare /var/tmp/sp-proof/img-spare
++ sudo podman push -q --tls-verify=false --digestfile /var/tmp/sp-proof/img-spare.digest 127.0.0.1:5000/rikuripi/rikurinode:spare
++ sudo podman build -q --network=none -t 127.0.0.1:5000/rikuripi/rikurinode:unsigned /var/tmp/sp-proof/img-unsigned
++ sudo podman push -q --tls-verify=false --digestfile /var/tmp/sp-proof/img-unsigned.digest 127.0.0.1:5000/rikuripi/rikurinode:unsigned
++ sudo podman build -q --network=none -t 127.0.0.1:5000/rikuripi/rikurinode:untrusted /var/tmp/sp-proof/img-untrusted
++ sudo podman push -q --tls-verify=false --digestfile /var/tmp/sp-proof/img-untrusted.digest 127.0.0.1:5000/rikuripi/rikurinode:untrusted
++ sudo podman build -q --network=none -t 127.0.0.1:5000/rikuripi/rikurinode:identity /var/tmp/sp-proof/img-identity
++ sudo podman push -q --tls-verify=false --digestfile /var/tmp/sp-proof/img-identity.digest 127.0.0.1:5000/rikuripi/rikurinode:identity
++ sudo podman build -q --network=none -t 127.0.0.1:5000/rikuripi/rikurinode:tampered /var/tmp/sp-proof/img-tampered
++ sudo podman push -q --tls-verify=false --digestfile /var/tmp/sp-proof/img-tampered.digest 127.0.0.1:5000/rikuripi/rikurinode:tampered
++ sudo podman build -q --network=none -t 127.0.0.1:5000/other/thing:1 /var/tmp/sp-proof/img-other
++ sudo podman push -q --tls-verify=false --digestfile /var/tmp/sp-proof/img-other.digest 127.0.0.1:5000/other/thing:1
++ /home/drill/sp3in/cosign sign -y --key=/var/tmp/sp-proof/main.key --new-bundle-format=false --tlog-upload=false --use-signing-config=false --allow-http-registry --sign-container-identity=ghcr.io/rikuripi/rikurinode:main 127.0.0.1:5000/rikuripi/rikurinode@sha256:102e77d3b7235bd19419a06a603373e75dc805ec9cc1c93cda1c35fd3508a2d2
++ /home/drill/sp3in/cosign sign -y --key=/var/tmp/sp-proof/spare.key --new-bundle-format=false --tlog-upload=false --use-signing-config=false --allow-http-registry --sign-container-identity=ghcr.io/rikuripi/rikurinode:spare 127.0.0.1:5000/rikuripi/rikurinode@sha256:f484ba1c50f148117532c1729708dd4fad879403c96b6b639cac9b0fa19bee05
++ /home/drill/sp3in/cosign sign -y --key=/var/tmp/sp-proof/untrusted.key --new-bundle-format=false --tlog-upload=false --use-signing-config=false --allow-http-registry --sign-container-identity=ghcr.io/rikuripi/rikurinode:untrusted 127.0.0.1:5000/rikuripi/rikurinode@sha256:3c24738ed0ec12f8c65244c7cb2f44657df2668e9ef29109693f3a61e940cd58
++ /home/drill/sp3in/cosign sign -y --key=/var/tmp/sp-proof/main.key --new-bundle-format=false --tlog-upload=false --use-signing-config=false --allow-http-registry --sign-container-identity=ghcr.io/someone/else:identity 127.0.0.1:5000/rikuripi/rikurinode@sha256:4087fd7ce7ce780b5f02ff7e2c62b6c9217690bfc16e20eb70d29d05ca3aa3f2
++ /home/drill/sp3in/cosign sign -y --key=/var/tmp/sp-proof/main.key --new-bundle-format=false --tlog-upload=false --use-signing-config=false --allow-http-registry --sign-container-identity=ghcr.io/rikuripi/rikurinode:tampered 127.0.0.1:5000/rikuripi/rikurinode@sha256:bdf09d9821b7946ecda5e85ffab335f8cdc503e05bee99d51455ba1e640cd8c2
++ sudo podman run --rm --network=host localhost/rikuri-os:sp skopeo copy -q --preserve-digests --src-tls-verify=false --dest-tls-verify=false docker://127.0.0.1:5000/rikuripi/rikurinode:sha256-102e77d3b7235bd19419a06a603373e75dc805ec9cc1c93cda1c35fd3508a2d2.sig docker://127.0.0.1:5000/rikuripi/rikurinode:sha256-bdf09d9821b7946ecda5e85ffab335f8cdc503e05bee99d51455ba1e640cd8c2.sig
++ sudo podman run --rm --network=host -v /var/tmp/sp-proof/main.pub:/usr/share/rikuri/signing/rikuri-main.pub:ro,z -v /var/tmp/sp-proof/spare.pub:/usr/share/rikuri/signing/rikuri-spare.pub:ro,z -v /var/tmp/sp-proof/registries.conf:/etc/containers/registries.conf.d/99-ci-local-registry.conf:ro,z -v /var/tmp/sp-proof/ci-local-registry.yaml:/etc/containers/registries.d/ci-local-registry.yaml:ro,z localhost/rikuri-os:sp skopeo copy -q docker://ghcr.io/rikuripi/rikurinode:main dir:/tmp/out
++ sudo podman run --rm --network=host -v /var/tmp/sp-proof/main.pub:/usr/share/rikuri/signing/rikuri-main.pub:ro,z -v /var/tmp/sp-proof/spare.pub:/usr/share/rikuri/signing/rikuri-spare.pub:ro,z -v /var/tmp/sp-proof/registries.conf:/etc/containers/registries.conf.d/99-ci-local-registry.conf:ro,z -v /var/tmp/sp-proof/ci-local-registry.yaml:/etc/containers/registries.d/ci-local-registry.yaml:ro,z localhost/rikuri-os:sp skopeo copy -q docker://ghcr.io/rikuripi/rikurinode:spare dir:/tmp/out
++ sudo podman run --rm --network=host -v /var/tmp/sp-proof/main.pub:/usr/share/rikuri/signing/rikuri-main.pub:ro,z -v /var/tmp/sp-proof/spare.pub:/usr/share/rikuri/signing/rikuri-spare.pub:ro,z -v /var/tmp/sp-proof/registries.conf:/etc/containers/registries.conf.d/99-ci-local-registry.conf:ro,z -v /var/tmp/sp-proof/ci-local-registry.yaml:/etc/containers/registries.d/ci-local-registry.yaml:ro,z localhost/rikuri-os:sp skopeo copy -q docker://ghcr.io/rikuripi/rikurinode@sha256:102e77d3b7235bd19419a06a603373e75dc805ec9cc1c93cda1c35fd3508a2d2 dir:/tmp/out
++ sudo podman run --rm --network=host -v /var/tmp/sp-proof/main.pub:/usr/share/rikuri/signing/rikuri-main.pub:ro,z -v /var/tmp/sp-proof/spare.pub:/usr/share/rikuri/signing/rikuri-spare.pub:ro,z -v /var/tmp/sp-proof/registries.conf:/etc/containers/registries.conf.d/99-ci-local-registry.conf:ro,z -v /var/tmp/sp-proof/ci-local-registry.yaml:/etc/containers/registries.d/ci-local-registry.yaml:ro,z localhost/rikuri-os:sp skopeo copy -q docker://ghcr.io/rikuripi/rikurinode:unsigned dir:/tmp/out
++ sudo podman run --rm --network=host -v /var/tmp/sp-proof/main.pub:/usr/share/rikuri/signing/rikuri-main.pub:ro,z -v /var/tmp/sp-proof/spare.pub:/usr/share/rikuri/signing/rikuri-spare.pub:ro,z -v /var/tmp/sp-proof/registries.conf:/etc/containers/registries.conf.d/99-ci-local-registry.conf:ro,z -v /var/tmp/sp-proof/ci-local-registry.yaml:/etc/containers/registries.d/ci-local-registry.yaml:ro,z localhost/rikuri-os:sp skopeo copy -q docker://ghcr.io/rikuripi/rikurinode:untrusted dir:/tmp/out
++ sudo podman run --rm --network=host -v /var/tmp/sp-proof/main.pub:/usr/share/rikuri/signing/rikuri-main.pub:ro,z -v /var/tmp/sp-proof/spare.pub:/usr/share/rikuri/signing/rikuri-spare.pub:ro,z -v /var/tmp/sp-proof/registries.conf:/etc/containers/registries.conf.d/99-ci-local-registry.conf:ro,z -v /var/tmp/sp-proof/ci-local-registry.yaml:/etc/containers/registries.d/ci-local-registry.yaml:ro,z localhost/rikuri-os:sp skopeo copy -q docker://ghcr.io/rikuripi/rikurinode:identity dir:/tmp/out
++ sudo podman run --rm --network=host -v /var/tmp/sp-proof/main.pub:/usr/share/rikuri/signing/rikuri-main.pub:ro,z -v /var/tmp/sp-proof/spare.pub:/usr/share/rikuri/signing/rikuri-spare.pub:ro,z -v /var/tmp/sp-proof/registries.conf:/etc/containers/registries.conf.d/99-ci-local-registry.conf:ro,z -v /var/tmp/sp-proof/ci-local-registry.yaml:/etc/containers/registries.d/ci-local-registry.yaml:ro,z localhost/rikuri-os:sp skopeo copy -q docker://ghcr.io/rikuripi/rikurinode:tampered dir:/tmp/out
++ sudo podman run --rm --network=host -v /var/tmp/sp-proof/main.pub:/usr/share/rikuri/signing/rikuri-main.pub:ro,z -v /var/tmp/sp-proof/spare.pub:/usr/share/rikuri/signing/rikuri-spare.pub:ro,z -v /var/tmp/sp-proof/registries.conf:/etc/containers/registries.conf.d/99-ci-local-registry.conf:ro,z -v /var/tmp/sp-proof/ci-local-registry.yaml:/etc/containers/registries.d/ci-local-registry.yaml:ro,z localhost/rikuri-os:sp skopeo copy -q docker://127.0.0.1:5000/other/thing:1 dir:/tmp/out
+### Signature policy (the image's own skopeo and policy; throwaway keys)
+
+| # | case | expected | seen | result |
+|---|---|---|---|---|
+| 1 | signed by the main key | accepted | accepted | PASS |
+| 2 | signed by the spare key | accepted | accepted | PASS |
+| 3 | signed by the main key, read by digest | accepted | accepted | PASS |
+| 4 | unsigned | refused: A signature was required, but no signature exists | refused: A signature was required, but no signature exists" | PASS |
+| 5 | signed by a key the node does not trust | refused: cryptographic signature verification failed | refused: cryptographic signature verification failed: invalid signature when validating ASN.1 encoded signature, invalid signature when validating ASN.1 encoded signature" | PASS |
+| 6 | signed by the main key as another repository | refused: Signature for identity | refused: Signature for identity \"ghcr.io/someone/else:identity\" is not accepted" | PASS |
+| 7 | carrying another image's valid signature | refused: Signature for digest | refused: Signature for digest sha256:102e77d3b7235bd19419a06a603373e75dc805ec9cc1c93cda1c35fd3508a2d2 does not match" | PASS |
+| 8 | another repository, unsigned (outside the policy's scope) | accepted | accepted | PASS |
+
+8 of 8 cases as expected
++ sudo podman rmi -f 127.0.0.1:5000/rikuripi/rikurinode:main
++ sudo podman rmi -f 127.0.0.1:5000/rikuripi/rikurinode:spare
++ sudo podman rmi -f 127.0.0.1:5000/rikuripi/rikurinode:unsigned
++ sudo podman rmi -f 127.0.0.1:5000/rikuripi/rikurinode:untrusted
++ sudo podman rmi -f 127.0.0.1:5000/rikuripi/rikurinode:identity
++ sudo podman rmi -f 127.0.0.1:5000/rikuripi/rikurinode:tampered
++ sudo podman rmi -f 127.0.0.1:5000/other/thing:1

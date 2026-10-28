@@ -1,0 +1,34 @@
+## GitVersion: v3.1.4; ./registry github.com/distribution/distribution/v3 3.1.2
+## registry up: 200
+## rd: ci-local-registry.yaml rikuri.yaml ; rd-shipped: rikuri.yaml
+## policy.json against the shipped one, every changed line:
+<                         "/usr/share/rikuri/signing/rikuri-main.pub",
+<                         "/usr/share/rikuri/signing/rikuri-spare.pub"
+>                         "/var/tmp/sp4.QcDL/main.pub",
+>                         "/var/tmp/sp4.QcDL/spare.pub"
+## throwaway keys: main.pub other.pub spare.pub
+signed main with main as ghcr.io/rikuripi/rikurinode:main
+signed spare with spare as ghcr.io/rikuripi/rikurinode:spare
+signed other with other as ghcr.io/rikuripi/rikurinode:other
+signed identity with main as ghcr.io/someone/else:identity
+signed tampered with main as ghcr.io/rikuripi/rikurinode:tampered
+tampered: the main case's signature now sits at the tampered image's digest
+## the registry's tags: {"Repository":"127.0.0.1:5000/rikuripi/rikurinode","Tags":["identity","main","other","sha256-2251838a77b0426b8b457fddb5deefac7d46ab3bf4d3e96568485f67f68f3df6.sig","sha256-6249b62993d403608e0b544f8cd545aa62fc7aed5907c5975a1e8d93d8ffbcba.sig","sha256-9a549869ef0d277f036c85fa824d61e0578397fae69d5952053844de6b582486.sig","sha256-c38bcd6dc1424748388ff39c789deba2d823a260d133e32cc3bde563f6a992bc.sig","sha256-db250589481895cb62c9cf6603b6483c2c6e75990d686cf25763102930553460.sig","spare","tampered","unsigned"]}
+## the shipped policy (key paths rewritten); registries.d: the shipped file and the CI-only one
+1 signed by the main key           : ACCEPTED
+2 signed by the spare key          : ACCEPTED
+3 unsigned                         : REFUSED: "Source image rejected: A signature was required, but no signature exists"
+4 signed by an untrusted key       : REFUSED: "Source image rejected: cryptographic signature verification failed: invalid signature when validating ASN.1 encoded signature, invalid signature when validating ASN.1 encoded signature"
+5 main key, another repo's identity: REFUSED: "Source image rejected: Signature for identity \"ghcr.io/someone/else:identity\" is not accepted"
+6 another image's signature        : REFUSED: "Source image rejected: Signature for digest sha256:9a549869ef0d277f036c85fa824d61e0578397fae69d5952053844de6b582486 does not match"
+7 another repository, unsigned     : ACCEPTED
+## without the CI-only file, the shipped one alone (probe 3), and without any
+8a signed, shipped file only       : REFUSED: "Source image rejected: A signature was required, but no signature exists"
+8b signed, no registries.d file    : REFUSED: "Source image rejected: A signature was required, but no signature exists"
+## the main case by digest, as an update would name it; and read by the local name, outside the scope
+9 signed, by digest                : ACCEPTED
+9b the local name (no scope: default): ACCEPTED
+## root's own policy file ($HOME/.config/containers/policy.json) replaces /etc's when no --policy is given
+10 HOME policy reject-all, unsigned other repo: REFUSED: "Source image rejected: Running image docker://127.0.0.1:5000/other/thing:1 is rejected by policy."
+## cleanup
+images left: 0; folder left: 0

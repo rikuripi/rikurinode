@@ -1,0 +1,11 @@
+## tiny image built
+missing key, a local image (another scope): copied
+missing key, another registry (unreachable): refused: time="2026-10-25T03:28:50+13:00" level=fatal msg="initializing source docker://127.0.0.1:1/other/image:1: pinging container registry 127.0.0.1:1: Get \"https://127.0.0.1:1/v2/\": dial tcp 127.0.0.1:1: connect: connection refused"
+missing key, its own scope (no network): refused: time="2026-10-25T03:28:50+13:00" level=fatal msg="initializing source docker://ghcr.io/rikuripi/rikurinode:1: pinging container registry ghcr.io: Get \"https://ghcr.io/v2/\": dial tcp 140.82.114.33:443: connect: network is unreachable"
+reject default, local images allowed: copied
+reject default, another registry: refused: time="2026-10-25T03:28:50+13:00" level=fatal msg="initializing source docker://127.0.0.1:1/other/image:1: pinging container registry 127.0.0.1:1: Get \"https://127.0.0.1:1/v2/\": dial tcp 127.0.0.1:1: connect: connection refused"
+reject everything, a local image: refused: time="2026-10-25T03:28:50+13:00" level=fatal msg="Source image rejected: Running image containers-storage:[overlay@/var/lib/containers/storage+/run/containers/storage:overlay.imagestore=/usr/lib/containers/storage,overlay.mountopt=nodev,metacopy=on]localhost/sp-probe:0.1@6594111572c668d0261c19c0b81ea93ad71198216bdb8a7d9054f03152b32e8d is rejected by policy."
+## podman run with a reject-everything policy, a local image:
+Error: crun: the path `/f` exists but it is not executable: Operation not permitted: OCI permission denied
+## cleanup
+probe images left: 0; folder left: 0

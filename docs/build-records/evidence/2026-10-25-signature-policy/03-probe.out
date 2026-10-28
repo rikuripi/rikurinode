@@ -1,0 +1,31 @@
+## GitVersion: v3.1.4; ./registry github.com/distribution/distribution/v3 3.1.2
+## registry up: 200
+## policy.json against the shipped one, every changed line:
+<                         "/usr/share/rikuri/signing/rikuri-main.pub",
+<                         "/usr/share/rikuri/signing/rikuri-spare.pub"
+>                         "/var/tmp/sp3.cnKX/main.pub",
+>                         "/var/tmp/sp3.cnKX/spare.pub"
+## throwaway keys: main.pub other.pub spare.pub
+signed main with main as ghcr.io/rikuripi/rikurinode:main
+signed spare with spare as ghcr.io/rikuripi/rikurinode:spare
+signed other with other as ghcr.io/rikuripi/rikurinode:other
+signed identity with main as ghcr.io/someone/else:identity
+signed tampered with main as ghcr.io/rikuripi/rikurinode:tampered
+tampered: the main case's signature now sits at the tampered image's digest
+## the registry's tags: {"Repository":"127.0.0.1:5000/rikuripi/rikurinode","Tags":["identity","main","other","sha256-3da2d7f304d3e785e6e07ac5a5aa8427296ddcba0929c949e83ea65dc06a3762.sig","sha256-67cd3e50f95382f1de051e1b4f0750f5ff9632a166b0f97a069840589a51fbea.sig","sha256-d4fbf2fdb7d9508a66679d96af4816cca9f0ff9943a1922717241cd1fe732052.sig","sha256-db48cb67e2f16b8c07e80fcbbe5abb0c596b82632827d3d3a8b27c38f845a7a3.sig","sha256-ed58287888271ef60a8b4af6b2ea6bbd98cbb52476f2f52f2592c55ec08ba327.sig","spare","tampered","unsigned"]}
+## the shipped policy (key paths rewritten), the shipped registries.d file
+1 signed by the main key           : REFUSED: "Source image rejected: A signature was required, but no signature exists"
+2 signed by the spare key          : REFUSED: "Source image rejected: A signature was required, but no signature exists"
+3 unsigned                         : REFUSED: "Source image rejected: A signature was required, but no signature exists"
+4 signed by an untrusted key       : REFUSED: "Source image rejected: A signature was required, but no signature exists"
+5 main key, another repo's identity: REFUSED: "Source image rejected: A signature was required, but no signature exists"
+6 another image's signature        : REFUSED: "Source image rejected: A signature was required, but no signature exists"
+7 another repository, unsigned     : ACCEPTED
+## without the registries.d file (mutant): the signature is not looked for
+8 signed by the main key           : REFUSED: "Source image rejected: A signature was required, but no signature exists"
+## the main case by digest, as an update would name it
+9 signed, by digest                : REFUSED: "Source image rejected: A signature was required, but no signature exists"
+## root's own policy file ($HOME/.config/containers/policy.json) replaces /etc's when no --policy is given
+10 HOME policy reject-all, unsigned other repo: REFUSED: "Source image rejected: Running image docker://127.0.0.1:5000/other/thing:1 is rejected by policy."
+## cleanup
+images left: 0; folder left: 0

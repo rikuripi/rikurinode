@@ -1,0 +1,12 @@
+## with the workflow env:
+time="2026-10-27T21:32:21+13:00" level=warning msg="Ignoring unrecognized environment variable REGISTRY_SHA256"
+configuration error: error parsing reg.yml: parsing environment variable REGISTRY_VERSION: strconv.ParseUint: parsing "1.2": invalid syntax
+Usage:
+  registry serve <config> [flags]
+
+Flags:
+  -h, --help   help for serve
+rc=1
+## without it:
+rc=124 (124: still serving when stopped)
+left: 0
