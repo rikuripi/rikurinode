@@ -5,8 +5,8 @@
 | **Date** | 2026-10-25 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/signature-policy`, from `main` at `9371205`, in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | record `4988663`, `10499a4`, `7b9776a`; checker red `9f694df`, fix `c3a2c53`; proof red `2d0c0bf`, fix `d43afab`; record `3339f85`; main merged in `dc83b1f`; repair 1: red `fed867d`, fix `e7f9a55`; merged as `64386ab` (#49); this close-out |
+| **Status** | DONE: pull request #49 green at `e7f9a55` and merged by the owner (`Full gate (Ubuntu)` [run 40778663378](https://github.com/rikuripi/rikurinode/actions/runs/40778663378); the image build, its check "0 finding(s)", the signature proof "8 of 8 cases as expected", and the drill [run 40778663319](https://github.com/rikuripi/rikurinode/actions/runs/40778663319)) |
 | **Change type** | feature (the OS image's update trust; a control) |
 
 ## Task Contract
@@ -92,7 +92,7 @@ All test runs were in `rikuri-drill` (`safe-run.sh` refuses on macOS; the CI gat
 - **Green, all image tests** (on `d43afab`): `python3 -m unittest discover -s image/tests`, 243 tests, OK.
 - **The VM after:** this task's test images, folders and throwaway keys removed; earlier tasks' images left as they were.
 - **Knowledge layer:** nothing a user sees changes until 2b publishes; no help page or runbook covers updates yet, and the README's status stays as it is.
-- **CI:** (to fill: the pull request's runs.)
+- **CI:** first run at `dc83b1f`, the proof failed (repair cycle 1, below); second run at `e7f9a55`, all passed: the checker "0 finding(s)" on the built image, cosign and the registry "OK" against their SHA-256, the proof 8 of 8 with each refusal's own reason, the drill, and `Full gate (Ubuntu)` (runs in Status).
 
 ### Verifier pass 1 and repair cycle 1 (2026-10-28)
 
@@ -150,3 +150,25 @@ All test runs were in `rikuri-drill` (`safe-run.sh` refuses on macOS; the CI gat
 - **Public keys** (not secret), SHA-256 of the `.pub` files:
   - `rikuri-main.pub`: `605548bfcc3a4d6f0a85b17ef7ccb8af20507ddbd22d1473b84a769d4a990c0d`
   - `rikuri-spare.pub`: `49dc526a92bceec51a81fda2e99b17546d1f142f1d4ccc84e76c513424fc0ba8`
+
+## 5. Close Out
+
+- [x] **Done when:**
+  - the probes run in `rikuri-drill` and kept: Pass (`01` to `04`, `08`);
+  - red, then green: Pass (`9f694df` then `c3a2c53`; `2d0c0bf` then `d43afab`; `fed867d` then `e7f9a55`);
+  - every hand mutant red: Pass (`05`, after the one survivor was removed as a rule that guards nothing; the verifier's own mutants: five equivalent survivors, one CI-harness nit, below);
+  - the CI job accepts the signed images and refuses the unsigned and the tampered ones, on the pull request: Pass, run 40778663319 at `e7f9a55`;
+  - the shipped image passes the checker (0 findings) and the CI drill passes: Pass, same run;
+  - `Full gate (Ubuntu)`: Pass, run 40778663378;
+  - one verifier pass with no Important finding: Pass, after repair 1 (pass 1 FAIL on I1; the follow-up found I1 fixed and no new Important finding, and the CI result it was waiting for then passed).
+- [x] **Limits:**
+  - Repair cycles: 1 of 2.
+  - Review rounds: 2 of 2.
+  - CI drill development runs: 2 of 2 (`dc83b1f`, `e7f9a55`). This close-out touches only `docs/`, so the image workflow skips its build and drill.
+  - Time: over the 3-hour budget. The 2026-10-25 session went into probes and the owner's first, paused key steps; the build work of 2026-10-28 came on top.
+- [x] **Backlog, not started:**
+  - 2b: publish to GHCR with the real key (`workflow_dispatch` from `main` only; one image built once, then checked, drilled and signed by digest), and prove the shipped `rikuri.yaml` under the real `ghcr.io` name;
+  - 2c: a node refusing an unsigned update in the VM drill, with M1 and M2 (repair cycle 1, above);
+  - a second offline copy of the spare key (the owner's);
+  - verifier follow-up nit: `main()` is not held to start the registry with `registry_env()` (a mutant passing `os.environ` survives; the renamed workflow variables, which a test holds, remove the cause);
+  - verifier pass 1 nits 1 and 5: the registries.d search escaped by a YAML-escaped name or a `*.yaml` folder (both fail closed), and the CI tools' release signatures and provenance not verified.
