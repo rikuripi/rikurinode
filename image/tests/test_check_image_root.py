@@ -1091,6 +1091,8 @@ class SignaturePolicy(unittest.TestCase):
             "a tab": s.replace("    use-sigstore", "\tuse-sigstore"),
             "an indented comment": s + "  # a note\n",
             "a byte outside printable ASCII": s.replace("true", "true\u00a0"),
+            # YAML may read NEL as a line break, so the comment's tail would be a key.
+            "a NEL in a comment": s + "# note\u0085    lookaside: https://example.invalid/\n",
         }
         for name, text in mutants.items():
             with self.subTest(mutant=name):

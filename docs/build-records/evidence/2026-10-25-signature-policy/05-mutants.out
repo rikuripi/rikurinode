@@ -1,0 +1,11 @@
+m1 a key twice is not refused                    KILLED  FAILED (failures=1)
+m2 only the image's scope is compared            KILLED  FAILED (failures=3)
+m3 registries.d: printable ASCII not required    KILLED  FAILED (failures=1, errors=1)
+m5 another registries.d file may name the image  KILLED  FAILED (failures=1)
+m6 a link in registries.d is free                KILLED  FAILED (failures=1)
+m7 the keys' SHA-256 are not compared            KILLED  FAILED (failures=3)
+m8 root may be any link                          KILLED  FAILED (failures=1)
+m9 root's containers config is free              KILLED  FAILED (failures=3)
+m10 not wired into check_root                    KILLED  FAILED (failures=1)
+m11 the registries.d file is not compared        KILLED  FAILED (failures=6)
+restored: OK
