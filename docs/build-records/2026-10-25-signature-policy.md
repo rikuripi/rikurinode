@@ -51,7 +51,7 @@
   - A policy naming a key file that does not exist still copies a local image of another scope: the key is read only for its own scope (skopeo 1.22.3). A `reject` default with `containers-storage` allowed copies a local image; `reject` for everything refuses it. `podman run` of a local image does not apply the policy (`02-probe.out`).
   - Not probed in the VM: a signed image in a registry (the VM has no network for a registry image); that is the CI job's.
 - [x] **The owner's choice** (2026-10-25): "Make the keys now (Recommended)": the owner makes the main and the spare key pairs and the GitHub Environment now, 2b's steps moved earlier, and gives this session the two public keys only. 2a then tests the node's exact policy file inside the built image, with the image's own skopeo.
-- [ ] **Owner steps** (below, "Owner steps"): pending.
+- [x] **Owner steps** (below, "Owner steps"): done 2026-10-28, restarted from clean.
 - [ ] **Remaining question** (to settle in design): how the CI job serves a signed image to the shipped policy, whose scope names `ghcr.io/rikuripi/rikurinode`, from a local registry (a mirror in `registries.conf`, with cosign's `--sign-container-identity`, or the job's own copy of the file), and which registry image, after its inspection.
 - [ ] **Design:** after the probes.
 
@@ -72,3 +72,12 @@
   - GitHub: `COSIGN_PRIVATE_KEY` (04:27:07 UTC) and `COSIGN_PASSWORD` (04:27:38 UTC), whose match is unknown; both to be replaced.
   - `~/rikuri-keys`: one main pair (21:25:51 local); the repository folder: one stray `rikuri-main.pub`; the stick `/Volumes/Rikuri`: one spare pair (21:38:48 local).
 - **Lesson for the restart:** the owner runs the key steps as one short list in Terminal.app, outside this session, with full paths, and tests the password (`cosign public-key --key …`) before storing it.
+
+### Owner steps, restarted 2026-10-28 (done; Terminal.app, one step at a time; checked here by file name, time and secret name only)
+
+- **Clean-up:** both old Environment secrets deleted; the old main pair in `~/rikuri-keys` and the stray `rikuri-main.pub` in the worktree removed; the stick's spare folder was already empty. Old passwords retired in the owner's password manager.
+- **Main key:** a new pair made 14:21:14 local with a new password-manager password; the password tested on that file with `cosign public-key --key` before storing; `COSIGN_PASSWORD` set 21:23:45 UTC and `COSIGN_PRIVATE_KEY` 21:25:34 UTC, in `image-publish` only (no repository-wide secrets); the `.key` file then deleted from the Mac.
+- **Spare key:** a new pair made 14:29:24 local on the stick `Rikuri`, with its own, different password, tested the same way; never uploaded. A second offline copy: pending, the owner's.
+- **Public keys** (not secret), SHA-256 of the `.pub` files:
+  - `rikuri-main.pub`: `605548bfcc3a4d6f0a85b17ef7ccb8af20507ddbd22d1473b84a769d4a990c0d`
+  - `rikuri-spare.pub`: `49dc526a92bceec51a81fda2e99b17546d1f142f1d4ccc84e76c513424fc0ba8`
