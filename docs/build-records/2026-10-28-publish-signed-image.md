@@ -93,3 +93,4 @@
 - **Probe 5:** as in 0b. tar's clock-skew warnings (the VM's clock) are left out of `01-probe.out`.
 
 ## Owner steps (after the merge)
+- **Red** (`rikuri-drill`): `image/tests/test_publish.py` fails to import the missing `publish`; `scripts/quality/tests/test_workflows.py` ran 21 tests, `FAILED (errors=10)`, the ten new `Publish` tests (no `publish.yml`). The 11 existing tests pass. The module's docstring names the new tests.

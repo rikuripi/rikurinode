@@ -5,9 +5,11 @@ otherwise, SEC-06); the cargo-deny install lines are the same in ci.yml and
 advisory-audit.yml, so the two cannot drift apart; the audit runs on a
 schedule and on demand with a read-only token and runs both readers; ci.yml's
 token has exactly the two read permissions the gate needs; the gate runs the
-stale-audit warning as its last step (TEST-05). Reads the repository's own
-files; no network.
-Record: docs/build-records/2026-10-21-weekly-advisory-audit.md
+stale-audit warning as its last step (TEST-05); the publish workflow is
+started by hand on main only, and only its signing step sees the key. Reads
+the repository's own files; no network.
+Records: docs/build-records/2026-10-21-weekly-advisory-audit.md,
+docs/build-records/2026-10-28-publish-signed-image.md
 Run: python3 -m unittest discover -s scripts/quality/tests -p 'test_*.py'
 """
 import glob
@@ -142,6 +144,107 @@ class Image(unittest.TestCase):
         # A pipe into grep -q can fail under GitHub's `bash -e -o pipefail` and
         # skip the drill wrongly; the match reads a here-string instead.
         self.assertNotRegex(lines, r"\|\s*grep -q")
+
+
+PUBLISH = os.path.join(ROOT, ".github", "workflows", "publish.yml")
+
+
+def steps(lines):
+    """One job's steps (`      - ` at six spaces), each as its lines joined."""
+    out = []
+    for line in lines:
+        if line.startswith("      - "):
+            out.append(line)
+        elif out and line.startswith("        "):
+            out[-1] += "\n" + line
+    return out
+
+
+def env_pins(text):
+    return [line.strip() for line in text.splitlines() if re.match(r"^  (COSIGN|DISTRIBUTION)_(VERSION|SHA256):", line)]
+
+
+class Publish(unittest.TestCase):
+    """Only the owner starts a publish, only on main; only the sign job, in the
+    Environment, sees the key, and only in its signing step; a re-run is refused
+    because it would move a fixed tag
+    (docs/build-records/2026-10-28-publish-signed-image.md)."""
+
+    JOBS = ("build", "sign", "anonymous")
+
+    def setUp(self):
+        self.text = read(PUBLISH)
+
+    def test_started_only_by_hand(self):
+        self.assertEqual(block(self.text, "on"), ["workflow_dispatch:"])
+
+    def test_every_job_runs_only_on_main(self):
+        jobs = [m.group(1) for m in re.finditer(r"(?m)^  ([A-Za-z0-9_-]+):\s*$", self.text.split("\njobs:", 1)[1])]
+        self.assertEqual(jobs, list(self.JOBS))
+        for name in self.JOBS:
+            self.assertIn("    if: github.ref == 'refs/heads/main'", job(self.text, name), name)
+
+    def test_permissions_per_job(self):
+        self.assertRegex(self.text, r"(?m)^permissions: \{\}$")
+        want = {"build": ["contents: read", "packages: write"], "sign": ["contents: read", "packages: write"],
+                "anonymous": ["contents: read"]}
+        for name, perms in want.items():
+            lines = job(self.text, name)
+            i = lines.index("    permissions:")
+            got = []
+            for line in lines[i + 1:]:
+                if not line.startswith("      ") or line.startswith("      - "):
+                    break
+                got.append(line.strip())
+            self.assertEqual(sorted(got), perms, name)
+
+    def test_only_the_sign_job_is_in_the_environment(self):
+        for name in self.JOBS:
+            envs = [line.strip() for line in job(self.text, name) if line.strip().startswith("environment")]
+            self.assertEqual(envs, ["environment: image-publish"] if name == "sign" else [], name)
+
+    def test_secrets_only_in_the_signing_step(self):
+        with_secrets = [s for s in steps(job(self.text, "sign")) if "secrets." in s]
+        self.assertEqual(len(with_secrets), 1, with_secrets)
+        names = sorted(re.findall(r"\$\{\{\s*secrets\.([A-Z_]+)\s*\}\}", with_secrets[0]))
+        self.assertEqual(names, ["COSIGN_PASSWORD", "COSIGN_PRIVATE_KEY"])
+        self.assertIn("publish.py sign ", with_secrets[0])
+        for name in ("build", "anonymous"):
+            self.assertNotIn("secrets.", "\n".join(job(self.text, name)), name)
+        outside = self.text.replace(with_secrets[0], "")
+        self.assertNotIn("secrets.", outside)
+
+    def test_the_build_job_refuses_a_rerun_and_proves_before_it_pushes(self):
+        lines = "\n".join(job(self.text, "build"))
+        self.assertIn('--attempt "$GITHUB_RUN_ATTEMPT"', lines)
+        order = [lines.index(s) for s in ("publish.py tag", "check_image_root.py", "signature_policy.py",
+                                          "vm_drill.py", "podman push")]
+        self.assertEqual(order, sorted(order))
+        self.assertNotIn("anonymous", " ".join(re.findall(r"needs:.*", lines)))
+
+    def test_the_sign_job_refuses_signs_then_accepts(self):
+        lines = "\n".join(job(self.text, "sign"))
+        self.assertIn("needs: build", lines)
+        order = [lines.index(s) for s in ("publish.py same", "publish.py refused", "publish.py sign ",
+                                          "publish.py accepted")]
+        self.assertEqual(order, sorted(order))
+
+    def test_the_anonymous_job_has_no_login(self):
+        lines = "\n".join(job(self.text, "anonymous"))
+        self.assertIn("needs: [build, sign]", lines)
+        self.assertIn("publish.py accepted", lines)
+        self.assertNotIn("login", lines)
+        self.assertNotIn("authfile", lines)
+        self.assertNotIn("token", lines.lower())
+
+    def test_every_checkout_keeps_no_credential(self):
+        uses = self.text.count("uses: actions/checkout@")
+        self.assertEqual(uses, len(self.JOBS))
+        self.assertEqual(self.text.count("persist-credentials: false"), uses)
+
+    def test_the_tool_pins_are_the_image_workflows(self):
+        self.assertEqual(len(env_pins(self.text)), 4)
+        self.assertEqual(env_pins(self.text), env_pins(read(IMAGE)))
 
 
 class Gate(unittest.TestCase):
