@@ -136,5 +136,26 @@ class Argv(unittest.TestCase):
         self.assertEqual(argv[-1], sp.LOCAL_REPO + "@sha256:" + "a" * 64)
 
 
+class Registry(unittest.TestCase):
+    """CI run 40776852353: the workflow's REGISTRY_VERSION reached the registry,
+    which reads every REGISTRY_* variable as a config override, and it did not
+    start; nothing said why (evidence 08)."""
+
+    def test_the_registry_starts_without_any_registry_variable(self):
+        env = sp.registry_env({"PATH": "/usr/bin", "REGISTRY_VERSION": "3.1.2",
+                               "REGISTRY_SHA256": "ab", "REGISTRY_HTTP_ADDR": ":80", "HOME": "/h"})
+        self.assertEqual(env, {"PATH": "/usr/bin", "HOME": "/h"})
+
+    def test_a_failed_start_says_why(self):
+        msg = sp.registry_failure(1, "configuration error: parsing environment variable REGISTRY_VERSION\n")
+        self.assertIn("exit 1", msg)
+        self.assertIn("parsing environment variable REGISTRY_VERSION", msg)
+        self.assertIn("still running", sp.registry_failure(None, ""))
+
+    def test_the_workflow_names_no_registry_variable(self):
+        with open(os.path.join(HERE, os.pardir, os.pardir, ".github", "workflows", "image.yml")) as f:
+            self.assertNotRegex(f.read(), r"(?m)^\s+REGISTRY_[A-Z0-9_]*:")
+
+
 if __name__ == "__main__":
     unittest.main()
