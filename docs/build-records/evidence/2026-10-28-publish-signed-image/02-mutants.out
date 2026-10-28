@@ -1,0 +1,20 @@
+m1 a run number of any form                      KILLED  FAILED (failures=3)
+m2 a re-run goes ahead                           KILLED  FAILED (errors=4)
+m3 any digest                                    KILLED  FAILED (failures=6)
+m4 any image counts as the one built             KILLED  FAILED (errors=1)
+m5 the login mounted where config is read        KILLED  FAILED (failures=2)
+m6 cosign may fall back to http                  KILLED  FAILED (failures=1)
+m7 cosign gets the job's whole environment       KILLED  FAILED (failures=1)
+m8 an empty password signs                       KILLED  FAILED (failures=2)
+m9 started by a push too                         KILLED  FAILED (failures=1)
+m10 the anonymous job on any branch              KILLED  FAILED (failures=1)
+m11 the build job in the Environment             KILLED  FAILED (failures=1)
+m12 the key for the whole sign job               KILLED  FAILED (failures=1)
+m13 a re-run not refused                         KILLED  FAILED (failures=1)
+m14 no drill before the push                     KILLED  FAILED (errors=1)
+m15 the anonymous read logs in                   KILLED  FAILED (failures=1)
+m16 the build job may write anything             KILLED  FAILED (failures=1)
+m17 refused checked after signing                KILLED  FAILED (errors=1)
+restored: OK
+restored: OK
+exit 0

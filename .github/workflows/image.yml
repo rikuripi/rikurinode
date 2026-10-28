@@ -8,7 +8,7 @@ name: OS image
 # changes 3 and 4; image/drill/vm_drill.py): on image changes and weekly
 # (owner, 2026-10-12). The build job also proves the node's signature policy on
 # the built image, with throwaway keys (change 2a; image/drill/signature_policy.py).
-# Not yet: publishing and signing with the real key (change 2b).
+# Publishing and signing with the real key: publish.yml (change 2b).
 # Records: docs/build-records/2026-10-12-stage1-os-image.md,
 # docs/build-records/2026-10-22-ci-vm-drill.md,
 # docs/build-records/2026-10-25-signature-policy.md

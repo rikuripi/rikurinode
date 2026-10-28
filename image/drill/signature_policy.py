@@ -126,10 +126,11 @@ def copy_argv(image: str, mounted: list, ref: str, out: str) -> list:
     return podman_run(image, mounted, "skopeo", "copy", "-q", "docker://" + ref, "dir:" + out)
 
 
-def sign_argv(cosign: str, key: str, identity: str, digest_ref: str) -> list:
+def sign_argv(cosign: str, key: str, identity: str, digest_ref: str, http: bool = True) -> list:
+    """cosign's older format, by digest, no transparency log; http only for the proof's local registry."""
     return [cosign, "sign", "-y", "--key=" + key, "--new-bundle-format=false", "--tlog-upload=false",
-            "--use-signing-config=false", "--allow-http-registry", "--sign-container-identity=" + identity,
-            digest_ref]
+            "--use-signing-config=false"] + (["--allow-http-registry"] if http else []) + [
+            "--sign-container-identity=" + identity, digest_ref]
 
 
 def run(argv: list, **kw) -> subprocess.CompletedProcess:

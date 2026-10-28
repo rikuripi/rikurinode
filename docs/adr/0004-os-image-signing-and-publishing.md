@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted — owner, 2026-10-12 (the recommendations) |
+| **Status** | Accepted — owner, 2026-10-12 (the recommendations); clarified, not changed, 2026-10-28 (owner, "You start each publish (Recommended)" and "Fixed names only (Recommended)"; the section "Clarification (2026-10-28)" below; record `docs/build-records/2026-10-28-publish-signed-image.md`) |
 | **Decision** | D6 and D7 of `docs/architecture/platform-plan.md` |
 | **Sources** | `docs/build-records/evidence/2026-10-12-stage1-os-image/research.md` |
 
@@ -47,6 +47,28 @@ registry needs a GitHub token stored on every node.
   (plan §4.2, never downgrade) must refuse an older signed image.
 - Owner steps, once: create the Environment and its secrets; make the spare
   key offline.
+
+## Clarification (2026-10-28): who starts a publish, and the names it uses
+
+- **The owner starts each publish.** "Only `main`'s publish job" is
+  `.github/workflows/publish.yml`: it is started by hand (`workflow_dispatch`)
+  and never on a merge, and each of its jobs refuses any branch but `main`.
+  GitHub offers no required reviewer for an Environment of a private repository
+  on this plan, so the Environment `image-publish` limits only the branch
+  (`main`). Its administrator bypass stays on, and the owner is the only
+  administrator. The key is in the sign job alone, in one step, through
+  `env://`, never in a file.
+- **Fixed names only.** Each publish gets a tag that never moves,
+  `<Fedora release>.<UTC date>.<run number>`. A re-run of the build is
+  refused, because it would put another image under the same name. The
+  moving name that nodes follow is decided when a node first follows one
+  (stage 1, change 2c).
+- **CI checks each signature as a node would.** Before signing, the published
+  image's own skopeo and policy refuse it unsigned; after signing, they
+  accept it, under the real name; a job with no credential then reads it as
+  a node does.
+- **The package is private until the owner makes it public** after the first
+  publish (D6; runbook `docs/runbooks/publish-os-image.md`).
 
 ## Rejected
 
