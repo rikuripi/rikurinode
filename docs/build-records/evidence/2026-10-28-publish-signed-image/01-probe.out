@@ -1,0 +1,12 @@
+## (a) the pushed manifest's config digest against the built image's ID
+tiny: image ID sha256:2dcbf560cbd910de2e3d305f4ca0a9f11323223870f2e4a43278c370e9ef700e; pushed sha256:b3a3ad827aa743807a7e23951560dcb10846ead227fc0003b4ecb5f5944e4328, its config sha256:2dcbf560cbd910de2e3d305f4ca0a9f11323223870f2e4a43278c370e9ef700e: EQUAL
+os: image ID sha256:04f8a9488032eb2b6e4e4a5502679f45dc9730951b6117d44db8804dde4f733d; pushed sha256:297b26877dcb804db132621e9f625cf5e101c19cef7505b92b81e312a1a78893, its config sha256:04f8a9488032eb2b6e4e4a5502679f45dc9730951b6117d44db8804dde4f733d: EQUAL
+## (b) cosign, the key from an environment variable, with a password
+no key file left
+signed by env://
+wrong password refused: decrypt: encrypted: decryption failed
+signed by env://, by digest: ACCEPTED
+signed by env://, by tag: ACCEPTED
+the OS image, unsigned: REFUSED: "Source image rejected: A signature was required, but no signature exists"
+## cleanup
+left: 0; folders: 0; gbp: 1
