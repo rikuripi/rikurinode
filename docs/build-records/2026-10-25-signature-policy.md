@@ -52,10 +52,47 @@
   - Not probed in the VM: a signed image in a registry (the VM has no network for a registry image); that is the CI job's.
 - [x] **The owner's choice** (2026-10-25): "Make the keys now (Recommended)": the owner makes the main and the spare key pairs and the GitHub Environment now, 2b's steps moved earlier, and gives this session the two public keys only. 2a then tests the node's exact policy file inside the built image, with the image's own skopeo.
 - [x] **Owner steps** (below, "Owner steps"): done 2026-10-28, restarted from clean.
-- [ ] **Remaining question** (to settle in design): how the CI job serves a signed image to the shipped policy, whose scope names `ghcr.io/rikuripi/rikurinode`, from a local registry (a mirror in `registries.conf`, with cosign's `--sign-container-identity`, or the job's own copy of the file), and which registry image, after its inspection.
-- [ ] **Design:** after the probes.
+- [x] **Probes 3 and 4** (`rikuri-drill`; the shipped `policy.json` with only its two key paths rewritten to throwaway keys, the shipped `registries.d` file, skopeo 1.22.3, cosign v3.1.4, distribution's registry 3.1.2 on `127.0.0.1:5000`; a `registries.conf` prefix rewrite reads `ghcr.io/rikuripi/rikurinode` from it; folder and images removed, "left: 0"):
+  - **Probe 3:** every image in the scope was refused with "no signature exists", the signed ones too. containers/image looks up `use-sigstore-attachments` by the address it reads from, not by the name the policy scopes; a node reads `ghcr.io` itself, so the two agree there, but a mirror or a rewrite leaves the node without its signatures, and it refuses (fails closed).
+  - **Probe 4**, with the same setting for the local address: signed by main and by spare, accepted (also by digest); unsigned, refused ("A signature was required, but no signature exists"); an untrusted key, refused ("cryptographic signature verification failed"); the main key claiming another repository, refused ("Signature for identity … is not accepted": the identity is checked against the policy's name, not the address read from); another image's valid signature at this digest, refused ("Signature for digest … does not match"); another repository, unsigned, accepted (the policy covers only this image). Without the setting, signed, refused.
+  - **Case 10:** with `$HOME/.config/containers/policy.json` present and no `--policy`, skopeo used it instead of `/etc`'s: root's own config would replace the node's policy.
+  - cosign 3.1.4 hides `--new-bundle-format`, `--tlog-upload`, `--use-signing-config` and `--sign-container-identity` from its help but takes them, and they signed in the format containers/image reads. Hidden flags may go in a later cosign: the pin holds them, and the CI proof fails if they stop working.
+- [x] **Design** (2026-10-28):
+  - **The image ships:**
+    - `etc/containers/policy.json`: Fedora's own policy (`insecureAcceptAnything` by default, `docker-daemon` as Fedora has it) plus one scope, `ghcr.io/rikuripi/rikurinode`: `sigstoreSigned`, `keyPaths` the two keys, `signedIdentity` `matchRepository`. Every other image is as Fedora has it (ADR 0004, D7: "only for this image").
+    - `etc/containers/registries.d/rikuri.yaml`: `use-sigstore-attachments: true` for the scope.
+    - `usr/share/rikuri/signing/rikuri-main.pub` and `rikuri-spare.pub`, the owner's. The keys live under `/usr`, which only an image changes, so a key can be replaced by an update; the policy lives in `/etc`, where a node that never edited it takes each image's copy by the `/etc` merge (probe 1).
+  - **The checker** (`check_signature_policy`, in `check_root`): the policy parsed as JSON with no key twice, equal to `POLICY_EXPECTED` (so case-blind duplicates such as `Default`, a second requirement, any other scope, transport, key path or identity rule are findings); the registries.d file exactly its three lines, comments in column 0 and blank lines aside, in printable ASCII (YAML may read NEL as a line break); no other file in `registries.d` naming `rikuripi` (containers/image fails every pull of a scope two files configure), and no link there; the keys by SHA-256, pinned to the fingerprints above; and no `.config/containers` under `var/roothome` or a real `root`, and `root` a link only to `var/roothome`.
+  - **The CI proof** (`image/drill/signature_policy.py`, in the build job after the checker, on the image just built): the registry's and cosign's release binaries, checked by SHA-256; throwaway keys; tiny test images, each with its own content; cosign signs by digest in the older format, with no transparency log. The image's own skopeo, under the image's own `policy.json` and `rikuri.yaml`, reads each case as `ghcr.io/rikuripi/rikurinode`. Into its container go only, read-only: the two throwaway public keys over the owner's (the policy's key paths stay), a `registries.conf.d` prefix rewrite to the local registry (never a mirror, which would fall back to ghcr.io), and the shipped `rikuri.yaml` with the local registry's name, made from the image's own file. A refusal passes only with containers/image's "Source image rejected:" and the case's own reason; any other failure is a miss.
+  - **Rejected:**
+    - a registry container image: distribution's release binary needs no digest of an image from Docker Hub, and the job already downloads from GitHub;
+    - mounting the owner's keys and signing with a test key the policy trusts by rewriting `policy.json`: the proof would then not run the shipped file;
+    - serving the local registry as `ghcr.io` with a test certificate, which would also prove `rikuri.yaml` under its real name: more setup on the runner (hosts file, CA) for one three-line file the checker pins.
+  - **Not proven here, and whose it is:**
+    - the shipped `rikuri.yaml` under the real `ghcr.io` name: 2b, by reading the published image with the image's skopeo;
+    - that `bootc` applies the policy on a node, and refuses an unsigned update: 2c's drill;
+    - a node whose admin edited `/etc/containers/policy.json` keeps that edit (the `/etc` merge): ADR 0004 and the update runbook, later;
+    - a registries.conf mirror for ghcr.io on a node would leave it without signatures, so it refuses updates (probe 3): fails closed.
 
 ## Evidence log
+
+All test runs were in `rikuri-drill` (`safe-run.sh` refuses on macOS; the CI gate runs them through it). The pre-commit hook is not installed in this clone (`core.hooksPath` unset) and gitleaks is not on the Mac: before each commit its other two checks ran by hand (`git diff --cached --check`, `repo_hygiene.py`), and CI's gate runs the secret scan.
+
+- **Probes 3 and 4** (`03-probe.*`, `04-probe.*`): as in 0b. Trailing spaces were stripped from both outputs (one line each) for the whitespace check.
+- **Red, the checker** (commit `9f694df`, with the shipped files): 112 tests, `FAILED (failures=1, errors=47)`, every one in `SignaturePolicy` (the missing `check_signature_policy`; the failure is `check_root` not running it).
+- **Test changes after red, with their reasons:**
+  - `scan etc: 2 file(s) read` became `4` in two existing tests (`test_main_exit_codes`, `test_scan_report_names_every_tree`): the fixture root now ships the policy and the registries.d file in `etc`, so the scan reads two more files. In the red commit.
+  - A mutant added after red, "a NEL in a comment" (registries.d): no test reached the printable-ASCII rule on a comment line. In `c3a2c53`.
+  - `test_signature_policy.py`: the mounts' options are read rather than matched as `:ro` (in `d43afab`): the VM run (below) needed SELinux's `z` as well.
+- **Green, the checker** (commit `c3a2c53`): 112 tests, OK.
+- **Mutants, the checker** (`05-mutants.py`, `05-mutants.out`; `05-mutants-run1.out` is the first run): eleven mutants, each weakening one rule. First run: ten failed; **m4 survived**, the policy's printable-ASCII rule: a byte outside ASCII already fails the decode, and JSON's other whitespace (tab, CR) Go and Python read alike. The rule went (in `c3a2c53`). Second run, the ten: each failed (m1, a key twice; m2, only the scope compared; m3, the registries.d file's ASCII rule; m5, another file naming the image; m6, a link; m7, the keys' SHA-256; m8, any link for `root`; m9, root's containers config; m10, not in `check_root`; m11, the registries.d file not compared), and the restored file passed.
+- **Red, the CI proof** (commit `2d0c0bf`): `test_signature_policy.py` fails to import the missing `signature_policy`.
+- **The CI proof in the VM** (`06-proof-vm.out`; an image made `FROM localhost/rikuri-os:gbp` with this change's three folders copied in, arm64 cosign and registry checked by SHA-256): first run, every case a miss with "permission denied" on the mounted files (SELinux; the pass rule counted the setup failure as a miss, not a refusal); with `z`, **8 of 8** as expected, exit 0.
+- **The proof against Fedora's policy** (`07-proof-vm-fedora-policy.out`; the same image without this change's `policy.json`): the four refusal cases each a MISS ("accepted; expected a refusal"), 4 of 8, exit 1.
+- **Green, all image tests** (on `d43afab`): `python3 -m unittest discover -s image/tests`, 243 tests, OK.
+- **The VM after:** this task's test images, folders and throwaway keys removed; earlier tasks' images left as they were.
+- **Knowledge layer:** nothing a user sees changes until 2b publishes; no help page or runbook covers updates yet, and the README's status stays as it is.
+- **CI:** (to fill: the pull request's runs.)
 
 ## Owner steps (2026-10-25, given to the owner; private keys never enter this session)
 
