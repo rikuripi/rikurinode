@@ -83,6 +83,17 @@
   - test code changed, with reasons: `QemuArgv`'s forward assertion (the form changed, as above); a new workflow test for nc; its version-line assertion corrected before the red commit (image.yml records versions inside a `{ … }` block).
   - green (`rikuri-drill`): `image/tests` 284 OK; `test_workflows.py` 23 OK.
   - mutants (`04-mutants-repair1.out`): 25, with m2b (the forward back to `tcp:`), m23 and m24 (either job without nc): **25 of 25 killed**; the restored tree passes.
+- **CI run 2** (at `d36556f`): the drill, [run 40933775613](https://github.com/rikuripi/rikurinode/actions/runs/40933775613), ran every case (`ci-40933775613-06-case4.out`, `ci-40933775613-07-case5.out`):
+  - first boot, cases 1, 2b and 3, and the containers-range checks: **Pass** (the forward changes none of them);
+  - **case 5: Pass.** `bootc switch ghcr.io/rikuripi/rikurinode:44.20261029.1` exit 0, "Queued for next boot", staged `('ghcr.io/rikuripi/rikurinode:44.20261029.1', 'sha256:c984d651db4f15be5dac56fcd974d230bc248536fade4ceee29323abadfdecfd')`, and the spec follows that name: **2a's M2 answered**;
+  - **case 4: Fail, the harness's rule, not the node.** bootc refused: exit 1, `error: Switching: Switching (ostree): Preparing import: Fetching manifest: failed to invoke method OpenImage: A signature was required, but no signature exists`, staged `None`. **2a's M1 answered: bootc's default path applies the node's scoped policy.** The rule required skopeo's `Source image rejected: ` before the reason; bootc's image proxy does not print it. The test's line had been guessed, not observed. Reported by the owner, confirmed in the evidence.
+- **Repair cycle 2** (2 of 2, the last):
+  - red `83b3ddd` (`05-red-repair2.out`): the fixture is now the line CI printed; new tests require the reason directly after the proxy's `OpenImage` error (not anywhere, not after another method), and a refusal for another reason after `OpenImage` fails. Two failures, both the observed refusal judged a miss, as in CI.
+  - fix: `unsigned_refused` requires a non-zero exit, `failed to invoke method OpenImage: A signature was required, but no signature exists` (`BOOTC_REFUSED`), a readable status and nothing staged. `signature_policy.miss`, for skopeo, is unchanged.
+  - test code changed, with reasons: the `REFUSED` fixture (observed, above); two anchoring tests; after the fix, a success carrying the line must fail (mutant m7c survived run 1, `06-mutants-repair2.out`).
+  - green (`rikuri-drill`): `image/tests` 285 OK; `test_workflows.py` 23 OK.
+  - mutants: 27, with m7b (the reason anywhere) and m7c (exit code ignored); run 2 (`06-mutants-repair2-run2.out`): **27 of 27 killed**, the restored tree passes.
+  - Repair cycles are now used up. Any further failure ends this task `BLOCKED`.
 
 ## Verify
 

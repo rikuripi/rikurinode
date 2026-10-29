@@ -87,6 +87,9 @@ MIRROR_FILES = (MIRROR_CONF, MIRROR_REGISTRIES_D)
 SIGNED_REF = sp.IMAGE_REPO + ":44.20261029.1"
 SIGNED_DIGEST = "sha256:c984d651db4f15be5dac56fcd974d230bc248536fade4ceee29323abadfdecfd"
 UNSIGNED_REF = sp.IMAGE_REPO + ":drill-unsigned"
+# bootc's image proxy answers OpenImage with the policy's own reason, without skopeo's
+# "Source image rejected: " (CI run 40933775613, repair 2).
+BOOTC_REFUSED = "failed to invoke method OpenImage: " + sp.NO_SIGNATURE
 
 
 class DrillFailure(Exception):
@@ -189,8 +192,9 @@ def seed_argvs(image: str) -> list:
 
 
 def unsigned_refused(returncode: int, output: str, status: str) -> bool:
-    """Refused for the policy's reason, and nothing staged in a status that reads."""
-    return (sp.miss(returncode, output, sp.NO_SIGNATURE) is None and booted(status) is not None
+    """Refused for the policy's reason, as the proxy's answer to opening the image,
+    and nothing staged in a status that reads."""
+    return (returncode != 0 and BOOTC_REFUSED in output and booted(status) is not None
             and staged(status) is None)
 
 

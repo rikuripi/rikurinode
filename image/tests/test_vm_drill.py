@@ -557,6 +557,7 @@ class SignatureRules(unittest.TestCase):
 
     def test_unsigned_accepted_or_staged_fails(self):
         self.assertFalse(d.unsigned_refused(0, "", status_json()))
+        self.assertFalse(d.unsigned_refused(0, REFUSED, status_json()))   # mutant m7c (06-mutants-repair2.out)
         self.assertFalse(d.unsigned_refused(1, REFUSED, status_json(staged=("x", DIGEST))))
         self.assertFalse(d.unsigned_refused(1, REFUSED, ""))
 
