@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/install-media`, from `main` at `1738748`; the probe on the throwaway branch `probe/installer-iso` (this task's, deleted after); worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Status** | BLOCKED (probe 6d; see Close Out) |
 | **Change type** | feature (the node's install path) |
 
 ## Task Contract
@@ -47,11 +47,29 @@
   - `ghcr.io/osbuild/image-builder-cli`: versioned tags `v81.0.0` to `v88.0.0`; `v87.0.0` (2026-10-14) is index `sha256:df3f4e525945c868d8014b859cd4f1d2efd8d749e40d8e3b9b9e6a05ca3b95b0`. v88.0.0 (2026-10-27) is under two weeks old.
   - ADR 0006: "Anaconda does not support bound images, so the install path provides them another way … a `bootc install` from a live environment that carries the images". A live ISO running `bootc install to-disk` is that path.
   - The node image's base is `registry.fedoraproject.org/fedora-iot@sha256:29d16f4c…`; whether `dnf` installs packages in a build on it is not known (probe 6a).
-- [ ] **Probe 6** (CI, `probe/installer-iso`): (a) does `dnf install` of the live and ISO tools work on the pinned Fedora IoT base, or is a pinned `fedora-bootc:44` base needed; (b) does `image-builder` v87 build a `generic-iso` from it with the node image embedded; (c) does the ISO boot in QEMU (UEFI, as a USB stick) to a unit on the serial console; (d) does `bootc install to-disk` from the embedded image succeed, and does the installed disk boot alone and pass greenboot. Keep, simplify or drop.
-- [ ] **Design:** after the probe.
+- [x] **Probe 6** (CI, `probe/installer-iso`): (a) does `dnf install` of the live and ISO tools work on the pinned Fedora IoT base, or is a pinned `fedora-bootc:44` base needed; (b) does `image-builder` v87 build a `generic-iso` from it with the node image embedded; (c) does the ISO boot in QEMU (UEFI, as a USB stick) to a unit on the serial console; (d) does `bootc install to-disk` from the embedded image succeed, and does the installed disk boot alone and pass greenboot. Keep, simplify or drop.
+  - **6a: Pass, keep.** `dnf install dracut-live squashfs-tools xorriso isomd5sum grub2-efi-x64-cdboot python3` works on the pinned IoT base; no second base is needed.
+  - **6b: Pass, keep.** v87 builds the ISO with the node image embedded. In v87 the type is `bootc-generic-iso` (`generic-iso` from v88).
+  - **6c: Pass, keep, with two rules learnt.** The stick boots under OVMF as `usb-storage` and starts the install unit (`RIKURI-PROBE-READY` on the serial console). (1) v87 copies a grub entry's `linux:` line as written and fills no `${…}` (`pkg/distro/iso_config.go` at `v87.0.0`); the line must spell out `root=live:CDLABEL=<label> rd.live.image`. (2) The squashfs carries no SELinux labels, so the live system needs `selinux=0` (as v87's example); the installed node is unaffected, since `bootc install` labels the target from the image's policy, but this is **not yet proven** (6d not reached).
+  - **6d: Fail, not proven.** `podman` in the live system refused its storage: `'overlay' is not supported over overlayfs, a mount_program is required`. The live root is an overlayfs (dmsquash-live), and the embedded image is in `/var/lib/containers/storage` on it.
+  - **Stopped** as agreed with the owner (2026-10-29: "Allow 45 more minutes (Recommended)", one more run, then BLOCKED on failure). Used: 4 of 5 runs; about 115 minutes against 120 plus the 45 allowed.
+- [ ] **Design:** not started; blocked on 6d.
 
 ## Evidence log
+
+| Run | Commit | Result | Learnt |
+|---|---|---|---|
+| [40941949152](https://github.com/rikuripi/rikurinode/actions/runs/40941949152) | `86ebc4c` | 6a pass; 6b fail: `invalid image type: generic-iso` | v87's name is `bootc-generic-iso` |
+| [40942926290](https://github.com/rikuripi/rikurinode/actions/runs/40942926290) | `f9153cd` | 6b pass; 6c fail: `Timed out waiting for device … /dev/gpt-auto-root`, emergency shell | no `root=` on the kernel line: v87 fills no `${…}` |
+| [40959595876](https://github.com/rikuripi/rikurinode/actions/runs/40959595876) | `9ddfb63` | 6c fail: the live root mounted, then `Failed to allocate manager object: Permission denied` | unlabeled squashfs under enforcing SELinux |
+| [40967675517](https://github.com/rikuripi/rikurinode/actions/runs/40967675517) | `214a0ef` | 6c pass (`RIKURI-PROBE-READY`); 6d fail: `'overlay' is not supported over overlayfs, a mount_program is required`, rc 125 | podman's storage cannot sit on the live overlayfs root |
+
+Serial logs: each run's artifact `probe6` (90 days).
 
 ## Verify
 
 ## Close Out
+
+**BLOCKED** (2026-10-29): probe 6d did not pass within the probe's limits, so the design, tests and implementation were not started. No pull request. The probe branch `probe/installer-iso` is kept, unmerged, as the evidence and the starting point for the next task; this task deletes it when the owner says so.
+
+Proposed next task (not started): probe 6d alone, at most 3 CI runs. Put podman's own store on a tmpfs (`graphroot` under `/run`) and read the embedded image as an `additionalimagestores` entry. Only a store's upper layer must not sit on overlayfs; lower layers may. The alternative is `fuse-overlayfs` as the `mount_program`. Then prove that the installed disk boots alone, with SELinux enforcing and greenboot passing.
