@@ -57,7 +57,7 @@
   - **(a)** after `podman push`, the manifest's config digest equals the built image's ID, for a tiny image and for the OS image (`EQUAL` both). So "the image pulled is the one built" is one comparison: the pulled image's ID against the build job's.
   - **(b)** cosign v3.1.4 signs with `--key env://COSIGN_PRIVATE_KEY` and a password, in the older format, with no key file on disk. A wrong password is refused ("decryption failed"). The shipped policy accepts the result by digest and by tag, and refuses the unsigned OS image for "no signature exists".
 - [x] **Design** (2026-10-28):
-  - **`publish.yml`**: `workflow_dispatch` only, and every job also has `if: github.ref == 'refs/heads/main'`, so a dispatch from any other branch runs nothing. The Environment's own rule (`main` only) holds the key the same way. Top-level `permissions: {}`; each job names its own. One publish at a time (`concurrency`, never cancelled).
+  - **`publish.yml`**: `workflow_dispatch` only, and every job also has `if: github.ref == 'refs/heads/main'`, so a dispatch from any other branch runs nothing. The Environment's own rule (`main` only) holds the key the same way. Top-level `permissions: {}`; each job names its own. One publish runs at a time (`concurrency`): a running publish is never cancelled; GitHub does cancel a waiting one when a newer one is queued (verifier pass 1, N1).
   - **Job `build`** (`contents: read`, `packages: write`; no Environment, no secret):
     - refuse a re-run (`GITHUB_RUN_ATTEMPT` above 1): a re-run would build a new image under the same fixed tag, so the tag would move;
     - the tag `<FEDORA_RELEASE>.<UTC date>.<run number>`;
@@ -99,6 +99,47 @@
   - `.github/workflows/image.yml`: one comment line.
   - No gate, check or test was removed or loosened.
 - **Knowledge layer:** `docs/runbooks/publish-os-image.md` (new; the owner's steps, the package made public, what to do when a job fails); ADR 0004's clarification; README's status. A node user sees nothing new: no node follows a fixed name.
+
+### Verifier pass 1 and repair cycle 1 (2026-10-28)
+
+- **CI, first run** at `c77df2c`: `Full gate (Ubuntu)` passed (run 40790408531), and so did "Build and check the OS image". The drill was still running.
+- **Verifier pass 1: FAIL.**
+  - **Important, I1 to I8:** eight hand mutants of `publish.py`'s `main()` survived. The tests never ran `main()`, which wires the checks to their exits.
+    - I1, another image counts as the one built;
+    - I2, a failed inspect counts as a pass;
+    - I3, a MISS still exits 0;
+    - I4, `refused` expects acceptance;
+    - I5, the read by tag dropped;
+    - I6, cosign's failure ignored;
+    - I7, cosign given the job's whole environment;
+    - I8, a failed pull ignored.
+
+    I3 would let the owner's run go green while its summary says MISS.
+  - **Minor:**
+    - **M1:** the runbook's "re-run the second job" fails once a signature exists. It fails closed, but the advice was wrong.
+    - **M2:** `rikuripi` is a user account, not an organization. The runbook's `orgs/` link is a 404, and its organization fallback does not exist.
+    - **M3:** nothing checks that the local name still holds the image built when it is pushed, after the drill's privileged containers.
+    - **M4:** a branch that edits `publish.yml` and is dispatched gets `packages: write`; the Environment's `main` rule still holds the key.
+  - **Nits:**
+    - **N1:** GitHub cancels a waiting run when a newer one is queued;
+    - **N2:** each acceptance read downloads the whole image.
+- **Red** (repair 1, `rikuri-drill`):
+  - For I1 to I8, the red run is the verifier's: on unchanged code, each mutant left the tests green. The code had no defect; its tests did not reach it. So `publish.py` does not change, and class `Main` is new tests only.
+  - For M3, the new assertion in `test_workflows.py`, run against the previous `publish.yml`: `FAILED (errors=1)`, in `test_the_build_job_refuses_a_rerun_and_proves_before_it_pushes`.
+- **Fix** (repair 1):
+  - `test_publish.py`, class `Main`: `main()` runs with `subprocess.run` faked. Each subcommand's exit is checked, for each way it can fail, and so is the `env=` that reaches cosign (only `sign_env`'s five names; no `GITHUB_TOKEN`). A missing password stops it before cosign runs.
+  - `publish.yml`: the image ID is recorded right after the build and compared at the push (M3).
+  - The runbook:
+    - the user-account link (M2);
+    - a failed first or second job means a new publish, never a re-run (M1).
+  - The design's wording on concurrency (N1).
+- **Mutants after repair 1** (`03-mutants-repair1.out`, `rikuri-drill`):
+  - 26 in all: the first 17, the verifier's eight as m18 to m25, and m26 for M3. Each is KILLED, and both suites pass once restored.
+  - `image/tests`: OK. `test_workflows.py`: OK.
+- **Left, with reasons:**
+  - M4 goes to the backlog. An image pushed under a moved tag is refused unsigned, and the downgrade rule is stage 6's.
+  - N2: four full downloads cost time, not correctness.
+- **Test changes after red, with their reasons:** class `Main` and the M3 assertion are new. They were added for verifier pass 1, and no existing test was loosened.
 
 ## Owner steps (after the merge)
 

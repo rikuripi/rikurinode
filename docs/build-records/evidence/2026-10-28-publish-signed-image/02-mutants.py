@@ -38,6 +38,19 @@ MUTANTS = [
     ("m17 refused checked after signing", YML,
      "      - name: The image's own policy refuses it unsigned\n        run: python3 -I image/drill/publish.py refused --digest \"$DIGEST\" --authfile \"$RUNNER_TEMP/auth.json\"\n",
      ""),
+    # Repair 1: the verifier's mutants of main() (pass 1, I1 to I8), and the built ID at the push (M3).
+    ("m18 I1 another image counts as built", PY, "        if m:\n            sys.exit(m)", "        if False:\n            sys.exit(m)"),
+    ("m19 I2 a failed inspect counts", PY, 'if r.returncode == 0 else "publish: inspect failed: " + r.stderr',
+     'if True else None'),
+    ("m20 I3 a miss exits 0", PY, "    return 0 if m is None else 1", "    return 0"),
+    ("m21 I4 refused expects acceptance", PY, "args.authfile, sp.NO_SIGNATURE)", "args.authfile, None)"),
+    ("m22 I5 the tag not read", PY, "            | read_as_node(args.digest, IMAGE_REPO", "            | 0 * read_as_node(args.digest, IMAGE_REPO"),
+    ("m23 I6 cosign's failure ignored", PY, "        if r.returncode:\n            sys.exit(\"publish: cosign failed",
+     "        if False:\n            sys.exit(\"publish: cosign failed"),
+    ("m24 I7 cosign gets the job's environment", PY, "env=sign_env(os.environ),", "env=dict(os.environ),"),
+    ("m25 I8 a failed pull ignored", PY, "    r = run(pull_argv(args.digest, getattr(args, \"authfile\", None)))\n    if r.returncode:",
+     "    r = run(pull_argv(args.digest, getattr(args, \"authfile\", None)))\n    if False:"),
+    ("m26 M3 the built ID not compared", YML, '          [ "$id" = "$(cat "$RUNNER_TEMP/built-id")" ] || {', '          true || {'),
 ]
 
 src = {f: open(f).read() for f in (PY, YML)}

@@ -1,0 +1,31 @@
+m1 a run number of any form                      KILLED  FAILED (failures=3)
+m2 a re-run goes ahead                           KILLED  FAILED (errors=4)
+m3 any digest                                    KILLED  FAILED (failures=6)
+m4 any image counts as the one built             KILLED  FAILED (errors=2)
+m5 the login mounted where config is read        KILLED  FAILED (failures=2)
+m6 cosign may fall back to http                  KILLED  FAILED (failures=1)
+m7 cosign gets the job's whole environment       KILLED  FAILED (failures=2)
+m8 an empty password signs                       KILLED  FAILED (failures=3)
+m9 started by a push too                         KILLED  FAILED (failures=1)
+m10 the anonymous job on any branch              KILLED  FAILED (failures=1)
+m11 the build job in the Environment             KILLED  FAILED (failures=1)
+m12 the key for the whole sign job               KILLED  FAILED (failures=1)
+m13 a re-run not refused                         KILLED  FAILED (failures=1)
+m14 no drill before the push                     KILLED  FAILED (errors=1)
+m15 the anonymous read logs in                   KILLED  FAILED (failures=1)
+m16 the build job may write anything             KILLED  FAILED (failures=1)
+m17 refused checked after signing                KILLED  FAILED (errors=1)
+m18 I1 another image counts as built             KILLED  FAILED (errors=1)
+m19 I2 a failed inspect counts                   KILLED  FAILED (failures=1)
+m20 I3 a miss exits 0                            KILLED  FAILED (failures=2)
+m21 I4 refused expects acceptance                KILLED  FAILED (failures=1)
+m22 I5 the tag not read                          KILLED  FAILED (failures=1)
+m23 I6 cosign's failure ignored                  KILLED  FAILED (errors=1)
+m24 I7 cosign gets the job's environment         KILLED  FAILED (failures=1)
+m25 I8 a failed pull ignored                     KILLED  FAILED (errors=2)
+m26 M3 the built ID not compared                 KILLED  FAILED (errors=1)
+restored: OK
+restored: OK
+exit 0
+OK
+OK

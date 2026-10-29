@@ -221,6 +221,12 @@ class Publish(unittest.TestCase):
                                           "vm_drill.py", "podman push")]
         self.assertEqual(order, sorted(order))
         self.assertNotIn("anonymous", " ".join(re.findall(r"needs:.*", lines)))
+        # The ID is recorded right after the build and compared at the push (verifier pass 1, M3).
+        record = lines.index('> "$RUNNER_TEMP/built-id"')
+        compare = lines.index('[ "$id" = "$(cat "$RUNNER_TEMP/built-id")" ] || {')
+        self.assertLess(lines.index("podman build"), record)
+        self.assertLess(record, lines.index("check_image_root.py"))
+        self.assertLess(lines.index("podman push"), compare)
 
     def test_the_sign_job_refuses_signs_then_accepts(self):
         lines = "\n".join(job(self.text, "sign"))

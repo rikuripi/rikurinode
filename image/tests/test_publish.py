@@ -3,15 +3,19 @@
 Only its pure parts run here: the fixed tag and the refusal of a re-run, the
 digest's form, the image pulled being the one built, the command lines for
 podman, the image's skopeo and cosign, and the signing step's environment
-(the key and its password, and nothing else of the job's). The publish itself
-runs only on main, started by the owner; its evidence is that run.
+(the key and its password, and nothing else of the job's). main() runs with
+podman and cosign faked (class Main; verifier pass 1, I1 to I8): each
+subcommand's exit, and what reaches cosign. The publish itself runs only on
+main, started by the owner; its evidence is that run.
 Record: docs/build-records/2026-10-28-publish-signed-image.md
 """
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, os.pardir, "drill"))
@@ -130,6 +134,108 @@ class Anonymous(unittest.TestCase):
         self.assertIn("public", msg)
         self.assertIn("docs/runbooks/publish-os-image.md", msg)
         self.assertIn("unauthorized", msg)
+
+
+REJECTED_NO_SIG = 'level=fatal msg="Source image rejected: ' + sp.NO_SIGNATURE + '"'
+TAG = "44.20261028.3"
+
+
+class Fake:
+    """subprocess.run, faked: each call's argv is recorded and answered by the first rule that matches."""
+
+    def __init__(self, *rules):
+        self.rules, self.calls = rules, []
+
+    def __call__(self, argv, **kw):
+        self.calls.append((argv, kw))
+        for match, rc, out in self.rules:
+            if match(argv):
+                return subprocess.CompletedProcess(argv, rc, out, "" if rc == 0 else out)
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    def reads(self):
+        return [a[-2] for a, _ in self.calls if "skopeo" in a]
+
+
+def is_pull(a):
+    return a[:3] == ["sudo", "podman", "pull"]
+
+
+def is_inspect(a):
+    return a[:4] == ["sudo", "podman", "image", "inspect"]
+
+
+def reads(ref):
+    return lambda a: "skopeo" in a and a[-2] == "docker://" + ref
+
+
+def is_cosign(a):
+    return a[1:2] == ["sign"]
+
+
+class Main(unittest.TestCase):
+    def main(self, fake, *argv, environ=None):
+        env = {"PATH": "/usr/bin"} if environ is None else environ
+        with mock.patch.object(pb.subprocess, "run", fake), mock.patch.dict(os.environ, env, clear=True), \
+                mock.patch("sys.stdout"):
+            try:
+                return pb.main(list(argv))
+            except SystemExit as e:
+                return e.code if e.code is not None else 0
+
+    def test_same_passes_only_for_the_image_built(self):
+        args = ("same", "--digest", DIGEST, "--image-id", "cd" * 32, "--authfile", "/r/a.json")
+        self.assertEqual(self.main(Fake((is_inspect, 0, "sha256:" + "cd" * 32 + "\n")), *args), 0)
+        other = self.main(Fake((is_inspect, 0, "ce" * 32 + "\n")), *args)          # I1
+        self.assertIn("not the image built", other)
+        failed = self.main(Fake((is_inspect, 125, "no such image")), *args)        # I2
+        self.assertIn("inspect failed", failed)
+        pull = self.main(Fake((is_pull, 125, "unauthorized"), (is_inspect, 0, "cd" * 32)), *args)   # I8
+        self.assertIn("pull failed", pull)
+
+    def test_refused_fails_the_step_when_the_policy_accepts_it(self):
+        args = ("refused", "--digest", DIGEST, "--authfile", "/r/a.json")
+        fake = Fake((reads(REF), 1, REJECTED_NO_SIG))
+        self.assertEqual(self.main(fake, *args), 0)
+        self.assertEqual(fake.reads(), ["docker://" + REF])
+        self.assertEqual(self.main(Fake((reads(REF), 0, "")), *args), 1)           # I3, I4
+        other = 'level=fatal msg="Source image rejected: ' + sp.BAD_SIGNATURE + '"'
+        self.assertEqual(self.main(Fake((reads(REF), 1, other)), *args), 1)       # refused, but not as unsigned
+
+    def test_accepted_reads_by_digest_and_by_tag_and_each_counts(self):
+        args = ("accepted", "--digest", DIGEST, "--tag", TAG, "--authfile", "/r/a.json")
+        by_tag = sp.IMAGE_REPO + ":" + TAG
+        fake = Fake()
+        self.assertEqual(self.main(fake, *args), 0)
+        self.assertEqual(fake.reads(), ["docker://" + REF, "docker://" + by_tag])   # I5
+        self.assertEqual(self.main(Fake((reads(by_tag), 1, REJECTED_NO_SIG)), *args), 1)   # I3, I5
+        self.assertEqual(self.main(Fake((reads(REF), 1, REJECTED_NO_SIG)), *args), 1)
+
+    def test_an_anonymous_pull_that_fails_names_the_owners_step(self):
+        msg = self.main(Fake((is_pull, 125, "unauthorized")), "accepted", "--digest", DIGEST, "--tag", TAG)
+        self.assertIn("not public", msg)
+        fake = Fake((is_pull, 125, "unauthorized"))
+        self.main(fake, "accepted", "--digest", DIGEST, "--tag", TAG)
+        self.assertEqual(fake.reads(), [])
+
+    def test_sign_gives_cosign_only_its_environment_and_fails_with_it(self):
+        job = dict(SignEnv.JOB)
+        args = ("sign", "--cosign", "/t/cosign", "--tag", TAG, "--digest", DIGEST)
+        fake = Fake()
+        self.assertEqual(self.main(fake, *args, environ=job), 0)
+        (argv, kw), = fake.calls
+        self.assertEqual(argv, pb.sign_argv("/t/cosign", TAG, DIGEST))
+        self.assertEqual(kw["env"], pb.sign_env(job))                               # I7
+        self.assertNotIn("GITHUB_TOKEN", kw["env"])
+        failed = self.main(Fake((is_cosign, 1, "error: signing")), *args, environ=job)   # I6
+        self.assertIn("cosign failed", failed)
+        self.assertNotIn(job["COSIGN_PRIVATE_KEY"], failed)
+        missing = dict(job, COSIGN_PASSWORD="")
+        fake = Fake()
+        with self.assertRaises(ValueError):
+            with mock.patch.object(pb.subprocess, "run", fake), mock.patch.dict(os.environ, missing, clear=True):
+                pb.main(list(args))
+        self.assertEqual(fake.calls, [])
 
 
 if __name__ == "__main__":
