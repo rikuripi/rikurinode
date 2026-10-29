@@ -1,0 +1,14 @@
+# repair 2 red, on d36556f plus the tests, rikuri-drill, 2026-10-29T18:55:18Z
+== image/tests/test_vm_drill.py
+AssertionError: False is not true
+Ran 68 tests in 0.011s
+FAILED (failures=2)
+== image/tests/test_signature_policy.py
+Ran 22 tests in 0.001s
+OK
+== scripts/quality/tests/test_workflows.py
+Ran 23 tests in 0.004s
+OK
+== image/tests all
+Ran 285 tests in 0.677s
+FAILED (failures=2)

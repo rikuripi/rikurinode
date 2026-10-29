@@ -479,8 +479,11 @@ def status_json(staged=None, spec="localhost/rikuri-os:ci"):
                                   "staged": deployment(*staged) if staged else None, "rollback": None}})
 
 
-REFUSED = ("error: Switching: Pulling: Creating importer: failed to invoke method OpenImage: "
-           "Source image rejected: A signature was required, but no signature exists\n")
+# Repair 2: bootc's refusal as CI run 40933775613 printed it (06-case4.out); the
+# guessed line before carried skopeo's "Source image rejected: ", which bootc's
+# image proxy does not print.
+REFUSED = ("error: Switching: Switching (ostree): Preparing import: Fetching manifest: failed to invoke method "
+           "OpenImage: A signature was required, but no signature exists\n")
 SIGNED = (d.SIGNED_REF, d.SIGNED_DIGEST)
 
 
@@ -560,6 +563,17 @@ class SignatureRules(unittest.TestCase):
     def test_unsigned_refused_for_another_reason_fails(self):
         self.assertFalse(d.unsigned_refused(1, "error: pinging container registry 10.0.2.100:5000: connection "
                                                "refused\n", status_json()))
+        self.assertFalse(d.unsigned_refused(1, "error: Switching: failed to invoke method OpenImage: pinging "
+                                               "container registry 10.0.2.100:5000: connection refused\n",
+                                            status_json()))
+
+    def test_the_reason_must_be_the_proxys_answer_to_opening_the_image(self):
+        # Repair 2: the policy's reason directly after the proxy's OpenImage error, not anywhere.
+        self.assertFalse(d.unsigned_refused(1, "error: Switching: A signature was required, but no signature "
+                                               "exists (a log line); failed to invoke method OpenImage: "
+                                               "connection refused\n", status_json()))
+        self.assertFalse(d.unsigned_refused(1, "error: failed to invoke method GetManifest: A signature was "
+                                               "required, but no signature exists\n", status_json()))
 
     def test_signed_staged_with_its_digest_and_name(self):
         self.assertTrue(d.signed_staged(0, status_json(staged=SIGNED, spec=d.SIGNED_REF)))
