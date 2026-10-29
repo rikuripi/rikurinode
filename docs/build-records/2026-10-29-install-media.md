@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/install-media`, from `main` at `1738748`; the probe on the throwaway branch `probe/installer-iso` (this task's, deleted after); worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | (fill at close-out) |
-| **Status** | BLOCKED (probe 6d; see Close Out) |
+| **Status** | IN PROGRESS: follow-up task probe 6d (5a was BLOCKED at 6d) |
 | **Change type** | feature (the node's install path) |
 
 ## Task Contract
@@ -39,6 +39,14 @@
    - push this branch and open the pull request as a **draft** until the verifier and CI pass; no merge;
    - an independent check is required.
 5. **Limits:** one task; two repair cycles; two review rounds; the probe at most 5 CI runs and 2 hours; development CI runs at most 6; time budget 6 hours.
+
+## Follow-up task: probe 6d (owner, 2026-10-29: "Yes, start")
+
+1. **Outcome:** know whether the stick can install the node offline, and the installed node boot alone with SELinux enforcing, so 5a can resume.
+2. **Scope:** the probe branch `probe/installer-iso` only: its installer Containerfile, install script and workflow. Routine (a throwaway experiment in CI; nothing merges). Not included: 5a's design, tests or code; any change on `main`.
+3. **Done when:** a probe run's serial logs show `bootc install to-disk` from the embedded image succeeding, and the installed disk booting alone with greenboot passing, SELinux enforcing, the files labelled, and its origin naming `ghcr.io/rikuripi/rikurinode:probe`. Keep, simplify or drop each storage method tried.
+4. **Authority:** push the probe branch; CI on it; no secret; the runner reads `registry.fedoraproject.org`, `ghcr.io` and Fedora's and Ubuntu's package mirrors. No independent check (an experiment; 5a's verifier covers what it becomes).
+5. **Limits:** at most 3 CI runs and 90 minutes; then keep, simplify or drop, and stop. Storage methods, tried in order inside one run, each named on the serial console: (A) podman's store on `/run`, with the stick's image as a read-only `additionalimagestores` entry; (C) `fuse-overlayfs` as the `mount_program`; (B) the image copied into memory as an OCI layout, with `--source-imgref`. If 3 runs pass no method, the owner chooses between image-builder v88 and Anaconda.
 
 ## 0b. Spec
 
