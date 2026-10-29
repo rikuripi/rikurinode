@@ -140,6 +140,11 @@
   - M4 goes to the backlog. An image pushed under a moved tag is refused unsigned, and the downgrade rule is stage 6's.
   - N2: four full downloads cost time, not correctness.
 - **Test changes after red, with their reasons:** class `Main` and the M3 assertion are new. They were added for verifier pass 1, and no existing test was loosened.
+- **Verifier pass 2** (the follow-up, review round 2 of 2; corrections only): **PASS**.
+  - I1 to I8 and M1 to M3 are closed, and the repair adds no new Important finding.
+  - Its 12 reruns are all KILLED: pass 1's eight, two more on the same lines (the job's environment on top of `sign_env`; the pull's `--authfile` dropped), and two of M3 (the comparison off; the record removed).
+  - Tests are unchanged from the red commit to the fix, and gained only class `Main` and the M3 assertion.
+  - **New, a nit for the backlog:** the M3 comparison runs after the push. A moved name would be pushed, but never signed, because the build job then fails; so it fails closed. Comparing before the push would keep it unpushed.
 
 ## Owner steps (after the merge)
 
