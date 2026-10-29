@@ -35,11 +35,14 @@ class QemuArgv(unittest.TestCase):
     def test_requires_kvm(self):
         self.assertIn("-enable-kvm", self.argv)
 
-    def test_network_is_restricted_to_one_loopback_ssh_forward(self):
+    def test_network_is_restricted_to_ssh_and_the_drills_registry(self):
+        # 2c: one forward out, to the registry on the CI machine's loopback (cases 4 and 5).
         netdev = self.argv[self.argv.index("-netdev") + 1]
         self.assertIn("restrict=on", netdev.split(","))
         self.assertIn("hostfwd=tcp:127.0.0.1:2222-:22", netdev.split(","))
+        self.assertIn("guestfwd=tcp:10.0.2.100:5000-tcp:127.0.0.1:5000", netdev.split(","))
         self.assertEqual(netdev.count("hostfwd="), 1)
+        self.assertEqual(netdev.count("guestfwd="), 1)
         self.assertEqual(self.argv.count("-netdev"), 1)
 
     def test_uefi_code_is_read_only_and_vars_are_the_runs_own_copy(self):
@@ -458,6 +461,175 @@ class FirstBoot(unittest.TestCase):
 
     def test_an_unreadable_status_fails_it(self):
         self.assertEqual(self.first_boot(FirstBootChecks.JOURNAL + WANTED_OK, status=""), [False])
+
+
+# --- 2c: the node's own update command and the signature policy -----------------
+
+def status_json(staged=None, spec="localhost/rikuri-os:ci"):
+    deployment = (lambda ref, digest: {"image": {"image": {"image": ref, "transport": "registry"},
+                                                 "imageDigest": digest}})
+    return json.dumps({"spec": {"image": {"image": spec, "transport": "registry"}},
+                       "status": {"booted": deployment("localhost/rikuri-os:ci", DIGEST),
+                                  "staged": deployment(*staged) if staged else None, "rollback": None}})
+
+
+REFUSED = ("error: Switching: Pulling: Creating importer: failed to invoke method OpenImage: "
+           "Source image rejected: A signature was required, but no signature exists\n")
+SIGNED = (d.SIGNED_REF, d.SIGNED_DIGEST)
+
+
+class PublishedPin(unittest.TestCase):
+    def test_the_first_published_image_by_name_and_digest(self):
+        # docs/build-records/2026-10-28-publish-signed-image.md, Status: run 40794568497.
+        self.assertEqual(d.SIGNED_REF, "ghcr.io/rikuripi/rikurinode:44.20261029.1")
+        self.assertEqual(d.SIGNED_DIGEST,
+                         "sha256:c984d651db4f15be5dac56fcd974d230bc248536fade4ceee29323abadfdecfd")
+
+    def test_the_signature_tag_names_the_digest(self):
+        self.assertEqual(d.sig_tag("sha256:" + "b" * 64), "sha256-" + "b" * 64 + ".sig")
+
+
+class MirrorFiles(unittest.TestCase):
+    def test_the_conf_rewrites_only_the_images_name_to_the_forwarded_address(self):
+        conf = d.mirror_conf()
+        self.assertEqual(conf.count("[[registry]]"), 1)
+        self.assertIn('prefix = "ghcr.io/rikuripi/rikurinode"', conf)
+        self.assertIn('location = "10.0.2.100:5000/rikuripi/rikurinode"', conf)
+        self.assertIn("insecure = true", conf)
+        self.assertNotIn("mirror", conf)   # a mirror could fall back to ghcr.io
+
+    def test_the_files_go_beside_the_shipped_ones_never_over_them(self):
+        self.assertEqual(sorted(d.MIRROR_FILES), sorted([
+            "/etc/containers/registries.conf.d/99-drill-registry.conf",
+            "/etc/containers/registries.d/drill-registry.yaml"]))
+        for path in d.MIRROR_FILES:
+            self.assertNotIn(path, ("/etc/containers/policy.json", "/etc/containers/registries.d/rikuri.yaml"))
+
+
+class SeedArgv(unittest.TestCase):
+    def setUp(self):
+        self.argvs = d.seed_argvs("localhost/rikuri-os:ci")
+
+    def test_the_signed_image_and_its_signature_are_copied_by_digest_with_no_login(self):
+        copies = [a for a in self.argvs if "skopeo" in a]
+        self.assertEqual(len(copies), 2)
+        image, sig = copies
+        self.assertIn("docker://ghcr.io/rikuripi/rikurinode@" + d.SIGNED_DIGEST, image)
+        self.assertEqual(image[-1], "docker://127.0.0.1:5000/rikuripi/rikurinode:44.20261029.1")
+        self.assertIn("docker://ghcr.io/rikuripi/rikurinode:" + d.sig_tag(d.SIGNED_DIGEST), sig)
+        self.assertEqual(sig[-1], "docker://127.0.0.1:5000/rikuripi/rikurinode:" + d.sig_tag(d.SIGNED_DIGEST))
+        for a in copies:
+            self.assertIn("--preserve-digests", a)
+            self.assertIn("--dest-tls-verify=false", a)
+            self.assertFalse([x for x in a if "authfile" in x or "creds" in x], a)
+            self.assertIn("localhost/rikuri-os:ci", a)   # the image's own skopeo
+
+    def test_the_image_under_test_goes_in_unsigned(self):
+        push = [a for a in self.argvs if "push" in a]
+        self.assertEqual(push, [["sudo", "podman", "push", "-q", "--tls-verify=false", "localhost/rikuri-os:ci",
+                                 "docker://127.0.0.1:5000/rikuripi/rikurinode:drill-unsigned"]])
+
+
+class StagedStatus(unittest.TestCase):
+    def test_reads_the_staged_deployment_and_the_spec(self):
+        text = status_json(staged=SIGNED, spec=d.SIGNED_REF)
+        self.assertEqual(d.staged(text), SIGNED)
+        self.assertEqual(d.spec_image(text), d.SIGNED_REF)
+
+    def test_nothing_staged_or_unreadable(self):
+        self.assertIsNone(d.staged(status_json()))
+        self.assertIsNone(d.staged(""))
+        self.assertIsNone(d.spec_image(""))
+
+
+class SignatureRules(unittest.TestCase):
+    def test_unsigned_refused_for_its_reason_with_nothing_staged(self):
+        self.assertTrue(d.unsigned_refused(1, REFUSED, status_json()))
+
+    def test_unsigned_accepted_or_staged_fails(self):
+        self.assertFalse(d.unsigned_refused(0, "", status_json()))
+        self.assertFalse(d.unsigned_refused(1, REFUSED, status_json(staged=("x", DIGEST))))
+        self.assertFalse(d.unsigned_refused(1, REFUSED, ""))
+
+    def test_unsigned_refused_for_another_reason_fails(self):
+        self.assertFalse(d.unsigned_refused(1, "error: pinging container registry 10.0.2.100:5000: connection "
+                                               "refused\n", status_json()))
+
+    def test_signed_staged_with_its_digest_and_name(self):
+        self.assertTrue(d.signed_staged(0, status_json(staged=SIGNED, spec=d.SIGNED_REF)))
+
+    def test_signed_otherwise_fails(self):
+        self.assertFalse(d.signed_staged(1, status_json(staged=SIGNED, spec=d.SIGNED_REF)))
+        self.assertFalse(d.signed_staged(0, status_json(staged=(d.SIGNED_REF, DIGEST), spec=d.SIGNED_REF)))
+        self.assertFalse(d.signed_staged(0, status_json(staged=("ghcr.io/x:1", d.SIGNED_DIGEST), spec=d.SIGNED_REF)))
+        self.assertFalse(d.signed_staged(0, status_json(staged=SIGNED, spec="localhost/rikuri-os:ci")))
+        self.assertFalse(d.signed_staged(0, status_json()))
+
+
+class SignatureStandIn(d.Drill):
+    """cases 4 and 5 through stand-ins: bootc switch answers from a dict by
+    reference, bootc status is fixed, and files written to the VM are kept."""
+    SHIPPED = "docker:\n  ghcr.io/rikuripi/rikurinode:\n    use-sigstore-attachments: true\n"
+
+    def __init__(self, artifacts, answers, status_text):
+        super().__init__("localhost/rikuri-os:ci", artifacts, artifacts)
+        self.answers, self.status_text, self.switched, self.written = answers, status_text, [], {}
+        self.log = lambda message: None
+
+    def bootc_switch(self, ref):
+        self.switched.append(ref)
+        return self.answers[ref]
+
+    def status(self):
+        return self.status_text
+
+    def write_in_vm(self, path, text):
+        self.written[path] = text
+
+    def vm(self, command, check=True, timeout=300, stdin=None):
+        if command == "cat /etc/containers/registries.d/rikuri.yaml":
+            return self.SHIPPED
+        raise AssertionError("unexpected VM command: %r" % command)
+
+
+class SignatureCases(unittest.TestCase):
+    def setUp(self):
+        self.artifacts = tempfile.mkdtemp(prefix="drill-artifacts-")
+        self.addCleanup(shutil.rmtree, self.artifacts)
+
+    def run_case(self, case, answer, status_text):
+        ref = {"case4": d.UNSIGNED_REF, "case5": d.SIGNED_REF}[case]
+        drill = SignatureStandIn(self.artifacts, {ref: answer}, status_text)
+        getattr(drill, case)()
+        self.assertEqual(drill.switched, [ref])
+        return [(name, ok) for name, ok, _ in drill.results]
+
+    def test_the_unsigned_reference_is_the_images_own_name(self):
+        self.assertEqual(d.UNSIGNED_REF, "ghcr.io/rikuripi/rikurinode:drill-unsigned")
+
+    def test_case4_passes_only_on_the_policys_refusal(self):
+        self.assertEqual(self.run_case("case4", (1, REFUSED), status_json()),
+                         [("case 4, an unsigned update refused", True)])
+        self.assertEqual(self.run_case("case4", (0, ""), status_json(staged=(d.UNSIGNED_REF, DIGEST))),
+                         [("case 4, an unsigned update refused", False)])
+
+    def test_case5_passes_only_when_the_signed_image_is_staged(self):
+        self.assertEqual(self.run_case("case5", (0, ""), status_json(staged=SIGNED, spec=d.SIGNED_REF)),
+                         [("case 5, a signed update staged", True)])
+        self.assertEqual(self.run_case("case5", (1, REFUSED), status_json()),
+                         [("case 5, a signed update staged", False)])
+
+    def test_the_mirror_files_are_written_with_the_shipped_setting_renamed(self):
+        drill = SignatureStandIn(self.artifacts, {}, "")
+        drill.configure_mirror()
+        self.assertEqual(sorted(drill.written), sorted(d.MIRROR_FILES))
+        self.assertEqual(drill.written["/etc/containers/registries.conf.d/99-drill-registry.conf"], d.mirror_conf())
+        self.assertEqual(drill.written["/etc/containers/registries.d/drill-registry.yaml"],
+                         "docker:\n  10.0.2.100:5000/rikuripi/rikurinode:\n    use-sigstore-attachments: true\n")
+
+    def test_both_cases_are_required_for_a_pass(self):
+        self.assertIn("case 4, an unsigned update refused", d.EXPECTED)
+        self.assertIn("case 5, a signed update staged", d.EXPECTED)
 
 
 if __name__ == "__main__":

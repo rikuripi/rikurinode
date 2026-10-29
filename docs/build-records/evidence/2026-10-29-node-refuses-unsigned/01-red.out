@@ -1,0 +1,25 @@
+# red, 465a500 plus the new tests, rikuri-drill, 2026-10-29T18:31:02Z
+== image/tests/test_vm_drill.py
+Traceback (most recent call last):
+  File "/var/home/drill/c2-tests/image/tests/test_vm_drill.py", line 478, in <module>
+    SIGNED = (d.SIGNED_REF, d.SIGNED_DIGEST)
+              ^^^^^^^^^^^^
+AttributeError: module 'vm_drill' has no attribute 'SIGNED_REF'
+== image/tests/test_signature_policy.py
+AttributeError: module 'signature_policy' has no attribute 'registry_config'. Did you mean: 'registries_conf'?
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.003s
+
+FAILED (errors=2)
+== scripts/quality/tests/test_workflows.py
+AssertionError: '--registry "$RUNNER_TEMP/sig-tools/registry"' not found in '      - name: Run the drill on this image (first boot; cases 1, 2b and 3)\n        run: |\n          sudo mkdir -p /mnt/drill\n          sudo chown "$(id -u):$(id -g)" /mnt/drill\n          python3 -I image/drill/vm_drill.py --image "$IMAGE" --workdir /mnt/drill --artifacts "$RUNNER_TEMP/drill-evidence"'
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.003s
+
+FAILED (failures=2)
+== image/tests all
+Ran 218 tests in 0.925s
+
+FAILED (errors=3)

@@ -93,6 +93,13 @@ class ContainerFiles(unittest.TestCase):
         self.assertEqual(ci, shipped.replace(sp.IMAGE_REPO + ":", sp.LOCAL_REPO + ":"))
         self.assertNotEqual(ci, shipped)
 
+    def test_the_registries_d_file_can_name_another_address(self):
+        # 2c: the drill VM reads the image's name from the CI machine through 10.0.2.100.
+        with open(SHIPPED_REGISTRIES_D, encoding="ascii") as f:
+            shipped = f.read()
+        repo = "10.0.2.100:5000/rikuripi/rikurinode"
+        self.assertEqual(sp.ci_registries_d(shipped, repo), shipped.replace(sp.IMAGE_REPO + ":", repo + ":"))
+
     def test_a_shipped_file_without_the_name_is_refused(self):
         with self.assertRaises(ValueError):
             sp.ci_registries_d("docker:\n  ghcr.io/else:\n    use-sigstore-attachments: true\n")
@@ -148,6 +155,10 @@ class Registry(unittest.TestCase):
         env = sp.registry_env({"PATH": "/usr/bin", "REGISTRY_VERSION": "3.1.2",
                                "REGISTRY_SHA256": "ab", "REGISTRY_HTTP_ADDR": ":80", "HOME": "/h"})
         self.assertEqual(env, {"PATH": "/usr/bin", "HOME": "/h"})
+
+    def test_the_registry_serves_on_loopback_from_the_workdir(self):
+        self.assertEqual(sp.registry_config("/w"), "version: 0.1\nstorage:\n  filesystem:\n    rootdirectory: /w/reg\n"
+                                                   "http:\n  addr: 127.0.0.1:5000\nlog:\n  level: error\n")
 
     def test_a_failed_start_says_why(self):
         msg = sp.registry_failure(1, "configuration error: parsing environment variable REGISTRY_VERSION\n")
