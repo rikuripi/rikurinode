@@ -1,0 +1,191 @@
+name: Publish the OS image
+
+# Publishes the node's OS image to ghcr.io/rikuripi/rikurinode, signed with the
+# project's key (stage 1 change 2b; ADR 0004 and its clarification of
+# 2026-10-28). Only the owner starts it, from main (docs/runbooks/publish-os-image.md);
+# every job also refuses any other branch. One image is built once, checked,
+# proven against throwaway keys and drilled in a VM (as image.yml does), then
+# pushed under a fixed tag that never moves. The sign job alone, in the
+# Environment image-publish, sees the key, in one step. The node's own skopeo
+# and policy, inside the published image, refuse it unsigned and accept it
+# signed; the anonymous job reads it as a node does, with no credential.
+# image/drill/publish.py holds the steps; scripts/quality/tests/test_workflows.py
+# holds this file's shape.
+# Record: docs/build-records/2026-10-28-publish-signed-image.md
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+env:
+  # The release image/Containerfile's base must be; the check fails otherwise.
+  FEDORA_RELEASE: "44"
+  IMAGE: localhost/rikuri-os:publish
+  PUBLISHED: ghcr.io/rikuripi/rikurinode
+  # The same pins as image.yml (a test holds them equal); never a REGISTRY_* name.
+  COSIGN_VERSION: v3.1.4
+  COSIGN_SHA256: 424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa
+  DISTRIBUTION_VERSION: 3.1.2
+  DISTRIBUTION_SHA256: 40df2224d410f72ae425c3371873b078bbdbda3b8b612be9571f0e6751f3acc8
+
+jobs:
+  build:
+    name: Build, check, prove and drill one image, then push it
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      digest: ${{ steps.push.outputs.digest }}
+      image_id: ${{ steps.push.outputs.image_id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Name this publish (a re-run is refused; it would move the fixed tag)
+        id: tag
+        run: |
+          tag="$(python3 -I image/drill/publish.py tag --fedora "$FEDORA_RELEASE" --date "$(date -u +%Y%m%d)" \
+            --run "$GITHUB_RUN_NUMBER" --attempt "$GITHUB_RUN_ATTEMPT")"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "### Publishing $PUBLISHED:$tag from $GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Install QEMU and UEFI firmware (Ubuntu 24.04's archive; versions recorded)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends qemu-system-x86 ovmf
+          dpkg-query -W -f='- ${Package} ${Version}\n' qemu-system-x86 ovmf | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Build (bootc container lint runs inside)
+        run: |
+          sudo podman build --pull=missing --tag "$IMAGE" \
+            --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" image
+          sudo podman image inspect --format '{{.Id}}' "$IMAGE" > "$RUNNER_TEMP/built-id"
+      - name: Check the built root
+        run: |
+          root="$(sudo podman image mount "$IMAGE")"
+          sudo python3 image/check_image_root.py "$root" --fedora "$FEDORA_RELEASE"
+          sudo podman image unmount "$IMAGE"
+      - name: Fetch the signature proof's tools (cosign, a registry; pinned by SHA-256)
+        run: |
+          mkdir "$RUNNER_TEMP/sig-tools"
+          cd "$RUNNER_TEMP/sig-tools"
+          curl -fsSL --retry 3 -o cosign \
+            "https://github.com/sigstore/cosign/releases/download/$COSIGN_VERSION/cosign-linux-amd64"
+          curl -fsSL --retry 3 -o registry.tar.gz \
+            "https://github.com/distribution/distribution/releases/download/v$DISTRIBUTION_VERSION/registry_${DISTRIBUTION_VERSION}_linux_amd64.tar.gz"
+          printf '%s  cosign\n%s  registry.tar.gz\n' "$COSIGN_SHA256" "$DISTRIBUTION_SHA256" | sha256sum --strict -c -
+          tar xzf registry.tar.gz registry
+          chmod +x cosign registry
+      - name: Prove the signature policy (the image's own skopeo and policy; throwaway keys, a registry on 127.0.0.1)
+        run: |
+          python3 -I image/drill/signature_policy.py --image "$IMAGE" \
+            --cosign "$RUNNER_TEMP/sig-tools/cosign" --registry "$RUNNER_TEMP/sig-tools/registry" \
+            --workdir "$RUNNER_TEMP/sig-proof"
+      - name: Run the drill on this image (first boot; cases 1, 2b and 3)
+        run: |
+          sudo mkdir -p /mnt/drill
+          sudo chown "$(id -u):$(id -g)" /mnt/drill
+          python3 -I image/drill/vm_drill.py --image "$IMAGE" --workdir /mnt/drill --artifacts "$RUNNER_TEMP/drill-evidence"
+      - name: Keep the drill's evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: drill-evidence
+          path: ${{ runner.temp }}/drill-evidence
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Push it under its fixed tag (unsigned until the sign job)
+        id: push
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          TOKEN: ${{ github.token }}
+        run: |
+          sudo podman login --authfile "$RUNNER_TEMP/auth.json" -u "$GITHUB_ACTOR" --password-stdin ghcr.io <<< "$TOKEN"
+          sudo podman push --authfile "$RUNNER_TEMP/auth.json" --digestfile "$RUNNER_TEMP/digest" \
+            "$IMAGE" "docker://$PUBLISHED:$TAG"
+          sudo rm -f "$RUNNER_TEMP/auth.json"
+          digest="$(cat "$RUNNER_TEMP/digest")"
+          id="$(sudo podman image inspect --format '{{.Id}}' "$IMAGE")"
+          # The image pushed is the one built: the drill's privileged containers must not have moved the name.
+          [ "$id" = "$(cat "$RUNNER_TEMP/built-id")" ] || { echo "the image is not the one built" >&2; exit 1; }
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "image_id=$id" >> "$GITHUB_OUTPUT"
+          echo "- pushed $PUBLISHED:$TAG as $digest (image ID $id)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  sign:
+    name: Check it is the image built, refuse it unsigned, sign it, accept it
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: image-publish
+    permissions:
+      contents: read
+      packages: write
+    env:
+      TAG: ${{ needs.build.outputs.tag }}
+      DIGEST: ${{ needs.build.outputs.digest }}
+      IMAGE_ID: ${{ needs.build.outputs.image_id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Fetch cosign (pinned by SHA-256)
+        run: |
+          mkdir "$RUNNER_TEMP/sig-tools"
+          cd "$RUNNER_TEMP/sig-tools"
+          curl -fsSL --retry 3 -o cosign \
+            "https://github.com/sigstore/cosign/releases/download/$COSIGN_VERSION/cosign-linux-amd64"
+          printf '%s  cosign\n' "$COSIGN_SHA256" | sha256sum --strict -c -
+          chmod +x cosign
+      - name: Log in to ghcr.io with the job's token (podman's copy for reading, cosign's for signing)
+        env:
+          TOKEN: ${{ github.token }}
+          DOCKER_CONFIG: ${{ runner.temp }}/cosign-auth
+        run: |
+          echo "### Signing $PUBLISHED:$TAG ($DIGEST)" >> "$GITHUB_STEP_SUMMARY"
+          sudo podman login --authfile "$RUNNER_TEMP/auth.json" -u "$GITHUB_ACTOR" --password-stdin ghcr.io <<< "$TOKEN"
+          "$RUNNER_TEMP/sig-tools/cosign" login ghcr.io -u "$GITHUB_ACTOR" --password-stdin <<< "$TOKEN"
+      - name: Pull it by digest; it must be the image built
+        run: python3 -I image/drill/publish.py same --digest "$DIGEST" --image-id "$IMAGE_ID" --authfile "$RUNNER_TEMP/auth.json"
+      - name: The image's own policy refuses it unsigned
+        run: python3 -I image/drill/publish.py refused --digest "$DIGEST" --authfile "$RUNNER_TEMP/auth.json"
+      - name: Sign the digest (the only step with the key)
+        env:
+          DOCKER_CONFIG: ${{ runner.temp }}/cosign-auth
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: python3 -I image/drill/publish.py sign --cosign "$RUNNER_TEMP/sig-tools/cosign" --tag "$TAG" --digest "$DIGEST"
+      - name: The image's own policy accepts it signed, by digest and by tag
+        run: python3 -I image/drill/publish.py accepted --digest "$DIGEST" --tag "$TAG" --authfile "$RUNNER_TEMP/auth.json"
+      - name: Forget the logins
+        if: always()
+        run: sudo rm -rf "$RUNNER_TEMP/auth.json" "$RUNNER_TEMP/cosign-auth"
+
+  anonymous:
+    name: A node reads it with no credential (needs the package public)
+    needs: [build, sign]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ needs.build.outputs.tag }}
+      DIGEST: ${{ needs.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Pull it and check its signature as a node does, with no credential
+        run: |
+          echo "### Read with no credential: $PUBLISHED:$TAG" >> "$GITHUB_STEP_SUMMARY"
+          python3 -I image/drill/publish.py accepted --digest "$DIGEST" --tag "$TAG"
