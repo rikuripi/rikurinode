@@ -1,7 +1,7 @@
 # Runbook — publish the node's OS image
 
 Who: the owner. Where: GitHub's web page; no command line. How long: about
-two hours, mostly the VM drill. What it does: builds the node's OS image from
+ten minutes, the VM drill included. What it does: builds the node's OS image from
 `main`, checks it, boots it in a VM and runs the rollback drill, then
 publishes it to `ghcr.io/rikuripi/rikurinode` under a new fixed name (for
 example `44.20261028.3`: Fedora release, date, run number) and signs it with
@@ -27,7 +27,7 @@ says that the package is not public yet. That is expected.
 
 1. Open `https://github.com/users/rikuripi/packages/container/rikurinode/settings`. You can also reach it from the repository's main page: under **Packages** on the right, open **rikurinode**, then **Package settings**.
 2. Under **Danger Zone**, choose **Change visibility**, then **Public**, and confirm. **This cannot be undone** (decided: ADR 0004, D6). The image holds no secret by rule; the image checker and the gate's secret scan enforce this.
-3. Back on the run's page, click **Re-run jobs**, then **Re-run failed jobs**. Only the third job runs again, and it should pass.
+3. Wait a few minutes: the registry takes that long to serve a public package (2026-10-29). Then, on the run's page, click **Re-run jobs**, then **Re-run failed jobs**. Only the third job runs again, and it should pass.
 
 ## When a job fails
 
