@@ -13,9 +13,13 @@ IMG, PUB = ".github/workflows/image.yml", ".github/workflows/publish.yml"
 TESTS = ["image/tests/test_vm_drill.py", "image/tests/test_signature_policy.py",
          "scripts/quality/tests/test_workflows.py"]
 MUTANTS = [
-    ("m1 no forward to the registry", DRILL, ",guestfwd=tcp:%s-tcp:%s\"\n            % (port, MIRROR_IN_VM, sp.REG)",
+    ("m1 no forward to the registry", DRILL, ",guestfwd=tcp:%s-cmd:nc -N %s\"\n            % (port, MIRROR_IN_VM, sp.REG.replace(\":\", \" \"))",
      "\" % port"),
-    ("m2 the forward to any host", DRILL, "guestfwd=tcp:%s-tcp:%s", "guestfwd=tcp:%s-tcp:0.0.0.0:%s"),
+    ("m2 the forward to any host", DRILL, "guestfwd=tcp:%s-cmd:nc -N %s", "guestfwd=tcp:%s-cmd:nc -N 0.0.0.0 %s"),
+    ("m2b the forward connected once at start (repair 1)", DRILL, "-cmd:nc -N %s\"\n            % (port, MIRROR_IN_VM, sp.REG.replace(\":\", \" \"))",
+     "-tcp:%s\"\n            % (port, MIRROR_IN_VM, sp.REG)"),
+    ("m23 image.yml without nc (repair 1)", IMG, "recommends qemu-system-x86 ovmf netcat-openbsd\n", "recommends qemu-system-x86 ovmf\n"),
+    ("m24 publish.yml without nc (repair 1)", PUB, "ovmf netcat-openbsd\n", "ovmf\n"),
     ("m3 a mirror, not a rewrite", DRILL, '\\nlocation = "%s"\\ninsecure', '\\nlocation = "%s"\\nmirror = 1\\ninsecure'),
     ("m4 the published image by tag", DRILL, '"docker://%s@%s" % (sp.IMAGE_REPO, SIGNED_DIGEST)',
      '"docker://%s:44.20261029.1" % sp.IMAGE_REPO'),

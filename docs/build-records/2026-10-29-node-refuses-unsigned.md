@@ -75,6 +75,14 @@
   - The test module's docstring names cases 4 and 5 and this record.
 - **Mutants** (`02-mutants.py`; run 1 `02-mutants.out`, run 2 `02-mutants-run2.out`): 22 mutants, each weakening one new rule, run in a copy of the tree; a kill counts only when the tests ran and failed. Run 1: 21 of 22 killed; **m14 survived** (case 5 judged by `rc == 0` alone). Run 2, after the stronger test: **22 of 22 killed**, and the restored tree passes.
 - **Not covered by a unit test, and why it fails closed:** `main()` calling `serve_registry`, `configure_mirror`, `case4` and `case5`. If any were skipped, `verdict()` fails the drill, because `EXPECTED` requires both cases' passes (`Verdict` tests).
+- **CI run 1** (PR #53 at `7570bda`): `CI` and the guard tests passed; **OS image failed** in the drill, [run 40932208792](https://github.com/rikuripi/rikurinode/actions/runs/40932208792), at the first VM start, before any case ran:
+  `qemu-system-x86_64: -netdev user,…,guestfwd=tcp:10.0.2.100:5000-tcp:127.0.0.1:5000: Failed to connect to '127.0.0.1:5000': Connection refused` and `Could not open guest forwarding device 'guestfwd.tcp.5000'`. A `tcp:` target is a character device QEMU connects once, at its start; the drill's registry starts only before case 4. Reported by the owner, confirmed in the log.
+- **Repair cycle 1** (1 of 2):
+  - red `a0aed68` (`03-red-repair1.out`): the forward must be `guestfwd=tcp:10.0.2.100:5000-cmd:nc -N 127.0.0.1 5000` (QEMU starts the command for each connection the guest opens), and both drill jobs must install `netcat-openbsd` with QEMU and record its version. Two failures, as expected.
+  - fix: the `cmd:` forward; `netcat-openbsd` beside QEMU and OVMF in `image.yml`'s drill job and `publish.yml`'s build job, from Ubuntu 24.04's archive like them, its version in the summary.
+  - test code changed, with reasons: `QemuArgv`'s forward assertion (the form changed, as above); a new workflow test for nc; its version-line assertion corrected before the red commit (image.yml records versions inside a `{ … }` block).
+  - green (`rikuri-drill`): `image/tests` 284 OK; `test_workflows.py` 23 OK.
+  - mutants (`04-mutants-repair1.out`): 25, with m2b (the forward back to `tcp:`), m23 and m24 (either job without nc): **25 of 25 killed**; the restored tree passes.
 
 ## Verify
 

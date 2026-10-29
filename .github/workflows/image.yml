@@ -147,13 +147,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Install QEMU and UEFI firmware (Ubuntu 24.04's archive; versions recorded)
+      - name: Install QEMU, UEFI firmware and nc (Ubuntu 24.04's archive; versions recorded)
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q --no-install-recommends qemu-system-x86 ovmf
+          sudo apt-get install -y -q --no-install-recommends qemu-system-x86 ovmf netcat-openbsd
           {
             echo "### VM tools"
-            dpkg-query -W -f='- ${Package} ${Version}\n' qemu-system-x86 ovmf
+            dpkg-query -W -f='- ${Package} ${Version}\n' qemu-system-x86 ovmf netcat-openbsd
             echo "- /dev/kvm: $(ls -l /dev/kvm)"
             echo "- free on /mnt: $(df -h --output=avail /mnt | tail -1 | tr -d ' ')"
           } | tee -a "$GITHUB_STEP_SUMMARY"

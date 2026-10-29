@@ -57,11 +57,11 @@ jobs:
             --run "$GITHUB_RUN_NUMBER" --attempt "$GITHUB_RUN_ATTEMPT")"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "### Publishing $PUBLISHED:$tag from $GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: Install QEMU and UEFI firmware (Ubuntu 24.04's archive; versions recorded)
+      - name: Install QEMU, UEFI firmware and nc (Ubuntu 24.04's archive; versions recorded)
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q --no-install-recommends qemu-system-x86 ovmf
-          dpkg-query -W -f='- ${Package} ${Version}\n' qemu-system-x86 ovmf | tee -a "$GITHUB_STEP_SUMMARY"
+          sudo apt-get install -y -q --no-install-recommends qemu-system-x86 ovmf netcat-openbsd
+          dpkg-query -W -f='- ${Package} ${Version}\n' qemu-system-x86 ovmf netcat-openbsd | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Build (bootc container lint runs inside)
         run: |
           sudo podman build --pull=missing --tag "$IMAGE" \

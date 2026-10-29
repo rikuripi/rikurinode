@@ -99,8 +99,10 @@ def qemu_argv(disk: str, vars_fd: str, serial_log: str, port: int, pidfile: str)
             "-drive", "if=pflash,format=raw,unit=0,readonly=on,file=" + OVMF_CODE,
             "-drive", "if=pflash,format=raw,unit=1,file=" + vars_fd,
             "-drive", "if=virtio,format=raw,file=" + disk,
-            "-netdev", "user,id=n0,restrict=on,hostfwd=tcp:127.0.0.1:%d-:22,guestfwd=tcp:%s-tcp:%s"
-            % (port, MIRROR_IN_VM, sp.REG),
+            # guestfwd's cmd: starts nc for each connection; a tcp: target would be
+            # connected once, at QEMU's start, before the registry runs (CI run 40932208792).
+            "-netdev", "user,id=n0,restrict=on,hostfwd=tcp:127.0.0.1:%d-:22,guestfwd=tcp:%s-cmd:nc -N %s"
+            % (port, MIRROR_IN_VM, sp.REG.replace(":", " ")),
             "-device", "virtio-net-pci,netdev=n0",
             "-serial", "file:" + serial_log, "-display", "none",
             "-daemonize", "-pidfile", pidfile]
