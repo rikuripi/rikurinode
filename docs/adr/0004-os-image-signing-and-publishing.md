@@ -76,15 +76,21 @@ registry needs a GitHub token stored on every node.
   release's fixed name (`bootc switch ghcr.io/rikuripi/rikurinode:<fixed tag>`):
   in CI by the VM drill, later by the control plane. This settles the point
   left open above ("decided when a node first follows one"): the hygiene
-  rule against floating tags holds for nodes too, and whoever can move a tag
-  cannot point nodes at an older signed image. How a node learns of a new
-  release is the control plane's, and the never-downgrade rule (plan §4.2)
-  still stands.
+  rule against floating tags holds for nodes too. Fixed names do not stop a
+  downgrade: GHCR does not freeze a tag (only `publish.yml` refuses to reuse
+  one), and the policy (`matchRepository`) accepts any image the project
+  signed, under any tag of this repository. Refusing an older signed image is
+  the never-downgrade rule's job (plan §4.2), not built yet. How a node learns
+  of a new release is the control plane's. (Corrected 2026-10-29, verifier
+  pass 1 of `docs/build-records/2026-10-29-node-refuses-unsigned.md`; the
+  first wording said whoever can move a tag cannot point nodes at an older
+  signed image.)
 - **The node's own update command checks the signature.** The VM drill
   (`image/drill/vm_drill.py`, cases 4 and 5) has the booted node's `bootc
   switch`, under the image's own policy and keys, refuse an unsigned image
   named `ghcr.io/rikuripi/rikurinode` and stage the first published, signed
-  image, on every image pull request and every publish. The drill's VM
+  image. Seen on image pull requests (CI run 40935486256); the publish
+  workflow runs the same drill, not yet seen there. The drill's VM
   reads that name from a registry on the CI machine; nothing unsigned is put
   in the public package.
 - bootc's `--enforce-container-sigpolicy` is not used: it refuses any policy

@@ -5,8 +5,8 @@
 | **Date** | 2026-10-29 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/node-refuses-unsigned`, from `main` at `463e28e`, in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | record `465a500`; red `2df92e9`, fix `7570bda`; repair 1: red `a0aed68`, fix `d36556f`; repair 2: red `83b3ddd`, fix `6575655`; merged as `7715d05` (#53); this close-out |
+| **Status** | DONE: #53 merged by the owner; on its final commit the drill ([run 40935486256](https://github.com/rikuripi/rikurinode/actions/runs/40935486256)) passed every case, 4 and 5 included, and `Full gate (Ubuntu)` passed (run 40935486263). Verifier pass 1 FAIL on one ADR sentence (Important, wording), corrected in this close-out by the owner's choice; follow-up pass PASS |
 | **Change type** | feature (the node's update path; a control) |
 
 ## Task Contract
@@ -94,7 +94,23 @@
   - green (`rikuri-drill`): `image/tests` 285 OK; `test_workflows.py` 23 OK.
   - mutants: 27, with m7b (the reason anywhere) and m7c (exit code ignored); run 2 (`06-mutants-repair2-run2.out`): **27 of 27 killed**, the restored tree passes.
   - Repair cycles are now used up. Any further failure ends this task `BLOCKED`.
+- **CI run 3** (at `6575655`, the commit merged): OS image [run 40935486256](https://github.com/rikuripi/rikurinode/actions/runs/40935486256), all jobs pass. The drill: first boot, cases 1, 2b and 3, both containers-range checks, **case 4 Pass** (`bootc switch exit 1: … failed to invoke method OpenImage: A signature was required, but no signature exists; staged: None`), **case 5 Pass** (staged `('ghcr.io/rikuripi/rikurinode:44.20261029.1', 'sha256:c984d651db4f15be5dac56fcd974d230bc248536fade4ceee29323abadfdecfd')`, the spec follows that name). 2a's proof in the same run: 8 of 8. CI run 40935486263: `Full gate (Ubuntu)` pass (`image/tests` 285 OK, `scripts/quality/tests` 153 OK). CI drill runs used: 3 of 4.
+- **The staged image's signature field** (`ci-40933775613-07-case5.out`, from CI run 2; run 3's log shows the same staged name and digest): bootc records none, only `{"image": "ghcr.io/rikuripi/rikurinode:44.20261029.1", "transport": "registry"}`: its default origin, `ostree-unverified-registry`. The check that refuses an unsigned image is the node's `policy.json`, through bootc's image proxy (case 4), not an ostree signature.
+- **Protected paths changed, the risk note REVIEW.md asks for** (added at close-out; verifier nit 1): `.github/workflows/image.yml` and `publish.yml` (the drill gets a pinned registry, checked by SHA-256 before use, and `netcat-openbsd` from Ubuntu's archive with its version recorded; no permission, secret or trigger changed) and `scripts/quality/tests/test_workflows.py` (two tests added; none loosened). Risk: the drill now depends on reading the public package from `ghcr.io` anonymously; if that read fails the drill fails closed. The VM's network gains one fixed forward to the runner's loopback registry.
 
 ## Verify
 
+- **Verifier pass 1** (2026-10-29, on `6575655`; finished after the owner merged #53): **FAIL**, one Important finding, no code defect.
+  - **Important:** ADR 0004's new clarification said "whoever can move a tag cannot point nodes at an older signed image". The node's policy (`matchRepository`) accepts any signed image under any tag of the repository, and GHCR does not freeze tags, so this was an unsupported security claim. Confirmed by the builder.
+  - Checks it saw pass: the full gate and the drill on `6575655` (runs 40935486263, 40935486256); 2a's proof unchanged; the network (one fixed forward); case 4 and 5's rules (anchored, compared with the CI output); the seed copies' `--insecure-policy` (bytes only; the digest kept and compared); no test loosened after any red commit; the workflows' pins. Not yet proven by it: its own test and mutant runs (the sandbox blocks the local network to `rikuri-drill`; it did not route around it).
+  - Nits: (1) no protected-path risk note; (2) "every publish" stated as seen; (3) the signature field not recorded; (4) the record's last CI run, Commits and Status unfilled; (5) the runbook's "Nodes do not follow these fixed names" reads against the ADR's "a node is switched to a release's fixed name". Backlog, from 2a: `start_registry` would accept another process already answering on `127.0.0.1:5000`.
+- **The owner's decision** (2026-10-29, AskUserQuestion; repair cycles used up and #53 merged, so `NEEDS_OWNER_DECISION`): "Fix it in the close-out (Recommended)". This close-out corrects the ADR sentence and nits 1 to 5; the `start_registry` point goes to the backlog.
+
+- **Follow-up pass** (review round 2 of 2, on this close-out's corrections only): **PASS**. Each correction is accurate and supported (the policy's `matchRepository`, `publish.yml`'s re-run refusal, plan §4.2 and stage 6, runs 40935486256 and 40935486263 re-read, the commits listed); `git diff --check` clean; the guard tests not required (nothing under `.claude/`). Its two nits are fixed here (this Status, the run named for the signature field); `start_registry` stays on the backlog.
+
 ## Close Out
+
+- **Outcome:** `DONE`. On a booted node in the VM drill, the node's own `bootc switch` refuses an unsigned image named `ghcr.io/rikuripi/rikurinode` for "no signature exists" and stages nothing, and stages the first published signed image with exactly its digest and name. 2a's M1 and M2 are answered; the owner settled "fixed names only".
+- **Limits used:** repair cycles 2 of 2; review rounds 2 of 2; CI drill runs 3 of 4; time about 2 hours, within the 3-hour budget.
+- **Not yet proven:** the publish workflow's drill runs the same code; it is seen at the owner's next publish.
+- **Backlog, not started:** the never-downgrade rule (stage 6; the real protection against an older signed image); `start_registry` accepting another process on `127.0.0.1:5000`; from 2b: M4, the earlier ID compare, N2, CI tool provenance, the spare key's second copy.
