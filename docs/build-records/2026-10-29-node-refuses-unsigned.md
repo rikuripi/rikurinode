@@ -67,6 +67,15 @@
 
 ## Evidence log
 
+- **Red** (`rikuri-drill`, commit `2df92e9`; `01-red.out`): `test_vm_drill.py` stops at import (`vm_drill` has no `SIGNED_REF`); `test_signature_policy.py`, 22 tests, 2 errors (no `registry_config`; `ci_registries_d` takes no address); `test_workflows.py`, 22 tests, 2 failures (no `--registry` in either drill step). `image/tests` as a whole: 218 tests, 3 errors.
+- **Green** (`rikuri-drill`, on the fix commit): `test_vm_drill.py` 67 tests OK; `test_signature_policy.py` 22 OK; `test_workflows.py` 22 OK; `image/tests` 284 tests OK. `git diff --check` clean.
+- **Test code changed after the red commit, with reasons:**
+  - `Verdict.test_every_check_names_a_step` lists every step the drill must pass; it gains cases 4 and 5, as designed (an existing test, so recorded here).
+  - `SignatureCases.test_case5_passes_only_when_the_signed_image_is_staged` gains a successful switch that stages another digest: mutant m14 survived without it (below). A stronger test.
+  - The test module's docstring names cases 4 and 5 and this record.
+- **Mutants** (`02-mutants.py`; run 1 `02-mutants.out`, run 2 `02-mutants-run2.out`): 22 mutants, each weakening one new rule, run in a copy of the tree; a kill counts only when the tests ran and failed. Run 1: 21 of 22 killed; **m14 survived** (case 5 judged by `rc == 0` alone). Run 2, after the stronger test: **22 of 22 killed**, and the restored tree passes.
+- **Not covered by a unit test, and why it fails closed:** `main()` calling `serve_registry`, `configure_mirror`, `case4` and `case5`. If any were skipped, `verdict()` fails the drill, because `EXPECTED` requires both cases' passes (`Verdict` tests).
+
 ## Verify
 
 ## Close Out

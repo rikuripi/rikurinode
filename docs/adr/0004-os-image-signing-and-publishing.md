@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted — owner, 2026-10-12 (the recommendations); clarified, not changed, 2026-10-28 (owner, "You start each publish (Recommended)" and "Fixed names only (Recommended)"; the section "Clarification (2026-10-28)" below; record `docs/build-records/2026-10-28-publish-signed-image.md`) |
+| **Status** | Accepted — owner, 2026-10-12 (the recommendations); clarified, not changed, 2026-10-28 (owner, "You start each publish (Recommended)" and "Fixed names only (Recommended)"; the section "Clarification (2026-10-28)" below; record `docs/build-records/2026-10-28-publish-signed-image.md`); clarified again 2026-10-29 (owner, "Fixed names only (Recommended)" for what a node follows; the section "Clarification (2026-10-29)"; record `docs/build-records/2026-10-29-node-refuses-unsigned.md`) |
 | **Decision** | D6 and D7 of `docs/architecture/platform-plan.md` |
 | **Sources** | `docs/build-records/evidence/2026-10-12-stage1-os-image/research.md` |
 
@@ -69,6 +69,27 @@ registry needs a GitHub token stored on every node.
   a node does.
 - **The package is private until the owner makes it public** after the first
   publish (D6; runbook `docs/runbooks/publish-os-image.md`).
+
+## Clarification (2026-10-29): what a node follows, and where its check is proven
+
+- **No moving name.** Nodes follow no moving tag. A node is switched to a
+  release's fixed name (`bootc switch ghcr.io/rikuripi/rikurinode:<fixed tag>`):
+  in CI by the VM drill, later by the control plane. This settles the point
+  left open above ("decided when a node first follows one"): the hygiene
+  rule against floating tags holds for nodes too, and whoever can move a tag
+  cannot point nodes at an older signed image. How a node learns of a new
+  release is the control plane's, and the never-downgrade rule (plan §4.2)
+  still stands.
+- **The node's own update command checks the signature.** The VM drill
+  (`image/drill/vm_drill.py`, cases 4 and 5) has the booted node's `bootc
+  switch`, under the image's own policy and keys, refuse an unsigned image
+  named `ghcr.io/rikuripi/rikurinode` and stage the first published, signed
+  image, on every image pull request and every publish. The drill's VM
+  reads that name from a registry on the CI machine; nothing unsigned is put
+  in the public package.
+- bootc's `--enforce-container-sigpolicy` is not used: it refuses any policy
+  whose default is `insecureAcceptAnything`, which the node's is. A stricter
+  default would be a separate owner decision.
 
 ## Rejected
 

@@ -89,11 +89,12 @@ jobs:
           python3 -I image/drill/signature_policy.py --image "$IMAGE" \
             --cosign "$RUNNER_TEMP/sig-tools/cosign" --registry "$RUNNER_TEMP/sig-tools/registry" \
             --workdir "$RUNNER_TEMP/sig-proof"
-      - name: Run the drill on this image (first boot; cases 1, 2b and 3)
+      - name: Run the drill on this image (first boot; cases 1, 2b and 3; 4 and 5, the signature)
         run: |
           sudo mkdir -p /mnt/drill
           sudo chown "$(id -u):$(id -g)" /mnt/drill
-          python3 -I image/drill/vm_drill.py --image "$IMAGE" --workdir /mnt/drill --artifacts "$RUNNER_TEMP/drill-evidence"
+          python3 -I image/drill/vm_drill.py --image "$IMAGE" --workdir /mnt/drill --artifacts "$RUNNER_TEMP/drill-evidence" \
+            --registry "$RUNNER_TEMP/sig-tools/registry"
       - name: Keep the drill's evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

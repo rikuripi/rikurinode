@@ -2,7 +2,8 @@
 
 Who: the owner. Where: GitHub's web page; no command line. How long: about
 ten minutes, the VM drill included. What it does: builds the node's OS image from
-`main`, checks it, boots it in a VM and runs the rollback drill, then
+`main`, checks it, boots it in a VM and runs the rollback drill (in which
+the node also refuses an unsigned update and accepts a signed one), then
 publishes it to `ghcr.io/rikuripi/rikurinode` under a new fixed name (for
 example `44.20261028.3`: Fedora release, date, run number) and signs it with
 the project's key. Nodes do not follow these fixed names: publishing one

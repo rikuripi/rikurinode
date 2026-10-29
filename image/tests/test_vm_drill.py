@@ -3,13 +3,15 @@
 Only its pure parts run here: the command lines it builds (the VM's network
 is restricted, KVM is required, the test key goes only onto the drill's
 disk), what it reads from bootc, the drop-ins each case uses, and the
-bounded wait; also the pass rule, and the two containers-range steps through
+bounded wait; also the pass rule, the two containers-range steps, and cases
+4 and 5 (bootc switch refusing an unsigned image, staging a signed one) through
 a Drill whose VM commands and journal are stand-ins. The rest of the
 orchestration runs only in CI, on an x86_64 runner with KVM
 (.github/workflows/image.yml, job drill); its proof is the job's runs,
 including the red run. No VM, container or network here.
 Records: docs/build-records/2026-10-22-ci-vm-drill.md,
-docs/build-records/2026-10-24-drill-orchestration-tests.md
+docs/build-records/2026-10-24-drill-orchestration-tests.md,
+docs/build-records/2026-10-29-node-refuses-unsigned.md
 """
 from __future__ import annotations
 
@@ -393,7 +395,8 @@ class Verdict(unittest.TestCase):
         self.assertEqual(d.EXPECTED, {
             "first boot", "the containers range at the first boot", "case 1, a failing update",
             "case 2b, finalize fails", "case 3, a power cut during the update",
-            "the containers range after reboots", "the containers range"})
+            "the containers range after reboots", "the containers range",
+            "case 4, an unsigned update refused", "case 5, a signed update staged"})
 
     def test_all_passed_and_no_error_is_zero(self):
         self.assertEqual(d.verdict(self.ALL, None), 0)
@@ -617,6 +620,10 @@ class SignatureCases(unittest.TestCase):
         self.assertEqual(self.run_case("case5", (0, ""), status_json(staged=SIGNED, spec=d.SIGNED_REF)),
                          [("case 5, a signed update staged", True)])
         self.assertEqual(self.run_case("case5", (1, REFUSED), status_json()),
+                         [("case 5, a signed update staged", False)])
+        # Mutant m14 (02-mutants.out): a switch that succeeds but stages another digest fails too.
+        self.assertEqual(self.run_case("case5", (0, ""), status_json(staged=(d.SIGNED_REF, DIGEST),
+                                                                     spec=d.SIGNED_REF)),
                          [("case 5, a signed update staged", False)])
 
     def test_the_mirror_files_are_written_with_the_shipped_setting_renamed(self):
