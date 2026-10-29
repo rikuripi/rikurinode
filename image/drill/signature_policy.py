@@ -97,11 +97,38 @@ def registry_failure(returncode, log: str) -> str:
     return "signature_policy: the registry did not start (%s); its log:\n%s" % (state, log.strip() or "(empty)")
 
 
-def ci_registries_d(shipped: str) -> str:
-    """The shipped registries.d file, with the local registry's name for the image's."""
+def ci_registries_d(shipped: str, repo: str = LOCAL_REPO) -> str:
+    """The shipped registries.d file, with the local registry's name (or `repo`) for the image's."""
     if shipped.count(IMAGE_REPO + ":") != 1:
         raise ValueError("the shipped registries.d file does not name %s once" % IMAGE_REPO)
-    return shipped.replace(IMAGE_REPO + ":", LOCAL_REPO + ":")
+    return shipped.replace(IMAGE_REPO + ":", repo + ":")
+
+
+def registry_config(workdir: str) -> str:
+    return ("version: 0.1\nstorage:\n  filesystem:\n    rootdirectory: %s/reg\nhttp:\n  addr: %s\n"
+            "log:\n  level: error\n" % (workdir, REG))
+
+
+def start_registry(binary: str, workdir: str) -> subprocess.Popen:
+    """distribution's registry on REG, storing under workdir/reg: the process once it
+    answers; else it is stopped and RuntimeError says why. Also the drill's (2c)."""
+    os.makedirs(os.path.join(workdir, "reg"))
+    with open(os.path.join(workdir, "reg.yml"), "w") as f:
+        f.write(registry_config(workdir))
+    log = os.path.join(workdir, "registry.log")
+    registry = subprocess.Popen([binary, "serve", os.path.join(workdir, "reg.yml")], env=registry_env(os.environ),
+                                stdout=open(log, "w"), stderr=subprocess.STDOUT)
+    for _ in range(100):
+        try:
+            urllib.request.urlopen("http://%s/v2/" % REG, timeout=2).close()
+            return registry
+        except OSError:
+            time.sleep(0.2)
+    state = registry.poll()
+    registry.terminate()
+    registry.wait(timeout=30)
+    with open(log) as f:
+        raise RuntimeError(registry_failure(state, f.read()))
 
 
 def registries_conf() -> str:
@@ -153,24 +180,12 @@ def main(argv=None) -> int:
     ap.add_argument("--workdir", required=True)
     args = ap.parse_args(argv)
     w = os.path.abspath(args.workdir)
-    os.makedirs(os.path.join(w, "reg"))
-    with open(os.path.join(w, "reg.yml"), "w") as f:
-        f.write("version: 0.1\nstorage:\n  filesystem:\n    rootdirectory: %s/reg\nhttp:\n  addr: %s\n"
-                "log:\n  level: error\n" % (w, REG))
-    log = os.path.join(w, "registry.log")
-    registry = subprocess.Popen([args.registry, "serve", os.path.join(w, "reg.yml")], env=registry_env(os.environ),
-                                stdout=open(log, "w"), stderr=subprocess.STDOUT)
+    try:
+        registry = start_registry(args.registry, w)
+    except RuntimeError as e:
+        sys.exit(str(e))
     pushed = []
     try:
-        for _ in range(100):
-            try:
-                urllib.request.urlopen("http://%s/v2/" % REG, timeout=2).close()
-                break
-            except OSError:
-                time.sleep(0.2)
-        else:
-            with open(log) as f:
-                sys.exit(registry_failure(registry.poll(), f.read()))
         env = dict(os.environ, COSIGN_PASSWORD="")
         for k in sorted({c.key for c in CASES if c.key} | set(KEYS)):
             must([args.cosign, "generate-key-pair", "--output-key-prefix", os.path.join(w, k)], env=env)

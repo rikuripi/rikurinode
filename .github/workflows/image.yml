@@ -8,10 +8,13 @@ name: OS image
 # changes 3 and 4; image/drill/vm_drill.py): on image changes and weekly
 # (owner, 2026-10-12). The build job also proves the node's signature policy on
 # the built image, with throwaway keys (change 2a; image/drill/signature_policy.py).
-# Publishing and signing with the real key: publish.yml (change 2b).
+# Publishing and signing with the real key: publish.yml (change 2b). The drill
+# also has the node's own bootc refuse an unsigned image and stage the first
+# published, signed one, through a registry on the runner (change 2c).
 # Records: docs/build-records/2026-10-12-stage1-os-image.md,
 # docs/build-records/2026-10-22-ci-vm-drill.md,
-# docs/build-records/2026-10-25-signature-policy.md
+# docs/build-records/2026-10-25-signature-policy.md,
+# docs/build-records/2026-10-29-node-refuses-unsigned.md
 
 on:
   # Every pull request starts the workflow, so its jobs can be required checks;
@@ -144,23 +147,33 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Install QEMU and UEFI firmware (Ubuntu 24.04's archive; versions recorded)
+      - name: Install QEMU, UEFI firmware and nc (Ubuntu 24.04's archive; versions recorded)
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q --no-install-recommends qemu-system-x86 ovmf
+          sudo apt-get install -y -q --no-install-recommends qemu-system-x86 ovmf netcat-openbsd
           {
             echo "### VM tools"
-            dpkg-query -W -f='- ${Package} ${Version}\n' qemu-system-x86 ovmf
+            dpkg-query -W -f='- ${Package} ${Version}\n' qemu-system-x86 ovmf netcat-openbsd
             echo "- /dev/kvm: $(ls -l /dev/kvm)"
             echo "- free on /mnt: $(df -h --output=avail /mnt | tail -1 | tr -d ' ')"
           } | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Build the image (bootc container lint runs inside)
         run: sudo podman build --pull=missing --tag "$IMAGE" image
-      - name: Run the drill (first boot; cases 1, 2b and 3)
+      - name: Fetch the drill's registry (cases 4 and 5; pinned by SHA-256)
+        run: |
+          mkdir "$RUNNER_TEMP/sig-tools"
+          cd "$RUNNER_TEMP/sig-tools"
+          curl -fsSL --retry 3 -o registry.tar.gz \
+            "https://github.com/distribution/distribution/releases/download/v$DISTRIBUTION_VERSION/registry_${DISTRIBUTION_VERSION}_linux_amd64.tar.gz"
+          printf '%s  registry.tar.gz\n' "$DISTRIBUTION_SHA256" | sha256sum --strict -c -
+          tar xzf registry.tar.gz registry
+          chmod +x registry
+      - name: Run the drill (first boot; cases 1, 2b and 3; 4 and 5, the signature)
         run: |
           sudo mkdir -p /mnt/drill
           sudo chown "$(id -u):$(id -g)" /mnt/drill
-          python3 -I image/drill/vm_drill.py --image "$IMAGE" --workdir /mnt/drill --artifacts "$RUNNER_TEMP/drill-evidence"
+          python3 -I image/drill/vm_drill.py --image "$IMAGE" --workdir /mnt/drill --artifacts "$RUNNER_TEMP/drill-evidence" \
+            --registry "$RUNNER_TEMP/sig-tools/registry"
       - name: Keep the evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

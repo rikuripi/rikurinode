@@ -145,6 +145,22 @@ class Image(unittest.TestCase):
         # skip the drill wrongly; the match reads a here-string instead.
         self.assertNotRegex(lines, r"\|\s*grep -q")
 
+    def test_the_drill_gets_the_pinned_registry(self):
+        # 2c: cases 4 and 5 need a registry on the runner (docs/build-records/2026-10-29-node-refuses-unsigned.md).
+        lines = "\n".join(job(read(IMAGE), "drill"))
+        self.assertIn("registry_${DISTRIBUTION_VERSION}_linux_amd64.tar.gz", lines)
+        self.assertIn("sha256sum --strict -c -", lines)
+        self.assertIn('--registry "$RUNNER_TEMP/sig-tools/registry"', lines)
+        self.assertLess(lines.index("sha256sum --strict"), lines.index("vm_drill.py"))
+
+    def test_both_drills_install_the_forwards_nc(self):
+        # Repair 1 (CI run 40932208792): QEMU starts nc for each connection to the drill's registry.
+        for path, name in ((IMAGE, "drill"), (PUBLISH, "build")):
+            lines = "\n".join(job(read(path), name))
+            self.assertRegex(lines, r"apt-get install -y -q --no-install-recommends qemu-system-x86 ovmf netcat-openbsd\n",
+                             path)
+            self.assertRegex(lines, r"dpkg-query -W .* qemu-system-x86 ovmf netcat-openbsd\b", path)   # its version recorded
+
 
 PUBLISH = os.path.join(ROOT, ".github", "workflows", "publish.yml")
 
@@ -227,6 +243,10 @@ class Publish(unittest.TestCase):
         self.assertLess(lines.index("podman build"), record)
         self.assertLess(record, lines.index("check_image_root.py"))
         self.assertLess(lines.index("podman push"), compare)
+        # 2c: the drill's cases 4 and 5 use the registry the proof fetched.
+        drill = [s for s in steps(job(self.text, "build")) if "vm_drill.py" in s]
+        self.assertEqual(len(drill), 1)
+        self.assertIn('--registry "$RUNNER_TEMP/sig-tools/registry"', drill[0])
 
     def test_the_sign_job_refuses_signs_then_accepts(self):
         lines = "\n".join(job(self.text, "sign"))

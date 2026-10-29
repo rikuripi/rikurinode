@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The OS image's rollback drill, in a VM: stage 1 changes 3 and 4.
 
-    vm_drill.py --image <local image> --workdir <dir> --artifacts <dir>
+    vm_drill.py --image <local image> --workdir <dir> --artifacts <dir> --registry <registry>
 
 Runs only on an x86_64 Linux runner with KVM, sudo, podman, QEMU and OVMF
 (.github/workflows/image.yml, job drill). It installs the image with the
@@ -26,10 +26,22 @@ checks, failing on any miss:
                it passed; after the cases both files read
                as they did then; last, a --userns=auto container starts
                (docs/build-records/2026-10-24-drill-first-boot-and-finalize.md).
+  case 4       the node's own `bootc switch` refuses an unsigned image named
+               ghcr.io/rikuripi/rikurinode, for the policy's reason ("no
+               signature exists"), and stages nothing.
+  case 5       it stages the first published image (2b), signed with the
+               project's key: bootc status names exactly that name and digest.
+               Cases 4 and 5 run last; the staged update meets no reboot
+               (docs/build-records/2026-10-29-node-refuses-unsigned.md).
 
 The VM gets a key made for this run (root, on the drill's disk only; the image
 is unchanged) and a user-mode network restricted to one forwarded SSH port on
-loopback: it has no outbound network. The cases are those of
+loopback and one forward out, to a registry (--registry, distribution's
+release) on the CI machine's loopback: it has no other network. Into that
+registry go the published image with its signature (copied from ghcr.io by
+the CI machine) and the image under test, unsigned. In the VM, two files
+beside the shipped ones read the image's name from it; the policy and keys
+are the image's own. The cases are those of
 docs/build-records/2026-10-21-greenboot-drill-parallels.md, run there by hand.
 Evidence goes to --artifacts. Record: docs/build-records/2026-10-22-ci-vm-drill.md
 """
@@ -42,6 +54,9 @@ import re
 import subprocess
 import sys
 import time
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # python3 -I leaves this folder out
+import signature_policy as sp  # noqa: E402
 
 OVMF_CODE = "/usr/share/OVMF/OVMF_CODE_4M.fd"
 OVMF_VARS = "/usr/share/OVMF/OVMF_VARS_4M.fd"
@@ -62,6 +77,19 @@ TRIGGER_STOPPED = re.compile(r"Stopped [^\n]*Greenboot Rollback trigger")
 SUBID_LINE = "containers:2147483647:2147483648"
 SUBID_FILES = ("/etc/subuid", "/etc/subgid")
 SUBID_WANTED = "/usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid"
+# 2c: the drill's registry, on the CI machine at sp.REG, is this address in the VM (one guestfwd).
+MIRROR_IN_VM = "10.0.2.100:5000"
+MIRROR_REPO = MIRROR_IN_VM + "/rikuripi/rikurinode"
+MIRROR_CONF = "/etc/containers/registries.conf.d/99-drill-registry.conf"
+MIRROR_REGISTRIES_D = "/etc/containers/registries.d/drill-registry.yaml"
+MIRROR_FILES = (MIRROR_CONF, MIRROR_REGISTRIES_D)
+# The first published image, signed with the project's key (2b, run 40794568497).
+SIGNED_REF = sp.IMAGE_REPO + ":44.20261029.1"
+SIGNED_DIGEST = "sha256:c984d651db4f15be5dac56fcd974d230bc248536fade4ceee29323abadfdecfd"
+UNSIGNED_REF = sp.IMAGE_REPO + ":drill-unsigned"
+# bootc's image proxy answers OpenImage with the policy's own reason, without skopeo's
+# "Source image rejected: " (CI run 40933775613, repair 2).
+BOOTC_REFUSED = "failed to invoke method OpenImage: " + sp.NO_SIGNATURE
 
 
 class DrillFailure(Exception):
@@ -74,7 +102,10 @@ def qemu_argv(disk: str, vars_fd: str, serial_log: str, port: int, pidfile: str)
             "-drive", "if=pflash,format=raw,unit=0,readonly=on,file=" + OVMF_CODE,
             "-drive", "if=pflash,format=raw,unit=1,file=" + vars_fd,
             "-drive", "if=virtio,format=raw,file=" + disk,
-            "-netdev", "user,id=n0,restrict=on,hostfwd=tcp:127.0.0.1:%d-:22" % port,
+            # guestfwd's cmd: starts nc for each connection; a tcp: target would be
+            # connected once, at QEMU's start, before the registry runs (CI run 40932208792).
+            "-netdev", "user,id=n0,restrict=on,hostfwd=tcp:127.0.0.1:%d-:22,guestfwd=tcp:%s-cmd:nc -N %s"
+            % (port, MIRROR_IN_VM, sp.REG.replace(":", " ")),
             "-device", "virtio-net-pci,netdev=n0",
             "-serial", "file:" + serial_log, "-display", "none",
             "-daemonize", "-pidfile", pidfile]
@@ -120,6 +151,56 @@ def booted(text: str):
 
 def rollback(text: str):
     return _deployment(text, "rollback")
+
+
+def staged(text: str):
+    """(image reference, digest) of the staged deployment, or None."""
+    return _deployment(text, "staged")
+
+
+def spec_image(text: str):
+    """The image bootc's spec names (what the node follows), or None."""
+    try:
+        ref = json.loads(text)["spec"]["image"]["image"]
+    except (ValueError, KeyError, TypeError):
+        return None
+    return ref if isinstance(ref, str) and ref else None
+
+
+def sig_tag(digest: str) -> str:
+    """The tag cosign's older format keeps a digest's signature under."""
+    return digest.replace(":", "-") + ".sig"
+
+
+def mirror_conf() -> str:
+    """The VM reads the image's name from the drill's registry: a rewrite, never a mirror."""
+    return '[[registry]]\nprefix = "%s"\nlocation = "%s"\ninsecure = true\n' % (sp.IMAGE_REPO, MIRROR_REPO)
+
+
+def seed_argvs(image: str) -> list:
+    """Fill the drill's registry: the signed image and its signature, by digest and with no login,
+    and the image under test, unsigned. The copies only carry bytes (digests kept); the VM checks."""
+    def copy(src, dst):
+        return sp.podman_run(image, [], "skopeo", "copy", "-q", "--insecure-policy", "--remove-signatures",
+                             "--preserve-digests", "--dest-tls-verify=false", src, dst)
+    sig = sig_tag(SIGNED_DIGEST)
+    return [copy("docker://%s@%s" % (sp.IMAGE_REPO, SIGNED_DIGEST),
+                 "docker://%s:%s" % (sp.LOCAL_REPO, SIGNED_REF.rsplit(":", 1)[1])),
+            copy("docker://%s:%s" % (sp.IMAGE_REPO, sig), "docker://%s:%s" % (sp.LOCAL_REPO, sig)),
+            ["sudo", "podman", "push", "-q", "--tls-verify=false", image,
+             "docker://%s:%s" % (sp.LOCAL_REPO, UNSIGNED_REF.rsplit(":", 1)[1])]]
+
+
+def unsigned_refused(returncode: int, output: str, status: str) -> bool:
+    """Refused for the policy's reason, as the proxy's answer to opening the image,
+    and nothing staged in a status that reads."""
+    return (returncode != 0 and BOOTC_REFUSED in output and booted(status) is not None
+            and staged(status) is None)
+
+
+def signed_staged(returncode: int, status: str) -> bool:
+    """Staged with exactly the published digest, under the name the spec follows."""
+    return returncode == 0 and staged(status) == (SIGNED_REF, SIGNED_DIGEST) and spec_image(status) == SIGNED_REF
 
 
 def trigger_stopped(serial: str, offset: int) -> bool:
@@ -201,7 +282,8 @@ def wait_until(predicate, timeout: float, interval: float = 5, clock=time.monoto
 # Every check main runs; the drill passes only if each of them passed.
 EXPECTED = frozenset({"first boot", "the containers range at the first boot", "case 1, a failing update",
                       "case 2b, finalize fails", "case 3, a power cut during the update",
-                      "the containers range after reboots", "the containers range"})
+                      "the containers range after reboots", "the containers range",
+                      "case 4, an unsigned update refused", "case 5, a signed update staged"})
 
 
 def verdict(results, error) -> int:
@@ -221,6 +303,7 @@ class Drill:
         self.installed = None
         self.results = []
         self.first_subid = []
+        self.registry = None
 
     # --- plumbing ------------------------------------------------------------
     def log(self, message: str) -> None:
@@ -457,6 +540,48 @@ class Drill:
         self.wait_up(timeout=900)
         self.never_applied("case 3, a power cut during the update", "04-case3", lines)
 
+    # --- 2c: the node's own update command and the signature policy --------
+    def serve_registry(self, binary: str) -> None:
+        try:
+            self.registry = sp.start_registry(binary, os.path.join(self.workdir, "registry"))
+        except RuntimeError as e:
+            raise DrillFailure(str(e))
+        for argv in seed_argvs(self.image):
+            self.run(argv, timeout=1800)
+        self.log("the drill's registry holds %s, its signature, and %s" % (SIGNED_REF, UNSIGNED_REF))
+
+    def stop_registry(self) -> None:
+        if self.registry is not None:
+            self.registry.terminate()
+            self.registry.wait(timeout=30)
+
+    def configure_mirror(self) -> None:
+        try:
+            registries_d = sp.ci_registries_d(self.vm("cat " + sp.REGISTRIES_D_FILE) or "", MIRROR_REPO)
+        except ValueError as e:
+            raise DrillFailure(str(e))
+        self.write_in_vm(MIRROR_CONF, mirror_conf())
+        self.write_in_vm(MIRROR_REGISTRIES_D, registries_d)
+
+    def bootc_switch(self, ref: str):
+        p = self.run(ssh_argv(self.key, PORT, "bootc switch " + ref), check=False, timeout=1800)
+        return p.returncode, p.stdout + p.stderr
+
+    def case4(self) -> None:
+        rc, out = self.bootc_switch(UNSIGNED_REF)
+        status = self.status()
+        self.keep("06-case4.out", "bootc switch %s: exit %d\n%s\n%s" % (UNSIGNED_REF, rc, out, status))
+        last = (out.strip().splitlines() or [""])[-1].replace("|", "/")
+        self.check("case 4, an unsigned update refused", unsigned_refused(rc, out, status),
+                   "bootc switch exit %d: %s; staged: %s" % (rc, last[-300:], staged(status)))
+
+    def case5(self) -> None:
+        rc, out = self.bootc_switch(SIGNED_REF)
+        status = self.status()
+        self.keep("07-case5.out", "bootc switch %s: exit %d\n%s\n%s" % (SIGNED_REF, rc, out, status))
+        self.check("case 5, a signed update staged", signed_staged(rc, status),
+                   "bootc switch exit %d; staged: %s; the spec follows: %s" % (rc, staged(status), spec_image(status)))
+
     def post_mortem(self) -> None:
         """What the VM can still say after a failure: every boot's greenboot and check lines."""
         try:
@@ -487,6 +612,7 @@ def main(argv=None) -> int:
     ap.add_argument("--image", required=True)
     ap.add_argument("--workdir", required=True)
     ap.add_argument("--artifacts", required=True)
+    ap.add_argument("--registry", required=True)
     a = ap.parse_args(argv)
     os.makedirs(a.artifacts, exist_ok=True)
     drill = Drill(a.image, a.workdir, a.artifacts)
@@ -502,11 +628,17 @@ def main(argv=None) -> int:
         # (40057729110) saw case 1's update fail to finalize with it before.
         drill.subid_after_reboots()
         drill.userns_auto()
+        # Last: the signed update stays staged, and no reboot follows.
+        drill.serve_registry(a.registry)
+        drill.configure_mirror()
+        drill.case4()
+        drill.case5()
     except (DrillFailure, subprocess.TimeoutExpired) as e:
         error = str(e)
         drill.check("drill", False, error)
         drill.post_mortem()
     finally:
+        drill.stop_registry()
         try:
             drill.collect()
         except (DrillFailure, subprocess.TimeoutExpired, OSError) as e:

@@ -1,0 +1,24 @@
+m1 no forward to the registry                  KILLED
+m2 the forward to any host                     KILLED
+m3 a mirror, not a rewrite                     KILLED
+m4 the published image by tag                  KILLED
+m5 digests not kept                            KILLED
+m6 a copy with a login                         KILLED
+m7 any refusal counts                          KILLED
+m8 a staged update after a refusal passes      KILLED
+m9 an unreadable status passes the refusal     KILLED
+m10 any digest staged                          KILLED
+m11 the spec not compared                      KILLED
+m12 a failed switch passes case 5              KILLED
+m13 case 4 judged without its rule             KILLED
+m14 case 5 judged without its rule             KILLED
+m15 case 5 not required                        KILLED
+m16 another pinned digest                      KILLED
+m17 the shipped file unrenamed                 KILLED
+m18 the rename ignores its address             KILLED
+m19 the registry on every address              KILLED
+m20 the drill's registry unchecked             KILLED
+m21 image.yml's drill without the registry     KILLED
+m22 publish.yml's drill without the registry   KILLED
+restored tree: OK
+22 of 22 KILLED

@@ -1,0 +1,15 @@
+# repair 1 red, on 7570bda plus the tests, rikuri-drill, 2026-10-29T18:44:12Z
+== image/tests/test_vm_drill.py
+AssertionError: 'guestfwd=tcp:10.0.2.100:5000-cmd:nc -N 127.0.0.1 5000' not found in ['user', 'id=n0', 'restrict=on', 'hostfwd=tcp:127.0.0.1:2222-:22', 'guestfwd=tcp:10.0.2.100:5000-tcp:127.0.0.1:5000']
+Ran 67 tests in 0.007s
+FAILED (failures=1)
+== image/tests/test_signature_policy.py
+Ran 22 tests in 0.002s
+OK
+== scripts/quality/tests/test_workflows.py
+AssertionError: Regex didn't match: 'apt-get install -y -q --no-install-recommends qemu-system-x86 ovmf netcat-openbsd\\n' not found in '  drill:\n    name: Boot the image in a VM and run the rollback drill\n    needs: [changes, build]\n
+Ran 23 tests in 0.004s
+FAILED (failures=1)
+== image/tests all
+Ran 284 tests in 0.590s
+FAILED (failures=1)
