@@ -25,14 +25,16 @@ updates no node. Workflow: `.github/workflows/publish.yml`; record:
 The package starts private, so on the first publish the third job fails and
 says that the package is not public yet. That is expected.
 
-1. Open `https://github.com/orgs/rikuripi/packages/container/rikurinode/settings`. You can also reach it from the repository's main page: under **Packages** on the right, open **rikurinode**, then **Package settings**.
-2. Under **Danger Zone**, choose **Change visibility**, then **Public**, and confirm. **This cannot be undone** (decided: ADR 0004, D6). The image holds no secret by rule; the image checker and the gate's secret scan enforce this. If **Public** cannot be chosen, the organization does not allow public packages yet: in the organization's **Settings**, under **Packages**, allow **Public**, then come back.
+1. Open `https://github.com/users/rikuripi/packages/container/rikurinode/settings`. You can also reach it from the repository's main page: under **Packages** on the right, open **rikurinode**, then **Package settings**.
+2. Under **Danger Zone**, choose **Change visibility**, then **Public**, and confirm. **This cannot be undone** (decided: ADR 0004, D6). The image holds no secret by rule; the image checker and the gate's secret scan enforce this.
 3. Back on the run's page, click **Re-run jobs**, then **Re-run failed jobs**. Only the third job runs again, and it should pass.
 
 ## When a job fails
 
-- **The first job** (build, check, drill or push): do not re-run it. It refuses a re-run, because a re-run would put a different image under the same fixed name. Start a new publish once the cause is fixed on `main`. A name that was pushed and never signed is refused by every node.
-- **The second job** (signing): **Re-run failed jobs** is safe. It signs the same image again.
+- **The first or the second job** (build, check, drill, push, or signing): do not re-run it. Start a new publish once the cause is fixed on `main`.
+  - The first job refuses a re-run, because a re-run would put a different image under the same fixed name.
+  - The second job refuses one once the image is signed, because its check that the image is still unsigned then fails.
+  - A name left unsigned is refused by every node, and a name signed whose checks did not finish is never used: nodes do not follow fixed names.
 - **The third job**, after the first publish: a node cannot read the image. Report it; do not change the package's settings.
 
 Never paste the signing key or its password anywhere. Only the second job reads them, from the Environment `image-publish`.

@@ -67,6 +67,7 @@ jobs:
           sudo podman build --pull=missing --tag "$IMAGE" \
             --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
             --label "org.opencontainers.image.revision=$GITHUB_SHA" image
+          sudo podman image inspect --format '{{.Id}}' "$IMAGE" > "$RUNNER_TEMP/built-id"
       - name: Check the built root
         run: |
           root="$(sudo podman image mount "$IMAGE")"
@@ -113,6 +114,8 @@ jobs:
           sudo rm -f "$RUNNER_TEMP/auth.json"
           digest="$(cat "$RUNNER_TEMP/digest")"
           id="$(sudo podman image inspect --format '{{.Id}}' "$IMAGE")"
+          # The image pushed is the one built: the drill's privileged containers must not have moved the name.
+          [ "$id" = "$(cat "$RUNNER_TEMP/built-id")" ] || { echo "the image is not the one built" >&2; exit 1; }
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
           echo "image_id=$id" >> "$GITHUB_OUTPUT"
           echo "- pushed $PUBLISHED:$TAG as $digest (image ID $id)" | tee -a "$GITHUB_STEP_SUMMARY"
