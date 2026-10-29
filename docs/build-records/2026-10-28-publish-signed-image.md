@@ -5,8 +5,8 @@
 | **Date** | 2026-10-28 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/publish`, from `main` at `ce93c07`, in the worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | record `5dbd8c1`, `c77df2c`; red `8546ecc`, fix `2790f67`; repair 1: red `f7d849d`, fix `bc1c961`; record `1f766e4`; merged as `2252c91` (#51); this close-out |
+| **Status** | DONE: #51 merged by the owner; the first publish, [run 40794568497](https://github.com/rikuripi/rikurinode/actions/runs/40794568497), passed all three jobs on attempt 3 (`ghcr.io/rikuripi/rikurinode:44.20261029.1`, `sha256:c984d651db4f15be5dac56fcd974d230bc248536fade4ceee29323abadfdecfd`), and the package is public |
 | **Change type** | feature (the OS image's release path; a control) |
 
 ## Task Contract
@@ -152,3 +152,48 @@
 2. Start one publish (`docs/runbooks/publish-os-image.md`, "Publish").
 3. When its third job fails for "not public yet", make the package public and re-run that job (the runbook's "The first publish only"). It cannot be undone; D6 decided it.
 4. Send this session the run's link. The run's evidence then goes in the close-out.
+
+## Close Out (2026-10-29)
+
+**The first publish**, [run 40794568497](https://github.com/rikuripi/rikurinode/actions/runs/40794568497), from `main` at `2252c91`, started by the owner:
+
+- **Attempt 1:**
+  - **`build`** passed (00:31 to 00:39 UTC):
+    - the checker;
+    - the signature proof, 8 of 8;
+    - the drill: first boot, cases 1, 2b and 3, and the range, all PASS, in 6.5 minutes;
+    - the image pushed as `ghcr.io/rikuripi/rikurinode:44.20261029.1`, `sha256:c984d651…decfd`, image ID `99cfed88…a9c7`.
+  - **`sign`** passed:
+    - "is the image built (ID 99cfed88…)";
+    - by digest, "PASS, refused: A signature was required, but no signature exists";
+    - "signed … as ghcr.io/rikuripi/rikurinode:44.20261029.1";
+    - by digest and by tag, "PASS, accepted".
+
+    This is the shipped `rikuri.yaml` and policy, proven under the real `ghcr.io` name: 2a's open item.
+  - **`anonymous`** failed, as designed: "the package is not public yet", with "unauthorized" from ghcr.io.
+- **The owner made the package public.** The settings page said "This package is currently public" at once, but ghcr.io still answered anonymous requests with 401 for some minutes. Attempt 2 of `anonymous` failed in that window. A check from this session then saw an anonymous token and the manifest, both HTTP 200.
+- **Attempt 3 of `anonymous`** passed (01:13 UTC): with no credential, by digest and by tag, "PASS, accepted".
+
+**Done when:**
+
+| Item | Result |
+|---|---|
+| Red tests committed first; a hand mutant of each new rule turns them red | Pass: 26 of 26 KILLED, after repair 1 (`03-mutants-repair1.out`) |
+| `Full gate (Ubuntu)` and the image workflow on the pull request | Pass, at `1f766e4` |
+| One verifier pass with no Important finding | Pass 1 FAIL (I1 to I8); pass 2 PASS |
+| The owner's publish: the image pulled is the one built; refused unsigned; accepted by digest and by tag | Pass (attempt 1) |
+| Package public; `anonymous` passes | Pass (attempt 3) |
+
+**Corrections in this close-out:**
+- The runbook said "about two hours"; a publish takes about 10 minutes.
+- After making the package public, wait a few minutes before re-running.
+
+**Limits:** 1 of 2 repair cycles; 2 of 2 review rounds; 1 of 2 publish runs. Time: about 3.5 hours with the owner's steps, over the 3-hour budget.
+
+**Backlog (not started):**
+- 2c: a VM drill where a node follows a moving tag and refuses an unsigned update, covering 2a's M1 and M2, and the choice of the moving tag's name;
+- M4: a branch that edits `publish.yml` can push with `packages: write`; the key stays behind the Environment's `main` rule;
+- compare the built ID before the push, not after (pass 2's nit);
+- N2: each acceptance read downloads the whole image;
+- signatures and provenance of the CI tools (from 2a);
+- a second offline copy of the spare key (the owner's).
