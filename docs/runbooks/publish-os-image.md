@@ -6,8 +6,9 @@ ten minutes, the VM drill included. What it does: builds the node's OS image fro
 the node also refuses an unsigned update and accepts a signed one), then
 publishes it to `ghcr.io/rikuripi/rikurinode` under a new fixed name (for
 example `44.20261028.3`: Fedora release, date, run number) and signs it with
-the project's key. Nodes do not follow these fixed names: publishing one
-updates no node. Workflow: `.github/workflows/publish.yml`; record:
+the project's key. Publishing updates no node: a node never follows a tag
+by itself, and is switched to a release's fixed name only when it is told
+to (later, by the node's control plane). Workflow: `.github/workflows/publish.yml`; record:
 `docs/build-records/2026-10-28-publish-signed-image.md`.
 
 ## Publish
