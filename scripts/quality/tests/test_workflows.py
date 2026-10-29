@@ -153,6 +153,14 @@ class Image(unittest.TestCase):
         self.assertIn('--registry "$RUNNER_TEMP/sig-tools/registry"', lines)
         self.assertLess(lines.index("sha256sum --strict"), lines.index("vm_drill.py"))
 
+    def test_both_drills_install_the_forwards_nc(self):
+        # Repair 1 (CI run 40932208792): QEMU starts nc for each connection to the drill's registry.
+        for path, name in ((IMAGE, "drill"), (PUBLISH, "build")):
+            lines = "\n".join(job(read(path), name))
+            self.assertRegex(lines, r"apt-get install -y -q --no-install-recommends qemu-system-x86 ovmf netcat-openbsd\n",
+                             path)
+            self.assertRegex(lines, r"dpkg-query -W .* qemu-system-x86 ovmf netcat-openbsd\b", path)   # its version recorded
+
 
 PUBLISH = os.path.join(ROOT, ".github", "workflows", "publish.yml")
 

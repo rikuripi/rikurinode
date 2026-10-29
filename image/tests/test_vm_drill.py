@@ -39,10 +39,13 @@ class QemuArgv(unittest.TestCase):
 
     def test_network_is_restricted_to_ssh_and_the_drills_registry(self):
         # 2c: one forward out, to the registry on the CI machine's loopback (cases 4 and 5).
+        # Repair 1 (CI run 40932208792): a `tcp:` target is a character device QEMU
+        # connects once at its start, before the registry exists; `cmd:` starts nc
+        # for each connection the guest opens.
         netdev = self.argv[self.argv.index("-netdev") + 1]
         self.assertIn("restrict=on", netdev.split(","))
         self.assertIn("hostfwd=tcp:127.0.0.1:2222-:22", netdev.split(","))
-        self.assertIn("guestfwd=tcp:10.0.2.100:5000-tcp:127.0.0.1:5000", netdev.split(","))
+        self.assertIn("guestfwd=tcp:10.0.2.100:5000-cmd:nc -N 127.0.0.1 5000", netdev.split(","))
         self.assertEqual(netdev.count("hostfwd="), 1)
         self.assertEqual(netdev.count("guestfwd="), 1)
         self.assertEqual(self.argv.count("-netdev"), 1)
