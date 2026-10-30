@@ -6,10 +6,13 @@ advisory-audit.yml, so the two cannot drift apart; the audit runs on a
 schedule and on demand with a read-only token and runs both readers; ci.yml's
 token has exactly the two read permissions the gate needs; the gate runs the
 stale-audit warning as its last step (TEST-05); the publish workflow is
-started by hand on main only, and only its signing step sees the key. Reads
-the repository's own files; no network.
+started by hand on main only, and only its signing step sees the key; the
+install media is built and installed in the image workflow, and built from
+the signed digest, with no login, in the publish workflow. Reads the
+repository's own files; no network.
 Records: docs/build-records/2026-10-21-weekly-advisory-audit.md,
-docs/build-records/2026-10-28-publish-signed-image.md
+docs/build-records/2026-10-28-publish-signed-image.md,
+docs/build-records/2026-10-29-install-media.md
 Run: python3 -m unittest discover -s scripts/quality/tests -p 'test_*.py'
 """
 import glob
@@ -127,10 +130,10 @@ class Image(unittest.TestCase):
             trigger.append(line)
         self.assertFalse(any(line.startswith("paths") for line in trigger), trigger)
 
-    def test_build_and_drill_wait_for_the_changes_job(self):
+    def test_build_drill_and_install_wait_for_the_changes_job(self):
         text = read(IMAGE)
         self.assertTrue(job(text, "changes"), "a changes job")
-        for name in ("build", "drill"):
+        for name in ("build", "drill", "install"):
             lines = " ".join(job(text, name))
             self.assertRegex(lines, r"needs: \[?[^\]]*\bchanges\b", name)
             self.assertIn("if: needs.changes.outputs.image == 'true'", lines, name)
@@ -162,6 +165,21 @@ class Image(unittest.TestCase):
             self.assertRegex(lines, r"dpkg-query -W .* qemu-system-x86 ovmf netcat-openbsd\b", path)   # its version recorded
 
 
+    def test_the_install_job_builds_the_serial_stick_and_installs_it(self):
+        # 5a: the stick CI types into; the published one uses the screen (publish.yml, job iso).
+        lines = "\n".join(job(read(IMAGE), "install"))
+        self.assertIn("--build-arg CONSOLE=ttyS0", lines)
+        self.assertIn("--build-arg TARGET=ghcr.io/rikuripi/rikurinode:install-test", lines)
+        self.assertIn('"$IMAGE_BUILDER" build', lines)
+        self.assertIn("bootc-generic-iso", lines)
+        self.assertIn("--bootc-installer-payload-ref", lines)
+        self.assertIn("image/drill/install_test.py", lines)
+        self.assertRegex(lines, r"apt-get install -y -q --no-install-recommends qemu-system-x86 ovmf ostree\n")
+        order = [lines.index(s) for s in ("podman build", "image/installer", '"$IMAGE_BUILDER" build',
+                                          "install_test.py")]
+        self.assertEqual(order, sorted(order))
+
+
 PUBLISH = os.path.join(ROOT, ".github", "workflows", "publish.yml")
 
 
@@ -180,13 +198,17 @@ def env_pins(text):
     return [line.strip() for line in text.splitlines() if re.match(r"^  (COSIGN|DISTRIBUTION)_(VERSION|SHA256):", line)]
 
 
+def builder_pin(text):
+    return [line.strip() for line in text.splitlines() if line.startswith("  IMAGE_BUILDER:")]
+
+
 class Publish(unittest.TestCase):
     """Only the owner starts a publish, only on main; only the sign job, in the
     Environment, sees the key, and only in its signing step; a re-run is refused
     because it would move a fixed tag
     (docs/build-records/2026-10-28-publish-signed-image.md)."""
 
-    JOBS = ("build", "sign", "anonymous")
+    JOBS = ("build", "sign", "anonymous", "iso")
 
     def setUp(self):
         self.text = read(PUBLISH)
@@ -203,7 +225,7 @@ class Publish(unittest.TestCase):
     def test_permissions_per_job(self):
         self.assertRegex(self.text, r"(?m)^permissions: \{\}$")
         want = {"build": ["contents: read", "packages: write"], "sign": ["contents: read", "packages: write"],
-                "anonymous": ["contents: read"]}
+                "anonymous": ["contents: read"], "iso": ["contents: read"]}
         for name, perms in want.items():
             lines = job(self.text, name)
             i = lines.index("    permissions:")
@@ -225,7 +247,7 @@ class Publish(unittest.TestCase):
         names = sorted(re.findall(r"\$\{\{\s*secrets\.([A-Z_]+)\s*\}\}", with_secrets[0]))
         self.assertEqual(names, ["COSIGN_PASSWORD", "COSIGN_PRIVATE_KEY"])
         self.assertIn("publish.py sign ", with_secrets[0])
-        for name in ("build", "anonymous"):
+        for name in ("build", "anonymous", "iso"):
             self.assertNotIn("secrets.", "\n".join(job(self.text, name)), name)
         outside = self.text.replace(with_secrets[0], "")
         self.assertNotIn("secrets.", outside)
@@ -262,6 +284,30 @@ class Publish(unittest.TestCase):
         self.assertNotIn("login", lines)
         self.assertNotIn("authfile", lines)
         self.assertNotIn("token", lines.lower())
+
+    def test_the_iso_job_builds_the_stick_from_the_signed_digest_with_no_login(self):
+        # 5a: after the anonymous job proved the signed digest readable with no credential.
+        lines = "\n".join(job(self.text, "iso"))
+        self.assertIn("needs: [build, sign, anonymous]", lines)
+        for word in ("login", "authfile"):
+            self.assertNotIn(word, lines)
+        self.assertNotIn("token", lines.lower())
+        self.assertIn('podman pull "$PUBLISHED@$DIGEST"', lines)
+        self.assertIn("--build-arg CONSOLE=tty1", lines)
+        self.assertIn('--build-arg TARGET="$PUBLISHED:$TAG"', lines)
+        self.assertIn('--bootc-installer-payload-ref "$PUBLISHED@$DIGEST"', lines)
+        self.assertIn("bootc-generic-iso", lines)
+        self.assertIn("sha256sum", lines)
+        self.assertIn("actions/upload-artifact@", lines)
+        order = [lines.index(s) for s in ("podman pull", "image/installer", '"$IMAGE_BUILDER" build', "sha256sum",
+                                          "upload-artifact")]
+        self.assertEqual(order, sorted(order))
+
+    def test_the_image_builder_pin_is_the_image_workflows(self):
+        pin = builder_pin(self.text)
+        self.assertEqual(len(pin), 1)
+        self.assertRegex(pin[0], r"^IMAGE_BUILDER: ghcr\.io/osbuild/image-builder-cli:v87\.0\.0@sha256:[0-9a-f]{64}$")
+        self.assertEqual(pin, builder_pin(read(IMAGE)))
 
     def test_every_checkout_keeps_no_credential(self):
         uses = self.text.count("uses: actions/checkout@")
