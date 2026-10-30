@@ -8,10 +8,14 @@ name: Publish the OS image
 # pushed under a fixed tag that never moves. The sign job alone, in the
 # Environment image-publish, sees the key, in one step. The node's own skopeo
 # and policy, inside the published image, refuse it unsigned and accept it
-# signed; the anonymous job reads it as a node does, with no credential.
+# signed; the anonymous job reads it as a node does, with no credential. Then
+# the iso job, also with no credential, builds the USB installer from that
+# signed digest, named for the fixed tag, and keeps it with its SHA-256 as the
+# run's artifact (change 5a; docs/runbooks/install-node.md).
 # image/drill/publish.py holds the steps; scripts/quality/tests/test_workflows.py
 # holds this file's shape.
-# Record: docs/build-records/2026-10-28-publish-signed-image.md
+# Records: docs/build-records/2026-10-28-publish-signed-image.md,
+# docs/build-records/2026-10-29-install-media.md
 
 on:
   workflow_dispatch:
@@ -32,6 +36,8 @@ env:
   COSIGN_SHA256: 424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa
   DISTRIBUTION_VERSION: 3.1.2
   DISTRIBUTION_SHA256: 40df2224d410f72ae425c3371873b078bbdbda3b8b612be9571f0e6751f3acc8
+  # The ISO builder; the same pin as image.yml (a test holds them equal).
+  IMAGE_BUILDER: ghcr.io/osbuild/image-builder-cli:v87.0.0@sha256:df3f4e525945c868d8014b859cd4f1d2efd8d749e40d8e3b9b9e6a05ca3b95b0
 
 jobs:
   build:
@@ -190,3 +196,51 @@ jobs:
         run: |
           echo "### Read with no credential: $PUBLISHED:$TAG" >> "$GITHUB_STEP_SUMMARY"
           python3 -I image/drill/publish.py accepted --digest "$DIGEST" --tag "$TAG"
+
+  iso:
+    name: Build the USB installer from the signed digest, with no credential
+    needs: [build, sign, anonymous]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ needs.build.outputs.tag }}
+      DIGEST: ${{ needs.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Pull the signed digest, as a node reads it (no credential)
+        run: sudo podman pull "$PUBLISHED@$DIGEST"
+      - name: Build the installer (the screen; it names the fixed tag)
+        run: |
+          sudo podman build --pull=missing --tag localhost/rikuri-installer:publish \
+            --build-arg CONSOLE=tty1 --build-arg TARGET="$PUBLISHED:$TAG" image/installer
+      - name: Make the ISO with the signed image inside (image-builder, pinned)
+        run: |
+          sudo mkdir -p /mnt/iso
+          sudo podman run --rm --privileged --pull=missing \
+            -v /var/lib/containers/storage:/var/lib/containers/storage -v /mnt/iso:/output \
+            "$IMAGE_BUILDER" build --bootc-ref localhost/rikuri-installer:publish \
+            --bootc-installer-payload-ref "$PUBLISHED@$DIGEST" --bootc-default-fs ext4 --output-dir /output bootc-generic-iso
+          iso="$(sudo find /mnt/iso -name '*.iso')"
+          [ "$(echo "$iso" | wc -l)" = 1 ] || { echo "not one ISO: $iso" >&2; exit 1; }
+          mkdir "$RUNNER_TEMP/media"
+          name="rikuri-node-$TAG.iso"
+          sudo cp "$iso" "$RUNNER_TEMP/media/$name"
+          sudo chown "$(id -u):$(id -g)" "$RUNNER_TEMP/media/$name"
+          (cd "$RUNNER_TEMP/media" && sha256sum "$name" > "$name.sha256")
+          {
+            echo "### Install media: $name"
+            echo "- holds $PUBLISHED@$DIGEST; installs it as $PUBLISHED:$TAG"
+            echo "- SHA-256: $(cut -d' ' -f1 "$RUNNER_TEMP/media/$name.sha256")"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Keep the stick and its SHA-256 (the run's artifact)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: install-media
+          path: ${{ runner.temp }}/media
+          if-no-files-found: error
+          retention-days: 90

@@ -1,0 +1,37 @@
+# The node's USB installer: a live system, made into an ISO by image-builder
+# (bootc-generic-iso) with the node image inside, read-only. Stage 1 change 5a.
+#
+# The node's own pinned base (a test holds the two FROM lines equal), so the
+# stick boots the node's own kernel and firmware drivers. On it: dracut's live
+# module and image-builder's ISO tools (probe 6a), and rikuri_install.py, which
+# also writes, from the build arguments, the stick's kernel line, its console
+# and the name the node updates from. The stick has no logins and no network.
+#   CONSOLE  tty1 (the screen; the published stick) or ttyS0 (CI's install test)
+#   TARGET   ghcr.io/rikuripi/rikurinode:<fixed tag>
+# Built by .github/workflows/image.yml (job install) and publish.yml (job iso).
+# Record: docs/build-records/2026-10-29-install-media.md
+FROM registry.fedoraproject.org/fedora-iot@sha256:29d16f4ccc5c86c84ba21aca0b7dcabfc4ecb2a79c9e51810f7838695f6be1c3
+
+ARG CONSOLE=tty1
+ARG TARGET
+
+RUN dnf install -y dracut-live squashfs-tools xorriso isomd5sum grub2-efi-x64-cdboot python3 && dnf clean all
+
+# image-builder takes shim and grub from /boot/efi.
+RUN mkdir -p /boot/efi && cp -ra /usr/lib/efi/*/*/EFI /boot/efi
+
+# The live initramfs: it finds the stick by its label and runs from its squashfs.
+RUN printf 'compress="xz"\nadd_dracutmodules+=" dmsquash-live "\nearly_microcode="no"\n' \
+      > /usr/lib/dracut/dracut.conf.d/40-rikuri-installer.conf \
+    && [ "$(ls /usr/lib/modules | wc -l)" = 1 ] \
+    && kver="$(ls /usr/lib/modules)" \
+    && env DRACUT_NO_XATTR=1 dracut -f "/usr/lib/modules/$kver/initramfs.img" "$kver"
+
+COPY rikuri_install.py /usr/lib/rikuri-installer/rikuri_install.py
+
+# The installer owns its console: no getty there (probe 6d, run 1), and none on
+# the other either; no SSH and no network; greenboot and bootloader updates have
+# no use on a live system.
+RUN python3 -I /usr/lib/rikuri-installer/rikuri_install.py configure --console "$CONSOLE" --target "$TARGET" --root / \
+    && systemctl enable rikuri-installer.service \
+    && systemctl mask getty@tty1.service autovt@tty1.service serial-getty@ttyS0.service sshd.service sshd.socket NetworkManager.service NetworkManager-wait-online.service bootloader-update.service greenboot-healthcheck.service greenboot-set-rollback-trigger.service greenboot-grub2-set-counter.service greenboot-rpm-ostree-grub2-check-fallback.service
