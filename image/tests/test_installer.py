@@ -224,10 +224,10 @@ class Run(unittest.TestCase):
         self.assertEqual(m.asked, [ri.PROMPT])
         self.assertLess(m.said.index(next(s for s in m.said if ri.describe(NVME) in s)), len(m.said))
 
-    def refused(self, m, message):
+    def refused(self, m, message, installs=0):
         rc = ri.run(m)
         self.assertNotEqual(rc, 0)
-        self.assertEqual(m.installs, [], "nothing erased")
+        self.assertEqual(len(m.installs), installs, "nothing erased, or only by the one failed install")
         self.assertIn(message, m.text())
         self.assertIn(ri.POWER_OFF, m.text())
         self.assertEqual(m.events[-2:], ["enter", "poweroff"])
@@ -270,8 +270,7 @@ class Run(unittest.TestCase):
 
     def test_a_failed_install_says_so_and_waits(self):
         m = Machine(install_rc=1)
-        self.refused(m, ri.FAILED)
-        self.assertEqual(len(m.installs), 1)
+        self.refused(m, ri.FAILED, installs=1)
 
 
 class LoadConf(unittest.TestCase):
@@ -280,7 +279,9 @@ class LoadConf(unittest.TestCase):
                          (TARGET, ["console=ttyS0"]))
 
     def test_refuses_another_repository_or_a_moving_name(self):
-        for target in ("ghcr.io/rikuripi/other:1", "ghcr.io/rikuripi/rikurinode", "ghcr.io/rikuripi/rikurinode:",
+        # Same length as the repository, so only the name check refuses them (mutant "target: any repo").
+        for target in ("quay.io/rikuripi/rikurinode:44.1", "ghcr.io/rikuripi/rikurinodf:44.1",
+                       "ghcr.io/rikuripi/other:1", "ghcr.io/rikuripi/rikurinode", "ghcr.io/rikuripi/rikurinode:",
                        "ghcr.io/rikuripi/rikurinode:a b", "docker://ghcr.io/rikuripi/rikurinode:1",
                        "ghcr.io/rikuripi/rikurinode:latest"):
             with self.assertRaises(ValueError, msg=target):
