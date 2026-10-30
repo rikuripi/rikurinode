@@ -30,7 +30,7 @@ TARGET = "ghcr.io/rikuripi/rikurinode:install-test"
 
 class StickArgv(unittest.TestCase):
     def setUp(self):
-        self.argv = it.stick_argv("/w/node.iso", ["/w/a.raw", "/w/b.raw"], "/w/vars.fd", "/w/con.sock", "/w/con.log")
+        self.argv = it.stick_argv("/w/node.iso", ["/w/a.raw", "/w/b.raw"], "/w/vars.fd", "/w/con.sock")
 
     def test_kvm_uefi_and_no_network(self):
         a = self.argv

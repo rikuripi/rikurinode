@@ -6,7 +6,7 @@
 Runs only on an x86_64 Linux runner with KVM, QEMU, OVMF and ostree, as root
 (.github/workflows/image.yml, job install). It boots the ISO under UEFI as a
 removable, read-only USB stick, with no network, and types at the installer
-through the VM's serial console (a socket; everything is also logged), waiting
+through the VM's serial console (a socket it reads all the time, and logs), waiting
 for the installer's own words (imported from rikuri_install.py). It fails on
 any miss:
 
@@ -37,6 +37,7 @@ import shutil
 import socket
 import subprocess
 import sys
+import threading
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -59,7 +60,7 @@ def _common(vars_fd: str) -> list:
             "-drive", "if=pflash,format=raw,unit=1,file=" + vars_fd]
 
 
-def stick_argv(iso: str, disks: list, vars_fd: str, sock: str, log: str) -> list:
+def stick_argv(iso: str, disks: list, vars_fd: str, sock: str) -> list:
     argv = _common(vars_fd) + [
         "-device", "qemu-xhci",
         "-drive", "if=none,id=stick,format=raw,readonly=on,file=" + iso,
@@ -67,7 +68,7 @@ def stick_argv(iso: str, disks: list, vars_fd: str, sock: str, log: str) -> list
     for disk in disks:
         argv += ["-drive", "if=virtio,format=raw,file=" + disk]
     return argv + ["-nic", "none", "-display", "none",
-                   "-chardev", "socket,id=con,path=%s,server=on,wait=off,logfile=%s" % (sock, log),
+                   "-chardev", "socket,id=con,path=%s,server=on,wait=off" % sock,
                    "-serial", "chardev:con", "-no-reboot"]
 
 
@@ -114,7 +115,9 @@ class Failed(Exception):
 
 
 class Console:
-    """The VM's serial console: typed into through its socket, read from its log."""
+    """The VM's serial console: typed into through its socket. A reader drains the socket
+    all the time and writes the log itself: unread, the socket fills and the guest stalls
+    on its console writes, and QEMU's own log of it repeats characters (CI run 83)."""
 
     def __init__(self, sock: str, log: str, proc):
         self.log, self.proc, self.conn = log, proc, None
@@ -123,24 +126,33 @@ class Console:
             try:
                 s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 s.connect(sock)
-                s.setblocking(False)
                 self.conn = s
             except OSError:
                 if time.time() > deadline:
                     raise Failed("the VM's console socket did not open")
                 time.sleep(0.5)
+        self.read, self.lock = bytearray(), threading.Lock()
+        self.reader = threading.Thread(target=self._drain, daemon=True)
+        self.reader.start()
+
+    def _drain(self):
+        with open(self.log, "wb") as f:
+            while True:
+                try:
+                    data = self.conn.recv(65536)
+                except OSError:
+                    return
+                if not data:
+                    return
+                f.write(data)
+                f.flush()
+                with self.lock:
+                    self.read += data
 
     def text(self) -> str:
-        try:
-            while self.conn.recv(65536):   # the log keeps it; the socket is only drained
-                pass
-        except (BlockingIOError, InterruptedError):
-            pass
-        try:
-            with open(self.log, encoding="utf-8", errors="replace") as f:
-                return clean(f.read())
-        except FileNotFoundError:
-            return ""
+        with self.lock:
+            data = bytes(self.read)
+        return clean(data.decode("utf-8", errors="replace"))
 
     def wait_for(self, line: str, timeout: int, after: int = 0) -> int:
         """Wait until the installer's `line` appears after offset `after`; its end offset."""
@@ -160,7 +172,12 @@ class Console:
         self.conn.sendall((line + "\r").encode())
 
     def close(self):
+        try:
+            self.conn.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
         self.conn.close()
+        self.reader.join(10)
 
 
 class Test:
@@ -187,7 +204,7 @@ class Test:
     def boot_stick(self, name, disks, vars_fd):
         sock = os.path.join(self.a.workdir, name + ".sock")
         log = os.path.join(self.a.artifacts, name + "-console.log")
-        proc = subprocess.Popen(stick_argv(self.a.iso, disks, vars_fd, sock, log))
+        proc = subprocess.Popen(stick_argv(self.a.iso, disks, vars_fd, sock))
         return proc, Console(sock, log, proc)
 
     def ended(self, proc, timeout):

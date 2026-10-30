@@ -102,6 +102,17 @@
 
 Serial logs: each run's artifact `probe6`.
 
+**5a, development CI on PR #55** (at most 6 runs; repairs at most 2):
+
+| Run | Commit | Result | Learnt |
+|---|---|---|---|
+| OS image [40988971165](https://github.com/rikuripi/rikurinode/actions/runs/40988971165) (#83); CI and the guard workflow passed | `cc25634` | **Fail**, all three cases, though the installer said the right words in each: two disks `no 'This machine has more than one internal ' on the console within 900 s`; no `the VM did not end within 180 s`; erase `Installation complete!`, then `the VM did not end within 120 s` | The harness, not the installer: it drained the console socket only while waiting for words, so the socket filled while it waited for the VM to end, and both shutdowns stop mid-line. QEMU's chardev log repeated characters (`interrnal`, `Boott0000`), so the refusal never matched. |
+
+**Repair 1** (of 2): a red commit `62f0449`, then the fix. The console's reader drains the socket all the time and writes the log itself; QEMU's `logfile=` is gone. In rikuri-drill, red: the guest's write `TimeoutError: timed out`, and `FileNotFoundError` for the log. Green: 15 harness tests, 334 image tests.
+Test changes after the red commit, with reasons:
+- the chardev test now asserts no `logfile=`, where it asserted one: the test writes the log;
+- `stick_argv` loses its unused `log` argument, so its test's call drops it.
+
 ## Verify
 
 ## Close Out
