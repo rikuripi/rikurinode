@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/install-media`, from `main` at `1738748`; the probe on the throwaway branch `probe/installer-iso` (this task's, deleted after); worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS: follow-up task probe 6d (5a was BLOCKED at 6d) |
+| **Status** | Probe 6d DONE; 5a's design, tests and code wait for the owner's go-ahead |
 | **Change type** | feature (the node's install path) |
 
 ## Task Contract
@@ -61,7 +61,11 @@
   - **6c: Pass, keep, with two rules learnt.** The stick boots under OVMF as `usb-storage` and starts the install unit (`RIKURI-PROBE-READY` on the serial console). (1) v87 copies a grub entry's `linux:` line as written and fills no `${…}` (`pkg/distro/iso_config.go` at `v87.0.0`); the line must spell out `root=live:CDLABEL=<label> rd.live.image`. (2) The squashfs carries no SELinux labels, so the live system needs `selinux=0` (as v87's example); the installed node is unaffected, since `bootc install` labels the target from the image's policy, but this is **not yet proven** (6d not reached).
   - **6d: Fail, not proven.** `podman` in the live system refused its storage: `'overlay' is not supported over overlayfs, a mount_program is required`. The live root is an overlayfs (dmsquash-live), and the embedded image is in `/var/lib/containers/storage` on it.
   - **Stopped** as agreed with the owner (2026-10-29: "Allow 45 more minutes (Recommended)", one more run, then BLOCKED on failure). Used: 4 of 5 runs; about 115 minutes against 120 plus the 45 allowed.
-- [ ] **Design:** not started; blocked on 6d.
+- [x] **Probe 6d** (follow-up task, 3 of 3 runs, about 45 of 90 minutes): **Pass.** Run 3 installed offline from the stick, and the disk booted alone, with the firmware settings the install left, through the entry bootupd registered (`Boot0004 "Fedora" … \EFI\fedora\shimx64.efi`, first in `BootOrder`). greenboot passed (`Finished greenboot-healthcheck.service`, `Reached target greenboot-success.target`), SELinux enforcing (`enforcing=1`), 0 `avc: denied`, files labelled (`/usr/bin/bash` `shell_exec_t`, `/etc/passwd` `passwd_file_t`), origin `ostree-unverified-registry:ghcr.io/rikuripi/rikurinode:probe`. The fresh-settings boot was not needed, so it did not run. Not shown: the listing of the installed disk's EFI partition (the step printed nothing; the boot itself proves the loader is there).
+  - **Keep, method A:** podman's store at `/run/containers/storage`, with the stick's `/var/lib/containers/storage` as a read-only `additionalimagestores` entry, and `storage.conf` and both stores mounted into the install container. **Dropped:** C (`fuse-overlayfs`) and B (an OCI copy in memory) were never needed.
+  - **Keep, install as on the machine:** no `--generic-image`, with `/sys/firmware/efi/efivars` mounted, so bootupd registers the firmware entry (`efibootmgr --create … --label Fedora`). With `--generic-image` (run 2) the disk alone fell to the UEFI shell. The CI drill keeps `--generic-image`: its disk is an image booted with fresh firmware settings.
+  - **Keep, the installer owns its console:** run 1's script output was lost when `serial-getty@ttyS0` started and hung the console up. The real installer masks the getty on the console it uses, and its lines also go to the kernel log.
+- [ ] **Design:** next, when the owner says go. Rules from the probe: the stick's kernel line spelled out (`root=live:CDLABEL=<label> rd.live.image selinux=0 rd.emergency=poweroff`); type `bootc-generic-iso` under v87; method A storage; install without `--generic-image`, `--wipe` only after `ERASE`; no getty on the installer's console.
 
 ## Evidence log
 
@@ -72,12 +76,18 @@
 | [40959595876](https://github.com/rikuripi/rikurinode/actions/runs/40959595876) | `9ddfb63` | 6c fail: the live root mounted, then `Failed to allocate manager object: Permission denied` | unlabeled squashfs under enforcing SELinux |
 | [40967675517](https://github.com/rikuripi/rikurinode/actions/runs/40967675517) | `214a0ef` | 6c pass (`RIKURI-PROBE-READY`); 6d fail: `'overlay' is not supported over overlayfs, a mount_program is required`, rc 125 | podman's storage cannot sit on the live overlayfs root |
 
-Serial logs: each run's artifact `probe6` (90 days).
+| 6d [40970729268](https://github.com/rikuripi/rikurinode/actions/runs/40970729268) | `81c3397` | A, C and B ran; the disk stayed blank; every line after about 17 s lost | `serial-getty@ttyS0` hung the console up |
+| 6d [40975514330](https://github.com/rikuripi/rikurinode/actions/runs/40975514330) | `9a62f55` | A installed (`Installation complete!`); the disk alone fell to `Shell>` | `--generic-image` writes no firmware entry |
+| 6d [40979140488](https://github.com/rikuripi/rikurinode/actions/runs/40979140488) | `82de360` | **pass:** installed (A, with firmware entry); booted alone, greenboot passed, SELinux enforcing | (above) |
+
+Serial logs: each run's artifact `probe6`.
 
 ## Verify
 
 ## Close Out
 
-**BLOCKED** (2026-10-29): probe 6d did not pass within the probe's limits, so the design, tests and implementation were not started. No pull request. The probe branch `probe/installer-iso` is kept, unmerged, as the evidence and the starting point for the next task; this task deletes it when the owner says so.
+**Probe 6d DONE** (2026-10-29): the stick installs offline, and the installed node boots alone and passes its health checks. 5a resumes at its Design when the owner says go; its limits stand, with the probe's runs counted separately as the follow-up task's.
+
+Earlier, **BLOCKED** (2026-10-29): probe 6d did not pass within the probe's limits, so the design, tests and implementation were not started. No pull request. The probe branch `probe/installer-iso` is kept, unmerged, as the evidence and the starting point for the next task; this task deletes it when the owner says so.
 
 Proposed next task (not started): probe 6d alone, at most 3 CI runs. Put podman's own store on a tmpfs (`graphroot` under `/run`) and read the embedded image as an `additionalimagestores` entry. Only a store's upper layer must not sit on overlayfs; lower layers may. The alternative is `fuse-overlayfs` as the `mount_program`. Then prove that the installed disk boots alone, with SELinux enforcing and greenboot passing.
