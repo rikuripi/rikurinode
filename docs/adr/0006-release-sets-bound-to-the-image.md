@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted — owner, 2026-10-17 (the principle: "2 & 3. A"; the mechanism with package R of D13, the same day; record `docs/build-records/2026-10-17-plan-review.md`); clarified, not changed, 2026-10-22 (owner, "Add dated clarification to ADR 0006."; the section "Clarification (2026-10-22)" below; record `docs/build-records/2026-10-22-adr-0006-clarification.md`) |
+| **Status** | Accepted — owner, 2026-10-17 (the principle: "2 & 3. A"; the mechanism with package R of D13, the same day; record `docs/build-records/2026-10-17-plan-review.md`); clarified, not changed, 2026-10-22 (owner, "Add dated clarification to ADR 0006."; the section "Clarification (2026-10-22)" below; record `docs/build-records/2026-10-22-adr-0006-clarification.md`); clarified 2026-10-29 (owner, "USB installer with the image inside (Recommended)"; the section "Clarification (2026-10-29)" below; record `docs/build-records/2026-10-29-install-media.md`) |
 | **Decision** | D12 of `docs/architecture/platform-plan.md`; its §4.2 |
 | **Supersedes** | The rule of 2026-10-10, carried into the plan on 2026-10-11, that a component's version is machine state and the newer wins |
 | **Beside it** | ADR 0005 (supervision), ADR 0007 (rootful Podman, which this mechanism needs) |
@@ -114,6 +114,25 @@ nothing above; it keeps what was observed with the decision.
   the previous image only through these paths; a release whose containers
   fail after the image's own checks pass is the control plane's to roll back
   (the "Proven or undone" bullet above), not greenboot's.
+
+## Clarification (2026-10-29): the install media
+
+Recorded on the owner's choice of 2026-10-29 ("USB installer with the image
+inside (Recommended)"). It settles the "Install media" point above, which left
+two ways open; nothing else changes.
+
+- **The install path is a live environment.** It is a USB stick, made by
+  image-builder (`bootc-generic-iso`) from the node's own pinned base, that
+  runs `bootc install to-disk` from the node image it carries, read-only and
+  offline. It is not Anaconda, and not a first-boot pull.
+- **Carrying bound images is still to come.** None exist yet. The live
+  environment is the way that can carry them; how the stick holds them, and
+  the install puts them in the node's store, is decided with the first bound
+  image.
+- **Proven in CI** by the `install` job of `.github/workflows/image.yml`: the
+  stick refuses two disks, erases nothing on any answer but `ERASE`, and the
+  installed disk boots alone with greenboot passing (probe 6 and its
+  follow-up, in the record).
 
 ## Sources (read 2026-10-17)
 
