@@ -2,7 +2,8 @@
 
 Only its pure parts run here: the VM it starts (the stick as a removable USB
 disk, read-only; no network; UEFI with the run's own firmware settings; the
-console on a socket the test types into, and logged), when a disk counts as
+console on a socket the test types into), the console's reader (it drains the
+socket all the time and writes the log itself), when a disk counts as
 unchanged, and what it reads from the serial log and the installed disk
 (greenboot passed, the firmware started the node's own entry, the origin, the
 manifest digest). The VM runs only in CI (.github/workflows/image.yml, job
@@ -12,7 +13,11 @@ Record: docs/build-records/2026-10-29-install-media.md
 from __future__ import annotations
 
 import os
+import shutil
+import socket
 import sys
+import tempfile
+import time
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -58,8 +63,62 @@ class StickArgv(unittest.TestCase):
         self.assertIn("path=/w/con.sock", chardev)
         self.assertIn("server=on", chardev)
         self.assertIn("wait=off", chardev)
-        self.assertIn("logfile=/w/con.log", chardev)
+        # The test writes the log from what it reads; QEMU's own log of a stalled socket
+        # repeats characters (CI run 83: "interrnal").
+        self.assertFalse([x for x in chardev if x.startswith("logfile=")])
         self.assertEqual(a[a.index("-serial") + 1], "chardev:" + chardev[1].split("=")[1])
+
+
+class _Running:
+    def poll(self):
+        return None
+
+
+class TheConsole(unittest.TestCase):
+    """CI run 83: read only while waiting for words, the socket filled while the test waited
+    for the VM to end, and the guest stalled on its console writes."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp(prefix="con")
+        self.sock = os.path.join(self.dir, "s")
+        self.log = os.path.join(self.dir, "con.log")
+        self.server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.server.bind(self.sock)
+        self.server.listen(1)
+        self.con = it.Console(self.sock, self.log, _Running())
+        self.guest, _ = self.server.accept()
+        self.guest.settimeout(10)
+        self.data = b"".join(b"[ %6d ] Stopped target remote-veritysetup.target\r\n" % i for i in range(100000))
+
+    def tearDown(self):
+        self.con.close()
+        self.guest.close()
+        self.server.close()
+        shutil.rmtree(self.dir)
+
+    def test_it_reads_all_the_time_and_keeps_each_character_once(self):
+        self.guest.sendall(self.data)   # about 5 MB, while nothing asks for text: times out if unread
+        self.guest.shutdown(socket.SHUT_WR)
+        want = it.clean(self.data.decode())
+        deadline = time.time() + 10
+        while self.con.text() != want and time.time() < deadline:
+            time.sleep(0.1)
+        self.assertEqual(self.con.text(), want)
+
+    def test_it_writes_the_log_itself(self):
+        self.guest.sendall(self.data[:4096])
+        self.guest.shutdown(socket.SHUT_WR)
+        deadline = time.time() + 10
+        got = b""
+        while got != self.data[:4096] and time.time() < deadline:
+            time.sleep(0.1)
+            with open(self.log, "rb") as f:
+                got = f.read()
+        self.assertEqual(got, self.data[:4096])
+
+    def test_it_types_a_line_with_a_carriage_return(self):
+        self.con.send("ERASE")
+        self.assertEqual(self.guest.recv(16), b"ERASE\r")
 
 
 class DiskArgv(unittest.TestCase):
