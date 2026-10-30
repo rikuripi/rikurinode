@@ -11,10 +11,15 @@ name: OS image
 # Publishing and signing with the real key: publish.yml (change 2b). The drill
 # also has the node's own bootc refuse an unsigned image and stage the first
 # published, signed one, through a registry on the runner (change 2c).
+# The install job builds the USB installer with the image inside and installs
+# it in a VM: it refuses two disks, erases nothing on "no", and on "ERASE"
+# installs a node that boots alone and passes greenboot (change 5a;
+# image/installer/, image/drill/install_test.py).
 # Records: docs/build-records/2026-10-12-stage1-os-image.md,
 # docs/build-records/2026-10-22-ci-vm-drill.md,
 # docs/build-records/2026-10-25-signature-policy.md,
-# docs/build-records/2026-10-29-node-refuses-unsigned.md
+# docs/build-records/2026-10-29-node-refuses-unsigned.md,
+# docs/build-records/2026-10-29-install-media.md
 
 on:
   # Every pull request starts the workflow, so its jobs can be required checks;
@@ -48,6 +53,9 @@ env:
   COSIGN_SHA256: 424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa
   DISTRIBUTION_VERSION: 3.1.2
   DISTRIBUTION_SHA256: 40df2224d410f72ae425c3371873b078bbdbda3b8b612be9571f0e6751f3acc8
+  # The ISO builder (osbuild, Apache-2.0), v87 of 2026-10-14 by its index digest;
+  # its live-ISO type is bootc-generic-iso (generic-iso from v88). Same in publish.yml.
+  IMAGE_BUILDER: ghcr.io/osbuild/image-builder-cli:v87.0.0@sha256:df3f4e525945c868d8014b859cd4f1d2efd8d749e40d8e3b9b9e6a05ca3b95b0
 
 jobs:
   changes:
@@ -180,5 +188,50 @@ jobs:
         with:
           name: drill-evidence
           path: ${{ runner.temp }}/drill-evidence
+          if-no-files-found: warn
+          retention-days: 30
+
+  install:
+    name: Build the USB installer and install the node from it in a VM
+    needs: [changes, build]
+    if: needs.changes.outputs.image == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install QEMU, UEFI firmware and ostree (Ubuntu 24.04's archive; versions recorded)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends qemu-system-x86 ovmf ostree
+          dpkg-query -W -f='- ${Package} ${Version}\n' qemu-system-x86 ovmf ostree | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Build the image (bootc container lint runs inside)
+        run: sudo podman build --pull=missing --tag "$IMAGE" image
+      - name: Build the installer (the serial console, for this test; the published stick uses the screen)
+        run: |
+          sudo podman build --pull=missing --tag localhost/rikuri-installer:ci \
+            --build-arg CONSOLE=ttyS0 --build-arg TARGET=ghcr.io/rikuripi/rikurinode:install-test image/installer
+      - name: Make the ISO with the image inside (image-builder, pinned)
+        run: |
+          sudo mkdir -p /mnt/iso
+          sudo podman run --rm --privileged --pull=missing \
+            -v /var/lib/containers/storage:/var/lib/containers/storage -v /mnt/iso:/output \
+            "$IMAGE_BUILDER" build --bootc-ref localhost/rikuri-installer:ci --bootc-installer-payload-ref "$IMAGE" \
+            --bootc-default-fs ext4 --output-dir /output bootc-generic-iso
+          sudo find /mnt/iso -name '*.iso' -exec ls -l {} \; | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Install it in a VM (two disks refused; "no" erases nothing; "ERASE" installs, and the disk boots alone)
+        run: |
+          iso="$(sudo find /mnt/iso -name '*.iso')"
+          [ "$(echo "$iso" | wc -l)" = 1 ] || { echo "not one ISO: $iso" >&2; exit 1; }
+          digest="$(sudo podman image inspect --format '{{.Digest}}' "$IMAGE")"
+          sudo python3 -I image/drill/install_test.py --iso "$iso" --target ghcr.io/rikuripi/rikurinode:install-test \
+            --digest "$digest" --workdir /mnt/install --artifacts "$RUNNER_TEMP/install-evidence"
+      - name: Keep the evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: install-evidence
+          path: ${{ runner.temp }}/install-evidence
           if-no-files-found: warn
           retention-days: 30

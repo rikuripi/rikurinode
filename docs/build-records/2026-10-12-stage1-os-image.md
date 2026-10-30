@@ -94,6 +94,11 @@
       (`docs/build-records/2026-10-28-publish-signed-image.md`); 2c the
       node's own `bootc switch` refusing an unsigned update in the VM drill
       (`docs/build-records/2026-10-29-node-refuses-unsigned.md`).
+      **2026-10-29:** change 5 in three steps (owner, 2026-10-29): 5a the
+      USB installer, built and installed in CI
+      (`docs/build-records/2026-10-29-install-media.md`); 5b the install on
+      the N150, by the owner (`docs/runbooks/install-node.md`); 5c the
+      first-boot setup page.
 - [x] Risks: the build fails on Ubuntu's Podman 4.9.3 (then: newer Podman,
       as bootc's CI does); `podman image mount` behaves differently there;
       the IoT image's os-release differs from the fixture (the check would
