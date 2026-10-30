@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/install-media`, from `main` at `1738748`; the probe on the throwaway branch `probe/installer-iso` (this task's, deleted after); worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | (fill at close-out) |
-| **Status** | Probe 6d DONE; 5a's design, tests and code wait for the owner's go-ahead |
+| **Status** | IN PROGRESS: 5a resumed (owner, 2026-10-29: "Yes, resume") |
 | **Change type** | feature (the node's install path) |
 
 ## Task Contract
@@ -65,7 +65,27 @@
   - **Keep, method A:** podman's store at `/run/containers/storage`, with the stick's `/var/lib/containers/storage` as a read-only `additionalimagestores` entry, and `storage.conf` and both stores mounted into the install container. **Dropped:** C (`fuse-overlayfs`) and B (an OCI copy in memory) were never needed.
   - **Keep, install as on the machine:** no `--generic-image`, with `/sys/firmware/efi/efivars` mounted, so bootupd registers the firmware entry (`efibootmgr --create … --label Fedora`). With `--generic-image` (run 2) the disk alone fell to the UEFI shell. The CI drill keeps `--generic-image`: its disk is an image booted with fresh firmware settings.
   - **Keep, the installer owns its console:** run 1's script output was lost when `serial-getty@ttyS0` started and hung the console up. The real installer masks the getty on the console it uses, and its lines also go to the kernel log.
-- [ ] **Design:** next, when the owner says go. Rules from the probe: the stick's kernel line spelled out (`root=live:CDLABEL=<label> rd.live.image selinux=0 rd.emergency=poweroff`); type `bootc-generic-iso` under v87; method A storage; install without `--generic-image`, `--wipe` only after `ERASE`; no getty on the installer's console.
+- [x] **Design** (2026-10-29, after probe 6; the owner's "Yes, resume"):
+  - **`image/installer/`:** `Containerfile` (the node's own pinned base, the probe's packages, dracut's `dmsquash-live`), `rikuri_install.py` (the installer and its build-time `configure`), `rikuri-installer.service.in`.
+  - **Build arguments:** `CONSOLE` (`tty1` for the published stick, the N150's screen; `ttyS0` for CI's install test, the only difference) and `TARGET` (`ghcr.io/rikuripi/rikurinode:<tag>`). `configure` refuses any other value and writes three files:
+    - `iso.yaml`: label `RIKURI-NODE`, one entry, `root=live:CDLABEL=RIKURI-NODE rd.live.image selinux=0 rd.emergency=poweroff` plus `console=tty0 quiet` or `console=ttyS0`;
+    - the unit, on that console only;
+    - `installer.json`: the target, and `console=ttyS0` as the installed node's only karg in CI, none on the stick.
+  - **The stick has no logins and no network:** the gettys on tty1 and ttyS0 masked (`getty@`, `autovt@`, `serial-getty@`); `sshd` and NetworkManager masked; greenboot and bootloader-update masked (no use on a live system); the install container runs with `--network=none`.
+  - **The installer** (on the console; every refusal erases nothing and ends with "press Enter to power off"):
+    1. podman's store goes on `/run`, with the stick's store read-only beside it (method A). There must be exactly one image on the stick, or it stops: the stick is damaged.
+    2. The stick is the disk holding `/run/initramfs/live`. If it cannot be found, it stops, because it cannot tell the stick from the target.
+    3. The internal disks: `lsblk` whole disks that are not removable, read-only, USB, `zram` or the stick. If there is not exactly one, it stops and names what it found.
+    4. It shows that disk's model, size (GB) and serial, and asks: type `ERASE` and press Enter. An exact `ERASE` (surrounding spaces ignored, case kept) goes on; anything else erases nothing.
+    5. `podman run --rm --privileged --pid=host --network=none --security-opt label=disable` with `/dev`, both stores, `storage.conf` and `efivars`, then `bootc install to-disk --skip-fetch-check --wipe --filesystem ext4 --target-imgref <TARGET>` on the disk, without `--generic-image`, so the firmware gets the node's entry (probe 6d).
+    6. On success: remove the stick; it restarts in 15 s. On failure: say so, and wait for power-off.
+  - **`image/drill/install_test.py`** (CI, `sudo`): boots the ISO as a removable USB stick under OVMF, typing at the installer through QEMU's serial socket, with the prompts imported from `rikuri_install.py`:
+    1. **two blank disks:** the refusal; Enter powers off; both disks unchanged (no block allocated);
+    2. **one disk, `no`:** "Nothing was erased"; the disk unchanged;
+    3. **one disk, `ERASE`:** installed; then the disk alone, with the firmware settings the install left: OVMF starts `"Fedora"` and greenboot reaches `greenboot-success.target`. Then, read from the disk, the origin is `ostree-unverified-registry:<TARGET>` and the deployment's `ostree.manifest-digest` is the embedded image's digest.
+  - **`image.yml`:** a job `install` (after `changes`, like build and drill) builds the node image and the installer (`CONSOLE=ttyS0`, `TARGET=…:install-test`) and the ISO with image-builder v87 by digest, then runs the test and keeps its evidence.
+  - **`publish.yml`:** a job `iso` after `anonymous`, with a read-only token and no login. It pulls the signed digest anonymously, builds the stick (`CONSOLE=tty1`, `TARGET=<published tag>`), and keeps `rikuri-node-<tag>.iso` and its `.sha256` as the run's artifact (90 days). Not proven in CI: the screen console (5b, on the N150).
+  - **Not changed:** the drill keeps `--generic-image` (a disk image booted with fresh firmware settings).
 
 ## Evidence log
 
