@@ -6,12 +6,13 @@ console on a socket the test types into), the console's reader (it drains the
 socket all the time and writes the log itself), when a disk counts as
 unchanged, and what it reads from the serial log and the installed disk
 (greenboot passed, the firmware started the node's own entry, the origin, the
-manifest digest). The VM runs only in CI (.github/workflows/image.yml, job
+manifest digest), and the checks each case makes. The VM runs only in CI (.github/workflows/image.yml, job
 install). No VM, disk or network here.
 Record: docs/build-records/2026-10-29-install-media.md
 """
 from __future__ import annotations
 
+import argparse
 import os
 import shutil
 import socket
@@ -25,7 +26,7 @@ sys.path.insert(0, os.path.join(HERE, os.pardir, "drill"))
 import install_test as it  # noqa: E402
 
 DIGEST = "sha256:" + "c" * 64
-TARGET = "ghcr.io/rikuripi/rikurinode:install-test"
+TARGET = "ghcr.io/rikuripi/rikurinode:install-test-1"
 
 
 class StickArgv(unittest.TestCase):
@@ -162,12 +163,138 @@ class FromTheDisk(unittest.TestCase):
     def test_manifest_digest_from_ostree_show(self):
         self.assertEqual(it.manifest_digest("'%s'\n" % DIGEST), DIGEST)
         self.assertIsNone(it.manifest_digest("error: No such metadata key\n"))
-        self.assertIsNone(it.manifest_digest("'sha256:short'\n"))
+        for bad in ("short", "abc", "c" * 63, "c" * 65, "C" * 64):
+            self.assertIsNone(it.manifest_digest("'sha256:%s'\n" % bad), bad)
 
     def test_commit_of_a_deployment(self):
         name = "a7b03c9be64412ab4e3d5602049e4f145377bbf064579e967e17c9c2bb7e44c4.0.origin"
         self.assertEqual(it.commit_of(name), name.split(".")[0])
         self.assertIsNone(it.commit_of("notacommit.0.origin"))
+
+
+class WhatTheDiskHolds(unittest.TestCase):
+    ORIGIN = "[origin]\ncontainer-image-reference=ostree-unverified-registry:%s\n" % TARGET
+    SHOWN = "'%s'\n" % DIGEST
+
+    def check(self, found):
+        it.check_disk(found, TARGET, DIGEST)
+
+    def refused(self, found):
+        with self.assertRaises(it.Failed, msg=found):
+            self.check(found)
+
+    def test_the_one_deployment_of_the_target_and_the_embedded_digest(self):
+        self.check({"origin": self.ORIGIN, "digest": self.SHOWN})
+
+    def test_nothing_or_several_deployments(self):
+        self.refused({})
+        self.refused({"origins": ["a.origin", "b.origin"], "origin": self.ORIGIN, "digest": self.SHOWN})
+
+    def test_another_name_or_without_the_prefix(self):
+        self.refused({"origin": self.ORIGIN.replace("install-test-1", "other-1"), "digest": self.SHOWN})
+        self.refused({"origin": self.ORIGIN.replace("ostree-unverified-registry:", ""), "digest": self.SHOWN})
+
+    def test_another_digest_or_none(self):
+        self.refused({"origin": self.ORIGIN, "digest": "'sha256:%s'\n" % ("d" * 64)})
+        self.refused({"origin": self.ORIGIN, "digest": "error: No such metadata key\n"})
+
+
+class _Ended:
+    def poll(self):
+        return 0
+
+
+class _Console:
+    def __init__(self, text):
+        self.said, self.sent = text, []
+
+    def text(self):
+        return self.said
+
+    def wait_for(self, line, timeout, after=0):
+        mark = line[:it.MARK]
+        i = self.said.find(mark, after)
+        if i < 0:
+            raise it.Failed("no %r" % mark)
+        return i + len(mark)
+
+    def send(self, line):
+        self.sent.append(line)
+
+
+class TheCases(unittest.TestCase):
+    """The checks each case makes on what the installer said, and on the disks."""
+    NAMED = "unknown model, 21 GB, no serial (/dev/%s)\n"
+    REFUSAL = it.ri.SEVERAL_DISKS + "\n" + NAMED % "vda" + NAMED % "vdb" + it.ri.POWER_OFF + "\n"
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp(prefix="cases")
+        self.addCleanup(shutil.rmtree, self.dir)
+        a = argparse.Namespace(iso="/w/node.iso", target=TARGET, digest=DIGEST, workdir=self.dir, artifacts=self.dir)
+        self.test = it.Test(a)
+        self.test.vars = lambda name: os.path.join(self.dir, name + "-vars.fd")
+        self.test.ended = lambda proc, timeout: None
+
+    def boots(self, text):
+        self.con = _Console(text)
+        self.test.boot_stick = lambda name, disks, vars_fd: (_Ended(), self.con)
+
+    def test_two_disks_refused_naming_both(self):
+        self.boots(self.REFUSAL)
+        self.test.two_disks()
+        self.assertEqual(self.con.sent, [""])
+
+    def test_two_disks_naming_only_one_fails(self):
+        self.boots(it.ri.SEVERAL_DISKS + "\n" + self.NAMED % "vda" + it.ri.POWER_OFF + "\n")
+        with self.assertRaisesRegex(it.Failed, "name both"):
+            self.test.two_disks()
+
+    def test_two_disks_that_asked_to_erase_fails(self):
+        self.boots(self.REFUSAL + it.ri.PROMPT)
+        with self.assertRaisesRegex(it.Failed, "asked to erase"):
+            self.test.two_disks()
+
+    def written_disk(self, which):
+        disk = self.test.disk
+        def written(name):
+            path = disk(name)
+            if name == which:
+                with open(path, "r+b") as f:
+                    f.write(b"x" * 4096)
+                    f.flush()
+                    os.fsync(f.fileno())
+            return path
+        return written
+
+    def test_a_disk_written_fails(self):
+        self.boots(self.REFUSAL)
+        self.test.disk = self.written_disk("two-b")
+        with self.assertRaisesRegex(it.Failed, "two-b.raw was written"):
+            self.test.two_disks()
+
+    def test_answered_no_leaves_the_disk(self):
+        self.boots(it.ri.PROMPT + "no\n" + it.ri.NOTHING_ERASED + "\n" + it.ri.POWER_OFF + "\n")
+        self.test.answered_no()
+        self.assertEqual(self.con.sent, ["no", ""])
+
+    def test_answered_no_with_the_disk_written_fails(self):
+        self.boots(it.ri.PROMPT + "no\n" + it.ri.NOTHING_ERASED + "\n" + it.ri.POWER_OFF + "\n")
+        self.test.disk = self.written_disk("no")
+        with self.assertRaisesRegex(it.Failed, "no.raw was written"):
+            self.test.answered_no()
+
+    def test_erase_types_the_word_and_needs_a_written_disk(self):
+        self.boots(it.ri.PROMPT + "ERASE\n" + it.ri.INSTALLED + "\n")
+        calls = []
+        self.test.alone = lambda disk, vars_fd: calls.append("alone")
+        self.test.read_disk = lambda disk: calls.append("read")
+        with self.assertRaisesRegex(it.Failed, "empty after the install"):
+            self.test.erase()
+        self.assertEqual(self.con.sent, [it.ri.CONFIRM])
+        self.assertEqual(calls, [])
+        self.test.disk = self.written_disk("erase")
+        self.test.erase()
+        self.assertEqual(calls, ["alone", "read"])
 
 
 class Prompts(unittest.TestCase):

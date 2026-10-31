@@ -130,9 +130,10 @@ two ways open; nothing else changes.
   the install puts them in the node's store, is decided with the first bound
   image.
 - **Proven in CI** by the `install` job of `.github/workflows/image.yml`: the
-  stick refuses two disks, erases nothing on any answer but `ERASE`, and the
+  stick refuses two disks, erases nothing when answered `no`, and the
   installed disk boots alone with greenboot passing (probe 6 and its
-  follow-up, in the record).
+  follow-up, in the record). That no other answer erases is held by the
+  installer's unit tests.
 
 ## Sources (read 2026-10-17)
 

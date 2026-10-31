@@ -114,6 +114,17 @@ class Failed(Exception):
     pass
 
 
+def check_disk(found: dict, target: str, digest: str) -> None:
+    """What was read from the installed disk: one deployment, of the target, of the embedded image."""
+    if "origins" in found or "origin" not in found:
+        raise Failed("not exactly one deployment on the disk: %r" % found)
+    want = "ostree-unverified-registry:" + target
+    if origin_ref(found["origin"]) != want:
+        raise Failed("the origin is %r, not %r" % (origin_ref(found["origin"]), want))
+    if manifest_digest(found["digest"]) != digest:
+        raise Failed("the deployment's digest is %r, not %r" % (found["digest"].strip(), digest))
+
+
 class Console:
     """The VM's serial console: typed into through its socket. A reader drains the socket
     all the time and writes the log itself: unread, the socket fills and the guest stalls
@@ -315,13 +326,7 @@ class Test:
             subprocess.call(["losetup", "-d", loop])
         with open(os.path.join(self.a.artifacts, "erase-read-from-disk.json"), "w", encoding="utf-8") as f:
             json.dump(found, f, indent=2)
-        if "origins" in found or "origin" not in found:
-            raise Failed("not exactly one deployment on the disk: %r" % found)
-        want = "ostree-unverified-registry:" + self.a.target
-        if origin_ref(found["origin"]) != want:
-            raise Failed("the origin is %r, not %r" % (origin_ref(found["origin"]), want))
-        if manifest_digest(found["digest"]) != self.a.digest:
-            raise Failed("the deployment's digest is %r, not %r" % (found["digest"].strip(), self.a.digest))
+        check_disk(found, self.a.target, self.a.digest)
 
     def main(self):
         self.case("two disks", self.two_disks)
