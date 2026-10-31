@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -137,6 +138,11 @@ class Candidates(unittest.TestCase):
         self.assertEqual(self.names(old, boot="sda"), [])
         self.assertEqual(self.names(dict(NVME, rm="0", ro="0"), boot="sda"), ["nvme0n1"])
 
+    def test_never_a_disk_with_no_size(self):
+        # A card reader's empty slot, a missing medium: lsblk lists it with size 0.
+        self.assertEqual(self.names(disk("sdf", size=0), disk("sdg", size=None), boot="sda"), [])
+        self.assertEqual(self.names(disk("sdf", size=0), NVME, boot="sda"), ["nvme0n1"])
+
     def test_two_internal_disks_are_both_candidates(self):
         self.assertEqual(self.names(STICK, NVME, SATA), ["nvme0n1", "sdb"])
 
@@ -194,6 +200,11 @@ class InstallArgv(unittest.TestCase):
         self.assertIn(ri.STICK_STORE + ":" + ri.STICK_STORE + ":ro", mounts)
         self.assertIn(ri.STORAGE_CONF + ":" + ri.STORAGE_CONF + ":ro", mounts)
         self.assertIn("/run/containers:/run/containers", mounts)
+
+    def test_the_container_sees_the_hosts_processes_and_is_not_confined(self):
+        # bootc install to-disk needs both, on a live system with SELinux off.
+        self.assertIn("--pid=host", self.argv)
+        self.assertEqual(self.argv[self.argv.index("--security-opt") + 1], "label=disable")
 
     def test_no_kargs_on_the_stick(self):
         self.assertNotIn("--karg", ri.install_argv(IMAGE_ID, TARGET, [], "/dev/nvme0n1"))
@@ -264,9 +275,32 @@ class Run(unittest.TestCase):
 
     def test_a_bad_config_is_a_damaged_stick(self):
         for conf in ("", "{", json.dumps({"target": "quay.io/x/y:1", "kargs": []}),
-                     json.dumps({"target": TARGET, "kargs": ["init=/bin/sh"]})):
+                     json.dumps({"target": TARGET, "kargs": ["init=/bin/sh"]}),
+                     json.dumps({"kargs": []}), json.dumps({"target": TARGET}),   # a key missing
+                     "[]", "null", '"text"',                                      # not an object
+                     json.dumps({"target": 5, "kargs": []}), json.dumps({"target": None, "kargs": []})):
             m = Machine(conf=conf)
             self.refused(m, ri.DAMAGED)
+
+    def test_a_tool_that_fails_is_a_refusal_not_a_crash(self):
+        fail = subprocess.CalledProcessError(1, "tool")
+        for method, message in (("images", ri.DAMAGED), ("write_storage_conf", ri.DAMAGED), ("conf", ri.DAMAGED),
+                                ("lsblk", ri.NO_STICK), ("live_source", ri.NO_STICK)):
+            for error in (fail, OSError("gone")):
+                m = Machine()
+                def raises(*_, error=error):
+                    raise error
+                setattr(m, method, raises)
+                self.refused(m, message)
+                self.assertEqual(m.asked, [])
+
+    def test_output_it_cannot_read_is_a_refusal_not_a_crash(self):
+        m = Machine()
+        m.lsblk = lambda: "not json"
+        self.refused(m, ri.NO_STICK)
+        m = Machine()
+        m.images = lambda: "not json"
+        self.refused(m, ri.DAMAGED)
 
     def test_a_failed_install_says_so_and_waits(self):
         m = Machine(install_rc=1)
@@ -283,9 +317,28 @@ class LoadConf(unittest.TestCase):
         for target in ("quay.io/rikuripi/rikurinode:44.1", "ghcr.io/rikuripi/rikurinodf:44.1",
                        "ghcr.io/rikuripi/other:1", "ghcr.io/rikuripi/rikurinode", "ghcr.io/rikuripi/rikurinode:",
                        "ghcr.io/rikuripi/rikurinode:a b", "docker://ghcr.io/rikuripi/rikurinode:1",
-                       "ghcr.io/rikuripi/rikurinode:latest"):
+                       "ghcr.io/rikuripi/rikurinode:latest",
+                       "ghcr.io/rikuripi/rikurinodeX1", "ghcr.io/rikuripi/rikurinode1:44.1"):   # another repository
             with self.assertRaises(ValueError, msg=target):
                 ri.load_conf(json.dumps({"target": target, "kargs": []}))
+
+    def tag(self, tag):
+        return ri.load_conf(json.dumps({"target": ri.REPO + ":" + tag, "kargs": []}))
+
+    def test_a_tag_without_a_number_floats(self):
+        # AGENTS.md, "Never in git": latest, stable, lts and other tags without a number float.
+        for tag in ("latest", "stable", "lts", "Latest", "edge", "main", "install-test", "rc", "_", "a.b-c"):
+            with self.assertRaises(ValueError, msg=tag):
+                self.tag(tag)
+
+    def test_fixed_tags_are_accepted(self):
+        for tag in ("44.20261030.1", "44", "install-test-1", "v1", "_1", "1" * 128):
+            self.assertEqual(self.tag(tag)[0], ri.REPO + ":" + tag)
+
+    def test_a_tag_is_what_a_registry_accepts(self):
+        for tag in (".1", "-1", "1/2", "1@2", "1:2", "1 2", "1" * 129, "1\n", "\u0661"):   # the last: a non-ASCII digit
+            with self.assertRaises(ValueError, msg=tag):
+                self.tag(tag)
 
     def test_refuses_any_karg_but_the_serial_console(self):
         for kargs in (["init=/bin/sh"], ["console=ttyS0", "console=ttyS0"], "console=ttyS0"):
@@ -329,6 +382,8 @@ class Configure(unittest.TestCase):
         unit = self.files("tty1")["usr/lib/systemd/system/rikuri-installer.service"]
         self.assertIn("StandardInput=tty", unit)
         self.assertIn("StandardOutput=tty", unit)
+        self.assertIn("TTYReset=yes", unit)
+        self.assertIn("TTYVHangup=yes", unit)
         self.assertIn("ExecStart=/usr/bin/python3 -I /usr/lib/rikuri-installer/rikuri_install.py", unit)
         self.assertIn("WantedBy=multi-user.target", unit)
 

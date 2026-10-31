@@ -169,7 +169,8 @@ class Image(unittest.TestCase):
         # 5a: the stick CI types into; the published one uses the screen (publish.yml, job iso).
         lines = "\n".join(job(read(IMAGE), "install"))
         self.assertIn("--build-arg CONSOLE=ttyS0", lines)
-        self.assertIn("--build-arg TARGET=ghcr.io/rikuripi/rikurinode:install-test", lines)
+        self.assertIn("--build-arg TARGET=ghcr.io/rikuripi/rikurinode:install-test-1", lines)
+        self.assertIn("--target ghcr.io/rikuripi/rikurinode:install-test-1 ", lines)
         self.assertIn('"$IMAGE_BUILDER" build', lines)
         self.assertIn("bootc-generic-iso", lines)
         self.assertIn("--bootc-installer-payload-ref", lines)

@@ -48,6 +48,21 @@
 4. **Authority:** push the probe branch; CI on it; no secret; the runner reads `registry.fedoraproject.org`, `ghcr.io` and Fedora's and Ubuntu's package mirrors. No independent check (an experiment; 5a's verifier covers what it becomes).
 5. **Limits:** at most 3 CI runs and 90 minutes; then keep, simplify or drop, and stop. Storage methods, tried in order inside one run, each named on the serial console: (A) podman's store on `/run`, with the stick's image as a read-only `additionalimagestores` entry; (C) `fuse-overlayfs` as the `mount_program`; (B) the image copied into memory as an OCI layout, with `--source-imgref`. If 3 runs pass no method, the owner chooses between image-builder v88 and Anaconda.
 
+## Repair 2: the verifier's findings (owner, 2026-10-31: "Repair 2 in one PR (Recommended)", "Require a number (Recommended)")
+
+5a merged as PR #55 before its verifier pass; the pass then failed on 10 surviving mutants. This is 5a's last repair and last review round.
+
+1. **Outcome:** the installer's tests hold every rule its record claims, and a node can only be set to follow a numbered name.
+2. **Scope:** routine in size, high-risk by component.
+   - `image/installer/rikuri_install.py`: the tag must hold a number (replaces the list of floating names);
+   - `image/tests/`, `image/drill/install_test.py` (its final checks made testable), `scripts/quality/tests/test_workflows.py`;
+   - `.github/workflows/image.yml`: CI's test name becomes `install-test-1`, because `install-test` no longer passes;
+   - the nits: ADR 0006's sentence, the publish runbook's fourth job, and this record finished (5a's close-out is folded in).
+   - **Not included:** 5b; any other installer behaviour.
+3. **Done when:** the findings' mutants (I1 to I4) and the harness's checks turn the tests red, with the results recorded; `Full gate (Ubuntu)` and the OS image workflow's install test pass on the PR; the follow-up verifier pass over the corrections has no Important finding. A new Important finding there goes to the owner.
+4. **Authority:** the owner's answers above; this branch; a pull request, draft until CI and the verifier pass; no merge. An independent check is required.
+5. **Limits:** one repair (the second of two) and one review round (the second of two); development CI's remaining 4 runs.
+
 ## 0b. Spec
 
 - [x] **Facts** (2026-10-29):
