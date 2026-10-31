@@ -5,8 +5,8 @@
 | **Date** | 2026-10-29 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/install-media`, from `main` at `1738748`; the probe on the throwaway branch `probe/installer-iso` (this task's, deleted after); worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS: 5a resumed (owner, 2026-10-29: "Yes, resume") |
+| **Commits** | PR #55, merge `daf3d6f`: `c053b48`, `6bfbe66`, `a0f599e`, `ffa9050`, `cfffa95`, `2ee78c1`, `3997799`, `cc25634`, `3cb7e26`, `62f0449`, `6cdaa84`. Repair 2: this branch, `stage1/install-media-repair2` |
+| **Status** | IN PROGRESS: repair 2 (owner, 2026-10-31). 5a merged on 2026-10-30, before its verifier pass |
 | **Change type** | feature (the node's install path) |
 
 ## Task Contract
@@ -81,7 +81,7 @@
   - **Keep, install as on the machine:** no `--generic-image`, with `/sys/firmware/efi/efivars` mounted, so bootupd registers the firmware entry (`efibootmgr --create … --label Fedora`). With `--generic-image` (run 2) the disk alone fell to the UEFI shell. The CI drill keeps `--generic-image`: its disk is an image booted with fresh firmware settings.
   - **Keep, the installer owns its console:** run 1's script output was lost when `serial-getty@ttyS0` started and hung the console up. The real installer masks the getty on the console it uses, and its lines also go to the kernel log.
 - [x] **Design** (2026-10-29, after probe 6; the owner's "Yes, resume"):
-  - **`image/installer/`:** `Containerfile` (the node's own pinned base, the probe's packages, dracut's `dmsquash-live`), `rikuri_install.py` (the installer and its build-time `configure`), `rikuri-installer.service.in`.
+  - **`image/installer/`:** `Containerfile` (the node's own pinned base, the probe's packages, dracut's `dmsquash-live`), `rikuri_install.py` (the installer and its build-time `configure`, which writes the unit: no `rikuri-installer.service.in` was needed).
   - **Build arguments:** `CONSOLE` (`tty1` for the published stick, the N150's screen; `ttyS0` for CI's install test, the only difference) and `TARGET` (`ghcr.io/rikuripi/rikurinode:<tag>`). `configure` refuses any other value and writes three files:
     - `iso.yaml`: label `RIKURI-NODE`, one entry, `root=live:CDLABEL=RIKURI-NODE rd.live.image selinux=0 rd.emergency=poweroff` plus `console=tty0 quiet` or `console=ttyS0`;
     - the unit, on that console only;
@@ -128,7 +128,36 @@ Test changes after the red commit, with reasons:
 - the chardev test now asserts no `logfile=`, where it asserted one: the test writes the log;
 - `stick_argv` loses its unused `log` argument, so its test's call drops it.
 
+**Run 2 of 6:** on `6cdaa84`, [CI](https://github.com/rikuripi/rikurinode/actions/runs/41006542621) (`Full gate (Ubuntu)`), [OS image](https://github.com/rikuripi/rikurinode/actions/runs/41006542638) and the guard workflow (41006542744) all pass. The install test, artifact `install-evidence`:
+- two disks: refused, both named, `/dev/vda` and `/dev/vdb`; both disks unwritten;
+- `no`: `Nothing was erased.`; the disk unwritten;
+- `ERASE`: installed; the disk alone starts `"Fedora" from HD(…`, reaches `greenboot-success`; read from the disk, the origin is `ostree-unverified-registry:ghcr.io/rikuripi/rikurinode:install-test` and the digest `sha256:6a564de0…fe30`;
+- no repeated characters in any log.
+
+**Earlier evidence, recorded here late** (verifier's nits):
+- The red run of `2ee78c1` was not recorded: it was red by construction, `rikuri_install` did not exist yet.
+- `3997799` changed two tests after that red commit: `Run.refused` asserted no install at all, which contradicted its own failed-install case, so it now takes the number expected; and `LoadConf` gained two names the length of the repository's, because the hand mutant that dropped the repository check survived the shorter ones.
+- Hand mutants before merge: 22 of 22 red.
+
+**Repair 2** (of 2; contract above). A red commit, then the fix:
+- Red in rikuri-drill: `test_a_tag_without_a_number_floats`, the workflow test of CI's name, and four tests of `check_disk`, which did not exist yet. The other new tests passed at once: they hold rules that were right but unheld.
+- Test changes after a red commit, with reasons: `TARGET` and the workflow test follow the new number rule; the digest test only gets stricter; two tests added (`answered_no` with a written disk, `erase` needing a written disk).
+- Green in rikuri-drill: 43 installer, 26 harness and 26 workflow tests; 352 image tests.
+- **Hand mutants: 53 of 53 red**, against a baseline of 67 passing: the 21 earlier ones still apply (the 22nd, the list of floating names, went with the list), and 32 new ones, among them I1, I2 (a tag without a number, the first character, the length, a target not a string), I3, I4 (each error dropped from each of the two catches), `--pid=host`, `label=disable`, `TTYVHangup`, `TTYReset`, and each of the harness's checks.
+- Not unit-tested, and proven by CI's run alone: `Test.alone` (the firmware's entry and greenboot on the disk alone) and the mounting in `read_disk`.
+
 ## Verify
+
+**Pass 1** (`verifier`, over merged `1738748..6cdaa84`, after the owner's merge): **FAIL.** The installer's safety held: no way found to erase without the exact `ERASE`, to pick the stick or a USB or removable disk, to choose among disks, or to name another repository. It failed on 10 surviving mutants in validation and refusal checks:
+- **I1:** the repository check without its colon.
+- **I2:** `stable` and `lts`, the first character and the length of a tag; and tags with no number accepted.
+- **I3:** a disk with no size.
+- **I4:** four error paths that would crash instead of refusing and powering off.
+
+Nits: the harness's own checks untested; this record unfinished; ADR 0006's "any answer" overstated; the reasons for `3997799` only in its commit; **publish.yml's job `iso` has never run, so it is Not yet proven** (the first publish after this merge, 5b's first step, is what proves it).
+Repair 2 answers each of them but that last, which only a publish can.
+
+**Pass 2:** to come, over the corrections only.
 
 ## Close Out
 

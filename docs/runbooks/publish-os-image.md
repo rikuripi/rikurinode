@@ -15,12 +15,13 @@ to (later, by the node's control plane). Workflow: `.github/workflows/publish.ym
 
 1. On GitHub, open the repository's **Actions** tab, then **Publish the OS image** in the list on the left.
 2. Click **Run workflow**, leave the branch on **main**, and click **Run workflow** again. Any other branch runs nothing.
-3. Wait for its three jobs:
+3. Wait for its four jobs:
    - **Build, check, prove and drill one image, then push it**;
    - **Check it is the image built, refuse it unsigned, sign it, accept it**;
-   - **A node reads it with no credential**.
+   - **A node reads it with no credential**;
+   - **Build the USB installer from the signed digest, with no credential**.
 
-   The run's summary page shows the fixed name and the image's digest.
+   The run's summary page shows the fixed name and the image's digest. The fourth job keeps the install stick's file as the run's artifact **install-media**, for 90 days (`docs/runbooks/install-node.md`).
 
 ## The first publish only: make the package public
 
@@ -38,5 +39,6 @@ says that the package is not public yet. That is expected.
   - The second job refuses one once the image is signed, because its check that the image is still unsigned then fails.
   - A name left unsigned is refused by every node, and a name signed whose checks did not finish is never used: nodes do not follow fixed names.
 - **The third job**, after the first publish: a node cannot read the image. Report it; do not change the package's settings.
+- **The fourth job**: the image is published and signed, but this run made no install stick. Report it; start no new publish for it.
 
 Never paste the signing key or its password anywhere. Only the second job reads them, from the Environment `image-publish`.
