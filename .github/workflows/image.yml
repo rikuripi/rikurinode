@@ -211,7 +211,7 @@ jobs:
       - name: Build the installer (the serial console, for this test; the published stick uses the screen)
         run: |
           sudo podman build --pull=missing --tag localhost/rikuri-installer:ci \
-            --build-arg CONSOLE=ttyS0 --build-arg TARGET=ghcr.io/rikuripi/rikurinode:install-test image/installer
+            --build-arg CONSOLE=ttyS0 --build-arg TARGET=ghcr.io/rikuripi/rikurinode:install-test-1 image/installer
       - name: Make the ISO with the image inside (image-builder, pinned)
         run: |
           sudo mkdir -p /mnt/iso
@@ -225,7 +225,7 @@ jobs:
           iso="$(sudo find /mnt/iso -name '*.iso')"
           [ "$(echo "$iso" | wc -l)" = 1 ] || { echo "not one ISO: $iso" >&2; exit 1; }
           digest="$(sudo podman image inspect --format '{{.Digest}}' "$IMAGE")"
-          sudo python3 -I image/drill/install_test.py --iso "$iso" --target ghcr.io/rikuripi/rikurinode:install-test \
+          sudo python3 -I image/drill/install_test.py --iso "$iso" --target ghcr.io/rikuripi/rikurinode:install-test-1 \
             --digest "$digest" --workdir /mnt/install --artifacts "$RUNNER_TEMP/install-evidence"
       - name: Keep the evidence
         if: always()

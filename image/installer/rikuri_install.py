@@ -37,7 +37,6 @@ STORAGE_CONF = "/etc/containers/storage.conf"
 LIVE = "/run/initramfs/live"
 LABEL = "RIKURI-NODE"
 REPO = "ghcr.io/rikuripi/rikurinode"
-FLOATING = ("latest", "stable", "lts")
 CONSOLES = {"tty1": ("console=tty0 quiet", []), "ttyS0": ("console=ttyS0", ["console=ttyS0"])}
 CONFIRM = "ERASE"
 RESTART_AFTER_S = 15
@@ -106,9 +105,10 @@ def confirmed(answer) -> bool:
 def _check_target(target):
     if not isinstance(target, str) or not target.startswith(REPO + ":"):
         raise ValueError("the target must be %s:<fixed tag>" % REPO)
+    # A tag without a number floats: latest, stable, edge (AGENTS.md, "Never in git").
     tag = target[len(REPO) + 1:]
-    if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9._-]{0,127}", tag) or tag in FLOATING:
-        raise ValueError("the target's tag must be a fixed one: %r" % tag)
+    if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9._-]{0,127}", tag) or not re.search(r"[0-9]", tag):
+        raise ValueError("the target's tag must be a fixed one, with a number: %r" % tag)
 
 
 def load_conf(text: str):

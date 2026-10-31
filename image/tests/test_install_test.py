@@ -254,18 +254,21 @@ class TheCases(unittest.TestCase):
         with self.assertRaisesRegex(it.Failed, "asked to erase"):
             self.test.two_disks()
 
-    def test_a_disk_written_fails(self):
-        self.boots(self.REFUSAL)
+    def written_disk(self, which):
         disk = self.test.disk
         def written(name):
             path = disk(name)
-            if name == "two-b":
+            if name == which:
                 with open(path, "r+b") as f:
                     f.write(b"x" * 4096)
                     f.flush()
                     os.fsync(f.fileno())
             return path
-        self.test.disk = written
+        return written
+
+    def test_a_disk_written_fails(self):
+        self.boots(self.REFUSAL)
+        self.test.disk = self.written_disk("two-b")
         with self.assertRaisesRegex(it.Failed, "two-b.raw was written"):
             self.test.two_disks()
 
@@ -273,6 +276,25 @@ class TheCases(unittest.TestCase):
         self.boots(it.ri.PROMPT + "no\n" + it.ri.NOTHING_ERASED + "\n" + it.ri.POWER_OFF + "\n")
         self.test.answered_no()
         self.assertEqual(self.con.sent, ["no", ""])
+
+    def test_answered_no_with_the_disk_written_fails(self):
+        self.boots(it.ri.PROMPT + "no\n" + it.ri.NOTHING_ERASED + "\n" + it.ri.POWER_OFF + "\n")
+        self.test.disk = self.written_disk("no")
+        with self.assertRaisesRegex(it.Failed, "no.raw was written"):
+            self.test.answered_no()
+
+    def test_erase_types_the_word_and_needs_a_written_disk(self):
+        self.boots(it.ri.PROMPT + "ERASE\n" + it.ri.INSTALLED + "\n")
+        calls = []
+        self.test.alone = lambda disk, vars_fd: calls.append("alone")
+        self.test.read_disk = lambda disk: calls.append("read")
+        with self.assertRaisesRegex(it.Failed, "empty after the install"):
+            self.test.erase()
+        self.assertEqual(self.con.sent, [it.ri.CONFIRM])
+        self.assertEqual(calls, [])
+        self.test.disk = self.written_disk("erase")
+        self.test.erase()
+        self.assertEqual(calls, ["alone", "read"])
 
 
 class Prompts(unittest.TestCase):
