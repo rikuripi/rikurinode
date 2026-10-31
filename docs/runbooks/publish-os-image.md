@@ -30,7 +30,7 @@ says that the package is not public yet. That is expected.
 
 1. Open `https://github.com/users/rikuripi/packages/container/rikurinode/settings`. You can also reach it from the repository's main page: under **Packages** on the right, open **rikurinode**, then **Package settings**.
 2. Under **Danger Zone**, choose **Change visibility**, then **Public**, and confirm. **This cannot be undone** (decided: ADR 0004, D6). The image holds no secret by rule; the image checker and the gate's secret scan enforce this.
-3. Wait a few minutes: the registry takes that long to serve a public package (2026-10-29). Then, on the run's page, click **Re-run jobs**, then **Re-run failed jobs**. Only the third job runs again, and it should pass.
+3. Wait a few minutes: the registry takes that long to serve a public package (2026-10-29). Then, on the run's page, click **Re-run jobs**, then **Re-run failed jobs**. The third job runs again and should pass, and then the fourth, which waits for it.
 
 ## When a job fails
 

@@ -332,11 +332,13 @@ class LoadConf(unittest.TestCase):
                 self.tag(tag)
 
     def test_fixed_tags_are_accepted(self):
-        for tag in ("44.20261030.1", "44", "install-test-1", "v1", "_1", "1" * 128):
+        # The number may be anywhere in the tag.
+        for tag in ("44.20261030.1", "44", "install-test-1", "v1", "_1", "1" * 128, "1a", "44.1-rc", "a1b"):
             self.assertEqual(self.tag(tag)[0], ri.REPO + ":" + tag)
 
     def test_a_tag_is_what_a_registry_accepts(self):
-        for tag in (".1", "-1", "1/2", "1@2", "1:2", "1 2", "1" * 129, "1\n", "\u0661"):   # the last: a non-ASCII digit
+        for tag in (".1", "-1", "1/2", "1@2", "1:2", "1 2", "1" * 129, "1\n", "\u0661",
+                    "\u00e91", "1\u00e9", "\u0661" + "1", "1\u0661"):   # not ASCII, first or later
             with self.assertRaises(ValueError, msg=tag):
                 self.tag(tag)
 
