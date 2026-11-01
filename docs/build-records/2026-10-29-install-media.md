@@ -5,8 +5,8 @@
 | **Date** | 2026-10-29 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/install-media`, from `main` at `1738748`; the probe on the throwaway branch `probe/installer-iso` (this task's, deleted after); worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | PR #55, merge `daf3d6f`: `c053b48`, `6bfbe66`, `a0f599e`, `ffa9050`, `cfffa95`, `2ee78c1`, `3997799`, `cc25634`, `3cb7e26`, `62f0449`, `6cdaa84`. Repair 2: this branch, `stage1/install-media-repair2` |
-| **Status** | IN PROGRESS: repair 2 (owner, 2026-10-31). 5a merged on 2026-10-30, before its verifier pass |
+| **Commits** | PR #55, merge `daf3d6f`: `c053b48`, `6bfbe66`, `a0f599e`, `ffa9050`, `cfffa95`, `2ee78c1`, `3997799`, `cc25634`, `3cb7e26`, `62f0449`, `6cdaa84`. Repair 2, PR #56, merge `8d59842`: `f5b22c3`, `0245775`, `cdb88c2`. Follow-up, same branch, its own PR: `fd3e829` and after |
+| **Status** | IN PROGRESS until the follow-up's pull request passes CI. 5a merged on 2026-10-30 (#55) and repair 2 on 2026-10-31 (#56), each before its last verifier pass |
 | **Change type** | feature (the node's install path) |
 
 ## Task Contract
@@ -53,7 +53,7 @@
 5a merged as PR #55 before its verifier pass; the pass then failed on 10 surviving mutants. This is 5a's last repair and last review round.
 
 1. **Outcome:** the installer's tests hold every rule its record claims, and a node can only be set to follow a numbered name.
-2. **Scope:** routine in size, high-risk by component.
+2. **Scope:** high-risk, by its component.
    - `image/installer/rikuri_install.py`: the tag must hold a number (replaces the list of floating names);
    - `image/tests/`, `image/drill/install_test.py` (its final checks made testable), `scripts/quality/tests/test_workflows.py`;
    - `.github/workflows/image.yml`: CI's test name becomes `install-test-1`, because `install-test` no longer passes;
@@ -62,6 +62,20 @@
 3. **Done when:** the findings' mutants (I1 to I4) and the harness's checks turn the tests red, with the results recorded; `Full gate (Ubuntu)` and the OS image workflow's install test pass on the PR; the follow-up verifier pass over the corrections has no Important finding. A new Important finding there goes to the owner.
 4. **Authority:** the owner's answers above; this branch; a pull request, draft until CI and the verifier pass; no merge. An independent check is required.
 5. **Limits:** one repair (the second of two) and one review round (the second of two); development CI's remaining 4 runs.
+
+## Follow-up task: the tag rule's last tests (owner, 2026-10-31: "Small follow-up task (Recommended)")
+
+Verifier pass 2 failed on two new surviving mutants on the changed tag line; 5a's repairs and reviews were used up, so the owner authorized this task.
+
+1. **Outcome:** the tests hold the tag rule's characters and that the number may be anywhere in the tag.
+2. **Scope:** high-risk, by its component. `image/tests/test_installer.py`; this record's slips; one sentence of `docs/runbooks/publish-os-image.md`. **Not included:** any change to the installer's code. N5 (valid JSON from `lsblk` that is not an object crashes rather than refuses; it erases nothing, and real `lsblk` does not write it) goes to the backlog.
+3. **Done when:** mutants A1 (each form) and A2 turn the tests red, with a passing baseline first; `Full gate (Ubuntu)` and the OS image workflow pass on the follow-up's own pull request (#56 merged first: below); one verifier pass over these lines has no Important finding, or the owner closes it (below).
+4. **Authority:** the owner's answer above; push this branch, and a new draft pull request, as #56 had merged; no merge. An independent check is required.
+5. **Limits:** one task; this one verifier pass; two repair cycles; the remaining development CI runs.
+
+**Clarifications:**
+- **2026-10-31:** the owner merged #56 at `cdb88c2` (23:40:43Z), with its CI passing and pass 2's FAIL reported to them; this task's first commit `fd3e829` was pushed just after, so it needs a pull request of its own.
+- **2026-10-31, after pass 3** (owner: "Full sweep, then close (Recommended)"): one test tries every ASCII character and every digit in a tag, and all mutants are rerun; **no fourth verifier pass**. The owner gives up that check on about twenty lines of test. Pass 3's FAIL stands in this record.
 
 ## 0b. Spec
 
@@ -98,7 +112,7 @@
     1. **two blank disks:** the refusal; Enter powers off; both disks unchanged (no block allocated);
     2. **one disk, `no`:** "Nothing was erased"; the disk unchanged;
     3. **one disk, `ERASE`:** installed; then the disk alone, with the firmware settings the install left: OVMF starts `"Fedora"` and greenboot reaches `greenboot-success.target`. Then, read from the disk, the origin is `ostree-unverified-registry:<TARGET>` and the deployment's `ostree.manifest-digest` is the embedded image's digest.
-  - **`image.yml`:** a job `install` (after `changes`, like build and drill) builds the node image and the installer (`CONSOLE=ttyS0`, `TARGET=…:install-test`) and the ISO with image-builder v87 by digest, then runs the test and keeps its evidence.
+  - **`image.yml`:** a job `install` (after `changes`, like build and drill) builds the node image and the installer (`CONSOLE=ttyS0`, `TARGET=…:install-test`, `install-test-1` since repair 2) and the ISO with image-builder v87 by digest, then runs the test and keeps its evidence.
   - **`publish.yml`:** a job `iso` after `anonymous`, with a read-only token and no login. It pulls the signed digest anonymously, builds the stick (`CONSOLE=tty1`, `TARGET=<published tag>`), and keeps `rikuri-node-<tag>.iso` and its `.sha256` as the run's artifact (90 days). Not proven in CI: the screen console (5b, on the N150).
   - **Not changed:** the drill keeps `--generic-image` (a disk image booted with fresh firmware settings).
 
@@ -132,7 +146,7 @@ Test changes after the red commit, with reasons:
 - two disks: refused, both named, `/dev/vda` and `/dev/vdb`; both disks unwritten;
 - `no`: `Nothing was erased.`; the disk unwritten;
 - `ERASE`: installed; the disk alone starts `"Fedora" from HD(…`, reaches `greenboot-success`; read from the disk, the origin is `ostree-unverified-registry:ghcr.io/rikuripi/rikurinode:install-test` and the digest `sha256:6a564de0…fe30`;
-- no repeated characters in any log.
+- none of the repeats seen in run 83 (`interrnal`, `Boott`, `trimmm`, `Netwoork`) in any log. That `grep` is what was checked; it is not a proof of every character.
 
 **Earlier evidence, recorded here late** (verifier's nits):
 - The red run of `2ee78c1` was not recorded: it was red by construction, `rikuri_install` did not exist yet.
@@ -141,8 +155,8 @@ Test changes after the red commit, with reasons:
 
 **Repair 2** (of 2; contract above). A red commit, then the fix:
 - Red in rikuri-drill: `test_a_tag_without_a_number_floats`, the workflow test of CI's name, and four tests of `check_disk`, which did not exist yet. The other new tests passed at once: they hold rules that were right but unheld.
-- Test changes after a red commit, with reasons: `TARGET` and the workflow test follow the new number rule; the digest test only gets stricter; two tests added (`answered_no` with a written disk, `erase` needing a written disk).
-- Green in rikuri-drill: 43 installer, 26 harness and 26 workflow tests; 352 image tests.
+- Test changes after a red commit, with reasons: `TARGET` and the workflow test follow the new number rule; the digest test only gets stricter; two tests added (`answered_no` with a written disk, `erase` needing a written disk), and the helper `written_disk` drawn out of `test_a_disk_written_fails`, which asserts the same.
+- Green in rikuri-drill: 41 installer, 26 harness and 26 workflow tests; 352 image tests.
 - **Hand mutants: 53 of 53 red**, against a baseline of 67 passing: the 21 earlier ones still apply (the 22nd, the list of floating names, went with the list), and 32 new ones, among them I1, I2 (a tag without a number, the first character, the length, a target not a string), I3, I4 (each error dropped from each of the two catches), `--pid=host`, `label=disable`, `TTYVHangup`, `TTYReset`, and each of the harness's checks.
 - Not unit-tested, and proven by CI's run alone: `Test.alone` (the firmware's entry and greenboot on the disk alone) and the mounting in `read_disk`.
 
@@ -157,9 +171,29 @@ Test changes after the red commit, with reasons:
 Nits: the harness's own checks untested; this record unfinished; ADR 0006's "any answer" overstated; the reasons for `3997799` only in its commit; **publish.yml's job `iso` has never run, so it is Not yet proven** (the first publish after this merge, 5b's first step, is what proves it).
 Repair 2 answers each of them but that last, which only a publish can.
 
-**Pass 2:** to come, over the corrections only.
+**Pass 2** (over the corrections, `daf3d6f..cdb88c2`): **FAIL.** Pass 1's findings are all corrected: each named mutant is red, 53 of 53 re-run, no test loosened, the number rule breaks no user of a target. Two new mutants survive on the changed line, Important by REVIEW.md's letter, neither touching the disk or the answer:
+- **A1:** the tag's characters not held to ASCII (`\w` accepted `é1` and `1é`).
+- **A2:** the number anywhere not held (`[0-9]$` passed).
+
+Per AGENTS.md §5 this went to the owner, not a third round. Its nits: the record's "43 installer" (41 ran, corrected above); the publish runbook's re-run sentence; the record's slips, corrected above. Noted, not changed: the code comment cites AGENTS.md's rule, which asks for major.minor or a digest, while `44`, `v1` and `_1` pass, as the owner's "Require a number" chose.
+
+**The follow-up task's evidence:** the new cases pass on the unchanged code, so no red commit: they hold a rule already right, and the mutants are the proof. In rikuri-drill, baseline 67 passing (`image/tests`, all pass with `.github` copied); **hand mutants 58 of 58 red**: the 53 above, A1 in three forms (both classes, the first, the rest), A2 as "ends in a digit" and "starts with a digit". Test changes: cases added only.
+
+**Pass 3** (over `fd3e829`): **FAIL.** The five mutants it was given are red, and the counts hold. Two Important findings:
+1. This record's PR #56 statements were untrue once #56 had merged (corrected above), and `fd3e829` had no pull request and no CI.
+2. Nine more variants of the tag line survive: the classes adding `+` or `~`, a minimum of two characters, either class without capitals, the rest without `_`, and the number without `0` or without `9`. None lets a tag without a number through, or touches the disk or the answer.
+
+Its nit: the mutant script could reuse stale bytecode, had no baseline step, and did not tell a failed assertion from a failed import.
+
+**The closing evidence** (owner's choice above): `test_every_ascii_character_and_every_digit` tries all 128 ASCII characters first, later and alone, every digit, and tags with no number. The script now runs with `-B`, stops unless its baseline passes, and marks a failed import as broken. In rikuri-drill: baseline 68 passing, 42 installer tests, 353 image tests; **hand mutants 70 of 70 red, none broken**: the 58 above, pass 3's nine, and three more (the rest without `.` or `-`, the first without `_`). Test changes: cases and one test added only.
 
 ## Close Out
+
+**5a:** `DONE` once the follow-up's pull request passes CI (its link is added then). The change as designed works: CI installs from the stick, and the disk boots alone. Not proven by this task: the screen console and the real machine (5b), and publish.yml's job `iso` (5b's publish). Limits: the last two repairs and reviews were used, then the owner authorized one follow-up; development CI runs: see the table and the pull request.
+
+Backlog, not started:
+- N5: valid JSON from `lsblk` that is not an object crashes rather than refuses; it erases nothing, and real `lsblk` does not write it.
+- The tag rule's code comment cites AGENTS.md's rule, which asks for major.minor or a digest, while the owner's "Require a number" also passes `44` and `v1`.
 
 **Probe 6d DONE** (2026-10-29): the stick installs offline, and the installed node boots alone and passes its health checks. 5a resumes at its Design when the owner says go; its limits stand, with the probe's runs counted separately as the follow-up task's.
 
