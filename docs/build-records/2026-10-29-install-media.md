@@ -5,8 +5,8 @@
 | **Date** | 2026-10-29 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/install-media`, from `main` at `1738748`; the probe on the throwaway branch `probe/installer-iso` (this task's, deleted after); worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | PR #55, merge `daf3d6f`: `c053b48`, `6bfbe66`, `a0f599e`, `ffa9050`, `cfffa95`, `2ee78c1`, `3997799`, `cc25634`, `3cb7e26`, `62f0449`, `6cdaa84`. Repair 2, PR #56, merge `8d59842`: `f5b22c3`, `0245775`, `cdb88c2`. Follow-up, same branch, its own PR: `fd3e829` and after |
-| **Status** | IN PROGRESS until the follow-up's pull request passes CI. 5a merged on 2026-10-30 (#55) and repair 2 on 2026-10-31 (#56), each before its last verifier pass |
+| **Commits** | PR #55, merge `daf3d6f`: `c053b48`, `6bfbe66`, `a0f599e`, `ffa9050`, `cfffa95`, `2ee78c1`, `3997799`, `cc25634`, `3cb7e26`, `62f0449`, `6cdaa84`. Repair 2, PR #56, merge `8d59842`: `f5b22c3`, `0245775`, `cdb88c2`. Follow-up, PR #57, merge `37a2c5e`: `fd3e829`, `d7db289` |
+| **Status** | DONE (2026-11-01). Merged in three: #55, #56 and #57, the first two before their last verifier pass; the last pass's FAIL closed by the owner, with the sweep's evidence (Verify) |
 | **Change type** | feature (the node's install path) |
 
 ## Task Contract
@@ -189,7 +189,7 @@ Its nit: the mutant script could reuse stale bytecode, had no baseline step, and
 
 ## Close Out
 
-**5a:** `DONE` once the follow-up's pull request passes CI (its link is added then). The change as designed works: CI installs from the stick, and the disk boots alone. Not proven by this task: the screen console and the real machine (5b), and publish.yml's job `iso` (5b's publish). Limits: the last two repairs and reviews were used, then the owner authorized one follow-up; development CI runs: see the table and the pull request.
+**5a: `DONE`** (2026-11-01). On `d7db289`, [CI](https://github.com/rikuripi/rikurinode/actions/runs/41255818979) (`Full gate (Ubuntu)`) and [OS image](https://github.com/rikuripi/rikurinode/actions/runs/41255818975), its install test included, passed. The change as designed works: CI installs from the stick, and the disk boots alone. Not proven by this task: the screen console and the real machine (5b), and publish.yml's job `iso` (5b's publish). Limits: the last two repairs and reviews were used, then the owner authorized one follow-up; development CI used 4 of its 6 runs (`cc25634`, `6cdaa84`, `cdb88c2`, `d7db289`).
 
 Backlog, not started:
 - N5: valid JSON from `lsblk` that is not an object crashes rather than refuses; it erases nothing, and real `lsblk` does not write it.
