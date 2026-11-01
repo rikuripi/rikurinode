@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import string
 import subprocess
 import sys
 import tempfile
@@ -335,6 +336,25 @@ class LoadConf(unittest.TestCase):
         # The number may be anywhere in the tag.
         for tag in ("44.20261030.1", "44", "install-test-1", "v1", "_1", "1" * 128, "1a", "44.1-rc", "a1b"):
             self.assertEqual(self.tag(tag)[0], ri.REPO + ":" + tag)
+
+    def test_every_ascii_character_and_every_digit(self):
+        # Verifier pass 3: cases chosen one by one kept missing variants of this rule, so all are tried.
+        first = string.ascii_letters + string.digits + "_"
+        rest = first + ".-"
+        for c in map(chr, range(128)):
+            for tag, allowed in ((c + "1", c in first), ("1" + c, c in rest), ("1" + c + "1", c in rest),
+                                 (c, c in string.digits)):
+                if allowed:
+                    self.assertEqual(self.tag(tag)[0], ri.REPO + ":" + tag)
+                else:
+                    with self.assertRaises(ValueError, msg=repr(tag)):
+                        self.tag(tag)
+        for d in string.digits:
+            for tag in (d, "v" + d, "a" + d + "b"):
+                self.assertEqual(self.tag(tag)[0], ri.REPO + ":" + tag)
+        for c in string.ascii_letters + "_":
+            with self.assertRaises(ValueError, msg=c):
+                self.tag("a" + c + "b")   # no number
 
     def test_a_tag_is_what_a_registry_accepts(self):
         for tag in (".1", "-1", "1/2", "1@2", "1:2", "1 2", "1" * 129, "1\n", "\u0661",

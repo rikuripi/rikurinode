@@ -5,8 +5,8 @@
 | **Date** | 2026-10-29 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/install-media`, from `main` at `1738748`; the probe on the throwaway branch `probe/installer-iso` (this task's, deleted after); worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | PR #55, merge `daf3d6f`: `c053b48`, `6bfbe66`, `a0f599e`, `ffa9050`, `cfffa95`, `2ee78c1`, `3997799`, `cc25634`, `3cb7e26`, `62f0449`, `6cdaa84`. Repair 2, PR #56, branch `stage1/install-media-repair2`: `f5b22c3`, `0245775`, `cdb88c2`, and the follow-up task's |
-| **Status** | IN PROGRESS: repair 2 (owner, 2026-10-31). 5a merged on 2026-10-30, before its verifier pass |
+| **Commits** | PR #55, merge `daf3d6f`: `c053b48`, `6bfbe66`, `a0f599e`, `ffa9050`, `cfffa95`, `2ee78c1`, `3997799`, `cc25634`, `3cb7e26`, `62f0449`, `6cdaa84`. Repair 2, PR #56, merge `8d59842`: `f5b22c3`, `0245775`, `cdb88c2`. Follow-up, same branch, its own PR: `fd3e829` and after |
+| **Status** | IN PROGRESS until the follow-up's pull request passes CI. 5a merged on 2026-10-30 (#55) and repair 2 on 2026-10-31 (#56), each before its last verifier pass |
 | **Change type** | feature (the node's install path) |
 
 ## Task Contract
@@ -53,7 +53,7 @@
 5a merged as PR #55 before its verifier pass; the pass then failed on 10 surviving mutants. This is 5a's last repair and last review round.
 
 1. **Outcome:** the installer's tests hold every rule its record claims, and a node can only be set to follow a numbered name.
-2. **Scope:** routine in size, high-risk by component.
+2. **Scope:** high-risk, by its component.
    - `image/installer/rikuri_install.py`: the tag must hold a number (replaces the list of floating names);
    - `image/tests/`, `image/drill/install_test.py` (its final checks made testable), `scripts/quality/tests/test_workflows.py`;
    - `.github/workflows/image.yml`: CI's test name becomes `install-test-1`, because `install-test` no longer passes;
@@ -68,10 +68,14 @@
 Verifier pass 2 failed on two new surviving mutants on the changed tag line; 5a's repairs and reviews were used up, so the owner authorized this task.
 
 1. **Outcome:** the tests hold the tag rule's characters and that the number may be anywhere in the tag.
-2. **Scope:** routine in size, high-risk by component. `image/tests/test_installer.py`; this record's slips; one sentence of `docs/runbooks/publish-os-image.md`. **Not included:** any change to the installer's code. N5 (valid JSON from `lsblk` that is not an object crashes rather than refuses; it erases nothing, and real `lsblk` does not write it) goes to the backlog.
-3. **Done when:** mutants A1 (each form) and A2 turn the tests red, with a passing baseline first; `Full gate (Ubuntu)` and the OS image workflow pass on PR #56; one verifier pass over these lines has no Important finding.
-4. **Authority:** the owner's answer above; push this branch, PR #56 stays a draft until then; no merge. An independent check is required.
+2. **Scope:** high-risk, by its component. `image/tests/test_installer.py`; this record's slips; one sentence of `docs/runbooks/publish-os-image.md`. **Not included:** any change to the installer's code. N5 (valid JSON from `lsblk` that is not an object crashes rather than refuses; it erases nothing, and real `lsblk` does not write it) goes to the backlog.
+3. **Done when:** mutants A1 (each form) and A2 turn the tests red, with a passing baseline first; `Full gate (Ubuntu)` and the OS image workflow pass on the follow-up's own pull request (#56 merged first: below); one verifier pass over these lines has no Important finding, or the owner closes it (below).
+4. **Authority:** the owner's answer above; push this branch, and a new draft pull request, as #56 had merged; no merge. An independent check is required.
 5. **Limits:** one task; this one verifier pass; two repair cycles; the remaining development CI runs.
+
+**Clarifications:**
+- **2026-10-31:** the owner merged #56 at `cdb88c2` (23:40:43Z), with its CI passing and pass 2's FAIL reported to them; this task's first commit `fd3e829` was pushed just after, so it needs a pull request of its own.
+- **2026-10-31, after pass 3** (owner: "Full sweep, then close (Recommended)"): one test tries every ASCII character and every digit in a tag, and all mutants are rerun; **no fourth verifier pass**. The owner gives up that check on about twenty lines of test. Pass 3's FAIL stands in this record.
 
 ## 0b. Spec
 
@@ -175,9 +179,21 @@ Per AGENTS.md §5 this went to the owner, not a third round. Its nits: the recor
 
 **The follow-up task's evidence:** the new cases pass on the unchanged code, so no red commit: they hold a rule already right, and the mutants are the proof. In rikuri-drill, baseline 67 passing (`image/tests`, all pass with `.github` copied); **hand mutants 58 of 58 red**: the 53 above, A1 in three forms (both classes, the first, the rest), A2 as "ends in a digit" and "starts with a digit". Test changes: cases added only.
 
-**Pass 3:** to come, over the follow-up task's lines only.
+**Pass 3** (over `fd3e829`): **FAIL.** The five mutants it was given are red, and the counts hold. Two Important findings:
+1. This record's PR #56 statements were untrue once #56 had merged (corrected above), and `fd3e829` had no pull request and no CI.
+2. Nine more variants of the tag line survive: the classes adding `+` or `~`, a minimum of two characters, either class without capitals, the rest without `_`, and the number without `0` or without `9`. None lets a tag without a number through, or touches the disk or the answer.
+
+Its nit: the mutant script could reuse stale bytecode, had no baseline step, and did not tell a failed assertion from a failed import.
+
+**The closing evidence** (owner's choice above): `test_every_ascii_character_and_every_digit` tries all 128 ASCII characters first, later and alone, every digit, and tags with no number. The script now runs with `-B`, stops unless its baseline passes, and marks a failed import as broken. In rikuri-drill: baseline 68 passing, 42 installer tests, 353 image tests; **hand mutants 70 of 70 red, none broken**: the 58 above, pass 3's nine, and three more (the rest without `.` or `-`, the first without `_`). Test changes: cases and one test added only.
 
 ## Close Out
+
+**5a:** `DONE` once the follow-up's pull request passes CI (its link is added then). The change as designed works: CI installs from the stick, and the disk boots alone. Not proven by this task: the screen console and the real machine (5b), and publish.yml's job `iso` (5b's publish). Limits: the last two repairs and reviews were used, then the owner authorized one follow-up; development CI runs: see the table and the pull request.
+
+Backlog, not started:
+- N5: valid JSON from `lsblk` that is not an object crashes rather than refuses; it erases nothing, and real `lsblk` does not write it.
+- The tag rule's code comment cites AGENTS.md's rule, which asks for major.minor or a digest, while the owner's "Require a number" also passes `44` and `v1`.
 
 **Probe 6d DONE** (2026-10-29): the stick installs offline, and the installed node boots alone and passes its health checks. 5a resumes at its Design when the owner says go; its limits stand, with the probe's runs counted separately as the follow-up task's.
 
