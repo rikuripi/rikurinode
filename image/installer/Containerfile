@@ -10,7 +10,7 @@
 #   TARGET   ghcr.io/rikuripi/rikurinode:<fixed tag>
 # Built by .github/workflows/image.yml (job install) and publish.yml (job iso).
 # Record: docs/build-records/2026-10-29-install-media.md
-FROM registry.fedoraproject.org/fedora-iot@sha256:29d16f4ccc5c86c84ba21aca0b7dcabfc4ecb2a79c9e51810f7838695f6be1c3
+FROM registry.fedoraproject.org/fedora-iot@sha256:cf93fd12bb7b65b12e80823566517d1cf10d288278050ecf7ff3521ae1a62af8
 
 ARG CONSOLE=tty1
 ARG TARGET

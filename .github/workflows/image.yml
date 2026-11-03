@@ -44,7 +44,7 @@ concurrency:
 
 env:
   # The release image/Containerfile's base must be; the check fails otherwise.
-  FEDORA_RELEASE: "44"
+  FEDORA_RELEASE: "45"
   IMAGE: localhost/rikuri-os:ci
   # The signature proof's tools: release binaries, checked against these SHA-256
   # (GitHub's release asset digests, read 2026-10-28). Apache-2.0 both. Never a

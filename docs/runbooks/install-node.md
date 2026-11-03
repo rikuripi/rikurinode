@@ -75,7 +75,7 @@ Use Fedora Media Writer (Fedora's own tool, free, from `fedoraproject.org/workst
 4. Check that the model and size are the disk you mean. If they are not, or you are unsure, press Enter: nothing is erased, and the next line asks you to press Enter again to power off.
 5. Type `ERASE` in capitals and press Enter. It says **Installing** and takes a few minutes. Do not power off.
 6. When it says **Rikuri Node is installed. Remove the USB stick now.**, take the stick out. The N150 restarts by itself 15 seconds later.
-7. The N150 now starts from its own disk. After a minute or so the screen shows **Fedora Linux 44 (IoT Edition)** and a login prompt. That is the end of the install: no one can sign in yet (the setup page comes with 5c). Power the N150 off with a short press of its power button.
+7. The N150 now starts from its own disk. After a minute or so the screen shows **Fedora Linux 45 (IoT Edition)** and a login prompt. That is the end of the install: no one can sign in yet (the setup page comes with 5c). Power the N150 off with a short press of its power button.
 
 Report: whether it started from the stick, what the disk line said, and whether
 it restarted to the login prompt by itself. Photos of the screen are enough.
