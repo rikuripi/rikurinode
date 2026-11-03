@@ -19,6 +19,8 @@ installer from the signed digest, with no credential**; record:
 - A USB stick of 8 GB or more. Writing the install stick erases it.
 - The N150 with a screen and a keyboard. Unplug USB drives and memory cards
   other than the stick. The installer never offers a USB or removable disk.
+  A memory card in a built-in card reader can look like an internal disk to
+  it, and would then be listed by number: take any card out first.
   If the N150 has more than one internal disk (for example a built-in 64 GB
   eMMC and an SSD), it lists them and you pick one.
 - No network cable is needed on the N150.
@@ -75,6 +77,7 @@ Use Fedora Media Writer (Fedora's own tool, free, from `fedoraproject.org/workst
 4. Check that the model and size are the disk you mean. If they are not, or you are unsure, press Enter: nothing is erased, and the next line asks you to press Enter again to power off.
 5. Type `ERASE` in capitals and press Enter. It says **Installing** and takes a few minutes. Do not power off.
 6. When it says **Rikuri Node is installed. Remove the USB stick now.**, take the stick out. The N150 restarts by itself 15 seconds later.
+   - If the stick is still in, many machines start from it again and the installer appears again, as if nothing happened. The node is installed: power off with the power button, take the stick out, and power on. If the installer still appears, or the firmware says it has no boot device, set the firmware's boot order to the internal disk you picked (on the N150 it was listed by its maker, ORICO); change nothing else there.
 7. The N150 now starts from its own disk. After a minute or so the screen shows **Fedora Linux 44 (IoT Edition)** and a login prompt. That is the end of the install: no one can sign in yet (the setup page comes with 5c). Power the N150 off with a short press of its power button.
 
 Report: whether it started from the stick, what the disk line said, and whether
@@ -89,7 +92,7 @@ Every stop below erases nothing; press Enter to power off.
 | No internal disk was found to install on. | It found no disk it may use. Report the model of the N150. |
 | The installer cannot tell which disk is this USB stick … | It will not risk erasing the stick, or a disk it cannot tell apart from it. Write the stick again, or try another stick. |
 | This USB stick is damaged or incomplete. | Write the stick again from the checked file. |
-| Nothing was erased. | Something other than a listed number, or other than `ERASE`, was typed. Start again to install. |
+| Nothing was erased. | Something other than a listed number, or other than `ERASE` in capitals (`Erase` stops too), was typed. Start again to install. |
 
 One stop can follow an erase: **The install failed. The disk may be partly
 erased; nothing else was changed.** Power off, start again from the stick, and
