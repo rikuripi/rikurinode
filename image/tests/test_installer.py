@@ -50,6 +50,7 @@ STICK = disk("sda", size=32_000_000_000, rm=True, ro=False, tran="usb", model="S
              serial="0401", children=[part("sda1"), part("sda2")])
 NVME = disk("nvme0n1", children=[part("nvme0n1p1")])
 SATA = disk("sdb", tran="sata", model="CT1000MX500SSD1", serial="2201E5F")
+EMMC = disk("mmcblk0", size=62_537_072_640, tran=None, model="DA4064", serial="0x1a2b3c4d")   # soldered, as on the N150
 ZRAM = disk("zram0", size=8_000_000_000, tran=None, model=None, serial=None)
 LOOP = disk("loop0", type_="loop", tran=None)
 DVD = disk("sr0", type_="rom", rm=True, ro=True, tran="sata")
@@ -269,13 +270,11 @@ class Run(unittest.TestCase):
         self.refused(m, ri.NO_DISK)
         self.assertEqual(m.asked, [])
 
-    EMMC = disk("mmcblk0", size=62_537_072_640, tran=None, model="DA4064", serial="0x1a2b3c4d")
-
     def test_several_internal_disks_are_listed_by_number(self):
         m = Machine(devices=(STICK, EMMC, NVME), answer=("", ))
         ri.run(m)
         self.assertIn(ri.SEVERAL_DISKS, m.said)
-        self.assertIn("  1) " + ri.describe(self.EMMC), m.said)
+        self.assertIn("  1) " + ri.describe(EMMC), m.said)
         self.assertIn("  2) " + ri.describe(NVME), m.said)
         self.assertNotIn(ri.describe(STICK), m.text())
         self.assertEqual(m.asked, [ri.PICK])
@@ -287,7 +286,7 @@ class Run(unittest.TestCase):
         self.assertEqual(m.installs, [ri.install_argv(IMAGE_ID, TARGET, [], "/dev/nvme0n1")])
         after = m.said[m.said.index(ri.ERASE_THIS):]
         self.assertIn("  " + ri.describe(NVME), after)
-        self.assertNotIn(ri.describe(self.EMMC), "\n".join(after))
+        self.assertNotIn(ri.describe(EMMC), "\n".join(after))
         m = Machine(devices=(STICK, EMMC, NVME), answer=("1", "ERASE"))
         ri.run(m)
         self.assertEqual(m.installs[0][-1], "/dev/mmcblk0")

@@ -32,5 +32,7 @@
 
 ## Evidence log
 
-- **Red** (rikuri-drill, `safe-run.sh`): `test_installer.py` `Ran 47 tests` `FAILED (errors=6)`, each on the missing `picked` or `PICK`; `test_install_test.py` fails to load, `AttributeError: module 'rikuri_install' has no attribute 'PICK'`.
+- **Red, first run** (`a2ef8e1`; rikuri-drill, `safe-run.sh`): `test_installer.py` `Ran 47 tests` `FAILED (errors=6)`. Recorded at first as "each on the missing `picked` or `PICK`": **that was wrong.** Four of the six were `NameError: name 'EMMC' is not defined`, a mistake in the tests (a class attribute used without `self.`), found when the fix's green run still showed them.
+- **Test change after the red commit:** `EMMC` moves beside the other fixture disks, at module level; nothing else.
+- **Red, corrected** (the new tests against `main`'s installer, `2aafcd7`): `Ran 47 tests` `FAILED (failures=2, errors=4)`. The failures are the old behaviour: `AssertionError: 5 != 0` (it refuses two disks), and no `  1) DA4064, 63 GB, serial 0x1a2b3c4d (/dev/mmcblk0)` in its output. The errors: `AttributeError: … no attribute 'picked'` (×2), `'PICK'` (×2). `test_install_test.py`: `AttributeError: module 'rikuri_install' has no attribute 'PICK'`.
 - Test changes, with reasons: the tests that held "several disks are refused" go, because that is the rule the owner changed; the harness's case tests follow its new cases (a wrong number; pick 2, then `ERASE`).
