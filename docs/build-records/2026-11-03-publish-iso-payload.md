@@ -5,8 +5,8 @@
 | **Date** | 2026-11-03 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/publish-iso-payload`, from `main` at `6c1a55e`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | PR #59, merge `2aafcd7`: `e504638` (red), `ac80d87`, `77bcd77` |
+| **Status** | COMPLETE (2026-11-03) |
 | **Change type** | fix |
 
 ## Task Contract
@@ -56,4 +56,10 @@
 - **Not yet proven, for 5b:** what digest the installed node reports (`bootc status`) against `$DIGEST`, and whether a node's later checks need the signed digest itself.
 - After repair 1, in rikuri-drill (`safe-run.sh`): 26 tests `OK`; **hand mutants 9 of 9 red**, baseline passing first: the 3 above, the check inverted, `sudo` dropped from the inspect and from the tag, `continue-on-error`, `exit 0`, `{{.ID}}` for `{{.Digest}}`.
 
-**Pass 2:** to come, over repair 1 only.
+**Pass 2** (over repair 1, `77bcd77`): **PASS.** Each of pass 1's four survivors now fails on an assertion; 9 of 9 reproduced; no test loosened; the wording and the Not yet proven items corrected. Minor, backlog: no test pins the summary line's wording.
+
+## Close Out
+
+**DONE** (2026-11-03). `Full gate (Ubuntu)` passed on the PR. The real proof: [publish run 41712055209](https://github.com/rikuripi/rikurinode/actions/runs/41712055209) on `2aafcd7`, all four jobs passed, and the job made `rikuri-node-44.20261103.3.iso`; the owner checked its SHA-256. Repairs 1 of 2, reviews 2 of 2, development CI 2 runs.
+
+Still not yet proven, for 5b: the digest an installed node reports against the signed digest.
