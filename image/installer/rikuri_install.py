@@ -6,14 +6,16 @@
                                                        write the stick's files (its build)
 
 On the live system of the USB stick, on its one console, with no network: it
-finds the machine's one internal disk, names it (model, size, serial), and
-erases it only when the person types ERASE and presses Enter. Then it installs
+finds the machine's internal disks and names each (model, size, serial). With
+several, the person types the number of one; with one, there is nothing to
+pick. It erases that disk only when the person then types ERASE and presses
+Enter. Then it installs
 the node image the stick carries, read-only, with the image's own `bootc
 install to-disk`, under the fixed name `TARGET` the node updates from, and
 writes the node's entry into the firmware. Every refusal, and a failed
 install, erases nothing more and waits for Enter to power off. It never
-chooses between disks: zero or several internal disks, or a stick it cannot
-find, end the same way.
+chooses between disks itself: no internal disk, a number not listed, or a
+stick it cannot find, end the same way.
 
 `configure` runs once, in the stick's build (image/installer/Containerfile):
 the console (tty1, the screen, for the published stick; ttyS0 for CI's test),
@@ -46,8 +48,8 @@ ERASE_THIS = "This disk will be erased, and everything on it lost:"
 PROMPT = "Type ERASE and press Enter to erase it and install Rikuri Node. Anything else stops: "
 NOTHING_ERASED = "Nothing was erased."
 NO_DISK = "No internal disk was found to install on. Nothing was erased."
-SEVERAL_DISKS = ("This machine has more than one internal disk, and the installer does not choose between "
-                 "them. Nothing was erased. Disconnect every disk but the one for the node, then start again. Found:")
+SEVERAL_DISKS = "This machine has more than one internal disk. Pick the one for the node; everything on it will be lost:"
+PICK = "Type the number of the disk to erase and press Enter. Anything else stops: "
 NO_STICK = "The installer cannot tell which disk is this USB stick, so it erases none. Nothing was erased."
 DAMAGED = "This USB stick is damaged or incomplete. Nothing was erased. Write the stick again from the downloaded file."
 INSTALLING = "Installing. This takes a few minutes; do not power off."
@@ -96,6 +98,14 @@ def describe(dev: dict) -> str:
     serial = (dev.get("serial") or "").strip()
     return "%s, %d GB, %s (%s)" % (model, round(int(dev["size"]) / 1e9),
                                    "serial " + serial if serial else "no serial", dev["path"])
+
+
+def picked(answer, count: int):
+    """The index of the disk numbered `answer` in a list of `count`, or None: ASCII digits only."""
+    if not isinstance(answer, str) or not re.fullmatch(r"[1-9][0-9]*", answer.strip()):
+        return None
+    number = int(answer.strip())
+    return number - 1 if number <= count else None
 
 
 def confirmed(answer) -> bool:
@@ -179,16 +189,23 @@ def run(m) -> int:
     if not disks:
         _stop(m, NO_DISK)
         return 4
+    disk = disks[0]
     if len(disks) > 1:
-        _stop(m, SEVERAL_DISKS, *["  " + describe(d) for d in disks])
-        return 5
+        m.say(SEVERAL_DISKS)
+        for number, d in enumerate(disks, 1):
+            m.say("  %d) %s" % (number, describe(d)))
+        index = picked(m.ask(PICK), len(disks))
+        if index is None:
+            _stop(m, NOTHING_ERASED)
+            return 5
+        disk = disks[index]
     m.say(ERASE_THIS)
-    m.say("  " + describe(disks[0]))
+    m.say("  " + describe(disk))
     if not confirmed(m.ask(PROMPT)):
         _stop(m, NOTHING_ERASED)
         return 6
     m.say(INSTALLING)
-    if m.install(install_argv(ids[0], target, kargs, disks[0]["path"])) != 0:
+    if m.install(install_argv(ids[0], target, kargs, disk["path"])) != 0:
         _stop(m, FAILED)
         return 7
     m.say(INSTALLED)

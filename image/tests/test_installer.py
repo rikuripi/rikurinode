@@ -50,6 +50,7 @@ STICK = disk("sda", size=32_000_000_000, rm=True, ro=False, tran="usb", model="S
              serial="0401", children=[part("sda1"), part("sda2")])
 NVME = disk("nvme0n1", children=[part("nvme0n1p1")])
 SATA = disk("sdb", tran="sata", model="CT1000MX500SSD1", serial="2201E5F")
+EMMC = disk("mmcblk0", size=62_537_072_640, tran=None, model="DA4064", serial="0x1a2b3c4d")   # soldered, as on the N150
 ZRAM = disk("zram0", size=8_000_000_000, tran=None, model=None, serial=None)
 LOOP = disk("loop0", type_="loop", tran=None)
 DVD = disk("sr0", type_="rom", rm=True, ro=True, tran="sata")
@@ -96,6 +97,8 @@ class Machine:
 
     def ask(self, prompt):
         self.asked.append(prompt)
+        if isinstance(self.answer, tuple):   # several questions: the answers in turn
+            return self.answer[len(self.asked) - 1]
         return self.answer
 
     def wait_enter(self):
@@ -167,6 +170,19 @@ class Describe(unittest.TestCase):
     def test_missing_model_and_serial_are_said(self):
         self.assertEqual(ri.describe(disk("vda", size=21_474_836_480, model=None, serial=None, tran=None)),
                          "unknown model, 21 GB, no serial (/dev/vda)")
+
+
+class Picked(unittest.TestCase):
+    def test_a_listed_number_is_its_disk(self):
+        self.assertEqual(ri.picked("1", 2), 0)
+        self.assertEqual(ri.picked(" 2\n", 2), 1)
+        self.assertEqual(ri.picked("10", 12), 9)
+
+    def test_anything_else_is_none(self):
+        for answer in ("", "\n", "0", "3", "-1", "+1", "1.0", "01", "1 2", "two", "\uff11", "\u0661", None, 1):
+            self.assertIsNone(ri.picked(answer, 2), repr(answer))
+        for answer in ("1\u0661", "1\uff11", "\u0661\u0661"):   # a non-ASCII digit after an ASCII one
+            self.assertIsNone(ri.picked(answer, 20), repr(answer))
 
 
 class Confirmed(unittest.TestCase):
@@ -256,12 +272,38 @@ class Run(unittest.TestCase):
         self.refused(m, ri.NO_DISK)
         self.assertEqual(m.asked, [])
 
-    def test_several_internal_disks_are_named_and_none_erased(self):
-        m = Machine(devices=(STICK, NVME, SATA))
-        self.refused(m, ri.SEVERAL_DISKS)
-        self.assertIn(ri.describe(NVME), m.text())
-        self.assertIn(ri.describe(SATA), m.text())
-        self.assertEqual(m.asked, [])
+    def test_several_internal_disks_are_listed_by_number(self):
+        m = Machine(devices=(STICK, EMMC, NVME), answer=("", ))
+        ri.run(m)
+        self.assertIn(ri.SEVERAL_DISKS, m.said)
+        self.assertIn("  1) " + ri.describe(EMMC), m.said)
+        self.assertIn("  2) " + ri.describe(NVME), m.said)
+        self.assertNotIn(ri.describe(STICK), m.text())
+        self.assertEqual(m.asked, [ri.PICK])
+
+    def test_the_picked_disk_alone_is_named_then_erase_is_asked(self):
+        m = Machine(devices=(STICK, EMMC, NVME), answer=("2", "ERASE"))
+        self.assertEqual(ri.run(m), 0)
+        self.assertEqual(m.asked, [ri.PICK, ri.PROMPT])
+        self.assertEqual(m.installs, [ri.install_argv(IMAGE_ID, TARGET, [], "/dev/nvme0n1")])
+        after = m.said[m.said.index(ri.ERASE_THIS):]
+        self.assertIn("  " + ri.describe(NVME), after)
+        self.assertNotIn(ri.describe(EMMC), "\n".join(after))
+        m = Machine(devices=(STICK, EMMC, NVME), answer=("1", "ERASE"))
+        ri.run(m)
+        self.assertEqual(m.installs[0][-1], "/dev/mmcblk0")
+
+    def test_a_pick_still_needs_erase(self):
+        for word in ("", "no", "erase", "2"):
+            m = Machine(devices=(STICK, EMMC, NVME), answer=("2", word))
+            self.refused(m, ri.NOTHING_ERASED)
+            self.assertEqual(m.asked, [ri.PICK, ri.PROMPT])
+
+    def test_anything_but_a_listed_number_erases_nothing(self):
+        for pick in ("", "0", "3", "-1", "+1", "1.0", "01", "1 2", "12", "one", "ERASE", "\uff12", "\u0662"):
+            m = Machine(devices=(STICK, EMMC, NVME), answer=(pick, "ERASE"))
+            self.refused(m, ri.NOTHING_ERASED)
+            self.assertEqual(m.asked, [ri.PICK], repr(pick))   # ERASE is never asked
 
     def test_the_stick_cannot_be_found(self):
         m = Machine(live="/dev/sr0")

@@ -225,7 +225,7 @@ class _Console:
 class TheCases(unittest.TestCase):
     """The checks each case makes on what the installer said, and on the disks."""
     NAMED = "unknown model, 21 GB, no serial (/dev/%s)\n"
-    REFUSAL = it.ri.SEVERAL_DISKS + "\n" + NAMED % "vda" + NAMED % "vdb" + it.ri.POWER_OFF + "\n"
+    LISTED = (it.ri.SEVERAL_DISKS + "\n  1) " + NAMED % "vda" + "  2) " + NAMED % "vdb" + it.ri.PICK)
 
     def setUp(self):
         self.dir = tempfile.mkdtemp(prefix="cases")
@@ -239,20 +239,21 @@ class TheCases(unittest.TestCase):
         self.con = _Console(text)
         self.test.boot_stick = lambda name, disks, vars_fd: (_Ended(), self.con)
 
-    def test_two_disks_refused_naming_both(self):
-        self.boots(self.REFUSAL)
-        self.test.two_disks()
-        self.assertEqual(self.con.sent, [""])
+    def test_a_wrong_number_leaves_both_disks(self):
+        self.boots(self.LISTED + "3\n" + it.ri.NOTHING_ERASED + "\n" + it.ri.POWER_OFF + "\n")
+        self.test.wrong_number()
+        self.assertEqual(self.con.sent, ["3", ""])
 
-    def test_two_disks_naming_only_one_fails(self):
-        self.boots(it.ri.SEVERAL_DISKS + "\n" + self.NAMED % "vda" + it.ri.POWER_OFF + "\n")
-        with self.assertRaisesRegex(it.Failed, "name both"):
-            self.test.two_disks()
+    def test_a_list_without_both_disks_fails(self):
+        self.boots(it.ri.SEVERAL_DISKS + "\n  1) " + self.NAMED % "vda" + it.ri.PICK + "3\n" + it.ri.NOTHING_ERASED
+                   + "\n" + it.ri.POWER_OFF + "\n")
+        with self.assertRaisesRegex(it.Failed, "both"):
+            self.test.wrong_number()
 
-    def test_two_disks_that_asked_to_erase_fails(self):
-        self.boots(self.REFUSAL + it.ri.PROMPT)
+    def test_a_wrong_number_that_asked_to_erase_fails(self):
+        self.boots(self.LISTED + "3\n" + it.ri.PROMPT + it.ri.NOTHING_ERASED + "\n" + it.ri.POWER_OFF + "\n")
         with self.assertRaisesRegex(it.Failed, "asked to erase"):
-            self.test.two_disks()
+            self.test.wrong_number()
 
     def written_disk(self, which):
         disk = self.test.disk
@@ -267,10 +268,10 @@ class TheCases(unittest.TestCase):
         return written
 
     def test_a_disk_written_fails(self):
-        self.boots(self.REFUSAL)
-        self.test.disk = self.written_disk("two-b")
-        with self.assertRaisesRegex(it.Failed, "two-b.raw was written"):
-            self.test.two_disks()
+        self.boots(self.LISTED + "3\n" + it.ri.NOTHING_ERASED + "\n" + it.ri.POWER_OFF + "\n")
+        self.test.disk = self.written_disk("wrong-b")
+        with self.assertRaisesRegex(it.Failed, "wrong-b.raw was written"):
+            self.test.wrong_number()
 
     def test_answered_no_leaves_the_disk(self):
         self.boots(it.ri.PROMPT + "no\n" + it.ri.NOTHING_ERASED + "\n" + it.ri.POWER_OFF + "\n")
@@ -283,18 +284,37 @@ class TheCases(unittest.TestCase):
         with self.assertRaisesRegex(it.Failed, "no.raw was written"):
             self.test.answered_no()
 
-    def test_erase_types_the_word_and_needs_a_written_disk(self):
-        self.boots(it.ri.PROMPT + "ERASE\n" + it.ri.INSTALLED + "\n")
+    def test_erase_picks_the_second_disk_and_installs_only_there(self):
+        self.boots(self.LISTED + "2\n" + it.ri.ERASE_THIS + "\n  " + self.NAMED % "vdb" + it.ri.PROMPT + "ERASE\n"
+                   + it.ri.INSTALLED + "\n")
         calls = []
-        self.test.alone = lambda disk, vars_fd: calls.append("alone")
-        self.test.read_disk = lambda disk: calls.append("read")
+        self.test.alone = lambda disk, vars_fd: calls.append(("alone", os.path.basename(disk)))
+        self.test.read_disk = lambda disk: calls.append(("read", os.path.basename(disk)))
         with self.assertRaisesRegex(it.Failed, "empty after the install"):
             self.test.erase()
-        self.assertEqual(self.con.sent, [it.ri.CONFIRM])
+        self.assertEqual(self.con.sent, ["2", it.ri.CONFIRM])
         self.assertEqual(calls, [])
-        self.test.disk = self.written_disk("erase")
+        self.test.disk = self.written_disk("erase-b")
         self.test.erase()
-        self.assertEqual(calls, ["alone", "read"])
+        self.assertEqual(calls, [("alone", "erase-b.raw"), ("read", "erase-b.raw")])
+
+    def test_erase_with_the_first_disk_written_fails(self):
+        self.boots(self.LISTED + "2\n" + it.ri.ERASE_THIS + "\n  " + self.NAMED % "vdb" + it.ri.PROMPT + "ERASE\n"
+                   + it.ri.INSTALLED + "\n")
+        self.test.alone = self.test.read_disk = lambda *a: None
+        disk = self.written_disk("erase-a")
+        both = self.written_disk("erase-b")
+        self.test.disk = lambda name: (disk if name == "erase-a" else both)(name)
+        with self.assertRaisesRegex(it.Failed, "erase-a.raw was written"):
+            self.test.erase()
+
+    def test_erase_that_names_the_wrong_disk_fails(self):
+        self.boots(self.LISTED + "2\n" + it.ri.ERASE_THIS + "\n  " + self.NAMED % "vda" + it.ri.PROMPT + "ERASE\n"
+                   + it.ri.INSTALLED + "\n")
+        self.test.disk = self.written_disk("erase-b")
+        self.test.alone = self.test.read_disk = lambda *a: None
+        with self.assertRaisesRegex(it.Failed, "vdb"):
+            self.test.erase()
 
 
 class Prompts(unittest.TestCase):
@@ -302,7 +322,7 @@ class Prompts(unittest.TestCase):
         sys.path.insert(0, os.path.join(HERE, os.pardir, "installer"))
         import rikuri_install as ri
         self.assertIs(it.ri, ri)
-        for text in (ri.PROMPT, ri.SEVERAL_DISKS, ri.NOTHING_ERASED, ri.INSTALLED, ri.POWER_OFF):
+        for text in (ri.PROMPT, ri.PICK, ri.SEVERAL_DISKS, ri.ERASE_THIS, ri.NOTHING_ERASED, ri.INSTALLED, ri.POWER_OFF):
             self.assertTrue(text.strip())
 
 
