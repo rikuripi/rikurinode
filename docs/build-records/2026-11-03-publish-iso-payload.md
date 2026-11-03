@@ -38,3 +38,7 @@
 - **Red** (rikuri-drill, `safe-run.sh`, before the fix): `test_workflows.py` `Ran 26 tests` `FAILED (failures=1)`: `test_the_iso_job_builds_the_stick_from_the_signed_digest_with_no_login`, `'podman tag "$PUBLISHED@$DIGEST" "$PUBLISHED:$TAG"' not found`.
 - Test change: the old line asserted the digest as the payload; that is the defect, so it goes.
 - The drill VM had a new address (`10.37.129.3`, from Parallels) and the pinned host key was lost from the scratchpad; the key was accepted on first use and recorded: `SHA256:NtVMqX12NYeujT0KNVRasNSCtiVoLgh3+SqVUFD5938` (ED25519).
+- **Fix:** a step after the pull names the digest `"$PUBLISHED:$TAG"` in the runner's store and stops unless `podman image inspect` gives `$DIGEST` for that name; image-builder takes the name.
+- **Green** (rikuri-drill, `safe-run.sh`): `test_workflows.py` `Ran 26 tests` `OK`.
+- **Hand mutants: 3 of 3 red**, baseline passing first: no local name; no digest check; the payload by digest again.
+- **Not yet proven:** the job on a real publish (it runs only on `main`, by hand).
