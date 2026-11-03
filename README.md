@@ -11,8 +11,8 @@ node's OS image ([image/](image/)), built and checked only in CI and
 published, signed, when the owner starts it
 ([runbook](docs/runbooks/publish-os-image.md)); its VM drill shows the node's
 own update command refusing an unsigned image and staging a signed one; a USB
-installer, built with each publish, that installs the node on a machine's one
-internal disk with no network, proven in a CI VM
+installer, built with each publish, that installs the node with no network on
+the internal disk the owner picks, proven in a CI VM and on the N150
 ([runbook](docs/runbooks/install-node.md)); and the
 first control plane code ([control-plane/](control-plane/)): a daemon that
 serves its API over HTTPS from a certificate authority it makes at first
