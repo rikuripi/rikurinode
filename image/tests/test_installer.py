@@ -181,6 +181,8 @@ class Picked(unittest.TestCase):
     def test_anything_else_is_none(self):
         for answer in ("", "\n", "0", "3", "-1", "+1", "1.0", "01", "1 2", "two", "\uff11", "\u0661", None, 1):
             self.assertIsNone(ri.picked(answer, 2), repr(answer))
+        for answer in ("1\u0661", "1\uff11", "\u0661\u0661"):   # a non-ASCII digit after an ASCII one
+            self.assertIsNone(ri.picked(answer, 20), repr(answer))
 
 
 class Confirmed(unittest.TestCase):

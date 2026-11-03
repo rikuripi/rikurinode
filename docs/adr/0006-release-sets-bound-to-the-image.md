@@ -134,6 +134,12 @@ two ways open; nothing else changes.
   installed disk boots alone with greenboot passing (probe 6 and its
   follow-up, in the record). That no other answer erases is held by the
   installer's unit tests.
+- **2026-11-03: several internal disks.** The N150 has a built-in eMMC beside
+  its SSD, so the rule "refuse more than one internal disk" could not be met
+  there. The installer now lists the internal disks by number, the owner picks
+  one, and it still asks for `ERASE` (owner, 2026-11-03). CI proves that a
+  wrong number erases nothing and that picking the second of two disks
+  installs there only (`docs/build-records/2026-11-03-installer-pick-disk.md`).
 
 ## Sources (read 2026-10-17)
 
