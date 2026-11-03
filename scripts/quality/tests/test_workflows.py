@@ -298,9 +298,12 @@ class Publish(unittest.TestCase):
         self.assertIn('--build-arg TARGET="$PUBLISHED:$TAG"', lines)
         # Publish run 41705388378: image-builder cannot copy an image into the stick under a digest name.
         # The signed digest gets a local name, checked to be that digest, and the stick takes the name.
-        self.assertIn('podman tag "$PUBLISHED@$DIGEST" "$PUBLISHED:$TAG"', lines)
-        self.assertIn('podman image inspect --format \'{{.Digest}}\' "$PUBLISHED:$TAG"', lines)
-        self.assertRegex(lines, r'= "\$DIGEST" \] \|\| \{[^}]*exit 1; \}')
+        # Whole lines, as root (the store image-builder reads), and no step may fail softly.
+        rows = [x.strip() for x in lines.splitlines()]
+        self.assertIn('sudo podman tag "$PUBLISHED@$DIGEST" "$PUBLISHED:$TAG"', rows)
+        self.assertIn('[ "$(sudo podman image inspect --format \'{{.Digest}}\' "$PUBLISHED:$TAG")" = "$DIGEST" ] '
+                      '|| { echo "the local name is not $DIGEST" >&2; exit 1; }', rows)
+        self.assertNotIn("continue-on-error", lines)
         self.assertIn('--bootc-installer-payload-ref "$PUBLISHED:$TAG"', lines)
         self.assertNotRegex(lines, r"--bootc-installer-payload-ref \S*@")
         self.assertIn("bootc-generic-iso", lines)

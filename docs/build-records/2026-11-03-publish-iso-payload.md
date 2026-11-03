@@ -11,7 +11,7 @@
 
 ## Task Contract
 
-1. **Outcome:** a publish makes the install stick for 5b, holding exactly the signed image.
+1. **Outcome:** a publish makes the install stick for 5b, holding the signed image (its content: the same image, pulled by the signed digest).
 2. **Scope:**
    - `.github/workflows/publish.yml`, job `iso`, and its test in `scripts/quality/tests/test_workflows.py`;
    - this record, and the 5a record's "Not yet proven" note on the job.
@@ -42,3 +42,18 @@
 - **Green** (rikuri-drill, `safe-run.sh`): `test_workflows.py` `Ran 26 tests` `OK`.
 - **Hand mutants: 3 of 3 red**, baseline passing first: no local name; no digest check; the payload by digest again.
 - **Not yet proven:** the job on a real publish (it runs only on `main`, by hand).
+
+## Verify
+
+**Pass 1** (`verifier`, head `ac80d87`): **FAIL.** It confirmed the cause, the credential-free job, red and green, no test loosened, and 3 of 3 mutants; CI's `Full gate (Ubuntu)` passed (run 41709495906). Of its 14 mutants of the changed lines, 4 survived:
+- **Important:** `=` to `!=` in the digest check (the test's regex accepted both), and `sudo` dropped from `podman image inspect` (a substring matched), which would read the runner user's store, not root's.
+- Nits: `sudo` dropped from `podman tag` (fails closed); `continue-on-error: true` on the check step.
+- Nit, not yet proven: the copy into the stick's store changes the layers' representation, so the manifest digest on the stick, and what an installed node reports, is very likely not `$DIGEST`; the content (image ID, config, layers) is the same. The record's and the job summary's "holds `$PUBLISHED@$DIGEST`" claimed more than was shown.
+
+**Repair 1** (of 2):
+- the test now asserts both command lines whole, with `sudo`, and refuses `continue-on-error` in the job (a test change after the red commit, stricter only: the earlier asserts let two mutants through);
+- the summary line and the Outcome say "the signed image, pulled as …".
+- **Not yet proven, for 5b:** what digest the installed node reports (`bootc status`) against `$DIGEST`, and whether a node's later checks need the signed digest itself.
+- After repair 1, in rikuri-drill (`safe-run.sh`): 26 tests `OK`; **hand mutants 9 of 9 red**, baseline passing first: the 3 above, the check inverted, `sudo` dropped from the inspect and from the tag, `continue-on-error`, `exit 0`, `{{.ID}}` for `{{.Digest}}`.
+
+**Pass 2:** to come, over repair 1 only.

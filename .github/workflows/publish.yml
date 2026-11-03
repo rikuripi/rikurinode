@@ -240,7 +240,7 @@ jobs:
           (cd "$RUNNER_TEMP/media" && sha256sum "$name" > "$name.sha256")
           {
             echo "### Install media: $name"
-            echo "- holds $PUBLISHED@$DIGEST; installs it as $PUBLISHED:$TAG"
+            echo "- holds the signed image, pulled as $PUBLISHED@$DIGEST; installs it as $PUBLISHED:$TAG"
             echo "- SHA-256: $(cut -d' ' -f1 "$RUNNER_TEMP/media/$name.sha256")"
           } | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Keep the stick and its SHA-256 (the run's artifact)
