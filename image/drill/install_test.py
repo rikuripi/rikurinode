@@ -10,12 +10,15 @@ through the VM's serial console (a socket it reads all the time, and logs), wait
 for the installer's own words (imported from rikuri_install.py). It fails on
 any miss:
 
-  two disks   two blank disks: the installer refuses and names both; Enter
-              powers off; neither disk has a block written.
+  wrong number  two blank disks: the installer lists both by number; `3`
+              is not one, so "Nothing was erased"; Enter powers off; neither
+              disk has a block written.
   no          one blank disk, answered `no`: "Nothing was erased"; Enter
               powers off; the disk has no block written.
-  erase       one blank disk, answered `ERASE`: installed, and the VM restarts
-              (QEMU exits on it). Then the disk alone, with the firmware
+  erase       two blank disks, `2` picked: the second disk is named alone,
+              then answered `ERASE`: installed, and the VM restarts (QEMU
+              exits on it); the first disk has no block written. Then the
+              second disk alone, with the firmware
               settings the install left (as on the machine once the stick is
               pulled): the firmware starts the node's own entry ("Fedora") and
               greenboot passes. Last, read from the disk: the origin names the
@@ -242,13 +245,16 @@ class Test:
         finally:
             subprocess.call(["pkill", "-f", "qemu-system-x86_64"])
 
-    def two_disks(self):
-        a, b = self.disk("two-a"), self.disk("two-b")
-        proc, con = self.boot_stick("two-disks", [a, b], self.vars("two"))
+    def wrong_number(self):
+        a, b = self.disk("wrong-a"), self.disk("wrong-b")
+        proc, con = self.boot_stick("wrong-number", [a, b], self.vars("wrong"))
         at = con.wait_for(ri.SEVERAL_DISKS, 900)
+        at = con.wait_for(ri.PICK, 60, at)
         text = con.text()
-        if text.count("unknown model, 21 GB") < 2:
-            raise Failed("the refusal does not name both disks")
+        if "1) unknown model, 21 GB" not in text or "2) unknown model, 21 GB" not in text:
+            raise Failed("the list does not name both disks")
+        con.send("3")
+        at = con.wait_for(ri.NOTHING_ERASED, 60, at)
         con.wait_for(ri.POWER_OFF, 60, at)
         if ri.PROMPT[:MARK] in con.text():
             raise Failed("it asked to erase")
@@ -268,16 +274,23 @@ class Test:
         self.untouched(a)
 
     def erase(self):
-        a, v = self.disk("erase"), self.vars("erase")
-        proc, con = self.boot_stick("erase", [a], v)
-        at = con.wait_for(ri.PROMPT, 900)
+        a, b, v = self.disk("erase-a"), self.disk("erase-b"), self.vars("erase")
+        proc, con = self.boot_stick("erase", [a, b], v)
+        at = con.wait_for(ri.PICK, 900)
+        con.send("2")
+        at = con.wait_for(ri.ERASE_THIS, 60, at)
+        named = con.wait_for(ri.PROMPT, 60, at)
+        shown = con.text()[at:named]
+        if "(/dev/vdb)" not in shown or "(/dev/vda)" in shown:
+            raise Failed("after 2, it did not name /dev/vdb alone: %r" % shown)
         con.send(ri.CONFIRM)
-        con.wait_for(ri.INSTALLED, 1800, at)
+        con.wait_for(ri.INSTALLED, 1800, named)
         self.ended(proc, 120)   # it restarts, and -no-reboot ends the VM
-        if unchanged(os.stat(a).st_blocks):
+        self.untouched(a)
+        if unchanged(os.stat(b).st_blocks):
             raise Failed("the disk is empty after the install")
-        self.alone(a, v)
-        self.read_disk(a)
+        self.alone(b, v)
+        self.read_disk(b)
 
     def alone(self, disk, vars_fd):
         log = os.path.join(self.a.artifacts, "erase-alone-console.log")
@@ -329,7 +342,7 @@ class Test:
         check_disk(found, self.a.target, self.a.digest)
 
     def main(self):
-        self.case("two disks", self.two_disks)
+        self.case("wrong number", self.wrong_number)
         self.case("no", self.answered_no)
         self.case("erase", self.erase)
         with open(os.path.join(self.a.artifacts, "results.json"), "w", encoding="utf-8") as f:
