@@ -214,6 +214,12 @@ jobs:
           persist-credentials: false
       - name: Pull the signed digest, as a node reads it (no credential)
         run: sudo podman pull "$PUBLISHED@$DIGEST"
+      # image-builder cannot copy an image into the stick under a digest name (publish run
+      # 41705388378): the digest gets a local name, in this runner only, checked to be that digest.
+      - name: Name it locally, and check the name is the signed digest
+        run: |
+          sudo podman tag "$PUBLISHED@$DIGEST" "$PUBLISHED:$TAG"
+          [ "$(sudo podman image inspect --format '{{.Digest}}' "$PUBLISHED:$TAG")" = "$DIGEST" ] || { echo "the local name is not $DIGEST" >&2; exit 1; }
       - name: Build the installer (the screen; it names the fixed tag)
         run: |
           sudo podman build --pull=missing --tag localhost/rikuri-installer:publish \
@@ -224,7 +230,7 @@ jobs:
           sudo podman run --rm --privileged --pull=missing \
             -v /var/lib/containers/storage:/var/lib/containers/storage -v /mnt/iso:/output \
             "$IMAGE_BUILDER" build --bootc-ref localhost/rikuri-installer:publish \
-            --bootc-installer-payload-ref "$PUBLISHED@$DIGEST" --bootc-default-fs ext4 --output-dir /output bootc-generic-iso
+            --bootc-installer-payload-ref "$PUBLISHED:$TAG" --bootc-default-fs ext4 --output-dir /output bootc-generic-iso
           iso="$(sudo find /mnt/iso -name '*.iso')"
           [ "$(echo "$iso" | wc -l)" = 1 ] || { echo "not one ISO: $iso" >&2; exit 1; }
           mkdir "$RUNNER_TEMP/media"
@@ -234,7 +240,7 @@ jobs:
           (cd "$RUNNER_TEMP/media" && sha256sum "$name" > "$name.sha256")
           {
             echo "### Install media: $name"
-            echo "- holds $PUBLISHED@$DIGEST; installs it as $PUBLISHED:$TAG"
+            echo "- holds the signed image, pulled as $PUBLISHED@$DIGEST; installs it as $PUBLISHED:$TAG"
             echo "- SHA-256: $(cut -d' ' -f1 "$RUNNER_TEMP/media/$name.sha256")"
           } | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Keep the stick and its SHA-256 (the run's artifact)
