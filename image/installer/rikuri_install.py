@@ -70,7 +70,8 @@ INSTALLED = ("Rikuri Node is installed. This machine powers off in 15 seconds. "
              "Then remove the USB stick and press the power button to start the node.")
 POWER_OFF = "Press Enter to power off."
 UNEXPECTED = ("The installer stopped on an unexpected error. If it had not yet said Installing, "
-              "nothing was erased. Take a photo of this screen, and report it.")
+              "nothing was erased; if it had, the disk may be partly erased. "
+              "Take a photo of this screen, and report it.")
 SHOW_FAILURE = UNEXPECTED
 NO_ERROR_FILE = "(The installer kept no error: it may never have started.)"
 UNIT_LOG = "The installer's log:"
@@ -349,12 +350,14 @@ def unit(console: str) -> str:
             "TTYReset=yes\nTTYVHangup=yes\n\n[Install]\nWantedBy=multi-user.target\n" % (TITLE, console))
 
 
-def failed_unit(console: str) -> str:
+def failed_unit() -> str:
     # Started only by the installer unit's OnFailure=. It reads nothing and leaves the
     # screen as it wrote it, so the person can photograph why the installer stopped.
+    # /dev/console (the stick's console= line: the screen, or ttyS0 in CI) needs no TTY set
+    # up, so it shows even when systemd could not set up the installer's own.
     return ("[Unit]\nDescription=%s: why it stopped\n\n[Service]\nType=oneshot\n"
             "ExecStart=/usr/bin/python3 -I /usr/lib/rikuri-installer/rikuri_install.py show-failure\n"
-            "StandardOutput=tty\nStandardError=tty\nTTYPath=/dev/%s\n" % (TITLE, console))
+            "StandardOutput=journal+console\nStandardError=journal+console\n" % TITLE)
 
 
 def configure(console: str, target: str, root: str) -> None:
@@ -364,7 +367,7 @@ def configure(console: str, target: str, root: str) -> None:
     files = {
         "usr/lib/image-builder/bootc/iso.yaml": iso_yaml(console),
         "usr/lib/systemd/system/rikuri-installer.service": unit(console),
-        "usr/lib/systemd/system/rikuri-installer-failed.service": failed_unit(console),
+        "usr/lib/systemd/system/rikuri-installer-failed.service": failed_unit(),
         CONF.lstrip("/"): json.dumps({"target": target, "kargs": CONSOLES[console][1]}) + "\n",
     }
     for rel, text in files.items():

@@ -71,3 +71,6 @@
   - `Unexpected.test_the_message_says_what_to_do` also requires "may be partly erased" (nit 2).
   - New: `test_the_kept_error_is_the_one_shown`, `System.record_error` then `read_error` in a temporary folder (nit 1). It passes on the fix, because the code was already right.
 - **Red** (against `ac02c47`): `test_installer.py` `Ran 68 tests` `FAILED (failures=3)`: `'StandardOutput=journal+console\n' not found` (tty1 and ttyS0) and `'may be partly erased' not found`.
+- **Fix** (its own commit): `failed_unit()` writes with `StandardOutput=journal+console` and `StandardError=journal+console`, and has no `TTYPath`. `UNEXPECTED` adds "if it had, the disk may be partly erased". In the runbook, "Every stop in the table erases nothing", and the new paragraph covers a begun erase.
+- **Green** (rikuri-drill, `safe-run.sh`): `image/tests` `Ran 389 tests` `OK`. `systemd-analyze verify` on both units written by `configure --console tty1`: `rc=0`, no warning. `git diff --check`: clean.
+- **Not yet proven:** that on the N150's boot `OnFailure=` starts the unit and its text shows on the screen through `/dev/console`.
