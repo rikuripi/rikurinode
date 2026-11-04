@@ -16,8 +16,8 @@ any miss:
   no          one blank disk, answered `no`: "Nothing was erased"; Enter
               powers off; the disk has no block written.
   erase       two blank disks, `2` picked: the second disk is named alone,
-              then answered `ERASE`: installed, and the VM restarts (QEMU
-              exits on it); the first disk has no block written. Then the
+              then answered `ERASE`: installed, and the VM powers off by
+              itself (a restart would boot the stick again); the first disk has no block written. Then the
               second disk alone, with the firmware
               settings the install left (as on the machine once the stick is
               pulled): the firmware starts the node's own entry ("Fedora") and
@@ -72,7 +72,7 @@ def stick_argv(iso: str, disks: list, vars_fd: str, sock: str) -> list:
         argv += ["-drive", "if=virtio,format=raw,file=" + disk]
     return argv + ["-nic", "none", "-display", "none",
                    "-chardev", "socket,id=con,path=%s,server=on,wait=off" % sock,
-                   "-serial", "chardev:con", "-no-reboot"]
+                   "-serial", "chardev:con"]   # no -no-reboot: a restart would boot the stick again, and fail
 
 
 def disk_argv(disk: str, vars_fd: str, log: str) -> list:
@@ -285,7 +285,7 @@ class Test:
             raise Failed("after 2, it did not name /dev/vdb alone: %r" % shown)
         con.send(ri.CONFIRM)
         con.wait_for(ri.INSTALLED, 1800, named)
-        self.ended(proc, 120)   # it restarts, and -no-reboot ends the VM
+        self.ended(proc, 120)   # it powers off; a restart would boot the stick again, and time out
         self.untouched(a)
         if unchanged(os.stat(b).st_blocks):
             raise Failed("the disk is empty after the install")

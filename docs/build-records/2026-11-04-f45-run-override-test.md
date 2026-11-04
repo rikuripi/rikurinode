@@ -5,8 +5,8 @@
 | **Date** | 2026-11-04 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/f45-run-override-test`, from `main` at `f17057b`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `229bcf8` (the test), `4c43fb3` (the Fedora 45 close-out); merged as `1c5301f` (#64) |
+| **Status** | DONE |
 | **Change type** | test (a missing case) and record |
 
 ## Task Contract
@@ -33,3 +33,8 @@
   - on the mutant (`CONTAINERS_USER_OVERRIDES = ("etc/sysusers.d/rikuri-containers.conf",)`): `Ran 119 tests` `FAILED (failures=1)`, `FAIL: test_containers_user_overridden_in_run`, `expected a finding with 'run/sysusers.d/rikuri-containers.conf: overrides', got []`.
   - A test that passes at once is expected here: the code was already right, and the mutant is the red run.
 - `git diff --check`: clean. No existing test changed.
+
+## Close-out
+
+- **CI on `4c43fb3`:** [Full gate](https://github.com/rikuripi/rikurinode/actions/runs/41765915905) passed. The [OS image workflow](https://github.com/rikuripi/rikurinode/actions/runs/41765915967) ran too, because `image/tests/` is in its path filter: the build, the drill and the install test passed. That was 1 CI run of the 2 allowed.
+- **Merged** by the owner as `1c5301f` (#64, 2026-11-04T03:28:11Z). This close-out lands with the next task's PR (`docs/build-records/2026-11-04-installer-power-off.md`), so it needs no PR of its own.

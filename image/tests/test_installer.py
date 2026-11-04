@@ -276,15 +276,23 @@ class SystemPodman(unittest.TestCase):
 
 
 class Run(unittest.TestCase):
-    def test_erase_installs_on_the_one_disk_then_restarts(self):
+    def test_erase_installs_on_the_one_disk_then_powers_off(self):
         m = Machine()
         self.assertEqual(ri.run(m), 0)
         self.assertEqual(len(m.installs), 1)
         self.assertEqual(m.installs[0], ri.install_argv(IMAGE_ID, TARGET, [], "/dev/nvme0n1"))
         self.assertIn(ri.describe(NVME), m.text())
-        self.assertIn(ri.INSTALLED, m.text())
-        self.assertEqual(m.events, ["sleep 15", "reboot"])
+        self.assertEqual(m.said[-1], ri.INSTALLED)
+        self.assertEqual(m.events, ["sleep 15", "poweroff"])   # never a restart, so never into the stick again
         self.assertEqual(m.storage, ri.storage_conf())
+
+    def test_the_installed_message_says_what_to_do(self):
+        for words in ("installed", "powers off in 15 seconds", "remove the USB stick", "press the power button"):
+            with self.subTest(words=words):
+                self.assertIn(words, ri.INSTALLED)
+
+    def test_the_stick_never_restarts_the_machine(self):
+        self.assertFalse(hasattr(ri.System, "reboot"))
 
     def test_it_asks_once_after_naming_the_disk(self):
         m = Machine()
