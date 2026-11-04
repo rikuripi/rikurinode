@@ -5,8 +5,8 @@
 | **Date** | 2026-11-04 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/installer-power-off`, from `main` at `1c5301f`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `e4f754c` (#64's close-out), `d18591a` (red), `795ca8a` (fix); merged as `f7afa22` (#65) |
+| **Status** | DONE |
 | **Change type** | feature (the installer's last step) |
 
 ## Task Contract
@@ -16,7 +16,7 @@
    - `image/installer/rikuri_install.py`: after a good install, it shows the new `INSTALLED` message, waits 15 seconds so it can be read, then powers off. `System.reboot` goes, since nothing calls it any more. Refusals and a failed install are unchanged: they still wait for Enter, then power off.
    - `image/drill/install_test.py`: the stick's VM loses `-no-reboot`, so only a power-off ends it. A restart would boot the stick again, and the case would fail within its 120 s. The VM of the disk alone keeps `-no-reboot`.
    - Tests: `image/tests/test_installer.py` and `image/tests/test_install_test.py`, changed in the red commit (reasons below).
-   - Knowledge layer: `docs/runbooks/install-node.md`, steps 6 and 7 and the Report line.
+   - Knowledge layer: `docs/runbooks/install-node.md`, steps 6 to 8 (a new step 8) and the Report line.
    - Risk tier: **routine**. The change comes after the erase and the install, and touches neither, nor anything about disks, keys or the node. An independent check is still required, because it is code.
    - **Not included:**
      - the headless install the owner described (no screen or keyboard, then the node's address in a browser): that is the browser installer in the backlog, and needs ADR 0006's physical-presence proof;
@@ -46,3 +46,14 @@
 - **Green** (rikuri-drill, `safe-run.sh`): `image/tests` `Ran 373 tests` `OK`; `.claude/hooks` `Ran 91 tests` `OK`; `scripts/quality/tests` `Ran 156 tests`, with the same 7 `git` errors as before, since rikuri-drill has no `git` (Not yet proven locally; CI's gate). `git diff --check`: clean. No test changed after the red commit.
 - **Hand mutants: 11 of 11 red** (`test_install*.py`): a restart again; no wait; a wait of 0; a wait for Enter; no power-off; the old message; no "press the power button"; a line shown after `INSTALLED`; `-no-reboot` back on the stick's VM; `-no-reboot` gone from the disk alone's VM; `System.reboot` back.
 - **Not yet proven:** that the stick's VM, run without `-no-reboot`, ends by itself after the erase case in CI, and that the N150 powers off (the owner's reinstall, after a publish).
+
+## Close-out
+
+- **CI on `795ca8a`:** [Full gate](https://github.com/rikuripi/rikurinode/actions/runs/41767934591) passed. [OS image](https://github.com/rikuripi/rikurinode/actions/runs/41767934590): all four jobs passed. The install test: `case wrong number: pass`, `case no: pass`, `case erase: pass`, with the stick's VM run without `-no-reboot`. Its erase console shows the new `INSTALLED` line, "[  OK  ] Stopped rikuri-installer.service" and "reboot: Power down". That was 1 CI run of the 3 allowed.
+- **Verifier, one pass** (on `795ca8a`): no Important finding. NOT YET PROVEN until CI, then PASS when CI passed. It reran red (`Ran 81 tests` `FAILED (failures=6)` on `d18591a`) and green (`Ran 373 tests` `OK`). It tried 12 mutants of its own: 6 were killed and 6 survived, all Minor. Nits, for the backlog:
+  - N-1: nothing checks that `INSTALLED` is shown before the 15 s wait rather than after it (the unit fake keeps `said` and `events` apart);
+  - N-2: the unit test looks for the literal `-no-reboot`, so `-action reboot=shutdown` (the same flag) or `-no-shutdown` passes it; CI would time out on the second;
+  - N-3: the comment "a restart would boot the stick again" may not hold in the VM (bootupd's "Fedora" entry), but the case still fails;
+  - N-4: the Scope named steps 6 and 7; corrected above.
+- **Merged** by the owner as `f7afa22` (#65, 2026-11-04T03:44:24Z). This close-out lands with the next task's PR (`docs/build-records/2026-11-04-installer-visible-failure.md`).
+- **After the merge:** the stick published from `f7afa22` failed on the N150 before its first line, which is the next task's incident. The power-off itself has not yet been seen on the N150.

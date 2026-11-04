@@ -87,7 +87,7 @@ it powered off by itself, then started to the login prompt. Photos of the screen
 
 ## When it stops
 
-Every stop below erases nothing; press Enter to power off.
+Every stop in the table erases nothing; press Enter to power off.
 
 | The installer says | Meaning, and what to do |
 |---|---|
@@ -95,6 +95,12 @@ Every stop below erases nothing; press Enter to power off.
 | The installer cannot tell which disk is this USB stick … | It will not risk erasing the stick, or a disk it cannot tell apart from it. Write the stick again, or try another stick. |
 | This USB stick is damaged or incomplete. | Write the stick again from the checked file. |
 | Nothing was erased. | Something other than a listed number, or other than `ERASE` in capitals (`Erase` stops too), was typed. Start again to install. |
+
+**The installer stopped on an unexpected error.** It shows the error under that
+line. If it had not yet said **Installing**, nothing was erased; if it had, the
+disk may be partly erased, as below. Take a photo
+of the whole screen and report it, then follow the last line: press Enter, or
+hold the power button until the N150 is off.
 
 One stop can follow an erase: **The install failed. The disk may be partly
 erased; nothing else was changed.** Power off, start again from the stick, and

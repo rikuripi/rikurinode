@@ -2,6 +2,7 @@
 """The node's USB installer: stage 1 change 5a.
 
     rikuri_install.py                                  install (the stick's unit runs this)
+    rikuri_install.py show-failure                     why it stopped (the installer unit's OnFailure= runs it)
     rikuri_install.py configure --console C --target T --root R
                                                        write the stick's files (its build)
 
@@ -14,7 +15,9 @@ the node image the stick carries, read-only, with the image's own `bootc
 install to-disk`, under the fixed name `TARGET` the node updates from, and
 writes the node's entry into the firmware. Every refusal, and a failed
 install, erases nothing more and waits for Enter to power off. A good install
-powers off by itself, so the machine never starts the stick again. It never
+powers off by itself, so the machine never starts the stick again. An error it
+does not expect is kept, shown, and ends the same way; if even that fails, the
+unit's OnFailure= unit shows the error and the unit's log. It never
 chooses between disks itself: no internal disk, a number not listed, or a
 stick it cannot find, end the same way.
 
@@ -32,6 +35,7 @@ import re
 import subprocess
 import sys
 import time
+import traceback
 
 CONF = "/usr/lib/rikuri-installer/installer.json"
 STICK_STORE = "/var/lib/containers/storage"
@@ -39,6 +43,10 @@ WORK_STORE = "/run/containers/storage"
 # The installer's own file, named to podman by CONTAINERS_STORAGE_CONF: Podman 6 (Fedora 45) leaves
 # /etc/containers/storage.conf unread (probe f45-podman, docs/build-records/2026-11-03-fedora-45.md).
 STORAGE_CONF = "/run/rikuri-installer/storage.conf"
+# An unexpected error is kept here, for rikuri-installer-failed.service to show
+# (docs/build-records/2026-11-04-installer-visible-failure.md).
+ERROR_FILE = "/run/rikuri-installer/error.txt"
+JOURNAL_LINES = 20
 LIVE = "/run/initramfs/live"
 LABEL = "RIKURI-NODE"
 REPO = "ghcr.io/rikuripi/rikurinode"
@@ -61,6 +69,13 @@ FAILED = ("The install failed. The disk may be partly erased; nothing else was c
 INSTALLED = ("Rikuri Node is installed. This machine powers off in 15 seconds. "
              "Then remove the USB stick and press the power button to start the node.")
 POWER_OFF = "Press Enter to power off."
+UNEXPECTED = ("The installer stopped on an unexpected error. If it had not yet said Installing, "
+              "nothing was erased; if it had, the disk may be partly erased. "
+              "Take a photo of this screen, and report it.")
+SHOW_FAILURE = UNEXPECTED
+NO_ERROR_FILE = "(The installer kept no error: it may never have started.)"
+UNIT_LOG = "The installer's log:"
+HOLD_POWER = "To power off, hold the power button until the machine is off."
 
 
 def _flag(value) -> bool:
@@ -224,6 +239,49 @@ def run(m) -> int:
     return 0
 
 
+def guarded(m) -> int:
+    """run(m), but an error it does not expect is kept, shown, and ends like every stop.
+    Showing it may fail too (a screen hung up): then the unit fails, and its OnFailure unit shows it."""
+    try:
+        return run(m)
+    except Exception:   # noqa: BLE001 - the last net: nothing important fails silently
+        text = traceback.format_exc()
+        try:
+            m.record_error(text)
+        except Exception:   # noqa: BLE001
+            pass
+        try:
+            _stop(m, UNEXPECTED, "  " + text.strip().splitlines()[-1])
+        except Exception:   # noqa: BLE001
+            pass
+        return 8
+
+
+def read_error() -> str:
+    try:
+        with open(ERROR_FILE, encoding="utf-8", errors="replace") as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
+def unit_journal() -> str:
+    """The installer unit's own log: systemd's reason too, when it never started the program."""
+    try:
+        return subprocess.run(["journalctl", "-b", "-o", "cat", "--no-pager", "-u", "rikuri-installer.service"],
+                              capture_output=True, text=True).stdout or ""
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def show_failure(error: str, journal: str) -> str:
+    """What rikuri-installer-failed.service writes on the console."""
+    lines = [SHOW_FAILURE, error.rstrip() if error.strip() else NO_ERROR_FILE, UNIT_LOG]
+    lines += journal.rstrip("\n").splitlines()[-JOURNAL_LINES:]
+    lines.append(HOLD_POWER)
+    return "\n".join(lines) + "\n"
+
+
 class System:
     """The live system on the stick."""
 
@@ -268,6 +326,11 @@ class System:
     def poweroff(self):
         subprocess.call(["systemctl", "poweroff"])
 
+    def record_error(self, text):
+        os.makedirs(os.path.dirname(ERROR_FILE), exist_ok=True)
+        with open(ERROR_FILE, "w", encoding="utf-8") as f:
+            f.write(text)
+
 
 def iso_yaml(console: str) -> str:
     # Probe 6: v87 copies the line as written (no ${...}); the squashfs carries no
@@ -280,10 +343,21 @@ def iso_yaml(console: str) -> str:
 
 def unit(console: str) -> str:
     # Probe 6d, run 1: a getty on the same console hangs it up; the stick masks them.
-    return ("[Unit]\nDescription=%s\nAfter=multi-user.target\n\n[Service]\nType=oneshot\n"
+    return ("[Unit]\nDescription=%s\nAfter=multi-user.target\nOnFailure=rikuri-installer-failed.service\n\n"
+            "[Service]\nType=oneshot\n"
             "ExecStart=/usr/bin/python3 -I /usr/lib/rikuri-installer/rikuri_install.py\n"
             "StandardInput=tty\nStandardOutput=tty\nStandardError=tty\nTTYPath=/dev/%s\n"
             "TTYReset=yes\nTTYVHangup=yes\n\n[Install]\nWantedBy=multi-user.target\n" % (TITLE, console))
+
+
+def failed_unit() -> str:
+    # Started only by the installer unit's OnFailure=. It reads nothing and leaves the
+    # screen as it wrote it, so the person can photograph why the installer stopped.
+    # /dev/console (the stick's console= line: the screen, or ttyS0 in CI) needs no TTY set
+    # up, so it shows even when systemd could not set up the installer's own.
+    return ("[Unit]\nDescription=%s: why it stopped\n\n[Service]\nType=oneshot\n"
+            "ExecStart=/usr/bin/python3 -I /usr/lib/rikuri-installer/rikuri_install.py show-failure\n"
+            "StandardOutput=journal+console\nStandardError=journal+console\n" % TITLE)
 
 
 def configure(console: str, target: str, root: str) -> None:
@@ -293,6 +367,7 @@ def configure(console: str, target: str, root: str) -> None:
     files = {
         "usr/lib/image-builder/bootc/iso.yaml": iso_yaml(console),
         "usr/lib/systemd/system/rikuri-installer.service": unit(console),
+        "usr/lib/systemd/system/rikuri-installer-failed.service": failed_unit(),
         CONF.lstrip("/"): json.dumps({"target": target, "kargs": CONSOLES[console][1]}) + "\n",
     }
     for rel, text in files.items():
@@ -312,8 +387,11 @@ def main(argv) -> int:
         a = p.parse_args(argv[1:])
         configure(a.console, a.target, a.root)
         return 0
+    if argv[:1] == ["show-failure"]:
+        print(show_failure(read_error(), unit_journal()), end="", flush=True)
+        return 0
     subprocess.call(["dmesg", "-n", "1"])   # kernel messages off the console while it asks
-    return run(System())
+    return guarded(System())
 
 
 if __name__ == "__main__":
