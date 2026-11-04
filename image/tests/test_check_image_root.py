@@ -330,6 +330,11 @@ class CheckImageRoot(unittest.TestCase):
         self.assertFinds("etc/sysusers.d/rikuri-containers.conf: overrides",
                          cir.check_containers_user(self.root.path))
 
+    def test_containers_user_overridden_in_run(self):
+        self.root.write("run/sysusers.d/rikuri-containers.conf", "")
+        self.assertFinds("run/sysusers.d/rikuri-containers.conf: overrides",
+                         cir.check_containers_user(self.root.path))
+
     def test_the_whole_check_requires_the_user(self):
         self.root.remove(CONTAINERS_USER)
         self.assertTrue(any(f.startswith(CONTAINERS_USER + ": missing")
