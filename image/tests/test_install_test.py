@@ -37,10 +37,13 @@ class StickArgv(unittest.TestCase):
         a = self.argv
         self.assertIn("-enable-kvm", a)
         self.assertEqual(a[a.index("-nic") + 1], "none")
-        self.assertIn("-no-reboot", a)
+        self.assertNotIn("-no-reboot", a)   # only a power-off ends it; a restart boots the stick again
         drives = [a[i + 1] for i, x in enumerate(a) if x == "-drive"]
         self.assertTrue(any(it.OVMF_CODE in x and "readonly=on" in x for x in drives))
         self.assertTrue(any("file=/w/vars.fd" in x and "readonly" not in x for x in drives))
+
+    def test_the_disk_alone_still_ends_at_a_restart(self):
+        self.assertIn("-no-reboot", it.disk_argv("/w/b.raw", "/w/vars.fd", "/w/b.log"))
 
     def test_the_stick_is_a_removable_read_only_usb_disk(self):
         a = self.argv
