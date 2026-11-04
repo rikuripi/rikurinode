@@ -14,6 +14,8 @@ Record: docs/build-records/2026-10-29-install-media.md
 """
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import os
 import re
@@ -76,7 +78,7 @@ class Machine:
         self.devices, self.live, self.answer, self.imgs = devices, live, answer, imgs
         self.install_rc, self.conf_text = install_rc, conf
         self.said, self.installs, self.events, self.storage = [], [], [], None
-        self.asked = []
+        self.asked, self.errors = [], []
 
     def conf(self):
         return self.conf_text
@@ -118,8 +120,121 @@ class Machine:
     def poweroff(self):
         self.events.append("poweroff")
 
+    def record_error(self, text):
+        self.errors.append(text)
+
     def text(self):
         return "\n".join(self.said)
+
+
+class Unexpected(unittest.TestCase):
+    """An error the installer does not expect is shown, kept, and ends like every stop."""
+
+    def machine(self):
+        m = Machine()
+        m.lsblk = lambda: "[]"   # N5: lsblk's JSON not an object; boot_disk raises AttributeError
+        return m
+
+    def test_it_is_shown_kept_and_powers_off(self):
+        m = self.machine()
+        self.assertEqual(ri.guarded(m), 8)
+        self.assertIn(ri.UNEXPECTED, m.said)
+        self.assertTrue(any(s.strip().startswith("AttributeError:") for s in m.said), m.said)
+        self.assertEqual(m.said[-1], ri.POWER_OFF)
+        self.assertEqual(m.events[-2:], ["enter", "poweroff"])
+        self.assertEqual(len(m.errors), 1)
+        self.assertIn("Traceback", m.errors[0])
+        self.assertIn("AttributeError", m.errors[0])
+        self.assertEqual(m.installs, [])
+
+    def test_it_is_kept_before_it_is_shown(self):
+        m = self.machine()
+        def say(text):
+            if text == ri.TITLE:
+                m.said.append(text)
+                return
+            raise OSError(5, "Input/output error")   # the screen hung up
+        m.say = say
+        self.assertEqual(ri.guarded(m), 8)            # never raises
+        self.assertEqual(len(m.errors), 1)
+        self.assertNotIn("poweroff", m.events)        # the unit then fails, and its OnFailure unit shows it
+
+    def test_a_failure_to_keep_it_still_shows_it(self):
+        m = self.machine()
+        def record_error(text):
+            raise OSError(30, "Read-only file system")
+        m.record_error = record_error
+        self.assertEqual(ri.guarded(m), 8)
+        self.assertIn(ri.UNEXPECTED, m.said)
+        self.assertEqual(m.events[-2:], ["enter", "poweroff"])
+
+    def test_expected_stops_and_the_install_are_unchanged(self):
+        m = Machine(answer="no")
+        self.assertEqual(ri.guarded(m), 6)
+        self.assertNotIn(ri.UNEXPECTED, m.said)
+        self.assertEqual(m.errors, [])
+        m = Machine()
+        self.assertEqual(ri.guarded(m), 0)
+        self.assertEqual(m.events, ["sleep 15", "poweroff"])
+        self.assertEqual(m.errors, [])
+
+    def test_the_message_says_what_to_do(self):
+        for words in ("unexpected error", "Installing", "nothing was erased", "photo"):
+            with self.subTest(words=words):
+                self.assertIn(words, ri.UNEXPECTED)
+
+    def test_the_stick_runs_the_installer_guarded(self):
+        with mock.patch.object(ri, "guarded", return_value=8) as g, mock.patch.object(ri.subprocess, "call"):
+            self.assertEqual(ri.main([]), 8)
+        self.assertIsInstance(g.call_args.args[0], ri.System)
+
+    def test_the_error_file_is_the_installers_own(self):
+        self.assertEqual(ri.ERROR_FILE, "/run/rikuri-installer/error.txt")
+
+
+class ShowFailure(unittest.TestCase):
+    """rikuri-installer-failed.service: what the screen shows when the installer's unit failed."""
+
+    def test_it_shows_the_error_and_the_units_log(self):
+        journal = "\n".join("line %d" % i for i in range(1, 51)) + "\n"
+        text = ri.show_failure("Traceback (most recent call last):\nAttributeError: 'list' object\n", journal)
+        self.assertTrue(text.startswith(ri.SHOW_FAILURE + "\n"))
+        self.assertIn("AttributeError: 'list' object", text)
+        self.assertIn("line 50", text)
+        self.assertIn("line %d" % (51 - ri.JOURNAL_LINES), text)
+        self.assertNotIn("line %d\n" % (50 - ri.JOURNAL_LINES), text)
+        self.assertTrue(text.rstrip().endswith(ri.HOLD_POWER))
+
+    def test_without_an_error_file_it_still_shows_the_log(self):
+        text = ri.show_failure("", "Failed to set up standard input: No such device\n")
+        self.assertIn(ri.NO_ERROR_FILE, text)
+        self.assertIn("Failed to set up standard input", text)
+
+    def test_the_message_says_what_to_do(self):
+        for words in ("unexpected error", "Installing", "nothing was erased", "photo"):
+            with self.subTest(words=words):
+                self.assertIn(words, ri.SHOW_FAILURE)
+        self.assertIn("hold the power button", ri.HOLD_POWER)
+
+    def test_the_command_reads_the_file_and_the_units_log(self):
+        out = io.StringIO()
+        with mock.patch.object(ri, "read_error", return_value="E\n"), \
+                mock.patch.object(ri, "unit_journal", return_value="J\n"), contextlib.redirect_stdout(out):
+            self.assertEqual(ri.main(["show-failure"]), 0)
+        self.assertEqual(out.getvalue(), ri.show_failure("E\n", "J\n"))
+
+    def test_the_units_log_is_the_installers(self):
+        with mock.patch.object(ri.subprocess, "run") as run:
+            run.return_value.stdout = "J\n"
+            self.assertEqual(ri.unit_journal(), "J\n")
+        self.assertEqual(run.call_args.args[0],
+                         ["journalctl", "-b", "-o", "cat", "--no-pager", "-u", "rikuri-installer.service"])
+
+    def test_a_missing_journal_or_file_is_not_an_error(self):
+        with mock.patch.object(ri.subprocess, "run", side_effect=OSError(2, "No such file")):
+            self.assertEqual(ri.unit_journal(), "")
+        with mock.patch.object(ri, "ERROR_FILE", "/nonexistent/rikuri/error.txt"):
+            self.assertEqual(ri.read_error(), "")
 
 
 class Candidates(unittest.TestCase):
@@ -498,6 +613,20 @@ class Configure(unittest.TestCase):
         self.assertIn("TTYVHangup=yes", unit)
         self.assertIn("ExecStart=/usr/bin/python3 -I /usr/lib/rikuri-installer/rikuri_install.py", unit)
         self.assertIn("WantedBy=multi-user.target", unit)
+
+    def test_a_failed_installer_starts_the_unit_that_shows_why(self):
+        for console in ("tty1", "ttyS0"):
+            with self.subTest(console=console):
+                f = self.files(console)
+                self.assertIn("\nOnFailure=rikuri-installer-failed.service\n",
+                              f["usr/lib/systemd/system/rikuri-installer.service"])
+                shown = f["usr/lib/systemd/system/rikuri-installer-failed.service"]
+                self.assertIn("ExecStart=/usr/bin/python3 -I /usr/lib/rikuri-installer/rikuri_install.py show-failure\n",
+                              shown)
+                self.assertIn("StandardOutput=tty\n", shown)
+                self.assertIn("TTYPath=/dev/%s\n" % console, shown)
+                for absent in ("StandardInput=tty", "TTYReset", "TTYVHangup", "OnFailure", "WantedBy"):
+                    self.assertNotIn(absent, shown)   # it reads nothing, keeps the screen, starts only on failure
 
     def test_refuses_another_console_or_target(self):
         for console in ("tty2", "ttyS1", "", "tty1 quiet"):
