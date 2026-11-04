@@ -185,9 +185,15 @@ class Unexpected(unittest.TestCase):
         self.assertEqual(m.errors, [])
 
     def test_the_message_says_what_to_do(self):
-        for words in ("unexpected error", "Installing", "nothing was erased", "photo"):
+        for words in ("unexpected error", "Installing", "nothing was erased", "may be partly erased", "photo"):
             with self.subTest(words=words):
                 self.assertIn(words, ri.UNEXPECTED)
+
+    def test_the_kept_error_is_the_one_shown(self):
+        d = tempfile.mkdtemp()
+        with mock.patch.object(ri, "ERROR_FILE", os.path.join(d, "rikuri-installer", "error.txt")):
+            ri.System().record_error("Traceback\nAttributeError: x\n")
+            self.assertEqual(ri.read_error(), "Traceback\nAttributeError: x\n")
 
     def test_the_stick_runs_the_installer_guarded(self):
         with mock.patch.object(ri, "guarded", return_value=8) as g, mock.patch.object(ri.subprocess, "call"):
@@ -624,14 +630,17 @@ class Configure(unittest.TestCase):
         for console in ("tty1", "ttyS0"):
             with self.subTest(console=console):
                 f = self.files(console)
-                self.assertIn("\nOnFailure=rikuri-installer-failed.service\n",
-                              f["usr/lib/systemd/system/rikuri-installer.service"])
+                installer = f["usr/lib/systemd/system/rikuri-installer.service"]
+                self.assertIn("\nOnFailure=rikuri-installer-failed.service\n", installer)
+                self.assertLess(installer.index("OnFailure="), installer.index("[Service]"))   # in [Unit], or ignored
                 shown = f["usr/lib/systemd/system/rikuri-installer-failed.service"]
                 self.assertIn("ExecStart=/usr/bin/python3 -I /usr/lib/rikuri-installer/rikuri_install.py show-failure\n",
                               shown)
-                self.assertIn("StandardOutput=tty\n", shown)
-                self.assertIn("TTYPath=/dev/%s\n" % console, shown)
-                for absent in ("StandardInput=tty", "TTYReset", "TTYVHangup", "OnFailure", "WantedBy"):
+                # /dev/console needs no TTY set up, so it shows even when the installer's own TTY failed
+                self.assertIn("StandardOutput=journal+console\n", shown)
+                self.assertIn("StandardError=journal+console\n", shown)
+                for absent in ("StandardInput=tty", "TTYPath", "TTYReset", "TTYVHangup", "OnFailure", "WantedBy",
+                               "DefaultDependencies"):
                     self.assertNotIn(absent, shown)   # it reads nothing, keeps the screen, starts only on failure
 
     def test_refuses_another_console_or_target(self):

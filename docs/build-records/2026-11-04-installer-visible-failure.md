@@ -56,3 +56,18 @@
   - no `OnFailure=`; the failed unit not written; the failed unit resetting the screen;
   - the whole journal shown; no `NO_ERROR_FILE`; no `HOLD_POWER`; the other unit's journal; `unit_journal` or `read_error` raising; `show-failure` printing nothing; the catch narrowed to `OSError`.
 - **Not yet proven:** that `OnFailure=` starts and shows on the live system (CI's install test produces no failure), and what the N150 then shows (the owner's boot of a stick published from this change).
+
+## Verifier, round 1, and a repair before merge
+
+- **Verifier, one pass** (on `ac02c47`): **PASS, no Important finding.** The full gate and the OS image workflow were not yet seen. It reran red and green; ran the real entry point in rikuri-drill (an unexpected error kept and shown; `show-failure` printing it); and ran `systemd-analyze verify` on both units with no warning. It tried 17 mutants: 8 killed, 9 survived (one nit, at the routine tier). Its nits:
+  1. the survivors: `OnFailure=` moved into `[Service]` (systemd ignores it there); the writer and the reader of the error file not tested together; the failed unit's output setting not pinned;
+  2. wording: `UNEXPECTED` says nothing about an erase that had begun, and the runbook's "Every stop below erases nothing" now precedes a paragraph that allows one;
+  3. **the failed unit used the same `TTYPath=/dev/tty1`.** If the N150's fault is the installer unit's TTY setup, the failed unit may fail the same way, and the failure stays silent;
+  4. the exit code can be 120, not 8 (Python's flush at shutdown); `dmesg -n 1` runs outside `guarded`; an expected stop whose `systemctl poweroff` fails would show the failed unit's "unexpected error" text;
+  5. a long traceback plus 20 log lines can scroll the heading off a 25-row screen.
+- **Repaired before merge, because nit 3 defeats the task's own outcome** (the next boot must name the cause), with nits 1 and 2 that guard it. Nits 4 and 5, and the verifier's backlog note (`describe()` prints the model and serial raw), go to the backlog.
+- **Test changes after the fix commit, and why:**
+  - `test_a_failed_installer_starts_the_unit_that_shows_why`: `StandardOutput=tty` and `TTYPath=/dev/<console>` become `StandardOutput=journal+console` and `StandardError=journal+console`, with `TTYPath` and `DefaultDependencies` now required absent. This follows nit 3: `/dev/console` needs no TTY set up for the unit. It also now requires `OnFailure=` to come before `[Service]`, in `[Unit]` (nit 1).
+  - `Unexpected.test_the_message_says_what_to_do` also requires "may be partly erased" (nit 2).
+  - New: `test_the_kept_error_is_the_one_shown`, `System.record_error` then `read_error` in a temporary folder (nit 1). It passes on the fix, because the code was already right.
+- **Red** (against `ac02c47`): `test_installer.py` `Ran 68 tests` `FAILED (failures=3)`: `'StandardOutput=journal+console\n' not found` (tty1 and ttyS0) and `'may be partly erased' not found`.
