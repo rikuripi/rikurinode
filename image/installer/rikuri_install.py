@@ -13,7 +13,8 @@ Enter. Then it installs
 the node image the stick carries, read-only, with the image's own `bootc
 install to-disk`, under the fixed name `TARGET` the node updates from, and
 writes the node's entry into the firmware. Every refusal, and a failed
-install, erases nothing more and waits for Enter to power off. It never
+install, erases nothing more and waits for Enter to power off. A good install
+powers off by itself, so the machine never starts the stick again. It never
 chooses between disks itself: no internal disk, a number not listed, or a
 stick it cannot find, end the same way.
 
@@ -43,7 +44,7 @@ LABEL = "RIKURI-NODE"
 REPO = "ghcr.io/rikuripi/rikurinode"
 CONSOLES = {"tty1": ("console=tty0 quiet", []), "ttyS0": ("console=ttyS0", ["console=ttyS0"])}
 CONFIRM = "ERASE"
-RESTART_AFTER_S = 15
+POWER_OFF_AFTER_S = 15   # time to read INSTALLED; then it powers off, so it never starts the stick again
 
 TITLE = "Rikuri Node installer"
 ERASE_THIS = "This disk will be erased, and everything on it lost:"
@@ -57,7 +58,8 @@ DAMAGED = "This USB stick is damaged or incomplete. Nothing was erased. Write th
 INSTALLING = "Installing. This takes a few minutes; do not power off."
 FAILED = ("The install failed. The disk may be partly erased; nothing else was changed. "
           "Power off, then start again from the stick.")
-INSTALLED = "Rikuri Node is installed. Remove the USB stick now. The machine restarts in 15 seconds."
+INSTALLED = ("Rikuri Node is installed. This machine powers off in 15 seconds. "
+             "Then remove the USB stick and press the power button to start the node.")
 POWER_OFF = "Press Enter to power off."
 
 
@@ -217,8 +219,8 @@ def run(m) -> int:
         _stop(m, FAILED)
         return 7
     m.say(INSTALLED)
-    m.sleep(RESTART_AFTER_S)
-    m.reboot()
+    m.sleep(POWER_OFF_AFTER_S)
+    m.poweroff()
     return 0
 
 
@@ -262,9 +264,6 @@ class System:
 
     def sleep(self, seconds):
         time.sleep(seconds)
-
-    def reboot(self):
-        subprocess.call(["systemctl", "reboot"])
 
     def poweroff(self):
         subprocess.call(["systemctl", "poweroff"])
