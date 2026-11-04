@@ -159,6 +159,12 @@ class Unexpected(unittest.TestCase):
         self.assertEqual(len(m.errors), 1)
         self.assertNotIn("poweroff", m.events)        # the unit then fails, and its OnFailure unit shows it
 
+    def test_it_is_kept_before_it_waits_for_enter(self):
+        m = self.machine()
+        m.record_error = lambda text: m.events.append("kept")
+        ri.guarded(m)
+        self.assertEqual(m.events, ["kept", "enter", "poweroff"])   # kept even if no one presses Enter
+
     def test_a_failure_to_keep_it_still_shows_it(self):
         m = self.machine()
         def record_error(text):

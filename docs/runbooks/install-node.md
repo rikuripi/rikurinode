@@ -96,6 +96,11 @@ Every stop below erases nothing; press Enter to power off.
 | This USB stick is damaged or incomplete. | Write the stick again from the checked file. |
 | Nothing was erased. | Something other than a listed number, or other than `ERASE` in capitals (`Erase` stops too), was typed. Start again to install. |
 
+**The installer stopped on an unexpected error.** It shows the error under that
+line. If it had not yet said **Installing**, nothing was erased. Take a photo
+of the whole screen and report it, then follow the last line: press Enter, or
+hold the power button until the N150 is off.
+
 One stop can follow an erase: **The install failed. The disk may be partly
 erased; nothing else was changed.** Power off, start again from the stick, and
 report what the screen showed above that line.

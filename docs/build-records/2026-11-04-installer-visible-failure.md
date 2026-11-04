@@ -43,3 +43,16 @@
   - the errors: `no attribute 'guarded'`, `'UNEXPECTED'`, `'SHOW_FAILURE'`, `'HOLD_POWER'`, `'show_failure'`, `'unit_journal'`, `'read_error'` and `'ERROR_FILE'`;
   - the failures: `'\nOnFailure=rikuri-installer-failed.service\n' not found` in the unit, on `tty1` and on `ttyS0`.
   - Test changes: only additions (two classes, one `Configure` test, and `Machine.record_error` with its list), and no existing assertion changed.
+- **Fix** (its own commit):
+  - `rikuri_install.py`:
+    - `guarded(m)` runs the install. On an error it does not expect, it keeps the traceback in `ERROR_FILE` (`System.record_error`) first, then shows `UNEXPECTED` and the error's last line, then `POWER_OFF`, Enter, and power-off. If keeping or showing fails, it carries on, and it returns 8 without raising. `main` runs `guarded(System())`.
+    - `show-failure` prints `show_failure(read_error(), unit_journal())`: the message, the kept error (or `NO_ERROR_FILE`), the last `JOURNAL_LINES` (20) lines of `journalctl -b -o cat --no-pager -u rikuri-installer.service`, and `HOLD_POWER`.
+    - `unit()` gains `OnFailure=rikuri-installer-failed.service`; `failed_unit()` writes on the same console, reads nothing, keeps the screen, and has no `[Install]`. `configure` writes it.
+  - Runbook `install-node.md`, "When it stops": what the new message means, and what to do.
+- **A test added after the red commit, and why:** `test_it_is_kept_before_it_waits_for_enter`. The mutant that shows the error before keeping it survived every test, because the red tests checked only that the error was kept. The order matters: on a screen that waits for Enter, the error must already be kept, in case no one presses it. The new test fails on that mutant (`Ran 67 tests` `FAILED (failures=1)`) and passes on the fix. No other test changed.
+- **Green** (rikuri-drill, `safe-run.sh`): `image/tests` `Ran 388 tests` `OK`; `.claude/hooks` `Ran 91 tests` `OK`; `scripts/quality/tests` `Ran 156 tests`, with only the 7 known `git` errors (Not yet proven locally; CI's gate). `git diff --check`: clean.
+- **Hand mutants: 18 of 18 red** (17 at first, then the one survivor above, after the added test). The mutants:
+  - `main` unguarded; no record; a failure to record not caught; no error line; the show not caught; a return of 0; the show before the record;
+  - no `OnFailure=`; the failed unit not written; the failed unit resetting the screen;
+  - the whole journal shown; no `NO_ERROR_FILE`; no `HOLD_POWER`; the other unit's journal; `unit_journal` or `read_error` raising; `show-failure` printing nothing; the catch narrowed to `OSError`.
+- **Not yet proven:** that `OnFailure=` starts and shows on the live system (CI's install test produces no failure), and what the N150 then shows (the owner's boot of a stick published from this change).
