@@ -134,6 +134,13 @@ SUBID_TARGETS = ("../rikuri-containers-subid.service", "/" + SUBID_UNIT)
 # greenboot's wanted check of it: logged at every boot, never a rollback, since
 # no image can repair /etc (docs/build-records/2026-10-24-greenboot-subid-wanted.md).
 SUBID_WANTED = "usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid"
+# shadow-utils 4.20 (Fedora 45) finds no subuid range for a name that is not a user, so
+# Podman's `containers` range needs a user of that name: one locked system user, made by
+# systemd-sysusers at boot, no password, shell or home of its own (probe f45-podman,
+# docs/build-records/2026-11-03-fedora-45.md). Exactly this entry, never one in /etc.
+CONTAINERS_USER = "usr/lib/sysusers.d/rikuri-containers.conf"
+CONTAINERS_USER_LINES = ['u! containers - "Podman\'s range of container user IDs; no login" - -']
+CONTAINERS_USER_OVERRIDES = ("etc/sysusers.d/rikuri-containers.conf", "run/sysusers.d/rikuri-containers.conf")
 # The one form of a line read alike by greenboot and this check (the docstring).
 PRINTABLE_LINE = re.compile(rb"^[\x20-\x7e]*$")
 # Quadlet's rootful unit folders an image can ship (podman-systemd.unit(5); /run is not in one).
@@ -455,6 +462,24 @@ def check_containers_subid(root: str) -> list:
     return found
 
 
+def check_containers_user(root: str) -> list:
+    data = _read_bytes(root, CONTAINERS_USER)
+    if data is None:
+        return ["%s: missing, or not a regular file (no UserNS=auto container would start on "
+                "Fedora 45)" % CONTAINERS_USER]
+    found = []
+    lines = [line for line in data.decode("utf-8", "replace").splitlines()
+             if line.strip() and not line.startswith("#")]
+    if lines != CONTAINERS_USER_LINES:
+        found.append("%s: not exactly %r (comments in column 0 and blank lines aside)"
+                     % (CONTAINERS_USER, CONTAINERS_USER_LINES))
+    for rel in CONTAINERS_USER_OVERRIDES:
+        problem = _override_problem(root, rel, "overrides the user's entry on every node")
+        if problem:
+            found.append("%s: %s" % (rel, problem))
+    return found
+
+
 def secret_forms(rel: str, data: bytes) -> list:
     """Why a file's contents may not be in a public image, if they may not."""
     found = []
@@ -696,7 +721,8 @@ def check_signature_policy(root: str) -> list:
 
 def check_root(root: str, release: str, note=lambda line: None) -> list:
     return (check_os_release(root, release) + check_greenboot(root) + check_unapplied_update(root)
-            + check_trigger_at_shutdown(root) + check_containers_subid(root) + check_subid_wanted(root)
+            + check_trigger_at_shutdown(root) + check_containers_subid(root) + check_containers_user(root)
+            + check_subid_wanted(root)
             + check_quadlet_health(root) + check_signature_policy(root) + check_no_private_keys(root, note))
 
 
