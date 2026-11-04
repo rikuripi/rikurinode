@@ -22,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 INSTALLER = os.path.join(HERE, os.pardir, "installer")
@@ -226,6 +227,14 @@ class InstallArgv(unittest.TestCase):
     def test_no_kargs_on_the_stick(self):
         self.assertNotIn("--karg", ri.install_argv(IMAGE_ID, TARGET, [], "/dev/nvme0n1"))
 
+    def test_bootc_reads_the_installers_storage_file(self):
+        # Podman 6.1.3 (Fedora 45) leaves /etc/containers/storage.conf unread (probe f45-podman, run 2),
+        # so the file is named to podman, and to bootc inside the container, by the variable.
+        a = self.argv
+        envs = [a[i + 1] for i, x in enumerate(a) if x == "-e"]
+        self.assertEqual(envs, ["CONTAINERS_STORAGE_CONF=" + ri.STORAGE_CONF])
+        self.assertLess(a.index("-e"), a.index(IMAGE_ID))
+
 
 class StorageConf(unittest.TestCase):
     def test_podmans_store_in_memory_the_sticks_read_only_beside_it(self):
@@ -233,6 +242,37 @@ class StorageConf(unittest.TestCase):
         self.assertIn('graphroot = "/run/containers/storage"', text)
         self.assertIn('additionalimagestores = ["/var/lib/containers/storage"]', text)
         self.assertIn('driver = "overlay"', text)
+
+    def test_the_file_is_the_installers_own_not_fedoras(self):
+        # Fedora 45 reads /usr/share/containers/storage.conf.d and ignores this name; a path of the
+        # installer's own cannot be mistaken for, or merged with, Fedora's.
+        self.assertEqual(ri.STORAGE_CONF, "/run/rikuri-installer/storage.conf")
+
+
+class SystemPodman(unittest.TestCase):
+    """The live system's own podman calls name the installer's storage file."""
+
+    def calls(self):
+        seen = []
+
+        def record(argv, **kw):
+            seen.append((argv, kw))
+            return mock.Mock(returncode=0, stdout="[]")
+        with mock.patch.object(ri.subprocess, "run", side_effect=record), \
+                mock.patch.object(ri.subprocess, "call", side_effect=lambda argv, **kw: record(argv, **kw).returncode):
+            ri.System().images()
+            ri.System().install(["podman", "run", "--rm", IMAGE_ID])
+        return seen
+
+    def test_images_and_the_install_read_the_installers_storage_file(self):
+        seen = self.calls()
+        self.assertEqual([argv[0] for argv, _ in seen], ["podman", "podman"])
+        for argv, kw in seen:
+            with self.subTest(argv=argv[:2]):
+                env = kw.get("env")
+                self.assertIsNotNone(env)
+                self.assertEqual(env["CONTAINERS_STORAGE_CONF"], ri.STORAGE_CONF)
+                self.assertEqual(env.get("PATH"), os.environ.get("PATH"))
 
 
 class Run(unittest.TestCase):

@@ -35,7 +35,9 @@ import time
 CONF = "/usr/lib/rikuri-installer/installer.json"
 STICK_STORE = "/var/lib/containers/storage"
 WORK_STORE = "/run/containers/storage"
-STORAGE_CONF = "/etc/containers/storage.conf"
+# The installer's own file, named to podman by CONTAINERS_STORAGE_CONF: Podman 6 (Fedora 45) leaves
+# /etc/containers/storage.conf unread (probe f45-podman, docs/build-records/2026-11-03-fedora-45.md).
+STORAGE_CONF = "/run/rikuri-installer/storage.conf"
 LIVE = "/run/initramfs/live"
 LABEL = "RIKURI-NODE"
 REPO = "ghcr.io/rikuripi/rikurinode"
@@ -142,6 +144,11 @@ def image_ids(text: str) -> list:
     return [i["Id"] for i in json.loads(text)]
 
 
+def podman_env() -> dict:
+    """The environment of the installer's podman calls: its own, plus the storage file."""
+    return dict(os.environ, CONTAINERS_STORAGE_CONF=STORAGE_CONF)
+
+
 def install_argv(image_id: str, target: str, kargs: list, disk: str) -> list:
     # No --generic-image: bootupd writes the node's entry into the firmware, or the
     # disk alone falls to the firmware's shell (probe 6d, run 2).
@@ -150,6 +157,7 @@ def install_argv(image_id: str, target: str, kargs: list, disk: str) -> list:
             "-v", "/dev:/dev", "-v", "/run/containers:/run/containers",
             "-v", STICK_STORE + ":" + STICK_STORE + ":ro", "-v", STORAGE_CONF + ":" + STORAGE_CONF + ":ro",
             "-v", "/sys/firmware/efi/efivars:/sys/firmware/efi/efivars",
+            "-e", "CONTAINERS_STORAGE_CONF=" + STORAGE_CONF,
             image_id, "bootc", "install", "to-disk", "--skip-fetch-check", "--wipe", "--filesystem", "ext4",
             "--target-imgref", target]
     for karg in kargs:
@@ -229,7 +237,7 @@ class System:
 
     def images(self):
         return subprocess.run(["podman", "images", "--format", "json"], check=True, capture_output=True,
-                              text=True).stdout
+                              text=True, env=podman_env()).stdout
 
     def lsblk(self):
         return subprocess.run(["lsblk", "-J", "-b", "-o", "NAME,PATH,TYPE,RM,RO,SIZE,MODEL,SERIAL,TRAN"],
@@ -250,7 +258,7 @@ class System:
         sys.stdin.readline()
 
     def install(self, argv):
-        return subprocess.call(argv)
+        return subprocess.call(argv, env=podman_env())
 
     def sleep(self, seconds):
         time.sleep(seconds)

@@ -31,6 +31,7 @@ SUBID_UNIT = "usr/lib/systemd/system/rikuri-containers-subid.service"
 SUBID_WANTS = "usr/lib/systemd/system/sysinit.target.wants/rikuri-containers-subid.service"
 # greenboot's wanted check of it (docs/build-records/2026-10-24-greenboot-subid-wanted.md).
 SUBID_WANTED = "usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid"
+CONTAINERS_USER = "usr/lib/sysusers.d/rikuri-containers.conf"
 # The signature policy for the node's OS image (docs/build-records/2026-10-25-signature-policy.md).
 POLICY = "etc/containers/policy.json"
 REGISTRIES_D_FILE = "etc/containers/registries.d/rikuri.yaml"
@@ -133,6 +134,8 @@ class Root:
             self.link(SUBID_WANTS, "../rikuri-containers-subid.service")
         if os.path.exists(os.path.join(HERE, "..", "rootfs", SUBID_WANTED)):
             self.write_bytes(SUBID_WANTED, shipped_file(SUBID_WANTED), mode=0o755)
+        if os.path.exists(os.path.join(HERE, "..", "rootfs", CONTAINERS_USER)):
+            self.write_bytes(CONTAINERS_USER, shipped_file(CONTAINERS_USER))
         for rel in SIGNATURE_FILES:
             self.write_bytes(rel, shipped_file(rel))
         self.write("etc/ssh/sshd_config", "PermitRootLogin no\n")
@@ -292,6 +295,45 @@ class CheckImageRoot(unittest.TestCase):
             with self.subTest(why=why):
                 self.root.write(TRIGGER_DROPIN, text)
                 self.assertFinds(TRIGGER_DROPIN + ": does not order")
+
+    # --- the user `containers` exists (shadow-utils 4.20, Fedora 45) ----------
+    # Probe f45-podman, run 3: without a user of that name, Podman 6.1.3 finds no range for
+    # `containers` in /etc/subuid, and no UserNS=auto container starts.
+    def test_shipped_containers_user_passes(self):
+        self.assertEqual(cir.check_containers_user(self.root.path), [])
+
+    def test_the_shipped_entry_is_one_locked_system_user(self):
+        lines = [l for l in shipped_file(CONTAINERS_USER).decode("utf-8").splitlines()
+                 if l.strip() and not l.startswith("#")]
+        self.assertEqual(lines, ['u! containers - "Podman\'s range of container user IDs; no login" - -'])
+
+    def test_containers_user_missing(self):
+        self.root.remove(CONTAINERS_USER)
+        self.assertFinds(CONTAINERS_USER + ": missing", cir.check_containers_user(self.root.path))
+        self.root.link(CONTAINERS_USER, "/dev/null")
+        self.assertFinds(CONTAINERS_USER + ": missing", cir.check_containers_user(self.root.path))
+
+    def test_containers_user_any_other_entry(self):
+        for why, text in (("not locked", 'u containers - "Podman\'s range of container user IDs; no login" - -\n'),
+                          ("another name", 'u! container - "Podman\'s range of container user IDs; no login" - -\n'),
+                          ("a fixed ID", 'u! containers 1000 "Podman\'s range of container user IDs; no login" - -\n'),
+                          ("a shell", 'u! containers - "x" - /bin/bash\n'),
+                          ("a range too", 'u! containers - "Podman\'s range of container user IDs; no login" - -\n'
+                                          'r - 100000-200000\n'),
+                          ("empty", "")):
+            with self.subTest(why=why):
+                self.root.write(CONTAINERS_USER, text)
+                self.assertFinds(CONTAINERS_USER + ": not exactly", cir.check_containers_user(self.root.path))
+
+    def test_containers_user_overridden_in_etc(self):
+        self.root.write("etc/sysusers.d/rikuri-containers.conf", "")
+        self.assertFinds("etc/sysusers.d/rikuri-containers.conf: overrides",
+                         cir.check_containers_user(self.root.path))
+
+    def test_the_whole_check_requires_the_user(self):
+        self.root.remove(CONTAINERS_USER)
+        self.assertTrue(any(f.startswith(CONTAINERS_USER + ": missing")
+                            for f in cir.check_root(self.root.path, "44")))
 
     # --- the containers range is kept at every boot (UserNS=auto) ------------
     def test_shipped_subid_files_pass(self):

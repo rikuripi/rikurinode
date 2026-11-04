@@ -1,12 +1,13 @@
 # The node's operating system: Fedora IoT as a bootable container image (bootc),
 # built and checked by .github/workflows/image.yml. The node never builds it.
 #
-# Base: Fedora IoT 44 for x86_64 (44.20261012.0), pinned by digest on
+# Base: Fedora IoT 45 for x86_64 (45.20261031.0), pinned by digest on
 # registry.fedoraproject.org, which keeps old digests (quay.io drops them within
-# days). 44 while the pipeline is built; 45 after its release and a soak (plan
-# §2). The expected release is checked by image/check_image_root.py.
+# days). 45 from its release (owner, 2026-11-03; plan §2). The expected release
+# is checked by image/check_image_root.py (FEDORA_RELEASE in the workflows).
+# Record of the move: docs/build-records/2026-11-03-fedora-45.md
 # Record: docs/build-records/2026-10-12-stage1-os-image.md
-FROM registry.fedoraproject.org/fedora-iot@sha256:29d16f4ccc5c86c84ba21aca0b7dcabfc4ecb2a79c9e51810f7838695f6be1c3
+FROM registry.fedoraproject.org/fedora-iot@sha256:cf93fd12bb7b65b12e80823566517d1cf10d288278050ecf7ff3521ae1a62af8
 
 # Host configuration the node relies on; each file is asserted by the check.
 COPY rootfs/ /
