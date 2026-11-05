@@ -202,6 +202,27 @@ class WhatTheDiskHolds(unittest.TestCase):
         self.refused({"origin": self.ORIGIN, "digest": "error: No such metadata key\n"})
 
 
+# From CI's console log of the Fedora 45 stick (#65's install evidence, no-console.log).
+KMSCON = "[  OK  ] Started kmsconvt@tty1.service - KMS System Console on tty1.\n"
+
+
+class ScreenLogins(unittest.TestCase):
+    """A login service started on the screen's console takes it from the installer (SIGHUP)."""
+
+    def test_kmscon_getty_and_autovt_on_tty1(self):
+        self.assertEqual(it.screen_logins(KMSCON), ["kmsconvt@tty1.service"])
+        self.assertEqual(it.screen_logins("[  OK  ] Started getty@tty1.service - Getty on tty1.\n"
+                                          "[  OK  ] Started autovt@tty1.service - Getty on tty1.\n"),
+                         ["getty@tty1.service", "autovt@tty1.service"])
+
+    def test_nothing_else(self):
+        self.assertEqual(it.screen_logins(
+            "[  OK  ] Reached target getty.target - Login Prompts.\n"
+            "         Starting rikuri-installer.service - Rikuri Node installer...\n"
+            "[  OK  ] Started systemd-logind.service - User Login Management.\n"
+            "[  OK  ] Started kmsconvt@tty2.service - KMS System Console on tty2.\n"), [])
+
+
 class _Ended:
     def poll(self):
         return 0
@@ -241,6 +262,17 @@ class TheCases(unittest.TestCase):
     def boots(self, text):
         self.con = _Console(text)
         self.test.boot_stick = lambda name, disks, vars_fd: (_Ended(), self.con)
+
+    def test_every_case_fails_if_a_login_took_the_screen(self):
+        for case, text in (("wrong_number", self.LISTED + "3\n" + it.ri.NOTHING_ERASED + "\n" + it.ri.POWER_OFF + "\n"),
+                           ("answered_no", it.ri.PROMPT + "no\n" + it.ri.NOTHING_ERASED + "\n" + it.ri.POWER_OFF + "\n"),
+                           ("erase", self.LISTED + "2\n" + it.ri.ERASE_THIS + "\n  " + self.NAMED % "vdb" + it.ri.PROMPT
+                            + "ERASE\n" + it.ri.INSTALLED + "\n")):
+            with self.subTest(case=case):
+                self.boots(KMSCON + text)
+                self.test.alone = self.test.read_disk = lambda *a: None
+                with self.assertRaisesRegex(it.Failed, "kmsconvt@tty1.service took the screen"):
+                    getattr(self.test, case)()
 
     def test_a_wrong_number_leaves_both_disks(self):
         self.boots(self.LISTED + "3\n" + it.ri.NOTHING_ERASED + "\n" + it.ri.POWER_OFF + "\n")

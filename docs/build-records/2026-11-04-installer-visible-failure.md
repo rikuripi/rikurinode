@@ -5,8 +5,8 @@
 | **Date** | 2026-11-04 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/installer-visible-failure`, from `main` at `f7afa22`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `cb7f8c0` (#65's close-out), `4c2457c` (red), `ac02c47` (fix), `5308fae` (red, repair), `1c4f892` (fix, repair); merged as `a1339e5` (#66) |
+| **Status** | DONE |
 | **Change type** | incident: diagnosis (making a failure visible) |
 
 ## Incident
@@ -74,3 +74,12 @@
 - **Fix** (its own commit): `failed_unit()` writes with `StandardOutput=journal+console` and `StandardError=journal+console`, and has no `TTYPath`. `UNEXPECTED` adds "if it had, the disk may be partly erased". In the runbook, "Every stop in the table erases nothing", and the new paragraph covers a begun erase.
 - **Green** (rikuri-drill, `safe-run.sh`): `image/tests` `Ran 389 tests` `OK`. `systemd-analyze verify` on both units written by `configure --console tty1`: `rc=0`, no warning. `git diff --check`: clean.
 - **Not yet proven:** that on the N150's boot `OnFailure=` starts the unit and its text shows on the screen through `/dev/console`.
+
+## Close-out
+
+- **Verifier, round 2** (on `1c4f892`, the corrections only): **PASS, no Important finding.** It reran red (`Ran 68 tests` `FAILED (failures=3)`) and green (`Ran 389 tests` `OK`); `systemd-analyze verify` rc=0 on both consoles; 10 of 10 mutants of the corrected lines killed. Nits, for the backlog:
+  - a. journald prefixes each line it forwards to the console (a timestamp, `python3[pid]:`), so lines wrap more and can interleave with systemd's own status line;
+  - b. the runbook's "One stop can follow an erase" now reads as "only one".
+- **CI on `1c4f892`:** [Full gate](https://github.com/rikuripi/rikurinode/actions/runs/41932119259) passed. [OS image](https://github.com/rikuripi/rikurinode/actions/runs/41932119068): all four jobs passed. That was 2 CI runs of the 3 allowed.
+- **Merged** by the owner as `a1339e5` (#66, 2026-11-04T23:25:39Z).
+- **On the N150** (owner, 2026-11-04): a stick published from `a1339e5` showed the failed unit's text on the screen, through `/dev/console`. The installer's log reads: `rikuri-installer.service: Main process exited, code=killed, status=1/HUP`, then `Failed with result 'signal'`, then `Triggering OnFailure= dependencies`. The installer kept no error: a hangup signal ends Python before any `except` runs. In the owner's video, the screen goes from blank to this text within 0.25 s, with no installer line in between. **The task's outcome is seen:** the boot named the cause. The cause and its fix: `docs/build-records/2026-11-04-installer-kmscon.md`.

@@ -113,6 +113,14 @@ def commit_of(name: str):
     return m.group(1) if m else None
 
 
+_SCREEN_LOGIN = re.compile(r"Started ((?:kmsconvt|getty|autovt)@tty1\.service)")
+
+
+def screen_logins(text: str) -> list:
+    """Login services started on the screen's console: any takes it from the installer (SIGHUP)."""
+    return _SCREEN_LOGIN.findall(text)
+
+
 class Failed(Exception):
     pass
 
@@ -221,6 +229,12 @@ class Test:
         proc = subprocess.Popen(stick_argv(self.a.iso, disks, vars_fd, sock))
         return proc, Console(sock, log, proc)
 
+    def screen_is_the_installers(self, con):
+        """CI's stick uses ttyS0, so a login on tty1 does not stop it here; on the screen it would."""
+        found = screen_logins(con.text())
+        if found:
+            raise Failed("%s took the screen: the published stick's installer would be hung up" % ", ".join(found))
+
     def ended(self, proc, timeout):
         try:
             proc.wait(timeout=timeout)
@@ -250,6 +264,7 @@ class Test:
         proc, con = self.boot_stick("wrong-number", [a, b], self.vars("wrong"))
         at = con.wait_for(ri.SEVERAL_DISKS, 900)
         at = con.wait_for(ri.PICK, 60, at)
+        self.screen_is_the_installers(con)
         text = con.text()
         if "1) unknown model, 21 GB" not in text or "2) unknown model, 21 GB" not in text:
             raise Failed("the list does not name both disks")
@@ -266,6 +281,7 @@ class Test:
         a = self.disk("no")
         proc, con = self.boot_stick("no", [a], self.vars("no"))
         at = con.wait_for(ri.PROMPT, 900)
+        self.screen_is_the_installers(con)
         con.send("no")
         at = con.wait_for(ri.NOTHING_ERASED, 60, at)
         con.wait_for(ri.POWER_OFF, 60, at)
@@ -277,6 +293,7 @@ class Test:
         a, b, v = self.disk("erase-a"), self.disk("erase-b"), self.vars("erase")
         proc, con = self.boot_stick("erase", [a, b], v)
         at = con.wait_for(ri.PICK, 900)
+        self.screen_is_the_installers(con)
         con.send("2")
         at = con.wait_for(ri.ERASE_THIS, 60, at)
         named = con.wait_for(ri.PROMPT, 60, at)
