@@ -52,3 +52,11 @@
 - **Red** (rikuri-drill, `safe-run.sh`, against `main`):
   - `test_installer.py` `Ran 68 tests` `FAILED (failures=1)`: `'kmsconvt@tty1.service' not found in ['getty@tty1.service', 'autovt@tty1.service', …]`.
   - `test_install_test.py` `Ran 32 tests` `FAILED (failures=3, errors=2)`: `no attribute 'screen_logins'` (×2); `Failed not raised` (wrong_number, answered_no); and for erase, `does not match "the disk is empty after the install"`.
+- **Fix** (its own commit):
+  - `image/installer/Containerfile` masks `kmsconvt@tty1.service` beside `getty@tty1` and `autovt@tty1`; its comment says why.
+  - `image/drill/install_test.py`: `screen_logins()` (`Started (kmsconvt|getty|autovt)@tty1.service`). `Test.screen_is_the_installers()` runs in each case once the installer's first question shows, and fails naming the service.
+- **Green** (rikuri-drill, `safe-run.sh`): `image/tests` `Ran 392 tests` `OK`; `.claude/hooks` `Ran 91 tests` `OK`; `scripts/quality/tests` `Ran 156 tests`, with only the 7 known `git` errors (Not yet proven locally; CI's gate). `git diff --check`: clean.
+- **Hand mutants: 9 of 10 red:**
+  - red: the mask dropped; the check for kmscon only; the check without kmscon; any `tty` instead of `tty1`; the check ignored; the check left out of each of the three cases;
+  - one survivor, not a weakening: matching `Starting` as well as `Started` only makes the check stricter.
+- **Not yet proven:** CI's install test with the check on the stick built from this change (its boot must show no `kmsconvt@tty1` started); and the N150's install (the owner's).

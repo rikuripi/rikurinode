@@ -29,9 +29,10 @@ RUN printf 'compress="xz"\nadd_dracutmodules+=" dmsquash-live "\nearly_microcode
 
 COPY rikuri_install.py /usr/lib/rikuri-installer/rikuri_install.py
 
-# The installer owns its console: no getty there (probe 6d, run 1), and none on
+# The installer owns its console: no getty there (probe 6d, run 1), nor Fedora 45's
+# kmscon, which hangs it up (docs/build-records/2026-11-04-installer-kmscon.md); none on
 # the other either; no SSH and no network; greenboot and bootloader updates have
 # no use on a live system.
 RUN python3 -I /usr/lib/rikuri-installer/rikuri_install.py configure --console "$CONSOLE" --target "$TARGET" --root / \
     && systemctl enable rikuri-installer.service \
-    && systemctl mask getty@tty1.service autovt@tty1.service serial-getty@ttyS0.service sshd.service sshd.socket NetworkManager.service NetworkManager-wait-online.service bootloader-update.service greenboot-healthcheck.service greenboot-set-rollback-trigger.service greenboot-grub2-set-counter.service greenboot-rpm-ostree-grub2-check-fallback.service
+    && systemctl mask getty@tty1.service autovt@tty1.service kmsconvt@tty1.service serial-getty@ttyS0.service sshd.service sshd.socket NetworkManager.service NetworkManager-wait-online.service bootloader-update.service greenboot-healthcheck.service greenboot-set-rollback-trigger.service greenboot-grub2-set-counter.service greenboot-rpm-ostree-grub2-check-fallback.service
