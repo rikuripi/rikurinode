@@ -676,7 +676,7 @@ class Containerfile(unittest.TestCase):
 
     def test_no_logins_and_no_network_on_the_stick(self):
         mask = " ".join(re.findall(r"systemctl mask ([^\n&|]+)", self.text))
-        for unit in ("getty@tty1.service", "autovt@tty1.service", "serial-getty@ttyS0.service",
+        for unit in ("getty@tty1.service", "autovt@tty1.service", "kmsconvt@tty1.service", "serial-getty@ttyS0.service",
                      "sshd.service", "sshd.socket", "NetworkManager.service"):
             self.assertIn(unit, mask.split(), unit)
 
