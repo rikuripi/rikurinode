@@ -5,8 +5,8 @@
 | **Date** | 2026-11-04 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/installer-kmscon`, from `main` at `a1339e5`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `2bb1682` (#66's close-out), `900e515` (red), `7ba5b61` (fix); merged as `1e104fa` (#67) |
+| **Status** | DONE |
 | **Change type** | incident: the fix |
 
 ## Incident: root cause
@@ -60,3 +60,15 @@
   - red: the mask dropped; the check for kmscon only; the check without kmscon; any `tty` instead of `tty1`; the check ignored; the check left out of each of the three cases;
   - one survivor, not a weakening: matching `Starting` as well as `Started` only makes the check stricter.
 - **Not yet proven:** CI's install test with the check on the stick built from this change (its boot must show no `kmsconvt@tty1` started); and the N150's install (the owner's).
+
+## Close-out
+
+- **Verifier, one pass** (on `7ba5b61`): no Important finding; NOT YET PROVEN until CI, then PASS when CI passed. It reran red (`Ran 392 tests` `FAILED (failures=4, errors=2)` on `900e515`) and green (`Ran 392 tests` `OK`; `.claude/hooks` `Ran 91 tests` `OK`). It ran `screen_logins()` over 7 of `main`'s real CI console logs, each cleaned as `Console.text()` cleans it: every one gave `['kmsconvt@tty1.service']`. It tried 11 mutants: 9 killed, 2 survived, both of which only make the check stricter. Nits, for the backlog:
+  - A. the check catches only `Started`; a kmscon that is starting, fails, or restarts would not be flagged;
+  - B. the `KMSCON` sample is the cleaned line, and no test feeds CI's raw line (with its colour codes) through `Console.text()`;
+  - C. a kernel message interleaved into the status line could split it and give a false pass (low risk; the Containerfile test still holds the mask);
+  - D. the check reads the log once, at the first question;
+  - E. "CI's real line as the sample" above means the cleaned line.
+- **CI on `7ba5b61`:** [Full gate](https://github.com/rikuripi/rikurinode/actions/runs/41939930890) passed. [OS image](https://github.com/rikuripi/rikurinode/actions/runs/41939930898): all four jobs passed. In the install evidence, `results.json` gives wrong number, no and erase as `pass`, and the count of `Started kmsconvt@tty1` lines is 0 in `no-console.log`, `wrong-number-console.log` and `erase-console.log`. It is 1 in `erase-alone-console.log`, the installed disk booting alone, which keeps Fedora's kmscon login, as intended. That was 1 CI run of the 3 allowed.
+- **Merged** by the owner as `1e104fa` (#67, 2026-11-05T00:27:11Z).
+- **On the N150** (owner, 2026-11-05): from a stick published from `1e104fa`, "Install succeeded. Booted from the NVME Orinco success." It shows a login prompt. No one can sign in: the image has no password, no default user and no SSH, and the setup page is 5c (`docs/runbooks/install-node.md`, step 8). **This closes the incident:** the installer ran on the N150's screen to the disk list and `ERASE`, installed, powered off, and the node started from its own disk on Fedora 45.
