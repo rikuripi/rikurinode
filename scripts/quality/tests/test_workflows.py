@@ -143,7 +143,8 @@ class Image(unittest.TestCase):
         self.assertIn('if [ "$EVENT" != "pull_request" ]', lines)
         self.assertIn("image=true", lines)
         self.assertIn("image=false", lines)
-        self.assertIn("^(image/|\\.github/workflows/image\\.yml$)", lines)
+        # 5c.1: the image holds the control plane, so a change to it builds and drills the image.
+        self.assertIn("^(image/|control-plane/|\\.github/workflows/image\\.yml$)", lines)
         # A pipe into grep -q can fail under GitHub's `bash -e -o pipefail` and
         # skip the drill wrongly; the match reads a here-string instead.
         self.assertNotRegex(lines, r"\|\s*grep -q")
@@ -201,6 +202,49 @@ def env_pins(text):
 
 def builder_pin(text):
     return [line.strip() for line in text.splitlines() if line.startswith("  IMAGE_BUILDER:")]
+
+
+class ControlPlaneInTheImage(unittest.TestCase):
+    """The OS image's build compiles the control plane in its first stage, from
+    control-plane/ (a build context of its own: the image's context is image/
+    alone), so every build of the OS image names that context, and a change to
+    the control plane runs the image workflow
+    (docs/build-records/2026-11-06-5c1-control-plane-on-node.md)."""
+
+    @staticmethod
+    def os_image_builds(text):
+        """Each `podman build` command, continuation lines joined, that builds the
+        OS image (the folder image), not the installer (image/installer)."""
+        joined = re.sub(r"\\\n\s*", " ", text)
+        builds = [line.strip() for line in joined.splitlines() if "podman build" in line]
+        return [b for b in builds if "image/installer" not in b and re.search(r"\simage$", b)]
+
+    def test_every_os_image_build_gets_the_control_planes_sources(self):
+        for path in (IMAGE, PUBLISH):
+            builds = self.os_image_builds(read(path))
+            self.assertTrue(builds, path)
+            for build in builds:
+                with self.subTest(path=os.path.basename(path), build=build):
+                    self.assertIn("--build-context control-plane-src=control-plane ", build)
+
+    def test_a_push_that_changes_the_control_plane_runs_the_image_workflow(self):
+        on = block(read(IMAGE), "on")
+        push = on[on.index("push:") + 1:]
+        paths = next(line for line in push if line.startswith("paths:"))
+        self.assertIn('"control-plane/**"', paths)
+
+    def test_the_build_stage_is_the_pinned_rust_image(self):
+        with open(os.path.join(ROOT, "image", "Containerfile"), encoding="utf-8") as f:
+            text = f.read()
+        froms = [l.split() for l in text.splitlines() if l.startswith("FROM ")]
+        self.assertEqual(froms[0][1], "docker.io/library/rust:1.98.1-slim-trixie@sha256:"
+                         "4cd829461bd5c4d511c32e269da9cb8929223b666519d8004e35fc8d1d771ab7")
+        self.assertEqual(froms[0][2:], ["AS", "control-plane"])
+        with open(os.path.join(ROOT, "rust-toolchain.toml"), encoding="utf-8") as f:
+            self.assertIn('channel = "1.98.1"', f.read(), "the build stage's Rust is the repository's")
+        self.assertIn("--locked", text)
+        self.assertIn("COPY --from=control-plane-src ", text)
+        self.assertIn("COPY --from=control-plane ", text)
 
 
 class Publish(unittest.TestCase):

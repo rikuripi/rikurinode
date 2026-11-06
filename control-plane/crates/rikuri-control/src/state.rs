@@ -305,4 +305,24 @@ mod tests {
         assert!(matches!(err, StateError::Io { .. }), "{err}");
         assert!(err.to_string().contains("under-a-file"), "{err}");
     }
+
+    #[test]
+    fn a_lock_is_a_0600_file_held_by_one_holder_until_dropped() {
+        let scratch = Scratch::new();
+        let dir = StateDir::open(&scratch.0).unwrap();
+        let held = dir.lock("thing.lock").unwrap();
+        assert_eq!(mode(&dir.path("thing.lock")), 0o600);
+        // Another open of the same file, as another process would make it,
+        // cannot take the lock while it is held, and can once it is dropped.
+        let other = fs::File::open(dir.path("thing.lock")).unwrap();
+        assert!(
+            other.try_lock().is_err(),
+            "a second holder took a held lock"
+        );
+        drop(held);
+        assert!(
+            other.try_lock().is_ok(),
+            "the lock was not released on drop"
+        );
+    }
 }

@@ -377,4 +377,97 @@ mod tests {
         let (new, _) = attempt(&dir, &second.formatted(), NOW + 11).unwrap();
         assert_eq!(new, Attempt::Accepted);
     }
+
+    // The claim screen (`rikuri-control-plane claim-screen`) arms codes while
+    // the daemon judges them: two processes write one file.
+
+    #[test]
+    fn a_wrong_try_judged_against_a_code_rearmed_meanwhile_leaves_the_new_code_armed() {
+        let (_scratch, dir) = open();
+        arm(&dir, NOW).unwrap();
+        // The daemon read this file, then spent the argon2 time judging...
+        let seen = load(&dir).unwrap().unwrap();
+        // ...while the claim screen armed a new code.
+        let fresh = arm(&dir, NOW + 1).unwrap();
+        let after = count_wrong(&dir, &seen).unwrap();
+        let on_disk = load(&dir).unwrap().unwrap();
+        assert_eq!(
+            on_disk.created_unix,
+            NOW + 1,
+            "the old claim was written back"
+        );
+        assert_eq!(
+            on_disk.wrong_tries, 0,
+            "a try against the old code counted on the new"
+        );
+        assert_eq!(after, Some(on_disk));
+        let (verdict, _) = attempt(&dir, &fresh.formatted(), NOW + 2).unwrap();
+        assert_eq!(
+            verdict,
+            Attempt::Accepted,
+            "the code on the screen does not work"
+        );
+    }
+
+    #[test]
+    fn a_wrong_try_against_the_code_still_armed_counts() {
+        let (_scratch, dir) = open();
+        arm(&dir, NOW).unwrap();
+        let seen = load(&dir).unwrap().unwrap();
+        let after = count_wrong(&dir, &seen).unwrap().unwrap();
+        assert_eq!(after.wrong_tries, 1);
+        assert_eq!(load(&dir).unwrap().unwrap(), after);
+    }
+
+    #[test]
+    fn a_wrong_try_after_the_claim_was_finished_writes_nothing_back() {
+        let (_scratch, dir) = open();
+        arm(&dir, NOW).unwrap();
+        let seen = load(&dir).unwrap().unwrap();
+        finish(&dir).unwrap();
+        assert_eq!(count_wrong(&dir, &seen).unwrap(), None);
+        assert_eq!(load(&dir).unwrap(), None, "a finished claim came back");
+    }
+
+    #[test]
+    fn arming_waits_for_the_claim_lock() {
+        let (_scratch, dir) = open();
+        let held = dir.lock(LOCK).unwrap();
+        let (done, finished) = std::sync::mpsc::channel();
+        let armer = dir.clone();
+        let thread = std::thread::spawn(move || {
+            let result = arm(&armer, NOW).map(|_| ());
+            let _ = done.send(());
+            result
+        });
+        assert!(
+            finished.recv_timeout(Duration::from_secs(3)).is_err(),
+            "arm wrote the claim while another holder had the lock"
+        );
+        assert_eq!(load(&dir).unwrap(), None);
+        drop(held);
+        finished.recv_timeout(Duration::from_secs(60)).unwrap();
+        thread.join().unwrap().unwrap();
+        assert!(load(&dir).unwrap().is_some());
+    }
+
+    #[test]
+    fn finishing_waits_for_the_claim_lock() {
+        let (_scratch, dir) = open();
+        arm(&dir, NOW).unwrap();
+        let held = dir.lock(LOCK).unwrap();
+        let (done, finished) = std::sync::mpsc::channel();
+        let finisher = dir.clone();
+        let thread = std::thread::spawn(move || {
+            let result = finish(&finisher);
+            let _ = done.send(());
+            result
+        });
+        assert!(finished.recv_timeout(Duration::from_secs(3)).is_err());
+        assert!(load(&dir).unwrap().is_some());
+        drop(held);
+        finished.recv_timeout(Duration::from_secs(60)).unwrap();
+        thread.join().unwrap().unwrap();
+        assert_eq!(load(&dir).unwrap(), None);
+    }
 }

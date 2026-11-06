@@ -13,6 +13,7 @@
 pub mod boot;
 pub mod claim;
 pub mod config;
+pub mod console;
 pub mod http;
 pub mod limiter;
 pub mod listen;

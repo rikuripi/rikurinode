@@ -38,6 +38,19 @@ REGISTRIES_D_FILE = "etc/containers/registries.d/rikuri.yaml"
 MAIN_PUB = "usr/share/rikuri/signing/rikuri-main.pub"
 SPARE_PUB = "usr/share/rikuri/signing/rikuri-spare.pub"
 SIGNATURE_FILES = (POLICY, REGISTRIES_D_FILE, MAIN_PUB, SPARE_PUB)
+# The control plane on the node (docs/build-records/2026-11-06-5c1-control-plane-on-node.md).
+CP_BIN = "usr/bin/rikuri-control-plane"
+CP_UNIT = "usr/lib/systemd/system/rikuri-control-plane.service"
+CP_WANTS = "usr/lib/systemd/system/multi-user.target.wants/rikuri-control-plane.service"
+SCREEN_UNIT = "usr/lib/systemd/system/rikuri-claim-screen.service"
+SCREEN_WANTS = "usr/lib/systemd/system/multi-user.target.wants/rikuri-claim-screen.service"
+CP_USER = "usr/lib/sysusers.d/rikuri-control-plane.conf"
+TTY2_MASKS = ("usr/lib/systemd/system/getty@tty2.service", "usr/lib/systemd/system/autovt@tty2.service",
+              "usr/lib/systemd/system/kmsconvt@tty2.service")
+FIREWALL_POLICY = "usr/lib/firewalld/policies/rikuri-node.xml"
+CP_REQUIRED = "usr/lib/greenboot/check/required.d/50-rikuri-control-plane"
+# A built x86-64 program's first bytes: ELF, 64-bit, little-endian.
+ELF64 = b"\x7fELF\x02\x01\x01" + b"\x00" * 57
 
 
 def shipped_file(rel) -> bytes:
@@ -138,6 +151,15 @@ class Root:
             self.write_bytes(CONTAINERS_USER, shipped_file(CONTAINERS_USER))
         for rel in SIGNATURE_FILES:
             self.write_bytes(rel, shipped_file(rel))
+        if os.path.exists(os.path.join(HERE, "..", "rootfs", CP_UNIT)):
+            self.write_bytes(CP_BIN, ELF64, mode=0o755)
+            for rel in (CP_UNIT, SCREEN_UNIT, CP_USER, FIREWALL_POLICY):
+                self.write_bytes(rel, shipped_file(rel))
+            self.write_bytes(CP_REQUIRED, shipped_file(CP_REQUIRED), mode=0o755)
+            self.link(CP_WANTS, "../rikuri-control-plane.service")
+            self.link(SCREEN_WANTS, "../rikuri-claim-screen.service")
+            for rel in TTY2_MASKS:
+                self.link(rel, "/dev/null")
         self.write("etc/ssh/sshd_config", "PermitRootLogin no\n")
 
     def _fresh(self, rel):
@@ -1211,6 +1233,195 @@ class SignaturePolicy(unittest.TestCase):
     def test_root_as_another_link_is_a_finding(self):
         self.root.link("root", "/elsewhere")
         self.assertFinds("root: a link to /elsewhere", self.problems())
+
+
+class ControlPlane(unittest.TestCase):
+    """The control plane on the node: its program, its two units, its user, the
+    console it takes, the firewall policy and greenboot's required check
+    (docs/build-records/2026-11-06-5c1-control-plane-on-node.md)."""
+
+    def setUp(self):
+        self.root = Root()
+        self.addCleanup(self.root.cleanup)
+
+    def found(self):
+        return cir.check_control_plane(self.root.path)
+
+    def assertFinds(self, fragment, found=None):
+        found = self.found() if found is None else found
+        self.assertTrue(any(fragment in f for f in found),
+                        "expected a finding with %r, got %r" % (fragment, found))
+
+    def test_the_shipped_files_pass(self):
+        self.assertEqual(self.found(), [])
+        self.assertEqual(self.root.check(), [])
+
+    def test_the_whole_check_includes_it(self):
+        self.root.remove(CP_UNIT)
+        self.assertTrue(any(f.startswith(CP_UNIT + ": missing") for f in self.root.check()))
+
+    def test_the_program_is_a_built_executable(self):
+        self.root.remove(CP_BIN)
+        self.assertFinds(CP_BIN + ": missing")
+        self.root.write_bytes(CP_BIN, ELF64, mode=0o644)
+        self.assertFinds(CP_BIN + ": not executable")
+        self.root.write_bytes(CP_BIN, b"#!/bin/sh\nexit 0\n", mode=0o755)
+        self.assertFinds(CP_BIN + ": not a 64-bit ELF program")
+        self.root.link(CP_BIN, "/bin/true")
+        self.assertFinds(CP_BIN + ": missing")
+
+    # --- the service: its own user, one capability, its state folder ---------
+    def test_the_shipped_service_is_hardened_and_unprivileged(self):
+        keys = cir.CP_KEYS["[Service]"]
+        self.assertEqual(keys["User"], "rikuri-control")
+        self.assertEqual(keys["Group"], "rikuri-control")
+        self.assertEqual(keys["ExecStart"], "/" + CP_BIN)
+        self.assertEqual(keys["AmbientCapabilities"], "CAP_NET_BIND_SERVICE")
+        self.assertEqual(keys["CapabilityBoundingSet"], "CAP_NET_BIND_SERVICE")
+        self.assertEqual(keys["StateDirectory"], "rikuri/control-plane")
+        self.assertEqual(keys["StateDirectoryMode"], "0700")
+        self.assertEqual(keys["Environment"], "RIKURI_LISTEN=0.0.0.0:443 RIKURI_HTTP_LISTEN=0.0.0.0:80 "
+                                              "RIKURI_STATE_DIR=/var/lib/rikuri/control-plane")
+        for key, value in (("NoNewPrivileges", "yes"), ("ProtectSystem", "strict"), ("ProtectHome", "yes"),
+                           ("PrivateTmp", "yes"), ("PrivateDevices", "yes"), ("UMask", "0077"),
+                           ("RestrictAddressFamilies", "AF_INET AF_INET6 AF_UNIX"),
+                           ("SystemCallFilter", "@system-service"), ("MemoryDenyWriteExecute", "yes")):
+            with self.subTest(key=key):
+                self.assertEqual(keys[key], value)
+        self.assertEqual(cir.CP_KEYS["[Install]"], {"WantedBy": "multi-user.target"})
+
+    def test_the_service_is_a_closed_world(self):
+        good = shipped_file(CP_UNIT).decode("ascii")
+        for old, new, why in (
+                ("User=rikuri-control\n", "", "no User=: it would run as root"),
+                ("User=rikuri-control\n", "User=root\n", "as root"),
+                ("NoNewPrivileges=yes\n", "NoNewPrivileges=yes\nNoNewPrivileges=no\n", "a later value"),
+                ("AmbientCapabilities=CAP_NET_BIND_SERVICE", "AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_SYS_ADMIN",
+                 "another capability"),
+                ("ProtectSystem=strict", "ProtectSystem=full", "a weaker protection"),
+                ("Type=exec\n", "Type=exec\nExecStartPre=/bin/true\n", "a key the unit does not have"),
+                ("RIKURI_LISTEN=0.0.0.0:443", "RIKURI_LISTEN=0.0.0.0:8443", "another port"),
+                ("WantedBy=multi-user.target", "WantedBy=default.target", "another target")):
+            with self.subTest(why=why):
+                self.assertIn(old, good)
+                self.root.write(CP_UNIT, good.replace(old, new, 1))
+                self.assertFinds(CP_UNIT + ": ")
+
+    def test_the_service_must_be_enabled_and_not_overridden(self):
+        self.root.remove(CP_WANTS)
+        self.assertFinds(CP_WANTS + ": not a link")
+        self.root.link(CP_WANTS, "/dev/null")
+        self.assertFinds(CP_WANTS + ": points to /dev/null")
+        self.root.link(CP_WANTS, "/" + CP_UNIT)
+        self.assertEqual(self.found(), [])
+        for rel in ("etc/systemd/system/rikuri-control-plane.service",
+                    "usr/lib/systemd/system/rikuri-control-plane.service.d/50-x.conf",
+                    "etc/systemd/system/rikuri-.service.d/50-x.conf"):
+            with self.subTest(rel=rel):
+                self.root.write(rel, "[Service]\nUser=root\n")
+                self.assertTrue(any("overrides the unit" in f for f in self.found()), self.found())
+                os.remove(os.path.join(self.root.path, rel))
+
+    # --- the claim screen: tty2, the same user, no capability, no traffic ----
+    def test_the_shipped_claim_screen_takes_tty2_as_the_service_user(self):
+        keys = cir.SCREEN_KEYS["[Service]"]
+        self.assertEqual(keys["ExecStart"], "/" + CP_BIN + " claim-screen")
+        self.assertEqual(keys["User"], "rikuri-control")
+        self.assertEqual(keys["TTYPath"], "/dev/tty2")
+        self.assertEqual(keys["StandardInput"], "tty")
+        self.assertEqual(keys["StandardOutput"], "tty")
+        self.assertEqual(keys["CapabilityBoundingSet"], "")
+        self.assertEqual(keys["IPAddressDeny"], "any")
+        self.assertEqual(keys["StateDirectory"], "rikuri/control-plane")
+        self.assertEqual(keys["Restart"], "always")
+        self.assertNotIn("AmbientCapabilities", keys)
+        self.assertEqual(cir.SCREEN_KEYS["[Install]"], {"WantedBy": "multi-user.target"})
+
+    def test_the_claim_screen_is_a_closed_world(self):
+        good = shipped_file(SCREEN_UNIT).decode("ascii")
+        for old, new, why in (
+                ("TTYPath=/dev/tty2", "TTYPath=/dev/tty1", "the login's console"),
+                ("IPAddressDeny=any\n", "", "traffic allowed"),
+                ("CapabilityBoundingSet=\n", "CapabilityBoundingSet=CAP_NET_RAW\n", "a capability"),
+                ("User=rikuri-control\n", "", "as root"),
+                ("ExecStart=/usr/bin/rikuri-control-plane claim-screen",
+                 "ExecStart=/usr/bin/rikuri-control-plane rearm-claim", "another subcommand")):
+            with self.subTest(why=why):
+                self.assertIn(old, good)
+                self.root.write(SCREEN_UNIT, good.replace(old, new, 1))
+                self.assertFinds(SCREEN_UNIT + ": ")
+
+    def test_the_claim_screen_must_be_enabled(self):
+        self.root.remove(SCREEN_WANTS)
+        self.assertFinds(SCREEN_WANTS + ": not a link")
+
+    def test_no_login_may_take_tty2(self):
+        # The kmscon lesson (docs/build-records/2026-11-04-installer-kmscon.md): a login
+        # started on the claim screen's console would hang it up.
+        for rel in TTY2_MASKS:
+            with self.subTest(rel=rel):
+                self.root.remove(rel)
+                self.assertFinds(rel + ": not masked")
+                self.root.write(rel, "[Service]\n")
+                self.assertFinds(rel + ": not masked")
+                self.root.link(rel, "/dev/zero")
+                self.assertFinds(rel + ": not masked")
+                self.root.link(rel, "/dev/null")
+                self.assertEqual(self.found(), [])
+
+    # --- its user -----------------------------------------------------------
+    def test_the_user_is_one_locked_system_user(self):
+        lines = [l for l in shipped_file(CP_USER).decode("utf-8").splitlines()
+                 if l.strip() and not l.startswith("#")]
+        self.assertEqual(lines, ['u! rikuri-control - "Rikuri Node control plane; no login" - -'])
+        for text in ('u rikuri-control - "Rikuri Node control plane; no login" - -\n',
+                     'u! rikuri-control 0 "Rikuri Node control plane; no login" - -\n',
+                     'u! rikuri-control - "x" - /bin/bash\n', ""):
+            with self.subTest(text=text):
+                self.root.write(CP_USER, text)
+                self.assertFinds(CP_USER + ": not exactly")
+        self.root.remove(CP_USER)
+        self.assertFinds(CP_USER + ": missing")
+        self.root.write(CP_USER, shipped_file(CP_USER).decode("utf-8"))
+        self.root.write("etc/sysusers.d/rikuri-control-plane.conf", "")
+        self.assertFinds("etc/sysusers.d/rikuri-control-plane.conf: overrides")
+
+    # --- the firewall: 80 and 443 to the node, nothing else ------------------
+    def test_the_firewall_policy_opens_http_and_https_to_the_node_only(self):
+        self.assertEqual(cir.FIREWALL_POLICY_LINES, [
+            '<?xml version="1.0" encoding="utf-8"?>',
+            '<policy target="CONTINUE" priority="-100">',
+            "  <short>Rikuri Node</short>",
+            "  <description>The control plane: the CA certificate and a redirect on 80, "
+            "the API on 443.</description>",
+            '  <ingress-zone name="ANY"/>',
+            '  <egress-zone name="HOST"/>',
+            '  <service name="http"/>',
+            '  <service name="https"/>',
+            "</policy>"])
+
+    def test_any_other_policy_is_a_finding(self):
+        good = shipped_file(FIREWALL_POLICY).decode("utf-8")
+        for old, new, why in (('<service name="https"/>', '<service name="https"/>\n  <service name="ssh"/>',
+                               "another service"),
+                              ('<egress-zone name="HOST"/>', '<egress-zone name="ANY"/>', "forwarding too"),
+                              ('target="CONTINUE"', 'target="ACCEPT"', "everything accepted")):
+            with self.subTest(why=why):
+                self.assertIn(old, good)
+                self.root.write(FIREWALL_POLICY, good.replace(old, new, 1))
+                self.assertFinds(FIREWALL_POLICY + ": not exactly")
+        self.root.remove(FIREWALL_POLICY)
+        self.assertFinds(FIREWALL_POLICY + ": missing")
+        self.root.write(FIREWALL_POLICY, good)
+        self.root.write("etc/firewalld/policies/rikuri-node.xml", good)
+        self.assertFinds("etc/firewalld/policies/rikuri-node.xml: overrides")
+
+    # --- greenboot ----------------------------------------------------------
+    def test_greenboots_required_check_is_shipped_executable(self):
+        self.root.remove(CP_REQUIRED)
+        self.assertFinds(CP_REQUIRED + ": missing")
+        self.root.write_bytes(CP_REQUIRED, shipped_file(CP_REQUIRED), mode=0o644)
+        self.assertFinds(CP_REQUIRED + ": not executable")
 
 
 if __name__ == "__main__":
