@@ -19,6 +19,9 @@ use crate::random::{self, RandomError};
 use crate::state::{StateDir, StateError};
 
 pub const FILE: &str = "claim.json";
+/// The lock every writer of [`FILE`] holds: the daemon (a wrong try, a
+/// finished claim) and the claim screen (a new code) are two processes.
+pub const LOCK: &str = "claim.lock";
 /// Letters and digits without look-alikes: no 0/O, no 1/I/L. 31 symbols; ten
 /// of them carry about 49.6 bits.
 pub const ALPHABET: &[u8; 31] = b"ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -152,6 +155,7 @@ pub fn normalize(input: &str) -> String {
 pub fn arm(dir: &StateDir, now_unix: u64) -> Result<Code, ClaimError> {
     let code = generate()?;
     let hash = password::hash(code.0.expose_secret())?;
+    let _lock = dir.lock(LOCK)?;
     dir.write_json(
         FILE,
         &ClaimFile {
@@ -188,7 +192,7 @@ pub fn attempt(
     input: &str,
     now_unix: u64,
 ) -> Result<(Attempt, Option<ClaimFile>), ClaimError> {
-    let Some(mut file) = load(dir)? else {
+    let Some(file) = load(dir)? else {
         return Ok((Attempt::Refused { counted: false }, None));
     };
     if file.state(now_unix) != ClaimState::Armed {
@@ -197,16 +201,37 @@ pub fn attempt(
     if password::verify(&normalize(input), &file.hash) {
         return Ok((Attempt::Accepted, Some(file)));
     }
+    let after = count_wrong(dir, &file)?;
+    Ok((Attempt::Refused { counted: true }, after))
+}
+
+/// Counts one wrong try against `judged`, the claim as it was read before the
+/// (slow) judgement, under the lock. If the claim on disk is no longer that
+/// one (re-armed at the claim screen meanwhile, or finished), nothing is
+/// written: the try was against a code that no longer exists, and the new
+/// code stays as armed. Returns the claim on disk afterwards.
+pub(crate) fn count_wrong(
+    dir: &StateDir,
+    judged: &ClaimFile,
+) -> Result<Option<ClaimFile>, ClaimError> {
+    let _lock = dir.lock(LOCK)?;
+    let Some(mut file) = load(dir)? else {
+        return Ok(None);
+    };
+    if file.hash != judged.hash {
+        return Ok(Some(file));
+    }
     file.wrong_tries = file.wrong_tries.saturating_add(1);
     if file.wrong_tries >= RETIRE_AT {
         file.retired = true;
     }
     dir.write_json(FILE, &file)?;
-    Ok((Attempt::Refused { counted: true }, Some(file)))
+    Ok(Some(file))
 }
 
 /// After a successful claim: the file goes, and with it the code for good.
 pub fn finish(dir: &StateDir) -> Result<(), ClaimError> {
+    let _lock = dir.lock(LOCK)?;
     dir.remove(FILE)?;
     Ok(())
 }

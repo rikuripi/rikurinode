@@ -26,7 +26,7 @@
      - the claim screen unit on `tty2`, with `getty@`, `autovt@` and `kmsconvt@tty2` masked, because a login there would hang it up (the kmscon lesson);
      - a greenboot check that the API answers on loopback.
    - `control-plane/`: one subcommand, `claim-screen`. It shows the node's addresses and the CA fingerprint; on Enter at the node, it arms a new code on an unclaimed node and shows it. Once claimed, it says so and offers nothing.
-   - `.github/workflows/image.yml` and `publish.yml`: the build gets the control plane's sources (`--build-context`), and the image workflow also runs when `control-plane/**` changes.
+   - `.github/workflows/image.yml` and `publish.yml`: the OS image is built with the repository's root as its context (`podman build -f image/Containerfile .`), so the build sees `control-plane/`; `/.containerignore` lets in only `image/rootfs` and `control-plane/` (without `target/`). The image workflow also runs when `control-plane/**` changes. (First planned as a named `--build-context`; changed by the owner's choice below.)
    - `image/drill/vm_drill.py`: the drill forwards the VM's 80 and 443 to the runner. From outside the VM it fetches `/ca.crt` over HTTP and reads the API over HTTPS with only that CA trusted. It checks the service user, the open ports and the greenboot check.
    - `image/check_image_root.py`: the shipped units and files, as for the others.
    - Tests for each of these, and the knowledge layer: the install runbook's last step (Alt+F2, the claim screen), README's status.
@@ -61,3 +61,38 @@
   - `scripts/quality/tests/test_workflows.py`, `test_only_a_pull_request_can_skip`: the changes job's pattern must also match `control-plane/`, since the image now holds the control plane.
   - `image/tests/test_check_image_root.py`, `Root`: the fixture root also holds the control plane's shipped files, once they exist (the same form as the files before them).
 - **Red, Rust** (the Mac, `scripts/cargo.sh check --locked --tests -p rikuri-control`, compile only, no test run): `could not compile rikuri-control (lib test) due to 65 previous errors`, each one a missing item: `count_wrong`, `LOCK`, `StateDir::lock`, and the console's `Shown`, `Fingerprint`, `initial`, `press_enter`, `ca_fingerprint`, `shown_address`, `render`. Running these tests is CI's (Not yet proven locally).
+- **Red, Python:** Not yet run. rikuri-drill was off (SSH timed out, then "No route to host"); the red commit `1458ce2` is run there once it is up.
+- **Red commit amended before any push:** `193e7c7` became `1458ce2` when rustfmt laid out its new Rust tests (line wrapping only), so that no test changes after red for layout.
+- **Fix** (its own commit):
+  - `control-plane`:
+    - `StateDir::lock`, std's `File::lock`.
+    - `claim::LOCK`: `arm` (after the slow hash), the wrong-try write-back and `finish` take it.
+    - `claim::count_wrong` re-reads under the lock and writes only if the claim's hash is still the one judged.
+    - `console`: `initial` never arms; `press_enter` arms on an unclaimed node; `ca_fingerprint`; `lan_address` (the TEST-NET-1 trick); `render`.
+    - `main.rs`: the `claim-screen` subcommand (it clears, draws, reads a line, and arms on Enter; it ends at end of input, and its unit restarts it).
+    - **The daemon no longer writes the first start's code in the journal:** it logs `claim code armed and not shown` and points to the claim screen. The journal is kept on disk, and the contract says no code is kept in clear.
+  - `image/Containerfile`: the first stage, from the Rust image by digest, copies `control-plane/` and runs `cargo build --release --locked -p rikuri-control-plane`; the program goes to `/usr/bin`, and `rootfs/` is copied as `image/rootfs/`. `/.containerignore` is the context's allowlist.
+  - `image/rootfs/`:
+    - the sysusers entry;
+    - the two units (closed worlds) and their `multi-user.target.wants` links;
+    - the three `tty2` masks;
+    - the firewalld policy;
+    - greenboot's required check (it waits up to 120 s, every 5 s).
+  - `image/check_image_root.py`:
+    - `check_control_plane`, in `check_root`;
+    - the subid unit's closed-world reader generalised as `unit_problems` and `unit_overrides`; the subid unit's own rules are unchanged.
+  - `image/drill/vm_drill.py`:
+    - the two forwards;
+    - `Drill.control_plane()` after the first boot, which makes nine checks, each in `EXPECTED`;
+    - the evidence goes to `02-control-plane.out`.
+  - `.github/workflows/image.yml` (three builds, the changes job's pattern, the push paths) and `publish.yml` (its build): `-f image/Containerfile .`.
+  - Knowledge layer: `docs/runbooks/install-node.md` (the intro; step 8; a new step 9, the claim screen; the Report line), README's status.
+- **Test changes after the red commit, and why:**
+  - `test_vm_drill.py`, `ControlPlaneSteps.test_each_failure_fails_its_own_case`: the 404 on `/ca.crt` moved to `test_no_certificate_means_no_https_case_can_pass`. The red test asked that a 404 fail the CA case alone, but with no CA there is nothing to trust, so the HTTPS case must fail too, as the other red test already said: the two contradicted each other. The 404 now must fail both.
+  - `test_vm_drill.py`: a ninth case, "no claim code in the journal" (`code_kept_out`), with its stand-in journal, its failures (no line, a code in clear, a `claim_code` field) and `ClaimCodeInTheJournal`. Added with the daemon's change above, which has no unit seam (`main`'s log line); the drill reads the real service's journal. Additions only.
+- **The first fix commit was refused by the pre-commit hook** (`repo_hygiene.py`): `image/Containerfile: line 20: COPY --from image not pinned (no version tag)`. The check reads `COPY --from=control-plane-src`, a named build context, as an image; no Containerfile line can declare a context. Nothing was bypassed. The staged fix was kept as a patch in the session's scratchpad (SHA-256 `e045f2af…264e`), the tree was cleared back to `1458ce2`, and the patch re-applied cleanly afterwards.
+  - The owner first chose a separate control fix (2026-11-06: "Control fix first (Recommended)"). While designing it, I found a second fault in a named context: a build that leaves out `--build-context` would pull an image named `control-plane-src` from Docker Hub, unpinned, under a name anyone can register. The owner then chose (2026-11-06: "Repo-root context (Recommended)"): build with the repository's root as the context, with an allowlist, so no build names a context, the check stands unchanged, and nothing can fall back to a pull. The empty branch made for the control fix (`stage1/hygiene-build-context`, no commits) was deleted.
+  - For the backlog: `repo_hygiene.py` never reads `RUN --mount=... from=<image>`, so an unpinned image there would pass.
+- **More test changes after the red commit, and why** (the build layout above):
+  - `scripts/quality/tests/test_workflows.py`, `ControlPlaneInTheImage`: rewritten for the root context. Every OS image build ends `-f image/Containerfile .`; no build names `--build-context` or keeps the old `image` context; `.containerignore` is exactly its four lines; and the Containerfile's `COPY` lines are exactly the three expected. Its push-paths test and its pin of the Rust image are unchanged. Nothing is weaker: each requirement is now on the layout that ships.
+  - `image/tests/test_installer.py`, `test_the_nodes_own_pinned_base`: the node's Containerfile now has two stages, so the installer's base is compared with the node's last one, the node's base. The test also now requires exactly two stages, the first the Rust image. Before, it compared the two single FROM lists.

@@ -19,6 +19,10 @@ serves its API over HTTPS from a certificate authority it makes at first
 start, takes a claim code from the console to make the first person the
 owner, signs the owner in with a password and a revocable session, and
 reports every component as `unknown`, because nothing probes the node yet.
+The OS image builds the control plane in and runs it as a service of its own
+user, open to the LAN on 80 and 443, with a claim screen on the node's second
+console (Ctrl+Alt+F2) that shows its address, its CA fingerprint and, on
+Enter, a claim code; the setup page that takes the code is still to come.
 Nothing here is ready to run on a node. The
 [platform and architecture plan](docs/architecture/platform-plan.md) says how
 the node will be built, and which decisions are still the owner's; its

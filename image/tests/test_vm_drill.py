@@ -681,6 +681,8 @@ SERVICE = "ActiveState=active\nSubState=running\nMainPID=812\n"
 SCREEN = "ActiveState=active\nSubState=running\nTTYPath=/dev/tty2\nUser=rikuri-control\n"
 POLICY_INFO = ("rikuri-node (active)\n  priority: -100\n  target: CONTINUE\n  ingress-zones: ANY\n"
                "  egress-zones: HOST\n  services: http https\n  ports: \n  protocols: \n")
+CP_JOURNAL = ("rikuri-control-plane[812]: INFO rikuri_control_plane: claim code armed and not shown: "
+              "press Enter on the claim screen at the node (Ctrl+Alt+F2) for a code to use; it replaces this one\n")
 REQUIRED_OK = ("INFO greenboot::handler > required script "
                "/usr/lib/greenboot/check/required.d/50-rikuri-control-plane success!\n")
 
@@ -755,6 +757,19 @@ class ControlPlaneReads(unittest.TestCase):
                 self.assertFalse(d.setup_ok(body, PEM_FP))
 
 
+class ClaimCodeInTheJournal(unittest.TestCase):
+    def test_a_code_in_any_form_the_daemon_writes_is_found(self):
+        self.assertTrue(d.code_kept_out(CP_JOURNAL))
+        for text in ("", CP_JOURNAL + "K7QM-4XD9-TR\n", CP_JOURNAL + "code 2345-6789-AB.\n",
+                     CP_JOURNAL + "claim_code=K7QM4XD9TR\n"):
+            with self.subTest(text=text):
+                self.assertFalse(d.code_kept_out(text))
+
+    def test_other_dashed_words_are_not_codes(self):
+        self.assertTrue(d.code_kept_out(CP_JOURNAL + "unit rikuri-control-plane.service started; "
+                                                     "fingerprint AB:CD; abcd-efgh-ij\n"))
+
+
 class ControlPlaneDrill(d.Drill):
     """A Drill whose VM answers the control plane's commands, and whose two
     ports answer as the forwards would."""
@@ -773,6 +788,7 @@ class ControlPlaneDrill(d.Drill):
         self.with_ca = over.pop("with_ca", http(200, SETUP))
         self.without_ca = over.pop("without_ca", __import__("ssl").SSLCertVerificationError(1, "verify failed"))
         self.greenboot = over.pop("greenboot", REQUIRED_OK)
+        self.cp_journal = over.pop("cp_journal", CP_JOURNAL)
         self.answers.update(over.pop("answers", {}))
         self.cafiles = []
 
@@ -782,7 +798,8 @@ class ControlPlaneDrill(d.Drill):
         raise AssertionError("unexpected VM command: %r" % command)
 
     def journal(self, args):
-        return self.greenboot if args == "-b -u greenboot-healthcheck" else ""
+        return {"-b -u greenboot-healthcheck": self.greenboot,
+                "-b -u rikuri-control-plane": self.cp_journal}.get(args, "")
 
     def fetch_plain(self, path):
         assert path == "/ca.crt", path
@@ -801,7 +818,8 @@ class ControlPlaneSteps(unittest.TestCase):
     CASES = ("the control plane runs as its own user", "the CA certificate over HTTP",
              "the API over HTTPS with only the node's CA", "a client without the node's CA is refused",
              "the claim screen on tty2", "only SSH, 80 and 443 listen outside",
-             "the firewall opens 80 and 443", "greenboot's control plane check")
+             "the firewall opens 80 and 443", "greenboot's control plane check",
+             "no claim code in the journal")
 
     def setUp(self):
         self.artifacts = tempfile.mkdtemp(prefix="drill-artifacts-")
@@ -830,7 +848,6 @@ class ControlPlaneSteps(unittest.TestCase):
         ssl = __import__("ssl")
         for case, over in (
                 ("the control plane runs as its own user", {"answers": {"stat -c %U /proc/812": "root\n"}}),
-                ("the CA certificate over HTTP", {"plain": http(404)}),
                 ("the API over HTTPS with only the node's CA", {"with_ca": http(421, b"{}")}),
                 ("a client without the node's CA is refused", {"without_ca": http(200, SETUP)}),
                 ("a client without the node's CA is refused", {"without_ca": ConnectionResetError(104, "reset")}),
@@ -839,7 +856,10 @@ class ControlPlaneSteps(unittest.TestCase):
                         SCREEN.replace("running", "dead")}}),
                 ("only SSH, 80 and 443 listen outside", {"answers": {"ss -Htln": SS + "LISTEN 0 1 0.0.0.0:5355 0.0.0.0:*\n"}}),
                 ("the firewall opens 80 and 443", {"answers": {"firewall-cmd --info-policy=rikuri-node": ""}}),
-                ("greenboot's control plane check", {"greenboot": ""})):
+                ("greenboot's control plane check", {"greenboot": ""}),
+                ("no claim code in the journal", {"cp_journal": ""}),
+                ("no claim code in the journal", {"cp_journal": CP_JOURNAL + "claim code armed: K7QM-4XD9-TR\n"}),
+                ("no claim code in the journal", {"cp_journal": CP_JOURNAL + "claim_code=AAAA\n"})):
             with self.subTest(case=case, over=over):
                 _, results = self.results(**over)
                 self.assertFalse(results[case])
@@ -852,9 +872,11 @@ class ControlPlaneSteps(unittest.TestCase):
         self.assertFalse(results["a client without the node's CA is refused"])
 
     def test_no_certificate_means_no_https_case_can_pass(self):
-        _, results = self.results(plain=http(200, b"not a certificate"))
-        self.assertFalse(results["the CA certificate over HTTP"])
-        self.assertFalse(results["the API over HTTPS with only the node's CA"])
+        for plain in (http(200, b"not a certificate"), http(404)):
+            with self.subTest(plain=plain):
+                _, results = self.results(plain=plain)
+                self.assertFalse(results["the CA certificate over HTTP"])
+                self.assertFalse(results["the API over HTTPS with only the node's CA"])
 
 
 if __name__ == "__main__":

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The control plane's two ports, from any zone to the node itself; no zone file replaced. -->
+<!-- Checked by image/check_image_root.py. Record: docs/build-records/2026-11-06-5c1-control-plane-on-node.md -->
+<policy target="CONTINUE" priority="-100">
+  <short>Rikuri Node</short>
+  <description>The control plane: the CA certificate and a redirect on 80, the API on 443.</description>
+  <ingress-zone name="ANY"/>
+  <egress-zone name="HOST"/>
+  <service name="http"/>
+  <service name="https"/>
+</policy>

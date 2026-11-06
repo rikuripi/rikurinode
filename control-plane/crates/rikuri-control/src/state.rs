@@ -5,7 +5,7 @@
 //! password, the sessions.
 
 use std::fmt;
-use std::fs::{self, OpenOptions};
+use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
@@ -121,6 +121,24 @@ impl StateDir {
         file.sync_all().map_err(|e| io_error(&tmp, e))?;
         drop(file);
         fs::rename(&tmp, &path).map_err(|e| io_error(&path, e))
+    }
+
+    /// Takes an exclusive lock on `name`, created as an empty 0600 file if
+    /// missing, and holds it until the returned file is dropped. It is
+    /// advisory (`flock`): it orders only the writers that take it, the daemon
+    /// and the claim screen, two processes that write one file.
+    pub fn lock(&self, name: &str) -> Result<File, StateError> {
+        let path = self.path(name);
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .mode(FILE_MODE)
+            .open(&path)
+            .map_err(|e| io_error(&path, e))?;
+        file.lock().map_err(|e| io_error(&path, e))?;
+        Ok(file)
     }
 
     /// Removes `name`; `Ok(false)` when it did not exist.

@@ -4,6 +4,143 @@
 //! 5c.1; owner, 2026-11-06). The code is shown here and nowhere else: only its
 //! hash is kept. Record: docs/build-records/2026-11-06-5c1-control-plane-on-node.md
 
+use std::fmt::Write as _;
+use std::net::{IpAddr, Ipv4Addr, UdpSocket};
+
+use crate::claim::{self, Code};
+use crate::owner;
+use crate::random;
+use crate::state::StateDir;
+use crate::tls;
+
+/// What the lower half of the screen shows.
+#[derive(Debug)]
+pub enum Shown {
+    /// Unclaimed, no code shown yet: Enter arms one.
+    Prompt,
+    /// A code just armed by Enter; the one place it is ever in clear.
+    Code(Code),
+    /// The node has an owner: no code is offered.
+    Claimed,
+    /// Arming failed; why, in full.
+    Problem(String),
+}
+
+/// The CA certificate's SHA-256 fingerprint, as a browser shows it.
+#[derive(Debug)]
+pub enum Fingerprint {
+    Made(String),
+    /// No CA yet: the daemon makes it at its first start.
+    NotYet,
+    Unreadable(String),
+}
+
+/// What the screen shows before any key is pressed. It never arms a code: a
+/// code exists in clear only after a key press at the node.
+pub fn initial(dir: &StateDir) -> Shown {
+    if owner::exists(dir) {
+        Shown::Claimed
+    } else {
+        Shown::Prompt
+    }
+}
+
+/// Enter at the node: on an unclaimed node, a new code replaces any old one;
+/// on a claimed node, nothing happens.
+pub fn press_enter(dir: &StateDir, now_unix: u64) -> Shown {
+    if owner::exists(dir) {
+        return Shown::Claimed;
+    }
+    match claim::arm(dir, now_unix) {
+        Ok(code) => Shown::Code(code),
+        Err(e) => Shown::Problem(e.to_string()),
+    }
+}
+
+pub fn ca_fingerprint(dir: &StateDir) -> Fingerprint {
+    match dir.read(tls::CA_CERT) {
+        Ok(Some(der)) => Fingerprint::Made(random::fingerprint(&der)),
+        Ok(None) => Fingerprint::NotYet,
+        Err(e) => Fingerprint::Unreadable(e.to_string()),
+    }
+}
+
+/// `ip` if another machine could use it to reach the node.
+pub fn shown_address(ip: IpAddr) -> Option<IpAddr> {
+    (!ip.is_loopback() && !ip.is_unspecified()).then_some(ip)
+}
+
+/// TEST-NET-1 (RFC 5737): never a real host. Connecting a UDP socket sends
+/// nothing; it only makes the kernel choose the route and the source address.
+const PROBE: (Ipv4Addr, u16) = (Ipv4Addr::new(192, 0, 2, 1), 9);
+
+/// The node's own address on the network it would use to reach another one,
+/// or `None` with no route (no cable, no DHCP lease yet).
+pub fn lan_address() -> Option<IpAddr> {
+    let socket = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)).ok()?;
+    socket.connect(PROBE).ok()?;
+    shown_address(socket.local_addr().ok()?.ip())
+}
+
+/// Pairs of the fingerprint per line: 16 pairs are 47 columns.
+const PAIRS_PER_LINE: usize = 16;
+
+/// The whole screen, plain ASCII, at most 80 columns per line (a problem's
+/// text aside, which the console wraps).
+pub fn render(address: Option<IpAddr>, fingerprint: &Fingerprint, shown: &Shown) -> String {
+    let mut s = String::new();
+    s.push_str("Rikuri Node\n\n");
+    match address {
+        Some(IpAddr::V4(v4)) => {
+            let _ = writeln!(s, "  Address:  http://{v4}");
+        }
+        Some(IpAddr::V6(v6)) => {
+            let _ = writeln!(s, "  Address:  http://[{v6}]");
+        }
+        None => s.push_str(
+            "  Address:  none yet. Connect the node to your router with a network cable.\n",
+        ),
+    }
+    s.push('\n');
+    s.push_str("  Certificate fingerprint (SHA-256), to compare with your browser's:\n");
+    match fingerprint {
+        Fingerprint::Made(fp) => {
+            let pairs: Vec<&str> = fp.split(':').collect();
+            for line in pairs.chunks(PAIRS_PER_LINE) {
+                let _ = writeln!(s, "    {}", line.join(":"));
+            }
+        }
+        Fingerprint::NotYet => {
+            s.push_str("    not made yet: the control plane makes it when it first starts.\n");
+        }
+        Fingerprint::Unreadable(why) => {
+            let _ = writeln!(s, "    cannot be read: {why}");
+        }
+    }
+    s.push('\n');
+    match shown {
+        Shown::Prompt => {
+            s.push_str("  Press Enter to show a claim code. Whoever types it on the setup page\n");
+            s.push_str("  first becomes the node's owner.\n");
+        }
+        Shown::Code(code) => {
+            let _ = writeln!(s, "  Claim code:  {}", code.formatted());
+            s.push_str("  Type it on the setup page within 24 hours. It works once.\n");
+            s.push_str("  Press Enter for a new code; this one then stops working.\n");
+        }
+        Shown::Claimed => {
+            s.push_str("  This node has an owner. Sign in on the setup page with your password.\n");
+        }
+        Shown::Problem(why) => {
+            s.push_str("  A claim code could not be armed. Press Enter to try again.\n");
+            let _ = writeln!(s, "  {why}");
+        }
+    }
+    s.push('\n');
+    s.push_str("  Ctrl+Alt+F1 returns to the login screen.\n");
+    s
+}
+
 #[cfg(test)]
 mod tests {
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};

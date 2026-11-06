@@ -1,0 +1,89 @@
+#!/usr/bin/python3 -I
+"""greenboot required check: the control plane answers on this boot.
+
+It asks the node itself, `GET /api/setup` over HTTPS on 127.0.0.1:443, and
+verifies the answer against the node's own CA (the daemon's state folder) as
+`localhost`, the one name the server certificate always holds. It passes on a
+200 whose body is the setup report (a JSON object with a boolean `claimed`).
+The daemon may still be starting, or making its CA at its first start, so it
+tries again every INTERVAL_S for up to WAIT_S.
+
+It is a required check: a failure counts toward greenboot's rollback, since
+an image can repair a control plane that an update broke (the containers
+range is only wanted, because no image can repair /etc). It reads one file
+and opens one connection to loopback; it takes no input from the network or
+a user and runs no command.
+Record: docs/build-records/2026-11-06-5c1-control-plane-on-node.md
+"""
+from __future__ import annotations
+
+import json
+import socket
+import ssl
+import sys
+import time
+
+CA = "/var/lib/rikuri/control-plane/ca.crt.der"
+ADDRESS = ("127.0.0.1", 443)
+SERVER_NAME = "localhost"
+REQUEST = b"GET /api/setup HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"
+WAIT_S = 120
+INTERVAL_S = 5
+TIMEOUT_S = 10
+MAX_BYTES = 64 * 1024
+WHY = "the node cannot be set up or managed; see journalctl -b -u rikuri-control-plane"
+
+
+def verdict(raw: bytes):
+    """(True, None) if `raw` is an HTTP 200 carrying the setup report, else (False, reason)."""
+    head, _, body = raw.partition(b"\r\n\r\n")
+    status = head.split(b"\r\n", 1)[0].split(b" ")
+    if len(status) < 2 or not status[0].startswith(b"HTTP/") or not status[1].isdigit():
+        return False, "rikuri-control-plane: not an HTTP answer (%r): %s" % (raw[:40], WHY)
+    code = int(status[1])
+    if code != 200:
+        return False, "rikuri-control-plane: /api/setup answered %d: %s" % (code, WHY)
+    try:
+        report = json.loads(body)
+    except ValueError:
+        return False, "rikuri-control-plane: /api/setup is not JSON: %s" % WHY
+    if not isinstance(report, dict) or not isinstance(report.get("claimed"), bool):
+        return False, "rikuri-control-plane: /api/setup is not the setup report: %s" % WHY
+    return True, None
+
+
+def attempt() -> bytes:
+    """One request; raises OSError (ssl.SSLError among them) when it cannot be made."""
+    with open(CA, "rb") as f:
+        ca = ssl.DER_cert_to_PEM_cert(f.read())
+    context = ssl.create_default_context(cadata=ca)
+    with socket.create_connection(ADDRESS, timeout=TIMEOUT_S) as raw:
+        with context.wrap_socket(raw, server_hostname=SERVER_NAME) as tls:
+            tls.sendall(REQUEST)
+            chunks, size = [], 0
+            while size < MAX_BYTES:
+                chunk = tls.recv(4096)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                size += len(chunk)
+    return b"".join(chunks)
+
+
+def main(attempt=attempt, sleep=time.sleep, clock=time.monotonic, out=sys.stdout) -> int:
+    start = clock()
+    while True:
+        try:
+            ok, reason = verdict(attempt())
+        except (OSError, ValueError) as e:
+            ok, reason = False, "rikuri-control-plane: no answer on %s:%d (%s): %s" % (ADDRESS + (e, WHY))
+        if ok:
+            return 0
+        if clock() - start + INTERVAL_S > WAIT_S:
+            print(reason, file=out)
+            return 1
+        sleep(INTERVAL_S)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

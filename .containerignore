@@ -1,0 +1,8 @@
+# The OS image's build context is the repository's root
+# (podman build -f image/Containerfile .): only what image/Containerfile copies
+# goes in, never the rest of the checkout (.git, caches, build output).
+# Record: docs/build-records/2026-11-06-5c1-control-plane-on-node.md
+*
+!image/rootfs
+!control-plane
+control-plane/target

@@ -117,19 +117,20 @@ SUBID_UNIT_DIRS = ("etc/systemd/system.control", "etc/systemd/system", "etc/syst
                    "usr/local/lib/systemd/system", "usr/lib/systemd/system")
 
 
-def _subid_overrides() -> tuple:
-    name = os.path.basename(SUBID_UNIT)
+def unit_overrides(unit: str) -> tuple:
+    """Every path an image could ship that would override `unit` on a node."""
+    name = os.path.basename(unit)
     words = name[:-len(".service")].split("-")
     dropins = [name + ".d"] + ["-".join(words[:n]) + "-.service.d" for n in range(len(words) - 1, 0, -1)]
     paths = []
     for d in SUBID_UNIT_DIRS:
         paths += [d + "/" + x for x in dropins]
-        if d != os.path.dirname(SUBID_UNIT):
+        if d != os.path.dirname(unit):
             paths += [d + "/" + name, d + "/service.d"]
     return tuple(paths)
 
 
-SUBID_OVERRIDES = _subid_overrides()
+SUBID_OVERRIDES = unit_overrides(SUBID_UNIT)
 SUBID_TARGETS = ("../rikuri-containers-subid.service", "/" + SUBID_UNIT)
 # greenboot's wanted check of it: logged at every boot, never a rollback, since
 # no image can repair /etc (docs/build-records/2026-10-24-greenboot-subid-wanted.md).
@@ -141,6 +142,61 @@ SUBID_WANTED = "usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid"
 CONTAINERS_USER = "usr/lib/sysusers.d/rikuri-containers.conf"
 CONTAINERS_USER_LINES = ['u! containers - "Podman\'s range of container user IDs; no login" - -']
 CONTAINERS_USER_OVERRIDES = ("etc/sysusers.d/rikuri-containers.conf", "run/sysusers.d/rikuri-containers.conf")
+# The control plane on the node (stage 1 change 5c.1): its program, built in the image's first
+# stage; its service and the claim screen, each a closed world like the subid unit; their user;
+# the masks that keep any login off the claim screen's tty2; the firewalld policy that opens 80
+# and 443 to the node; greenboot's required check of the API
+# (docs/build-records/2026-11-06-5c1-control-plane-on-node.md).
+CP_BIN = "usr/bin/rikuri-control-plane"
+ELF64_LE = b"\x7fELF\x02\x01"
+CP_UNIT = "usr/lib/systemd/system/rikuri-control-plane.service"
+CP_WANTS = "usr/lib/systemd/system/multi-user.target.wants/rikuri-control-plane.service"
+SCREEN_UNIT = "usr/lib/systemd/system/rikuri-claim-screen.service"
+SCREEN_WANTS = "usr/lib/systemd/system/multi-user.target.wants/rikuri-claim-screen.service"
+_HARDENING = {"NoNewPrivileges": "yes", "ProtectSystem": "strict", "ProtectHome": "yes", "PrivateTmp": "yes",
+              "ProtectKernelTunables": "yes", "ProtectKernelModules": "yes", "ProtectKernelLogs": "yes",
+              "ProtectControlGroups": "yes", "ProtectClock": "yes", "ProtectHostname": "yes",
+              "ProtectProc": "invisible", "ProcSubset": "pid",
+              "RestrictAddressFamilies": "AF_INET AF_INET6 AF_UNIX", "RestrictNamespaces": "yes",
+              "RestrictRealtime": "yes", "RestrictSUIDSGID": "yes", "LockPersonality": "yes",
+              "MemoryDenyWriteExecute": "yes", "SystemCallArchitectures": "native",
+              "SystemCallFilter": "@system-service"}
+_AS_ITS_USER = {"User": "rikuri-control", "Group": "rikuri-control",
+                "StateDirectory": "rikuri/control-plane", "StateDirectoryMode": "0700", "UMask": "0077"}
+CP_KEYS = {"[Unit]": {"Description": None, "After": "network.target"},
+           "[Service]": {"Type": "exec", **_AS_ITS_USER, "ExecStart": "/" + CP_BIN,
+                         "Environment": "RIKURI_LISTEN=0.0.0.0:443 RIKURI_HTTP_LISTEN=0.0.0.0:80 "
+                                        "RIKURI_STATE_DIR=/var/lib/rikuri/control-plane",
+                         "AmbientCapabilities": "CAP_NET_BIND_SERVICE",
+                         "CapabilityBoundingSet": "CAP_NET_BIND_SERVICE", "PrivateDevices": "yes",
+                         **_HARDENING, "Restart": "on-failure", "RestartSec": "5"},
+           "[Install]": {"WantedBy": "multi-user.target"}}
+SCREEN_KEYS = {"[Unit]": {"Description": None, "After": "rikuri-control-plane.service systemd-user-sessions.service"},
+               "[Service]": {"Type": "idle", **_AS_ITS_USER, "ExecStart": "/" + CP_BIN + " claim-screen",
+                             "Environment": "RIKURI_STATE_DIR=/var/lib/rikuri/control-plane",
+                             "StandardInput": "tty", "StandardOutput": "tty", "StandardError": "journal",
+                             "TTYPath": "/dev/tty2", "TTYReset": "yes", "TTYVHangup": "yes",
+                             "TTYVTDisallocate": "yes", "CapabilityBoundingSet": "", "IPAddressDeny": "any",
+                             **_HARDENING, "Restart": "always", "RestartSec": "1"},
+               "[Install]": {"WantedBy": "multi-user.target"}}
+CP_USER = "usr/lib/sysusers.d/rikuri-control-plane.conf"
+CP_USER_LINES = ['u! rikuri-control - "Rikuri Node control plane; no login" - -']
+CP_USER_OVERRIDES = ("etc/sysusers.d/rikuri-control-plane.conf", "run/sysusers.d/rikuri-control-plane.conf")
+TTY2_MASKS = ("usr/lib/systemd/system/getty@tty2.service", "usr/lib/systemd/system/autovt@tty2.service",
+              "usr/lib/systemd/system/kmsconvt@tty2.service")
+FIREWALL_POLICY = "usr/lib/firewalld/policies/rikuri-node.xml"
+FIREWALL_POLICY_LINES = [
+    '<?xml version="1.0" encoding="utf-8"?>',
+    '<policy target="CONTINUE" priority="-100">',
+    "  <short>Rikuri Node</short>",
+    "  <description>The control plane: the CA certificate and a redirect on 80, the API on 443.</description>",
+    '  <ingress-zone name="ANY"/>',
+    '  <egress-zone name="HOST"/>',
+    '  <service name="http"/>',
+    '  <service name="https"/>',
+    "</policy>"]
+FIREWALL_POLICY_OVERRIDES = ("etc/firewalld/policies/rikuri-node.xml",)
+CP_REQUIRED = "usr/lib/greenboot/check/required.d/50-rikuri-control-plane"
 # The one form of a line read alike by greenboot and this check (the docstring).
 PRINTABLE_LINE = re.compile(rb"^[\x20-\x7e]*$")
 # Quadlet's rootful unit folders an image can ship (podman-systemd.unit(5); /run is not in one).
@@ -382,6 +438,13 @@ def check_trigger_at_shutdown(root: str) -> list:
 def subid_unit_problems(data: bytes) -> list:
     """Why the unit is not exactly SUBID_KEYS, in the one line form read alike by
     systemd and this check; [] when it is."""
+    return unit_problems(data, SUBID_KEYS, "does not run the check once, before sysinit.target, and stay active")
+
+
+def unit_problems(data: bytes, expected: dict, purpose: str) -> list:
+    """Why a unit is not exactly `expected` ({section: {key: value or None}}),
+    in the one line form read alike by systemd and this check; [] when it is.
+    `purpose` says what a unit missing a key fails to do."""
     problems, sections, seen, section = [], set(), set(), None
     for n, raw in enumerate(data.split(b"\n"), 1):
         if not PRINTABLE_LINE.match(raw):
@@ -393,7 +456,7 @@ def subid_unit_problems(data: bytes) -> list:
         if line.endswith("\\"):
             problems.append("line %d: a continuation line" % n)
             continue
-        if line in SUBID_KEYS:
+        if line in expected:
             if line in sections:
                 problems.append("line %d: %s a second time" % (n, line))
             sections.add(line)
@@ -404,7 +467,7 @@ def subid_unit_problems(data: bytes) -> list:
             problems.append("line %d: not a section, a comment in column 0, or KEY=VALUE (%r)" % (n, line))
             continue
         key, value = m.groups()
-        keys = SUBID_KEYS.get(section, {})
+        keys = expected.get(section, {})
         if key not in keys:
             problems.append("line %d: %s= does not belong in %s" % (n, key, section or "no section"))
         elif (section, key) in seen:
@@ -414,11 +477,10 @@ def subid_unit_problems(data: bytes) -> list:
         elif keys[key] is None and not value:
             problems.append("line %d: %s= is empty" % (n, key))
         seen.add((section, key))
-    missing = ["%s=%s under %s" % (key, value or "...", section) for section, keys in SUBID_KEYS.items()
+    missing = ["%s=%s under %s" % (key, value or "...", section) for section, keys in expected.items()
                for key, value in keys.items() if (section, key) not in seen]
     if missing:
-        problems.append("does not run the check once, before sysinit.target, and stay active "
-                        "(missing: %s)" % "; ".join(missing))
+        problems.append("%s (missing: %s)" % (purpose, "; ".join(missing)))
     return problems
 
 
@@ -558,6 +620,89 @@ def check_subid_wanted(root: str) -> list:
         if d.endswith("/required.d") and os.path.lexists(os.path.join(root, rel)):
             found.append("%s: a required check; a failure would roll the node back, and no image "
                          "can repair /etc" % rel)
+    return found
+
+
+def _executable_problem(root: str, rel: str, why: str):
+    path = _regular(root, rel)
+    if path is None:
+        return "%s: missing, or not a regular file (%s)" % (rel, why)
+    if not os.lstat(path).st_mode & 0o111:
+        return "%s: not executable" % rel
+    return None
+
+
+def _enabled_problem(root: str, wants: str, unit: str):
+    full = os.path.join(root, wants)
+    if _lstat_in(root, os.path.dirname(wants)) is None or not os.path.islink(full):
+        return "%s: not a link, so the unit is not enabled" % wants
+    target = os.readlink(full)
+    if target not in ("../" + os.path.basename(unit), "/" + unit):
+        return "%s: points to %s, not to the unit" % (wants, target)
+    return None
+
+
+def _unit_found(root: str, unit: str, keys: dict, purpose: str) -> list:
+    data = _read_bytes(root, unit)
+    if data is None:
+        found = ["%s: missing, or not a regular file" % unit]
+    else:
+        found = ["%s: %s" % (unit, p) for p in unit_problems(data, keys, purpose)]
+    for rel in unit_overrides(unit):
+        problem = _override_problem(root, rel)
+        if problem:
+            found.append("%s: %s" % (rel, problem))
+    return found
+
+
+def _exact_lines(root: str, rel: str, expected: list, comment, why: str) -> list:
+    data = _read_bytes(root, rel)
+    if data is None:
+        return ["%s: missing, or not a regular file (%s)" % (rel, why)]
+    lines = [line for line in data.decode("utf-8", "replace").splitlines() if line.strip() and not comment(line)]
+    if lines != expected:
+        return ["%s: not exactly %r (comments and blank lines aside)" % (rel, expected)]
+    return []
+
+
+def check_control_plane(root: str) -> list:
+    found = []
+    problem = _executable_problem(root, CP_BIN, "the image's build stage did not install it")
+    if problem is None:
+        with open(os.path.join(root, CP_BIN), "rb") as f:
+            if not f.read(len(ELF64_LE)) == ELF64_LE:
+                problem = "%s: not a 64-bit ELF program" % CP_BIN
+    if problem:
+        found.append(problem)
+    found += _unit_found(root, CP_UNIT, CP_KEYS, "is not the control plane as its own user, with one capability")
+    found += _unit_found(root, SCREEN_UNIT, SCREEN_KEYS, "is not the claim screen on tty2, as the control "
+                                                         "plane's user, with no capability and no traffic")
+    for wants, unit in ((CP_WANTS, CP_UNIT), (SCREEN_WANTS, SCREEN_UNIT)):
+        problem = _enabled_problem(root, wants, unit)
+        if problem:
+            found.append(problem)
+    for rel in TTY2_MASKS:
+        full = os.path.join(root, rel)
+        if (_lstat_in(root, os.path.dirname(rel)) is None or not os.path.islink(full)
+                or os.readlink(full) != "/dev/null"):
+            found.append("%s: not masked (a link to /dev/null): a login there would hang up the claim "
+                         "screen" % rel)
+    found += _exact_lines(root, CP_USER, CP_USER_LINES, lambda line: line.startswith("#"),
+                          "the control plane would have no user to run as")
+    for rel in CP_USER_OVERRIDES:
+        problem = _override_problem(root, rel, "overrides the user's entry on every node")
+        if problem:
+            found.append("%s: %s" % (rel, problem))
+    found += _exact_lines(root, FIREWALL_POLICY, FIREWALL_POLICY_LINES,
+                          lambda line: line.startswith("<!--") and line.endswith("-->"),
+                          "the firewall would keep 80 and 443 closed")
+    for rel in FIREWALL_POLICY_OVERRIDES:
+        problem = _override_problem(root, rel, "overrides the policy on every node")
+        if problem:
+            found.append("%s: %s" % (rel, problem))
+    problem = _executable_problem(root, CP_REQUIRED, "a broken control plane would pass greenboot")
+    if problem:
+        found.append(problem)
     return found
 
 
@@ -722,7 +867,7 @@ def check_signature_policy(root: str) -> list:
 def check_root(root: str, release: str, note=lambda line: None) -> list:
     return (check_os_release(root, release) + check_greenboot(root) + check_unapplied_update(root)
             + check_trigger_at_shutdown(root) + check_containers_subid(root) + check_containers_user(root)
-            + check_subid_wanted(root)
+            + check_subid_wanted(root) + check_control_plane(root)
             + check_quadlet_health(root) + check_signature_policy(root) + check_no_private_keys(root, note))
 
 

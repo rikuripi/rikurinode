@@ -48,9 +48,12 @@ Evidence goes to --artifacts. Record: docs/build-records/2026-10-22-ci-vm-drill.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
+import socket
+import ssl
 import subprocess
 import sys
 import time
@@ -92,6 +95,20 @@ UNSIGNED_REF = sp.IMAGE_REPO + ":drill-unsigned"
 BOOTC_REFUSED = "failed to invoke method OpenImage: " + sp.NO_SIGNATURE
 
 
+# 5c.1: the control plane's two ports, forwarded to the CI machine's loopback only
+# (docs/build-records/2026-11-06-5c1-control-plane-on-node.md).
+HTTP_PORT = 8080
+HTTPS_PORT = 8443
+CP_USER = "rikuri-control"
+SERVER_NAME = "localhost"
+ALLOWED_PORTS = frozenset({22, 80, 443})
+CP_REQUIRED = "/usr/lib/greenboot/check/required.d/50-rikuri-control-plane"
+SHOW_CP = "systemctl show -p ActiveState -p SubState -p MainPID rikuri-control-plane.service"
+SHOW_SCREEN = "systemctl show -p ActiveState -p SubState -p TTYPath -p User rikuri-claim-screen.service"
+POLICY_INFO = "firewall-cmd --info-policy=rikuri-node"
+MAX_BYTES = 64 * 1024
+
+
 class DrillFailure(Exception):
     pass
 
@@ -104,8 +121,10 @@ def qemu_argv(disk: str, vars_fd: str, serial_log: str, port: int, pidfile: str)
             "-drive", "if=virtio,format=raw,file=" + disk,
             # guestfwd's cmd: starts nc for each connection; a tcp: target would be
             # connected once, at QEMU's start, before the registry runs (CI run 40932208792).
-            "-netdev", "user,id=n0,restrict=on,hostfwd=tcp:127.0.0.1:%d-:22,guestfwd=tcp:%s-cmd:nc -N %s"
-            % (port, MIRROR_IN_VM, sp.REG.replace(":", " ")),
+            # 5c.1: and the control plane's 80 and 443, reached from the CI machine as a LAN browser would.
+            "-netdev", "user,id=n0,restrict=on,hostfwd=tcp:127.0.0.1:%d-:22,hostfwd=tcp:127.0.0.1:%d-:80,"
+            "hostfwd=tcp:127.0.0.1:%d-:443,guestfwd=tcp:%s-cmd:nc -N %s"
+            % (port, HTTP_PORT, HTTPS_PORT, MIRROR_IN_VM, sp.REG.replace(":", " ")),
             "-device", "virtio-net-pci,netdev=n0",
             "-serial", "file:" + serial_log, "-display", "none",
             "-daemonize", "-pidfile", pidfile]
@@ -251,6 +270,105 @@ def unit_ran(show: str) -> bool:
     return "ActiveState=active" in lines and "Result=success" in lines
 
 
+def exposed_ports(ss: str) -> set:
+    """The TCP ports `ss -Htln` shows listening on anything but loopback."""
+    ports = set()
+    for line in ss.splitlines():
+        fields = line.split()
+        if len(fields) < 4:
+            continue
+        host, _, port = fields[3].rpartition(":")
+        host = host.split("%", 1)[0].strip("[]")
+        if not port.isdigit() or host.startswith("127.") or host == "::1":
+            continue
+        ports.add(int(port))
+    return ports
+
+
+def ports_ok(ports: set) -> bool:
+    """True if SSH, 80 and 443 listen outside loopback, and nothing else does."""
+    return ports == ALLOWED_PORTS
+
+
+def _show(text: str) -> dict:
+    return dict(line.split("=", 1) for line in text.splitlines() if "=" in line)
+
+
+def main_pid(show: str):
+    pid = _show(show).get("MainPID", "")
+    return int(pid) if pid.isdigit() and int(pid) > 0 else None
+
+
+def service_ok(show: str, owner: str) -> bool:
+    """The service runs, and its process belongs to the control plane's user."""
+    v = _show(show)
+    return v.get("ActiveState") == "active" and v.get("SubState") == "running" and owner == CP_USER
+
+
+def screen_ok(show: str) -> bool:
+    """The claim screen runs on tty2 as the control plane's user."""
+    v = _show(show)
+    return (v.get("ActiveState") == "active" and v.get("SubState") == "running"
+            and v.get("TTYPath") == "/dev/tty2" and v.get("User") == CP_USER)
+
+
+def policy_active(info: str) -> bool:
+    """`firewall-cmd --info-policy=rikuri-node`: active, with exactly http and https."""
+    lines = [line.strip() for line in info.splitlines()]
+    return bool(lines) and lines[0] == "rikuri-node (active)" and "services: http https" in lines
+
+
+def required_passed(journal: str) -> bool:
+    """True if greenboot's journal says the control plane's required check succeeded."""
+    return ("required script %s success!" % CP_REQUIRED) in journal
+
+
+CODE_NOT_SHOWN = "claim code armed and not shown"
+# A code as claim::Code::formatted() writes it: ten symbols of the alphabet, in groups of 4, 4 and 2.
+CLAIM_CODE = re.compile(r"\b[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{2}\b")
+
+
+def code_kept_out(journal: str) -> bool:
+    """The control plane's journal of this boot: it armed a code at its first
+    start and wrote no code there (the journal is kept on disk)."""
+    return CODE_NOT_SHOWN in journal and not CLAIM_CODE.search(journal) and "claim_code" not in journal
+
+
+def parse_http(raw: bytes):
+    """(status, body) of an HTTP/1.1 response, or (None, b"") if it is not one."""
+    head, _, body = raw.partition(b"\r\n\r\n")
+    status = head.split(b"\r\n", 1)[0].split(b" ")
+    if len(status) < 2 or not status[0].startswith(b"HTTP/") or not status[1].isdigit():
+        return None, b""
+    return int(status[1]), body
+
+
+def pem_fingerprint(pem: str) -> str:
+    """The certificate's SHA-256 as the control plane reports it: colon-separated upper-case hex."""
+    return ":".join("%02X" % b for b in hashlib.sha256(ssl.PEM_cert_to_DER_cert(pem)).digest())
+
+
+def setup_ok(body: bytes, fingerprint: str) -> bool:
+    """The first boot's setup report: not claimed, a code armed at the first start, and this CA."""
+    try:
+        report = json.loads(body)
+    except ValueError:
+        return False
+    return (isinstance(report, dict) and report.get("claimed") is False and report.get("claim") == "armed"
+            and report.get("ca_fingerprint_sha256") == fingerprint)
+
+
+def _read_all(conn) -> bytes:
+    chunks, size = [], 0
+    while size < MAX_BYTES:
+        chunk = conn.recv(4096)
+        if not chunk:
+            break
+        chunks.append(chunk)
+        size += len(chunk)
+    return b"".join(chunks)
+
+
 def container_started(output: str) -> bool:
     return "started" in output.splitlines()
 
@@ -283,7 +401,12 @@ def wait_until(predicate, timeout: float, interval: float = 5, clock=time.monoto
 EXPECTED = frozenset({"first boot", "the containers range at the first boot", "case 1, a failing update",
                       "case 2b, finalize fails", "case 3, a power cut during the update",
                       "the containers range after reboots", "the containers range",
-                      "case 4, an unsigned update refused", "case 5, a signed update staged"})
+                      "case 4, an unsigned update refused", "case 5, a signed update staged",
+                      "the control plane runs as its own user", "the CA certificate over HTTP",
+                      "the API over HTTPS with only the node's CA", "a client without the node's CA is refused",
+                      "the claim screen on tty2", "only SSH, 80 and 443 listen outside",
+                      "the firewall opens 80 and 443", "greenboot's control plane check",
+                      "no claim code in the journal"})
 
 
 def verdict(results, error) -> int:
@@ -413,6 +536,86 @@ class Drill:
         self.check("the containers range at the first boot", once and subid_added(journal) and wanted_passed(greenboot),
                    "added in boot 1 to both files: %s; the range once in both: %s; greenboot's wanted check "
                    "passed: %s" % (subid_added(journal), once, wanted_passed(greenboot)))
+
+    def fetch_plain(self, path: str) -> bytes:
+        """One plain HTTP request to the VM's 80, through its forward."""
+        with socket.create_connection(("127.0.0.1", HTTP_PORT), timeout=10) as conn:
+            conn.sendall(b"GET %s HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n" % path.encode())
+            return _read_all(conn)
+
+    def fetch_tls(self, path: str, cafile):
+        """One HTTPS request to the VM's 443, through its forward, as `localhost`:
+        trusting only `cafile`, or with None the system's CAs alone."""
+        context = ssl.create_default_context(cafile=cafile) if cafile else ssl.create_default_context()
+        with socket.create_connection(("127.0.0.1", HTTPS_PORT), timeout=10) as raw:
+            with context.wrap_socket(raw, server_hostname=SERVER_NAME) as conn:
+                conn.sendall(b"GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n"
+                             % (path.encode(), SERVER_NAME.encode()))
+                return _read_all(conn)
+
+    def control_plane(self) -> None:
+        """5c.1, at the first boot: the service runs as its own user; from outside
+        the VM, the CA certificate comes over HTTP and the API answers over HTTPS
+        trusting only that CA, while a client without it is refused; the claim
+        screen holds tty2; only SSH, 80 and 443 listen outside loopback; the
+        firewall policy is active; greenboot's required check passed."""
+        show = self.vm(SHOW_CP, check=False) or ""
+        pid = main_pid(show)
+        owner = (self.vm("stat -c %%U /proc/%d" % pid, check=False) or "").strip() if pid else ""
+        self.check("the control plane runs as its own user", service_ok(show, owner),
+                   "%s; its process's user: %s" % ("; ".join(show.split()), owner or "none"))
+
+        try:
+            status, body = parse_http(self.fetch_plain("/ca.crt"))
+            pem = body.decode("ascii")
+            fingerprint = pem_fingerprint(pem) if status == 200 else None
+        except (OSError, ValueError) as e:
+            status, pem, fingerprint = "no answer (%s)" % e, "", None
+        self.check("the CA certificate over HTTP", fingerprint is not None,
+                   "GET http://127.0.0.1:%d/ca.crt: %s; fingerprint %s" % (HTTP_PORT, status, fingerprint))
+
+        setup = None
+        if fingerprint:
+            cafile = os.path.join(self.workdir, "node-ca.crt")   # kept: the drill's workdir is the run's own
+            with open(cafile, "w", encoding="ascii") as f:
+                f.write(pem)
+            try:
+                status, setup = parse_http(self.fetch_tls("/api/setup", cafile))
+                detail = "%s %s" % (status, setup[:300].decode("utf-8", "replace"))
+            except OSError as e:
+                status, detail = None, "no answer (%s)" % e
+        else:
+            status, detail = None, "no CA certificate to trust"
+        self.check("the API over HTTPS with only the node's CA",
+                   status == 200 and setup_ok(setup, fingerprint),
+                   "GET https://localhost:%d/api/setup: %s" % (HTTPS_PORT, detail))
+
+        try:
+            answer = self.fetch_tls("/api/setup", None)
+            refused, detail = False, "answered: %r" % answer[:60]
+        except ssl.SSLCertVerificationError as e:
+            refused, detail = True, "refused: %s" % e
+        except OSError as e:
+            refused, detail = False, "no answer, so no refusal seen (%s)" % e
+        self.check("a client without the node's CA is refused", refused, detail)
+
+        screen = self.vm(SHOW_SCREEN, check=False) or ""
+        self.check("the claim screen on tty2", screen_ok(screen), "; ".join(screen.split()))
+        ss = self.vm("ss -Htln", check=False) or ""
+        exposed = exposed_ports(ss)
+        self.check("only SSH, 80 and 443 listen outside", ports_ok(exposed),
+                   "listening outside loopback: %s" % sorted(exposed))
+        policy = self.vm(POLICY_INFO, check=False) or ""
+        self.check("the firewall opens 80 and 443", policy_active(policy),
+                   "; ".join(line.strip() for line in policy.splitlines()[:6]) or "no policy reported")
+        greenboot = self.journal("-b -u greenboot-healthcheck")
+        self.check("greenboot's control plane check", required_passed(greenboot),
+                   "required script %s success!: %s" % (CP_REQUIRED, required_passed(greenboot)))
+        journal = self.journal("-b -u rikuri-control-plane")
+        self.check("no claim code in the journal", code_kept_out(journal),
+                   "%r in the service's journal: %s; a code there: %s"
+                   % (CODE_NOT_SHOWN, CODE_NOT_SHOWN in journal, bool(CLAIM_CODE.search(journal))))
+        self.keep("02-control-plane.out", "\n\n".join([show, screen, ss, policy, pem, greenboot, journal]))
 
     def load_variants(self) -> None:
         archive = os.path.join(self.workdir, "image.tar")
@@ -620,6 +823,7 @@ def main(argv=None) -> int:
     try:
         drill.install()
         drill.first_boot()
+        drill.control_plane()
         drill.load_variants()
         for case in (drill.case1, drill.case2b, drill.case3):
             case()

@@ -1,6 +1,7 @@
 //! The control plane daemon. Serves the API over TLS (and, if configured, the
 //! CA certificate and a redirect in the clear) until SIGTERM or SIGINT, and
-//! offers one console subcommand, `rearm-claim`. Logs go to stderr (the
+//! offers two console subcommands: `rearm-claim`, and `claim-screen`, the
+//! claim screen on `tty2` (stage 1 change 5c.1). Logs go to stderr (the
 //! journal, under systemd), filtered by `RUST_LOG` (default `info`).
 //!
 //! Environment: `RIKURI_LISTEN` (HTTPS, default `127.0.0.1:8443`),
@@ -9,30 +10,33 @@
 //! (default `/var/lib/rikuri/control-plane`).
 
 use std::error::Error;
-use std::io::Write;
+use std::io::{BufRead, Write};
 use std::process::ExitCode;
 
 use rikuri_control::config::Config;
 use rikuri_control::state::StateDir;
 use rikuri_control::status::{self, Started};
-use rikuri_control::{api_router, boot, claim, owner, plain_router, serve_plain, serve_tls};
+use rikuri_control::{
+    api_router, boot, claim, console, owner, plain_router, serve_plain, serve_tls,
+};
 use tokio::net::TcpListener;
 use tokio::signal::unix::{SignalKind, signal};
 use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::filter::LevelFilter;
 
-const USAGE: &str = "usage: rikuri-control-plane            serve (the default)\n       rikuri-control-plane rearm-claim  arm a new claim code at the console\n";
+const USAGE: &str = "usage: rikuri-control-plane             serve (the default)\n       rikuri-control-plane rearm-claim   arm a new claim code at the console\n       rikuri-control-plane claim-screen  the claim screen (its unit runs it on tty2)\n";
 
 fn main() -> ExitCode {
     let mut args = std::env::args().skip(1);
     match (args.next().as_deref(), args.next()) {
         (None, _) => daemon(),
         (Some("rearm-claim"), None) => rearm_claim(),
-        (Some("rearm-claim"), Some(extra)) => {
+        (Some("claim-screen"), None) => claim_screen(),
+        (Some(sub @ ("rearm-claim" | "claim-screen")), Some(extra)) => {
             let _ = write!(
                 std::io::stderr(),
-                "rearm-claim takes no argument (got {extra:?})\n{USAGE}"
+                "{sub} takes no argument (got {extra:?})\n{USAGE}"
             );
             ExitCode::from(2)
         }
@@ -91,14 +95,13 @@ fn run() -> Result<(), Box<dyn Error>> {
             server_certificate_issued = booted.identity.server_issued,
             "node identity: compare the fingerprint with the one the browser shows"
         );
-        if let Some(code) = &booted.armed {
-            // The one place the code is written in clear: it is how the owner
-            // learns it, from the console (the journal until the banner unit
-            // of stage 1 change 5 exists). Single-use, 24 hours.
+        if booted.armed.is_some() {
+            // Never the code itself: the journal is kept on disk. The owner
+            // gets a code to use from the claim screen at the node, which
+            // replaces this one (stage 1 change 5c.1).
             info!(
-                claim_code = %code.formatted(),
-                "claim code armed: enter it on the setup page within 24 hours; \
-                 twenty wrong tries retire it, and only `rikuri-control-plane rearm-claim` arms another"
+                "claim code armed and not shown: press Enter on the claim screen at the node \
+                 (Ctrl+Alt+F2) for a code to use; it replaces this one"
             );
         }
         let https = TcpListener::bind(config.https).await?;
@@ -165,4 +168,50 @@ fn rearm() -> Result<claim::Code, Box<dyn Error>> {
         return Err("the node is claimed: a claim code cannot be re-armed".into());
     }
     Ok(claim::arm(&dir, status::unix_now().unwrap_or(0))?)
+}
+
+/// Clears the console and puts the cursor at its top left.
+const CLEAR: &str = "\x1b[H\x1b[2J";
+
+/// The claim screen: draws the node's address, the CA fingerprint and the
+/// claim state, then waits for a line. Enter (any line) arms a new code on an
+/// unclaimed node and draws again. It ends when its input ends; its unit
+/// starts it again. Never prints a code it did not arm itself.
+fn claim_screen() -> ExitCode {
+    let dir = match Config::from_env()
+        .map_err(|e| e.to_string())
+        .and_then(|config| StateDir::open(&config.state_dir).map_err(|e| e.to_string()))
+    {
+        Ok(dir) => dir,
+        Err(e) => {
+            let _ = writeln!(std::io::stderr(), "claim-screen: {e}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let stdin = std::io::stdin();
+    let mut shown = console::initial(&dir);
+    loop {
+        let screen = console::render(
+            console::lan_address(),
+            &console::ca_fingerprint(&dir),
+            &shown,
+        );
+        let mut out = std::io::stdout().lock();
+        if write!(out, "{CLEAR}{screen}")
+            .and_then(|()| out.flush())
+            .is_err()
+        {
+            return ExitCode::FAILURE;
+        }
+        drop(out);
+        let mut line = String::new();
+        match stdin.lock().read_line(&mut line) {
+            Ok(0) => return ExitCode::SUCCESS,
+            Ok(_) => shown = console::press_enter(&dir, status::unix_now().unwrap_or(0)),
+            Err(e) => {
+                let _ = writeln!(std::io::stderr(), "claim-screen: reading the console: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    }
 }
