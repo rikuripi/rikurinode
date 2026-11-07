@@ -146,3 +146,7 @@
   - the Full gate on `d3f9fa5`, which runs the new lock test;
   - the drill without 5355;
   - `cargo mutants` over the changed Rust lines, which "Done when" asks for. No environment here can run Rust tests: the Mac is barred, and the VM has no toolchain. This needs the owner's decision.
+- **The owner's decision on `cargo mutants`** (2026-11-06: "Record it, follow-up task (Recommended)"):
+  - 5c.1 closes without it, recorded as **Not yet proven**. No environment open to this task can run Rust tests, and CI runs them but not mutants.
+  - In its place stand the verifier's read mutants of the lock lines and the CI runs of every new Rust test.
+  - The proposed follow-up task is a CI job running `cargo mutants --in-diff` on pull requests that touch `control-plane/`. It is a CI change, so it is its own task.
