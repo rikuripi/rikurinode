@@ -4,8 +4,11 @@ name: Rust mutants
 # deliberate break of a changed line, and one the tests miss fails the run
 # (owner, 2026-11-06: "Fail the job"). Pull requests mutate what they change;
 # a run by hand mutates everything since `base`. The binary is the pinned
-# release, checked by its digest; it runs inside safe-run.sh with no network
-# and no secret, and the token only reads. Timeouts pass: the tests did not
+# release, checked by its digest; it runs inside safe-run.sh with cargo
+# offline and no secret, and the token only reads. (On a runner without user
+# namespaces safe-run.sh has only its stand-ins, so the network is not cut;
+# nothing here holds a credential to send.) The settings are the verifier's
+# (.claude/agents/verifier.md). Timeouts pass: the tests did not
 # pass under that mutant. An exclusion, when one is ever needed, goes only in
 # control-plane/.cargo/mutants.toml, each with its reason.
 # Record: docs/build-records/2026-11-06-ci-cargo-mutants.md
@@ -58,7 +61,7 @@ jobs:
         env:
           BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || inputs.base }}
         run: |
-          printf '%s\n' "$BASE" | grep -Eqx '[0-9a-f]{7,40}' || { echo "base must be a commit id: $BASE"; exit 1; }
+          [[ "$BASE" =~ ^[0-9a-f]{7,40}$ ]] || { echo "base must be a commit id: $BASE"; exit 1; }
           git diff --relative=control-plane "$BASE...HEAD" > "$RUNNER_TEMP/changes.diff"
           echo "Diff from $BASE: $(grep -c '^+++ ' "$RUNNER_TEMP/changes.diff") files changed under control-plane/" >> "$GITHUB_STEP_SUMMARY"
       - name: Fetch the crates as locked
@@ -72,7 +75,7 @@ jobs:
           CARGO_NET_OFFLINE: "true"
         run: |
           rc=0
-          scripts/quality/safe-run.sh scripts/cargo.sh mutants --dir control-plane --in-diff "$RUNNER_TEMP/changes.diff" --output "$RUNNER_TEMP" --cargo-arg=--locked --no-shuffle || rc=$?
+          scripts/quality/safe-run.sh scripts/cargo.sh mutants --dir control-plane --in-diff "$RUNNER_TEMP/changes.diff" --output "$RUNNER_TEMP" --cargo-arg=--locked --test-workspace=true --timeout 600 --no-shuffle || rc=$?
           case "$rc" in
             0|3) ;;
             *) echo "cargo-mutants exited $rc: missed mutants (2) or an error"; exit "$rc" ;;

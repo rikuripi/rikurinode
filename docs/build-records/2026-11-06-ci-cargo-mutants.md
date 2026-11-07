@@ -27,7 +27,7 @@
      - missed and timed-out mutants are written to the job summary, and `mutants.out` is kept as an artifact.
    - Tests: `scripts/quality/tests/test_workflows.py`, a new class.
    - Knowledge layer: one sentence in `.agents/workflows/BUILD-PROCEDURE.md`, "The mutation run": where no machine can run the Rust tests, this workflow's run is that run.
-   - Risk tier: **routine.** It adds a check and weakens none. The third-party binary runs on a CI runner with a read-only token, no secret and no network (inside `safe-run.sh`).
+   - Risk tier: **high-risk** (corrected after verifier round 1; it was "routine"). BUILD-PROCEDURE's "Risk tiers" lists CI and the procedure itself as controls, and this change touches both. The third-party binary runs on a CI runner with a read-only token, no secret, and cargo offline inside `safe-run.sh`. On a runner without user namespaces, `safe-run.sh` has only its stand-ins, so the network itself is not cut there (verifier round 1, Minor 1).
    - **Not included:**
      - making it a required check (branch protection is the owner's);
      - an exclusion file: none is needed yet. The owner's rule for one: each exclusion only in `control-plane/.cargo/mutants.toml`, each with its reason; a test comes with the first;
@@ -83,3 +83,39 @@
   - **Fix** (its own commit): `cargo-mutants mutants --version`.
   - **Green:** `scripts/quality/tests` `Ran 169 tests`, with only the 7 known errors.
   - Why the tests missed it: they read the workflow's text, and nothing ran the binary. Only a runner can show that.
+
+## Verifier, round 1, and the rest of repair cycle 1
+
+- **Verifier, one pass** (on `ba5e786`, at high-risk depth): **FAIL**.
+  - **Important 1:** `cargo-mutants --version` exits 1 on the runner (run 42334715705), so the job can never pass. It was already repaired above (`f2802fb` red, `dfcf0bf` fix).
+  - **Important 2:** the tier was routine, and four weakenings passed the line checks: a `2) ;;` before `0|3) ;;`, `if: false` on the mutation step, `exit 0` after `rc=0`, and a negated `paths:` entry.
+  - **Minor 1:** "no network" is not true on a runner that refuses user namespaces. Only cargo is offline there.
+  - **Minor 2:** the run lacked the verifier's `--test-workspace=true --timeout 600`.
+  - **Nit 1:** `printf … | grep -Eqx` passes a base of many lines if any one line is a commit id.
+  - **Nit 2:** `--relative=control-plane` has no trailing slash. Left as it is: it is harmless, and git reads the argument as a path prefix.
+  - **What it found sound:** the supply-chain pin (digest and uploader); the token; the injection path; and, from the v27.1.0 source, `--dir` with `--relative`, `--output`, the exit codes, `RUSTUP_TOOLCHAIN` and `CARGO_HOME`.
+  - It reran the red (`Ran 38` `FAILED (errors=8)`) and the green (`Ran 38` `OK`).
+- **Repair** (the same cycle; nothing was pushed between the two):
+  - **Red** (`test_workflows.py`):
+    - new `test_the_mutation_step_is_exactly_this` (the step's whole lines), `test_only_the_two_reports_have_a_condition` and `test_the_trigger_paths_are_exactly_these`;
+    - two pinned lines changed, each stricter:
+      - the base check becomes `[[ "$BASE" =~ ^[0-9a-f]{7,40}$ ]]`, and `grep -Eqx` is refused (Nit 1);
+      - the run line gains `--test-workspace=true --timeout 600` (Minor 2).
+    - Result: `Ran 42 tests` `FAILED (failures=3)`. The two condition and path tests already pass on the old workflow; the mutants below show that they bite.
+  - **Fix** (its own commit):
+    - the bash match;
+    - the verifier's two settings;
+    - the header comment now says only cargo is offline, and why the stand-ins cannot cut the network;
+    - the risk tier above.
+  - **Green:**
+    - `scripts/quality/tests` `Ran 172 tests`, with only the 7 known errors;
+    - YAML parses;
+    - `git diff --check` clean;
+    - a two-line base is refused by the new match (`two-line base refused`).
+  - **Hand mutants: 24 of 24 red.** That is the first 16 again, plus:
+    - the verifier's four survivors;
+    - `if: false` on the job;
+    - the old `grep -Eqx` base check;
+    - no `--test-workspace`;
+    - the bare `cargo-mutants --version`.
+    - The sha256 of the workflow was the same before and after.
