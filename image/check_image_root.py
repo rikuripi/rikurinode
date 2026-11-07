@@ -196,6 +196,11 @@ FIREWALL_POLICY_LINES = [
     '  <service name="https"/>',
     "</policy>"]
 FIREWALL_POLICY_OVERRIDES = ("etc/firewalld/policies/rikuri-node.xml",)
+# systemd-resolved answers LLMNR on 5355 by default; the node turns it off (owner, 2026-11-06).
+NO_LLMNR = "usr/lib/systemd/resolved.conf.d/90-rikuri-no-llmnr.conf"
+NO_LLMNR_LINES = ["[Resolve]", "LLMNR=no"]
+NO_LLMNR_OVERRIDES = ("etc/systemd/resolved.conf.d/90-rikuri-no-llmnr.conf",
+                      "run/systemd/resolved.conf.d/90-rikuri-no-llmnr.conf")
 CP_REQUIRED = "usr/lib/greenboot/check/required.d/50-rikuri-control-plane"
 # The one form of a line read alike by greenboot and this check (the docstring).
 PRINTABLE_LINE = re.compile(rb"^[\x20-\x7e]*$")
@@ -698,6 +703,12 @@ def check_control_plane(root: str) -> list:
                           "the firewall would keep 80 and 443 closed")
     for rel in FIREWALL_POLICY_OVERRIDES:
         problem = _override_problem(root, rel, "overrides the policy on every node")
+        if problem:
+            found.append("%s: %s" % (rel, problem))
+    found += _exact_lines(root, NO_LLMNR, NO_LLMNR_LINES, lambda line: line.startswith("#"),
+                          "systemd-resolved would answer LLMNR on 5355")
+    for rel in NO_LLMNR_OVERRIDES:
+        problem = _override_problem(root, rel, "overrides turning LLMNR off on every node")
         if problem:
             found.append("%s: %s" % (rel, problem))
     problem = _executable_problem(root, CP_REQUIRED, "a broken control plane would pass greenboot")
