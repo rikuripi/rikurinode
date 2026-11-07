@@ -49,6 +49,8 @@ TTY2_MASKS = ("usr/lib/systemd/system/getty@tty2.service", "usr/lib/systemd/syst
               "usr/lib/systemd/system/kmsconvt@tty2.service")
 FIREWALL_POLICY = "usr/lib/firewalld/policies/rikuri-node.xml"
 CP_REQUIRED = "usr/lib/greenboot/check/required.d/50-rikuri-control-plane"
+# systemd-resolved answers LLMNR on 5355 by default; the node turns it off (owner, 2026-11-06).
+NO_LLMNR = "usr/lib/systemd/resolved.conf.d/90-rikuri-no-llmnr.conf"
 # A built x86-64 program's first bytes: ELF, 64-bit, little-endian.
 ELF64 = b"\x7fELF\x02\x01\x01" + b"\x00" * 57
 
@@ -160,6 +162,8 @@ class Root:
             self.link(SCREEN_WANTS, "../rikuri-claim-screen.service")
             for rel in TTY2_MASKS:
                 self.link(rel, "/dev/null")
+        if os.path.exists(os.path.join(HERE, "..", "rootfs", NO_LLMNR)):
+            self.write_bytes(NO_LLMNR, shipped_file(NO_LLMNR))
         self.write("etc/ssh/sshd_config", "PermitRootLogin no\n")
 
     def _fresh(self, rel):
@@ -1385,6 +1389,32 @@ class ControlPlane(unittest.TestCase):
         self.root.write(CP_USER, shipped_file(CP_USER).decode("utf-8"))
         self.root.write("etc/sysusers.d/rikuri-control-plane.conf", "")
         self.assertFinds("etc/sysusers.d/rikuri-control-plane.conf: overrides")
+
+    # --- no LLMNR: only SSH, 80 and 443 listen outside -------------------------
+    def test_llmnr_is_turned_off(self):
+        self.assertEqual(cir.NO_LLMNR_LINES, ["[Resolve]", "LLMNR=no"])
+        lines = [l for l in shipped_file(NO_LLMNR).decode("utf-8").splitlines()
+                 if l.strip() and not l.startswith("#")]
+        self.assertEqual(lines, ["[Resolve]", "LLMNR=no"])
+
+    def test_llmnr_left_on_is_a_finding(self):
+        good = shipped_file(NO_LLMNR).decode("utf-8")
+        for old, new, why in (("LLMNR=no", "LLMNR=yes", "on"), ("LLMNR=no", "LLMNR=resolve", "resolving"),
+                              ("LLMNR=no", "LLMNR=no\nMulticastDNS=yes", "another setting"),
+                              ("[Resolve]", "[Other]", "another section")):
+            with self.subTest(why=why):
+                self.root.write(NO_LLMNR, good.replace(old, new, 1))
+                self.assertFinds(NO_LLMNR + ": not exactly")
+        self.root.remove(NO_LLMNR)
+        self.assertFinds(NO_LLMNR + ": missing")
+        self.root.write(NO_LLMNR, good)
+        for rel in ("etc/systemd/resolved.conf.d/90-rikuri-no-llmnr.conf",
+                    "run/systemd/resolved.conf.d/90-rikuri-no-llmnr.conf"):
+            with self.subTest(rel=rel):
+                self.root.write(rel, "[Resolve]\nLLMNR=yes\n")
+                self.assertFinds(rel + ": overrides")
+                self.root.remove(rel)
+        self.assertEqual(self.found(), [])
 
     # --- the firewall: 80 and 443 to the node, nothing else ------------------
     def test_the_firewall_policy_opens_http_and_https_to_the_node_only(self):
