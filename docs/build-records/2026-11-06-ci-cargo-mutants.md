@@ -52,3 +52,28 @@
 
 ## Evidence log
 - **Red** (rikuri-drill, `safe-run.sh`): `test_workflows.py` `Ran 38 tests` `FAILED (errors=8)`, each `No such file or directory: '.../.github/workflows/mutants.yml'`. That only shows the workflow is missing; the hand mutants after green show that each test bites. Test changes: a new class `Mutants` and two path constants; nothing existing changed.
+- **Fix** (its own commit):
+  - `.github/workflows/mutants.yml`, as in the contract;
+  - one bullet in `.agents/workflows/BUILD-PROCEDURE.md`, "The mutation run". The job fails on any missed mutant, which is stricter than the procedure's own rule, where only a survivor in a refusal, validation, recovery, funds or integrity check is Important. The owner chose it.
+- **Green** (rikuri-drill, `safe-run.sh`): `scripts/quality/tests` `Ran 168 tests`, with only the 7 known `git` errors (Not yet proven locally; CI's gate); `.claude/hooks` `Ran 91 tests` `OK`; `image/tests` `Ran 435 tests` `OK`. The workflow parses as YAML (Ruby's `YAML.load_file` on the Mac, a syntax check only): two triggers, eight steps, `contents: read`. `git diff --check`: clean.
+- **Two layout fixes before green, in the workflow, not the tests:** the toolchain line had a trailing comment, and the fetch was a one-line `run:`. The tests read each command as its own line.
+- **Hand mutants of the workflow: 16 of 16 red.** Each was restored byte for byte (sha256 the same before and after):
+  - the digest changed;
+  - a write token;
+  - the credential kept;
+  - a `push` trigger;
+  - the base not checked;
+  - the base put into the shell;
+  - the diff not relative to `control-plane/`;
+  - out of `safe-run.sh`;
+  - online;
+  - exit 2 passing;
+  - `continue-on-error`;
+  - an exclusion on the command line;
+  - the toolchain `stable`;
+  - the missed list hidden;
+  - no `control-plane/**` path;
+  - not `--locked`.
+- **Not yet proven:**
+  - the workflow on a runner: the PR's own run, with no Rust in the diff, must install the binary, pass the checksum and exit 0;
+  - the run by hand over 5c.1, after the merge.

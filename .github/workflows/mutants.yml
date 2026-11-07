@@ -1,0 +1,102 @@
+name: Rust mutants
+
+# cargo-mutants over the control plane's changed lines: each mutant is a
+# deliberate break of a changed line, and one the tests miss fails the run
+# (owner, 2026-11-06: "Fail the job"). Pull requests mutate what they change;
+# a run by hand mutates everything since `base`. The binary is the pinned
+# release, checked by its digest; it runs inside safe-run.sh with no network
+# and no secret, and the token only reads. Timeouts pass: the tests did not
+# pass under that mutant. An exclusion, when one is ever needed, goes only in
+# control-plane/.cargo/mutants.toml, each with its reason.
+# Record: docs/build-records/2026-11-06-ci-cargo-mutants.md
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - control-plane/**
+      - rust-toolchain.toml
+      - .github/workflows/mutants.yml
+  workflow_dispatch:
+    inputs:
+      base:
+        description: "The commit to mutate from: every control plane line changed since it (a commit id)"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mutants-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  mutants:
+    name: Rust mutants (changed lines)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    env:
+      # rust-toolchain.toml's: the copy of control-plane/ that cargo-mutants builds has no such file.
+      RUSTUP_TOOLCHAIN: "1.98.1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the base commit must be here to diff from
+          persist-credentials: false
+      - name: Install cargo-mutants 27.1.0 (checksum-verified)
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/cargo-mutants.tgz" \
+            https://github.com/sourcefrog/cargo-mutants/releases/download/v27.1.0/cargo-mutants-x86_64-unknown-linux-gnu.tar.gz \
+            || { echo "download failed"; exit 1; }
+          echo "dfe6dc37d0342c891d2829b5a695aa57c2d0edecef7e7d0399a30cc6e206411e  $RUNNER_TEMP/cargo-mutants.tgz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/cargo-mutants.tgz" -C "$RUNNER_TEMP" cargo-mutants
+          sudo install -m 755 "$RUNNER_TEMP/cargo-mutants" /usr/local/bin/cargo-mutants
+          cargo-mutants --version
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal && cargo --version
+      - name: The control plane's changes since the base
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || inputs.base }}
+        run: |
+          printf '%s\n' "$BASE" | grep -Eqx '[0-9a-f]{7,40}' || { echo "base must be a commit id: $BASE"; exit 1; }
+          git diff --relative=control-plane "$BASE...HEAD" > "$RUNNER_TEMP/changes.diff"
+          echo "Diff from $BASE: $(grep -c '^+++ ' "$RUNNER_TEMP/changes.diff") files changed under control-plane/" >> "$GITHUB_STEP_SUMMARY"
+      - name: Fetch the crates as locked
+        run: |
+          scripts/cargo.sh fetch --locked --manifest-path control-plane/Cargo.toml
+      - name: Mutate the changed lines (inside safe-run.sh, offline)
+        # No live node on a CI runner: the test-safety layer may run with its
+        # stand-ins only if this runner forbids user namespaces (as in ci.yml).
+        env:
+          SAFE_RUN_ALLOW_NO_NAMESPACE: "1"
+          CARGO_NET_OFFLINE: "true"
+        run: |
+          rc=0
+          scripts/quality/safe-run.sh scripts/cargo.sh mutants --dir control-plane --in-diff "$RUNNER_TEMP/changes.diff" --output "$RUNNER_TEMP" --cargo-arg=--locked --no-shuffle || rc=$?
+          case "$rc" in
+            0|3) ;;
+            *) echo "cargo-mutants exited $rc: missed mutants (2) or an error"; exit "$rc" ;;
+          esac
+      - name: What was missed, or timed out
+        if: always()
+        run: |
+          for kind in caught missed timeout unviable; do
+            f="$RUNNER_TEMP/mutants.out/$kind.txt"
+            echo "- $kind: $( [ -f "$f" ] && wc -l < "$f" || echo 0)" >> "$GITHUB_STEP_SUMMARY"
+          done
+          if [ -s "$RUNNER_TEMP/mutants.out/missed.txt" ]; then
+            echo "### Missed mutants" >> "$GITHUB_STEP_SUMMARY"
+            cat "$RUNNER_TEMP/mutants.out/missed.txt" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -s "$RUNNER_TEMP/mutants.out/timeout.txt" ]; then
+            echo "### Timed out (they pass)" >> "$GITHUB_STEP_SUMMARY"
+            cat "$RUNNER_TEMP/mutants.out/timeout.txt" >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Keep mutants.out
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutants-out
+          path: ${{ runner.temp }}/mutants.out
+          if-no-files-found: ignore
+          retention-days: 30
