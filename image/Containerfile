@@ -7,10 +7,28 @@
 # is checked by image/check_image_root.py (FEDORA_RELEASE in the workflows).
 # Record of the move: docs/build-records/2026-11-03-fedora-45.md
 # Record: docs/build-records/2026-10-12-stage1-os-image.md
+
+# The build context is the repository's root: `podman build -f image/Containerfile .`
+# (.github/workflows/image.yml, publish.yml). /.containerignore lets in only what is
+# copied below: image/rootfs and control-plane/ (without its target/).
+#
+# The control plane (stage 1 change 5c.1), built here from control-plane/ with the
+# official Rust image at the repository's toolchain (rust-toolchain.toml, 1.98.1),
+# pinned by digest (read from Docker Hub on 2026-11-06); crates exactly as locked
+# in control-plane/Cargo.lock.
+# Record: docs/build-records/2026-11-06-5c1-control-plane-on-node.md
+FROM docker.io/library/rust:1.98.1-slim-trixie@sha256:4cd829461bd5c4d511c32e269da9cb8929223b666519d8004e35fc8d1d771ab7 AS control-plane
+COPY control-plane/ /src/
+WORKDIR /src
+RUN cargo build --release --locked -p rikuri-control-plane
+
 FROM registry.fedoraproject.org/fedora-iot@sha256:cf93fd12bb7b65b12e80823566517d1cf10d288278050ecf7ff3521ae1a62af8
 
+# The control plane's program; its units, user and firewall policy are in rootfs/.
+COPY --from=control-plane /src/target/release/rikuri-control-plane /usr/bin/rikuri-control-plane
+
 # Host configuration the node relies on; each file is asserted by the check.
-COPY rootfs/ /
+COPY image/rootfs/ /
 
 # bootc's own checks of a bootable image; a failure fails the build.
 RUN bootc container lint

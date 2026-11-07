@@ -19,6 +19,9 @@ use crate::random::{self, RandomError};
 use crate::state::{StateDir, StateError};
 
 pub const FILE: &str = "claim.json";
+/// The lock every writer of [`FILE`] holds: the daemon (a wrong try, a
+/// finished claim) and the claim screen (a new code) are two processes.
+pub const LOCK: &str = "claim.lock";
 /// Letters and digits without look-alikes: no 0/O, no 1/I/L. 31 symbols; ten
 /// of them carry about 49.6 bits.
 pub const ALPHABET: &[u8; 31] = b"ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -152,6 +155,7 @@ pub fn normalize(input: &str) -> String {
 pub fn arm(dir: &StateDir, now_unix: u64) -> Result<Code, ClaimError> {
     let code = generate()?;
     let hash = password::hash(code.0.expose_secret())?;
+    let _lock = dir.lock(LOCK)?;
     dir.write_json(
         FILE,
         &ClaimFile {
@@ -188,7 +192,7 @@ pub fn attempt(
     input: &str,
     now_unix: u64,
 ) -> Result<(Attempt, Option<ClaimFile>), ClaimError> {
-    let Some(mut file) = load(dir)? else {
+    let Some(file) = load(dir)? else {
         return Ok((Attempt::Refused { counted: false }, None));
     };
     if file.state(now_unix) != ClaimState::Armed {
@@ -197,16 +201,37 @@ pub fn attempt(
     if password::verify(&normalize(input), &file.hash) {
         return Ok((Attempt::Accepted, Some(file)));
     }
+    let after = count_wrong(dir, &file)?;
+    Ok((Attempt::Refused { counted: true }, after))
+}
+
+/// Counts one wrong try against `judged`, the claim as it was read before the
+/// (slow) judgement, under the lock. If the claim on disk is no longer that
+/// one (re-armed at the claim screen meanwhile, or finished), nothing is
+/// written: the try was against a code that no longer exists, and the new
+/// code stays as armed. Returns the claim on disk afterwards.
+pub(crate) fn count_wrong(
+    dir: &StateDir,
+    judged: &ClaimFile,
+) -> Result<Option<ClaimFile>, ClaimError> {
+    let _lock = dir.lock(LOCK)?;
+    let Some(mut file) = load(dir)? else {
+        return Ok(None);
+    };
+    if file.hash != judged.hash {
+        return Ok(Some(file));
+    }
     file.wrong_tries = file.wrong_tries.saturating_add(1);
     if file.wrong_tries >= RETIRE_AT {
         file.retired = true;
     }
     dir.write_json(FILE, &file)?;
-    Ok((Attempt::Refused { counted: true }, Some(file)))
+    Ok(Some(file))
 }
 
 /// After a successful claim: the file goes, and with it the code for good.
 pub fn finish(dir: &StateDir) -> Result<(), ClaimError> {
+    let _lock = dir.lock(LOCK)?;
     dir.remove(FILE)?;
     Ok(())
 }
@@ -376,5 +401,124 @@ mod tests {
         assert_eq!(old, Attempt::Refused { counted: true });
         let (new, _) = attempt(&dir, &second.formatted(), NOW + 11).unwrap();
         assert_eq!(new, Attempt::Accepted);
+    }
+
+    // The claim screen (`rikuri-control-plane claim-screen`) arms codes while
+    // the daemon judges them: two processes write one file.
+
+    #[test]
+    fn a_wrong_try_judged_against_a_code_rearmed_meanwhile_leaves_the_new_code_armed() {
+        let (_scratch, dir) = open();
+        arm(&dir, NOW).unwrap();
+        // The daemon read this file, then spent the argon2 time judging...
+        let seen = load(&dir).unwrap().unwrap();
+        // ...while the claim screen armed a new code.
+        let fresh = arm(&dir, NOW + 1).unwrap();
+        let after = count_wrong(&dir, &seen).unwrap();
+        let on_disk = load(&dir).unwrap().unwrap();
+        assert_eq!(
+            on_disk.created_unix,
+            NOW + 1,
+            "the old claim was written back"
+        );
+        assert_eq!(
+            on_disk.wrong_tries, 0,
+            "a try against the old code counted on the new"
+        );
+        assert_eq!(after, Some(on_disk));
+        let (verdict, _) = attempt(&dir, &fresh.formatted(), NOW + 2).unwrap();
+        assert_eq!(
+            verdict,
+            Attempt::Accepted,
+            "the code on the screen does not work"
+        );
+    }
+
+    #[test]
+    fn a_wrong_try_against_the_code_still_armed_counts() {
+        let (_scratch, dir) = open();
+        arm(&dir, NOW).unwrap();
+        let seen = load(&dir).unwrap().unwrap();
+        let after = count_wrong(&dir, &seen).unwrap().unwrap();
+        assert_eq!(after.wrong_tries, 1);
+        assert_eq!(load(&dir).unwrap().unwrap(), after);
+    }
+
+    #[test]
+    fn a_wrong_try_after_the_claim_was_finished_writes_nothing_back() {
+        let (_scratch, dir) = open();
+        arm(&dir, NOW).unwrap();
+        let seen = load(&dir).unwrap().unwrap();
+        finish(&dir).unwrap();
+        assert_eq!(count_wrong(&dir, &seen).unwrap(), None);
+        assert_eq!(load(&dir).unwrap(), None, "a finished claim came back");
+    }
+
+    #[test]
+    fn arming_waits_for_the_claim_lock() {
+        let (_scratch, dir) = open();
+        let held = dir.lock(LOCK).unwrap();
+        let (done, finished) = std::sync::mpsc::channel();
+        let armer = dir.clone();
+        let thread = std::thread::spawn(move || {
+            let result = arm(&armer, NOW).map(|_| ());
+            let _ = done.send(());
+            result
+        });
+        assert!(
+            finished.recv_timeout(Duration::from_secs(3)).is_err(),
+            "arm wrote the claim while another holder had the lock"
+        );
+        assert_eq!(load(&dir).unwrap(), None);
+        drop(held);
+        finished.recv_timeout(Duration::from_secs(60)).unwrap();
+        thread.join().unwrap().unwrap();
+        assert!(load(&dir).unwrap().is_some());
+    }
+
+    #[test]
+    fn finishing_waits_for_the_claim_lock() {
+        let (_scratch, dir) = open();
+        arm(&dir, NOW).unwrap();
+        let held = dir.lock(LOCK).unwrap();
+        let (done, finished) = std::sync::mpsc::channel();
+        let finisher = dir.clone();
+        let thread = std::thread::spawn(move || {
+            let result = finish(&finisher);
+            let _ = done.send(());
+            result
+        });
+        assert!(finished.recv_timeout(Duration::from_secs(3)).is_err());
+        assert!(load(&dir).unwrap().is_some());
+        drop(held);
+        finished.recv_timeout(Duration::from_secs(60)).unwrap();
+        thread.join().unwrap().unwrap();
+        assert_eq!(load(&dir).unwrap(), None);
+    }
+
+    #[test]
+    fn counting_a_wrong_try_waits_for_the_claim_lock() {
+        let (_scratch, dir) = open();
+        arm(&dir, NOW).unwrap();
+        let judged = load(&dir).unwrap().unwrap();
+        let held = dir.lock(LOCK).unwrap();
+        let (done, finished) = std::sync::mpsc::channel();
+        let counter = dir.clone();
+        let seen = judged.clone();
+        let thread = std::thread::spawn(move || {
+            let result = count_wrong(&counter, &seen);
+            let _ = done.send(());
+            result
+        });
+        assert!(
+            finished.recv_timeout(Duration::from_secs(3)).is_err(),
+            "count_wrong read and wrote the claim while another holder had the lock"
+        );
+        assert_eq!(load(&dir).unwrap().unwrap().wrong_tries, judged.wrong_tries);
+        drop(held);
+        finished.recv_timeout(Duration::from_secs(60)).unwrap();
+        let counted = thread.join().unwrap().unwrap().unwrap();
+        assert_eq!(counted.wrong_tries, judged.wrong_tries + 1);
+        assert_eq!(load(&dir).unwrap().unwrap(), counted);
     }
 }

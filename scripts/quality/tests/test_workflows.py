@@ -143,7 +143,8 @@ class Image(unittest.TestCase):
         self.assertIn('if [ "$EVENT" != "pull_request" ]', lines)
         self.assertIn("image=true", lines)
         self.assertIn("image=false", lines)
-        self.assertIn("^(image/|\\.github/workflows/image\\.yml$)", lines)
+        # 5c.1: the image holds the control plane, so a change to it builds and drills the image.
+        self.assertIn("^(image/|control-plane/|\\.github/workflows/image\\.yml$)", lines)
         # A pipe into grep -q can fail under GitHub's `bash -e -o pipefail` and
         # skip the drill wrongly; the match reads a here-string instead.
         self.assertNotRegex(lines, r"\|\s*grep -q")
@@ -201,6 +202,63 @@ def env_pins(text):
 
 def builder_pin(text):
     return [line.strip() for line in text.splitlines() if line.startswith("  IMAGE_BUILDER:")]
+
+
+class ControlPlaneInTheImage(unittest.TestCase):
+    """The OS image's build compiles the control plane in its first stage, so its
+    context is the repository's root (`podman build -f image/Containerfile .`),
+    and /.containerignore lets in only image/rootfs and control-plane/. No build
+    names a context (`--build-context`): a `COPY --from=` that names no stage
+    would pull an image of that name if a build left the context out. A change
+    to the control plane runs the image workflow
+    (docs/build-records/2026-11-06-5c1-control-plane-on-node.md; owner,
+    2026-11-06: "Repo-root context (Recommended)")."""
+
+    @staticmethod
+    def builds(text):
+        """Each `podman build` command, continuation lines joined."""
+        joined = re.sub(r"\\\n\s*", " ", text)
+        return [line.strip() for line in joined.splitlines() if "podman build" in line]
+
+    def test_every_os_image_build_is_the_root_context_with_the_image_containerfile(self):
+        for path in (IMAGE, PUBLISH):
+            builds = self.builds(read(path))
+            os_image = [b for b in builds if "image/installer" not in b]
+            self.assertTrue(os_image, path)
+            for build in os_image:
+                with self.subTest(path=os.path.basename(path), build=build):
+                    self.assertTrue(build.endswith(" -f image/Containerfile ."), build)
+            for build in builds:
+                with self.subTest(path=os.path.basename(path), build=build):
+                    self.assertNotIn("--build-context", build)
+                    self.assertFalse(re.search(r"\simage$", build), "the old context, image/ alone")
+
+    def test_a_push_that_changes_the_control_plane_runs_the_image_workflow(self):
+        on = block(read(IMAGE), "on")
+        push = on[on.index("push:") + 1:]
+        paths = next(line for line in push if line.startswith("paths:"))
+        self.assertIn('"control-plane/**"', paths)
+
+    def test_the_context_lets_in_only_what_the_image_copies(self):
+        with open(os.path.join(ROOT, ".containerignore"), encoding="utf-8") as f:
+            lines = [l for l in f.read().splitlines() if l.strip() and not l.startswith("#")]
+        self.assertEqual(lines, ["*", "!image/rootfs", "!control-plane", "control-plane/target"])
+
+    def test_the_build_stage_is_the_pinned_rust_image(self):
+        with open(os.path.join(ROOT, "image", "Containerfile"), encoding="utf-8") as f:
+            text = f.read()
+        froms = [l.split() for l in text.splitlines() if l.startswith("FROM ")]
+        self.assertEqual(froms[0][1], "docker.io/library/rust:1.98.1-slim-trixie@sha256:"
+                         "4cd829461bd5c4d511c32e269da9cb8929223b666519d8004e35fc8d1d771ab7")
+        self.assertEqual(froms[0][2:], ["AS", "control-plane"])
+        with open(os.path.join(ROOT, "rust-toolchain.toml"), encoding="utf-8") as f:
+            self.assertIn('channel = "1.98.1"', f.read(), "the build stage's Rust is the repository's")
+        self.assertIn("--locked", text)
+        copies = [l for l in text.splitlines() if l.startswith("COPY ")]
+        self.assertEqual(copies, ["COPY control-plane/ /src/",
+                                  "COPY --from=control-plane /src/target/release/rikuri-control-plane "
+                                  "/usr/bin/rikuri-control-plane",
+                                  "COPY image/rootfs/ /"])
 
 
 class Publish(unittest.TestCase):

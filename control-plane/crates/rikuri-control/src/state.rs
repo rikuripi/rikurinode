@@ -5,7 +5,7 @@
 //! password, the sessions.
 
 use std::fmt;
-use std::fs::{self, OpenOptions};
+use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
@@ -121,6 +121,24 @@ impl StateDir {
         file.sync_all().map_err(|e| io_error(&tmp, e))?;
         drop(file);
         fs::rename(&tmp, &path).map_err(|e| io_error(&path, e))
+    }
+
+    /// Takes an exclusive lock on `name`, created as an empty 0600 file if
+    /// missing, and holds it until the returned file is dropped. It is
+    /// advisory (`flock`): it orders only the writers that take it, the daemon
+    /// and the claim screen, two processes that write one file.
+    pub fn lock(&self, name: &str) -> Result<File, StateError> {
+        let path = self.path(name);
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .mode(FILE_MODE)
+            .open(&path)
+            .map_err(|e| io_error(&path, e))?;
+        file.lock().map_err(|e| io_error(&path, e))?;
+        Ok(file)
     }
 
     /// Removes `name`; `Ok(false)` when it did not exist.
@@ -304,5 +322,25 @@ mod tests {
         let err = StateDir::open(scratch.0.join("file").join("under-a-file")).unwrap_err();
         assert!(matches!(err, StateError::Io { .. }), "{err}");
         assert!(err.to_string().contains("under-a-file"), "{err}");
+    }
+
+    #[test]
+    fn a_lock_is_a_0600_file_held_by_one_holder_until_dropped() {
+        let scratch = Scratch::new();
+        let dir = StateDir::open(&scratch.0).unwrap();
+        let held = dir.lock("thing.lock").unwrap();
+        assert_eq!(mode(&dir.path("thing.lock")), 0o600);
+        // Another open of the same file, as another process would make it,
+        // cannot take the lock while it is held, and can once it is dropped.
+        let other = fs::File::open(dir.path("thing.lock")).unwrap();
+        assert!(
+            other.try_lock().is_err(),
+            "a second holder took a held lock"
+        );
+        drop(held);
+        assert!(
+            other.try_lock().is_ok(),
+            "the lock was not released on drop"
+        );
     }
 }

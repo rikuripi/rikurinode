@@ -30,7 +30,7 @@ on:
     branches: [main]
   push:
     branches: [main]
-    paths: ["image/**", ".github/workflows/image.yml"]
+    paths: ["image/**", "control-plane/**", ".github/workflows/image.yml"]
   schedule:
     - cron: "17 6 * * 1"   # weekly, Monday 06:17 UTC: the drill against the pinned base
   workflow_dispatch:
@@ -80,7 +80,7 @@ jobs:
             reason="$EVENT: everything runs"
           elif ! changed="$(git diff --name-only "$BASE" HEAD)"; then
             reason="the diff against $BASE could not be read: everything runs"
-          elif grep -qE '^(image/|\.github/workflows/image\.yml$)' <<< "$changed"; then
+          elif grep -qE '^(image/|control-plane/|\.github/workflows/image\.yml$)' <<< "$changed"; then
             reason="the pull request changes image/ or this workflow"
           else
             image=false
@@ -113,7 +113,7 @@ jobs:
             echo "- $(podman --version); $(python3 --version)"
           } | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Build (bootc container lint runs inside)
-        run: sudo podman build --pull=missing --tag "$IMAGE" image
+        run: sudo podman build --pull=missing --tag "$IMAGE" -f image/Containerfile .
       - name: Check the built root
         run: |
           root="$(sudo podman image mount "$IMAGE")"
@@ -166,7 +166,7 @@ jobs:
             echo "- free on /mnt: $(df -h --output=avail /mnt | tail -1 | tr -d ' ')"
           } | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Build the image (bootc container lint runs inside)
-        run: sudo podman build --pull=missing --tag "$IMAGE" image
+        run: sudo podman build --pull=missing --tag "$IMAGE" -f image/Containerfile .
       - name: Fetch the drill's registry (cases 4 and 5; pinned by SHA-256)
         run: |
           mkdir "$RUNNER_TEMP/sig-tools"
@@ -207,7 +207,7 @@ jobs:
           sudo apt-get install -y -q --no-install-recommends qemu-system-x86 ovmf ostree
           dpkg-query -W -f='- ${Package} ${Version}\n' qemu-system-x86 ovmf ostree | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Build the image (bootc container lint runs inside)
-        run: sudo podman build --pull=missing --tag "$IMAGE" image
+        run: sudo podman build --pull=missing --tag "$IMAGE" -f image/Containerfile .
       - name: Build the installer (the serial console, for this test; the published stick uses the screen)
         run: |
           sudo podman build --pull=missing --tag localhost/rikuri-installer:ci \
