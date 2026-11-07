@@ -119,3 +119,20 @@
     - no `--test-workspace`;
     - the bare `cargo-mutants --version`.
     - The sha256 of the workflow was the same before and after.
+
+## Verifier, round 2 (the corrections only), and CI run 2
+
+- **Verifier, follow-up pass** (`git diff ba5e786..939d8a8`): **PASS**. Both Important findings are closed:
+  - its M1 to M4 are now killed;
+  - red and green held at each pair: `f2802fb` `Ran 39` `FAILED (failures=1)`, then `dfcf0bf` `OK`; `b33d63e` `Ran 42` `FAILED (failures=3)`, then `939d8a8` `OK`;
+  - the base match refuses a multi-line base, `F190669` and `f190669\;id`.
+- **Minor, for the backlog:** three added weakenings outside the pinned step still pass the tests: N2, a step that replaces `scripts/cargo.sh` with `exit 0`; N3, a step that writes `exclude_globs = ["**"]`; N5, a line that empties the diff. A text test can only narrow this. The narrowing proposed is to pin the list of step names, and the diff step exactly.
+- **Nits:**
+  - **The repair count.** This record counts the CI repair and the verifier repair as one cycle (nothing was pushed between them); counted strictly, they are two, which is the limit. Either way, no further repair is allowed in this task.
+  - **The runner bullet.** "Not yet proven: the workflow on a runner" is now proven (below).
+- **CI run 2 of 3** (on `939d8a8`), all passed:
+  - [CI, Full gate (Ubuntu)](https://github.com/rikuripi/rikurinode/actions/runs/42335247616);
+  - [Rust mutants](https://github.com/rikuripi/rikurinode/actions/runs/42335247777). Its log, read by the verifier: `cargo-mutants.tgz: OK`, `cargo-mutants 27.1.0`, `rustc 1.98.1`, `safe-run: namespace isolation unavailable — stand-ins only`, `Diff file is empty`, then success. That proves the install, the checksum, the toolchain and the empty-diff path, not a mutation;
+  - [OS image](https://github.com/rikuripi/rikurinode/actions/runs/42335247783);
+  - [the guard and quality tools](https://github.com/rikuripi/rikurinode/actions/runs/42335247704).
+- **Not yet proven:** a run that mutates. That is the run by hand with `base` `f5584b6`, after the owner merges.
