@@ -73,6 +73,7 @@ Either tier may get one follow-up pass on corrected findings.
   - A surviving mutant in a refusal, validation, recovery, funds or integrity check is Important; other survivors are nits.
   - The run surfaces the untested conditions the tool can reach in one pass, instead of one per round.
   - It does not find missing rules; the reviewer finds those by reading the change against its Plan.
+  - Where no machine open to the task can run the Rust tests, CI's **Rust mutants** workflow (`.github/workflows/mutants.yml`) is that run for Rust: it mutates a pull request's changed `control-plane/` lines, and any missed mutant fails it; the verifier reads its result. An exclusion goes only in `control-plane/.cargo/mutants.toml`, with its reason.
 - **The follow-up pass.** It checks the corrections and reruns that mutation scope; it does not search for new findings. A new Important finding it happens to see ends the task in `NEEDS_OWNER_DECISION`, and the owner decides whether it is fixed now, as its own task, or recorded as debt.
 - **Controls are adequate when they cover what the repository uses.** A gap for a form the repository does not contain is owned debt, not a new task.
 
