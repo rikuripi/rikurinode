@@ -5,8 +5,8 @@
 | **Date** | 2026-11-06 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/5c1-control-plane-on-node`, from `main` at `f5584b6`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `1458ce2` (red), `1172b3d` (fix), `0ac5f2e` (tests after red, record), `3e0c56f` (repair: tests), `36ca2d7` (red, LLMNR), `d3f9fa5` (fix, LLMNR); merged as `f190669` (#69) |
+| **Status** | DONE |
 | **Change type** | feature |
 
 ## Task Contract
@@ -150,3 +150,28 @@
   - 5c.1 closes without it, recorded as **Not yet proven**. No environment open to this task can run Rust tests, and CI runs them but not mutants.
   - In its place stand the verifier's read mutants of the lock lines and the CI runs of every new Rust test.
   - The proposed follow-up task is a CI job running `cargo mutants --in-diff` on pull requests that touch `control-plane/`. It is a CI change, so it is its own task.
+
+## Close-out
+
+- **CI run 2 of 6** (on `d3f9fa5`):
+  - [Full gate](https://github.com/rikuripi/rikurinode/actions/runs/42330574375) passed: `test result: ok. 128 passed`, including `claim::tests::counting_a_wrong_try_waits_for_the_claim_lock ... ok`.
+  - The [guard and quality tools](https://github.com/rikuripi/rikurinode/actions/runs/42330574369) passed.
+  - The [OS image workflow](https://github.com/rikuripi/rikurinode/actions/runs/42330574383) passed all four jobs: the image build from the repository's root, the install test, and the VM drill.
+- **The drill's nine control plane checks all passed:**
+  - the service runs as `rikuri-control`;
+  - `/ca.crt` answers 200 over HTTP;
+  - `/api/setup` answers 200 over HTTPS with only the node's CA, unclaimed, armed, with that CA's fingerprint;
+  - a client without the CA is refused with `CERTIFICATE_VERIFY_FAILED`;
+  - the claim screen runs on `/dev/tty2` as `rikuri-control`;
+  - **`listening outside loopback: [22, 80, 443]`**, which proves the LLMNR fix;
+  - the firewall policy is active;
+  - greenboot's required check succeeded;
+  - "claim code armed and not shown" is in the journal, with no code there.
+- That was 2 CI runs of the 6 allowed, one repair cycle and two review rounds.
+- **Merged** by the owner as `f190669` (#69, 2026-11-07T03:22:51Z). The two record commits made after the push (verifier round 2, the owner's decision on `cargo mutants`) and this close-out land in their own PR.
+- **Not yet proven, and not in this task:**
+  - `cargo mutants` over the changed Rust lines (the owner's decision above; the follow-up task);
+  - Ctrl+Alt+F2 and the claim screen on the N150 (the owner's, from a stick published after this merge; `docs/runbooks/install-node.md`, step 9).
+- **Backlog, from this task:**
+  - `repo_hygiene.py` never reads `RUN --mount=... from=`;
+  - the verifier's Minor findings and nits: an old code winning in the argon2 window after Enter; `boot.rs`'s unlocked first-start check; `press_enter`'s owner check before a slow arm; TCP-only port reads; the policy opening on every zone; same-name-only LLMNR overrides; greenboot's untested read bound; runbook step 9's "press Enter to look again" also arming a new code; a shown code staying until Enter.
