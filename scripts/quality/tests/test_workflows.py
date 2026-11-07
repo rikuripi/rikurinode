@@ -437,6 +437,13 @@ class Mutants(unittest.TestCase):
         self.assertLess(self.text.index("sha256sum -c -"), self.text.index("tar -xzf"))
         self.assertEqual(self.text.count("cargo-mutants/releases/download/"), 1)
 
+    def test_the_installed_binary_is_asked_as_cargo_would_ask_it(self):
+        # cargo-mutants parses its arguments as `cargo mutants ...` (src/main.rs at
+        # v27.1.0), so run directly it needs `mutants` first; bare, it refuses
+        # every flag (Rust mutants, run 1 of this PR: job 128288915034).
+        self.assertIn("cargo-mutants mutants --version", self.lines)
+        self.assertFalse([line for line in self.lines if re.match(r"^cargo-mutants --", line)])
+
     def test_the_toolchain_is_rust_toolchain_tomls(self):
         channel = re.search(r'^channel = "([^"]+)"$', read(TOOLCHAIN), re.M).group(1)
         self.assertIn('RUSTUP_TOOLCHAIN: "%s"' % channel, self.lines)
