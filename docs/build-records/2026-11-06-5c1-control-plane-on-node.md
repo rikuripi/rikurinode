@@ -5,8 +5,8 @@
 | **Date** | 2026-11-06 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/5c1-control-plane-on-node`, from `main` at `f5584b6`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `1458ce2` (red), `1172b3d` (fix), `0ac5f2e` (tests after red, record), `3e0c56f` (repair: tests), `36ca2d7` (red, LLMNR), `d3f9fa5` (fix, LLMNR); merged as `f190669` (#69) |
+| **Status** | DONE |
 | **Change type** | feature |
 
 ## Task Contract
@@ -130,3 +130,48 @@
   - **Fix** (its own commit): the drop-in `image/rootfs/usr/lib/systemd/resolved.conf.d/90-rikuri-no-llmnr.conf` (`[Resolve]`, `LLMNR=no`); `check_image_root.py` requires exactly those lines, and finds an override of the same name in `/etc` or `/run`.
   - **Green:** `image/tests` `Ran 435 tests` `OK`; `.claude/hooks` `Ran 91 tests` `OK`; `scripts/quality/tests` `Ran 160 tests` with the 7 known errors. Hand mutants 3 of 3 red: the drop-in unchecked (`failures=5`), its overrides unchecked (`failures=2`), `LLMNR=yes` allowed (`failures=18`).
   - **Not yet proven:** that 5355 no longer listens on the booted image (CI's drill, run 2).
+
+## Verifier, round 2 (the corrections only)
+
+- **Verifier, follow-up pass** (on `d3f9fa5`, `git diff 0ac5f2e..d3f9fa5`): **no Important finding; NOT YET PROVEN** until CI.
+  - Round 1's TLS finding is closed: the `except ssl.SSLError` mutant is now killed (`Ran 84 tests` `FAILED (failures=1)`).
+  - Round 1's lock finding is closed by reading: with the lock line deleted, `count_wrong` returns at once and the test's `recv_timeout(...).is_err()` fails. The test's pass is CI's.
+  - The LLMNR drop-in is right in location, name and precedence: a global `LLMNR=no` is an upper bound that a per-link setting cannot raise.
+  - It reran the red on `36ca2d7` (`Ran 435 tests` `FAILED (errors=2)`) and the green on `d3f9fa5` (`Ran 435` `OK`; hooks `Ran 91` `OK`; `scripts/quality/tests` `Ran 160`, with the 7 known errors).
+  - It ran 6 hand mutants: 5 killed, and 1 survivor, the known greenboot read-bound nit.
+- **Minor, for the backlog:**
+  - the LLMNR check finds only overrides with the same name; a later-named drop-in in `/etc`, or a file in `/usr/local/lib`, would still win;
+  - `exposed_ports` reads TCP only (round 1's finding, still standing).
+- **Not yet proven:**
+  - the Full gate on `d3f9fa5`, which runs the new lock test;
+  - the drill without 5355;
+  - `cargo mutants` over the changed Rust lines, which "Done when" asks for. No environment here can run Rust tests: the Mac is barred, and the VM has no toolchain. This needs the owner's decision.
+- **The owner's decision on `cargo mutants`** (2026-11-06: "Record it, follow-up task (Recommended)"):
+  - 5c.1 closes without it, recorded as **Not yet proven**. No environment open to this task can run Rust tests, and CI runs them but not mutants.
+  - In its place stand the verifier's read mutants of the lock lines and the CI runs of every new Rust test.
+  - The proposed follow-up task is a CI job running `cargo mutants --in-diff` on pull requests that touch `control-plane/`. It is a CI change, so it is its own task.
+
+## Close-out
+
+- **CI run 2 of 6** (on `d3f9fa5`):
+  - [Full gate](https://github.com/rikuripi/rikurinode/actions/runs/42330574375) passed: `test result: ok. 128 passed`, including `claim::tests::counting_a_wrong_try_waits_for_the_claim_lock ... ok`.
+  - The [guard and quality tools](https://github.com/rikuripi/rikurinode/actions/runs/42330574369) passed.
+  - The [OS image workflow](https://github.com/rikuripi/rikurinode/actions/runs/42330574383) passed all four jobs: the image build from the repository's root, the install test, and the VM drill.
+- **The drill's nine control plane checks all passed:**
+  - the service runs as `rikuri-control`;
+  - `/ca.crt` answers 200 over HTTP;
+  - `/api/setup` answers 200 over HTTPS with only the node's CA, unclaimed, armed, with that CA's fingerprint;
+  - a client without the CA is refused with `CERTIFICATE_VERIFY_FAILED`;
+  - the claim screen runs on `/dev/tty2` as `rikuri-control`;
+  - **`listening outside loopback: [22, 80, 443]`**, which proves the LLMNR fix;
+  - the firewall policy is active;
+  - greenboot's required check succeeded;
+  - "claim code armed and not shown" is in the journal, with no code there.
+- That was 2 CI runs of the 6 allowed, one repair cycle and two review rounds.
+- **Merged** by the owner as `f190669` (#69, 2026-11-07T03:22:51Z). The two record commits made after the push (verifier round 2, the owner's decision on `cargo mutants`) and this close-out land in their own PR.
+- **Not yet proven, and not in this task:**
+  - `cargo mutants` over the changed Rust lines (the owner's decision above; the follow-up task);
+  - Ctrl+Alt+F2 and the claim screen on the N150 (the owner's, from a stick published after this merge; `docs/runbooks/install-node.md`, step 9).
+- **Backlog, from this task:**
+  - `repo_hygiene.py` never reads `RUN --mount=... from=`;
+  - the verifier's Minor findings and nits: an old code winning in the argon2 window after Enter; `boot.rs`'s unlocked first-start check; `press_enter`'s owner check before a slow arm; TCP-only port reads; the policy opening on every zone; same-name-only LLMNR overrides; greenboot's untested read bound; runbook step 9's "press Enter to look again" also arming a new code; a shown code staying until Enter.
