@@ -452,15 +452,16 @@ class Mutants(unittest.TestCase):
         for line in self.lines:
             if "inputs.base" in line or "base.sha" in line:
                 self.assertTrue(line.startswith("BASE: ${{"), "only an env line may carry the base: " + line)
-        self.assertIn("printf '%s\\n' \"$BASE\" | grep -Eqx '[0-9a-f]{7,40}' || "
-                      "{ echo \"base must be a commit id: $BASE\"; exit 1; }", self.lines)
+        self.assertIn('[[ "$BASE" =~ ^[0-9a-f]{7,40}$ ]] || { echo "base must be a commit id: $BASE"; exit 1; }',
+                      self.lines)
+        self.assertNotIn("grep -Eqx", self.text)
         self.assertIn('git diff --relative=control-plane "$BASE...HEAD" > "$RUNNER_TEMP/changes.diff"', self.lines)
 
     def test_mutants_run_offline_locked_inside_the_test_safety_layer(self):
         fetch = "scripts/cargo.sh fetch --locked --manifest-path control-plane/Cargo.toml"
         run = ('scripts/quality/safe-run.sh scripts/cargo.sh mutants --dir control-plane '
                '--in-diff "$RUNNER_TEMP/changes.diff" --output "$RUNNER_TEMP" --cargo-arg=--locked'
-               ' --no-shuffle || rc=$?')
+               ' --test-workspace=true --timeout 600 --no-shuffle || rc=$?')
         self.assertIn(fetch, self.lines)
         self.assertIn(run, self.lines)
         self.assertLess(self.text.index(fetch), self.text.index(run))
@@ -476,6 +477,45 @@ class Mutants(unittest.TestCase):
         self.assertIn('*) echo "cargo-mutants exited $rc: missed mutants (2) or an error"; exit "$rc" ;;',
                       self.lines)
         self.assertNotIn("|| true", self.text)
+
+    def steps(self):
+        """Each step under `steps:`, as its stripped lines without comments or blanks."""
+        out = []
+        for line in self.text.splitlines():
+            if re.match(r"^      - ", line):
+                out.append([])
+            if out and line.strip() and not line.strip().startswith("#"):
+                out[-1].append(re.sub(r"\s+#.*$", "", line.strip()))
+        return out
+
+    def test_the_mutation_step_is_exactly_this(self):
+        # Line checks alone let `2) ;;`, an `exit 0` or `if: false` through (verifier, round 1).
+        mutate = [st for st in self.steps() if st[0] == "- name: Mutate the changed lines (inside safe-run.sh, offline)"]
+        self.assertEqual(mutate, [[
+            "- name: Mutate the changed lines (inside safe-run.sh, offline)",
+            "env:",
+            'SAFE_RUN_ALLOW_NO_NAMESPACE: "1"',
+            'CARGO_NET_OFFLINE: "true"',
+            "run: |",
+            "rc=0",
+            'scripts/quality/safe-run.sh scripts/cargo.sh mutants --dir control-plane --in-diff '
+            '"$RUNNER_TEMP/changes.diff" --output "$RUNNER_TEMP" --cargo-arg=--locked '
+            '--test-workspace=true --timeout 600 --no-shuffle || rc=$?',
+            'case "$rc" in',
+            "0|3) ;;",
+            '*) echo "cargo-mutants exited $rc: missed mutants (2) or an error"; exit "$rc" ;;',
+            "esac"]])
+
+    def test_only_the_two_reports_have_a_condition(self):
+        conditions = [line for line in self.lines if line.startswith("if:")]
+        self.assertEqual(conditions, ["if: always()", "if: always()"])
+        reporting = [st[0] for st in self.steps() if "if: always()" in st]
+        self.assertEqual(reporting, ["- name: What was missed, or timed out", "- name: Keep mutants.out"])
+
+    def test_the_trigger_paths_are_exactly_these(self):
+        on = block(self.text, "on")
+        self.assertEqual([line for line in on if line.startswith("- ")],
+                         ["- control-plane/**", "- rust-toolchain.toml", "- .github/workflows/mutants.yml"])
 
     def test_what_was_missed_is_shown_and_kept(self):
         self.assertIn("if: always()", self.lines)
