@@ -66,6 +66,9 @@ class Verdict(unittest.TestCase):
     def test_anything_else_fails_with_what_was_seen(self):
         for why, raw in (("a refusal", response(421, b'{"error":"x"}', "Misdirected Request")),
                          ("a server error", response(500, b"", "Internal Server Error")),
+                         ("a report, but refused", response(421, SETUP, "Misdirected Request")),
+                         ("a report, but redirected", response(302, SETUP, "Found")),
+                         ("a report, but not found", response(404, SETUP, "Not Found")),
                          ("not JSON", response(body=b"<html>")),
                          ("JSON without claimed", response(body=b'{"claim":"armed"}')),
                          ("claimed not a boolean", response(body=b'{"claimed":"no"}')),

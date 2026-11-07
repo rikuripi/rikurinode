@@ -402,7 +402,12 @@ class Verdict(unittest.TestCase):
             "first boot", "the containers range at the first boot", "case 1, a failing update",
             "case 2b, finalize fails", "case 3, a power cut during the update",
             "the containers range after reboots", "the containers range",
-            "case 4, an unsigned update refused", "case 5, a signed update staged"})
+            "case 4, an unsigned update refused", "case 5, a signed update staged",
+            "the control plane runs as its own user", "the CA certificate over HTTP",
+            "the API over HTTPS with only the node's CA", "a client without the node's CA is refused",
+            "the claim screen on tty2", "only SSH, 80 and 443 listen outside",
+            "the firewall opens 80 and 443", "greenboot's control plane check",
+            "no claim code in the journal"})
 
     def test_all_passed_and_no_error_is_zero(self):
         self.assertEqual(d.verdict(self.ALL, None), 0)
