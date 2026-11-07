@@ -130,3 +130,19 @@
   - **Fix** (its own commit): the drop-in `image/rootfs/usr/lib/systemd/resolved.conf.d/90-rikuri-no-llmnr.conf` (`[Resolve]`, `LLMNR=no`); `check_image_root.py` requires exactly those lines, and finds an override of the same name in `/etc` or `/run`.
   - **Green:** `image/tests` `Ran 435 tests` `OK`; `.claude/hooks` `Ran 91 tests` `OK`; `scripts/quality/tests` `Ran 160 tests` with the 7 known errors. Hand mutants 3 of 3 red: the drop-in unchecked (`failures=5`), its overrides unchecked (`failures=2`), `LLMNR=yes` allowed (`failures=18`).
   - **Not yet proven:** that 5355 no longer listens on the booted image (CI's drill, run 2).
+
+## Verifier, round 2 (the corrections only)
+
+- **Verifier, follow-up pass** (on `d3f9fa5`, `git diff 0ac5f2e..d3f9fa5`): **no Important finding; NOT YET PROVEN** until CI.
+  - Round 1's TLS finding is closed: the `except ssl.SSLError` mutant is now killed (`Ran 84 tests` `FAILED (failures=1)`).
+  - Round 1's lock finding is closed by reading: with the lock line deleted, `count_wrong` returns at once and the test's `recv_timeout(...).is_err()` fails. The test's pass is CI's.
+  - The LLMNR drop-in is right in location, name and precedence: a global `LLMNR=no` is an upper bound that a per-link setting cannot raise.
+  - It reran the red on `36ca2d7` (`Ran 435 tests` `FAILED (errors=2)`) and the green on `d3f9fa5` (`Ran 435` `OK`; hooks `Ran 91` `OK`; `scripts/quality/tests` `Ran 160`, with the 7 known errors).
+  - It ran 6 hand mutants: 5 killed, and 1 survivor, the known greenboot read-bound nit.
+- **Minor, for the backlog:**
+  - the LLMNR check finds only overrides with the same name; a later-named drop-in in `/etc`, or a file in `/usr/local/lib`, would still win;
+  - `exposed_ports` reads TCP only (round 1's finding, still standing).
+- **Not yet proven:**
+  - the Full gate on `d3f9fa5`, which runs the new lock test;
+  - the drill without 5355;
+  - `cargo mutants` over the changed Rust lines, which "Done when" asks for. No environment here can run Rust tests: the Mac is barred, and the VM has no toolchain. This needs the owner's decision.
