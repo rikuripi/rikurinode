@@ -12,7 +12,8 @@ the signed digest, with no login, in the publish workflow. Reads the
 repository's own files; no network.
 Records: docs/build-records/2026-10-21-weekly-advisory-audit.md,
 docs/build-records/2026-10-28-publish-signed-image.md,
-docs/build-records/2026-10-29-install-media.md
+docs/build-records/2026-10-29-install-media.md,
+docs/build-records/2026-11-06-ci-cargo-mutants.md
 Run: python3 -m unittest discover -s scripts/quality/tests -p 'test_*.py'
 """
 import glob
@@ -31,6 +32,8 @@ CI = os.path.join(ROOT, ".github", "workflows", "ci.yml")
 AUDIT = os.path.join(ROOT, ".github", "workflows", "advisory-audit.yml")
 GATE = os.path.join(ROOT, "scripts", "quality", "full-gate.sh")
 IMAGE = os.path.join(ROOT, ".github", "workflows", "image.yml")
+MUTANTS = os.path.join(ROOT, ".github", "workflows", "mutants.yml")
+TOOLCHAIN = os.path.join(ROOT, "rust-toolchain.toml")
 
 
 def read(path):
@@ -394,6 +397,86 @@ class Gate(unittest.TestCase):
         self.assertIn("python3 scripts/quality/advisory_audit_age.py", text)
         self.assertIn("all 10 steps passed", text)
         self.assertLess(text.index("advisory_audit_age.py"), text.index("all 10 steps passed"))
+
+
+class Mutants(unittest.TestCase):
+    """cargo-mutants over the control plane's changed lines, a missed mutant
+    failing the run (docs/build-records/2026-11-06-ci-cargo-mutants.md)."""
+    URL = ("https://github.com/sourcefrog/cargo-mutants/releases/download/v27.1.0/"
+           "cargo-mutants-x86_64-unknown-linux-gnu.tar.gz")
+    SHA = "dfe6dc37d0342c891d2829b5a695aa57c2d0edecef7e7d0399a30cc6e206411e"
+
+    def setUp(self):
+        self.text = read(MUTANTS)
+        self.lines = [line.strip() for line in self.text.splitlines()]
+
+    def test_control_plane_pull_requests_and_by_hand_from_a_base(self):
+        on = block(self.text, "on")
+        self.assertIn("pull_request:", on)
+        self.assertIn("branches: [main]", on)
+        for path in ("control-plane/**", "rust-toolchain.toml", ".github/workflows/mutants.yml"):
+            self.assertIn("- " + path, on)
+        self.assertIn("workflow_dispatch:", on)
+        self.assertIn("base:", on)
+        self.assertIn("required: true", on)
+        self.assertNotIn("push:", on)
+        self.assertNotIn("pull_request_target:", on)
+
+    def test_read_only_token_no_credential_full_history(self):
+        self.assertEqual(block(self.text, "permissions"), ["contents: read"])
+        self.assertIn("runs-on: ubuntu-24.04", self.lines)
+        self.assertIn("persist-credentials: false", self.lines)
+        self.assertIn("fetch-depth: 0", [re.sub(r"\s+#.*$", "", line) for line in self.lines])
+        self.assertTrue(any(re.match(r"^timeout-minutes: \d+$", line) for line in self.lines))
+        self.assertNotIn("secrets.", self.text)
+        self.assertNotIn("continue-on-error", self.text)
+
+    def test_the_binary_is_the_pinned_release_checked_by_its_digest(self):
+        self.assertIn(self.URL + " \\", self.lines)
+        self.assertIn('echo "%s  $RUNNER_TEMP/cargo-mutants.tgz" | sha256sum -c -' % self.SHA, self.lines)
+        self.assertLess(self.text.index("sha256sum -c -"), self.text.index("tar -xzf"))
+        self.assertEqual(self.text.count("cargo-mutants/releases/download/"), 1)
+
+    def test_the_toolchain_is_rust_toolchain_tomls(self):
+        channel = re.search(r'^channel = "([^"]+)"$', read(TOOLCHAIN), re.M).group(1)
+        self.assertIn('RUSTUP_TOOLCHAIN: "%s"' % channel, self.lines)
+
+    def test_the_base_reaches_the_shell_only_as_a_checked_commit(self):
+        for line in self.lines:
+            if "inputs.base" in line or "base.sha" in line:
+                self.assertTrue(line.startswith("BASE: ${{"), "only an env line may carry the base: " + line)
+        self.assertIn("printf '%s\\n' \"$BASE\" | grep -Eqx '[0-9a-f]{7,40}' || "
+                      "{ echo \"base must be a commit id: $BASE\"; exit 1; }", self.lines)
+        self.assertIn('git diff --relative=control-plane "$BASE...HEAD" > "$RUNNER_TEMP/changes.diff"', self.lines)
+
+    def test_mutants_run_offline_locked_inside_the_test_safety_layer(self):
+        fetch = "scripts/cargo.sh fetch --locked --manifest-path control-plane/Cargo.toml"
+        run = ('scripts/quality/safe-run.sh scripts/cargo.sh mutants --dir control-plane '
+               '--in-diff "$RUNNER_TEMP/changes.diff" --output "$RUNNER_TEMP" --cargo-arg=--locked'
+               ' --no-shuffle || rc=$?')
+        self.assertIn(fetch, self.lines)
+        self.assertIn(run, self.lines)
+        self.assertLess(self.text.index(fetch), self.text.index(run))
+        self.assertIn('CARGO_NET_OFFLINE: "true"', self.lines)
+        self.assertIn('SAFE_RUN_ALLOW_NO_NAMESPACE: "1"', self.lines)
+        mutants = [line for line in self.lines if " mutants " in line and "cargo.sh" in line]
+        self.assertEqual(mutants, [run], "one mutants run, with no exclusion on its command line")
+
+    def test_only_success_and_timeouts_pass(self):
+        self.assertIn("rc=0", self.lines)
+        self.assertIn('case "$rc" in', self.lines)
+        self.assertIn("0|3) ;;", self.lines)
+        self.assertIn('*) echo "cargo-mutants exited $rc: missed mutants (2) or an error"; exit "$rc" ;;',
+                      self.lines)
+        self.assertNotIn("|| true", self.text)
+
+    def test_what_was_missed_is_shown_and_kept(self):
+        self.assertIn("if: always()", self.lines)
+        self.assertIn('cat "$RUNNER_TEMP/mutants.out/missed.txt" >> "$GITHUB_STEP_SUMMARY"', self.lines)
+        self.assertIn('cat "$RUNNER_TEMP/mutants.out/timeout.txt" >> "$GITHUB_STEP_SUMMARY"', self.lines)
+        self.assertIn("uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2",
+                      self.lines)
+        self.assertIn("path: ${{ runner.temp }}/mutants.out", self.lines)
 
 
 if __name__ == "__main__":
