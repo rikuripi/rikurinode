@@ -495,4 +495,30 @@ mod tests {
         thread.join().unwrap().unwrap();
         assert_eq!(load(&dir).unwrap(), None);
     }
+
+    #[test]
+    fn counting_a_wrong_try_waits_for_the_claim_lock() {
+        let (_scratch, dir) = open();
+        arm(&dir, NOW).unwrap();
+        let judged = load(&dir).unwrap().unwrap();
+        let held = dir.lock(LOCK).unwrap();
+        let (done, finished) = std::sync::mpsc::channel();
+        let counter = dir.clone();
+        let seen = judged.clone();
+        let thread = std::thread::spawn(move || {
+            let result = count_wrong(&counter, &seen);
+            let _ = done.send(());
+            result
+        });
+        assert!(
+            finished.recv_timeout(Duration::from_secs(3)).is_err(),
+            "count_wrong read and wrote the claim while another holder had the lock"
+        );
+        assert_eq!(load(&dir).unwrap().unwrap().wrong_tries, judged.wrong_tries);
+        drop(held);
+        finished.recv_timeout(Duration::from_secs(60)).unwrap();
+        let counted = thread.join().unwrap().unwrap().unwrap();
+        assert_eq!(counted.wrong_tries, judged.wrong_tries + 1);
+        assert_eq!(load(&dir).unwrap().unwrap(), counted);
+    }
 }

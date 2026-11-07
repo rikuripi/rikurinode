@@ -108,3 +108,19 @@
   - `check_image_root.py`: the ELF check off; the service's capability bound, or the screen's `IPAddressDeny`, unchecked; a tty2 mask that may link anywhere; the screen not required enabled; the firewall overrides unchecked; greenboot's check not required;
   - `vm_drill.py`: more ports than 22, 80 and 443 allowed; the service's user unchecked; the policy's services unchecked; greenboot's success unread; a code in clear in the journal allowed; a claimed node passing; a case left out of `EXPECTED`.
 - **Not yet proven:** every Rust test (CI's); the OS image build with the repository's root as its context and the `.containerignore` allowlist; the VM drill's nine checks on a booted image (CI's OS image workflow); Ctrl+Alt+F2 and the claim screen on the N150 (the owner's, after a publish).
+
+## Verifier, round 1, and repair cycle 1
+
+- **Verifier, one pass** (on `0ac5f2e`, high-risk depth): **FAIL, two Important findings**. It reran red (`image/tests` `Ran 421` `FAILED (failures=2, errors=38)`) and green (`Ran 433` `OK`; hooks `Ran 91` `OK`; `scripts/quality/tests` `Ran 160` with the 7 known errors); clippy and `cargo fmt --check` rc 0; 15 hand mutants, 13 killed. It read CI's [Full gate](https://github.com/rikuripi/rikurinode/actions/runs/42323201277) as passed, with every new `claim::`, `console::` and `state::` test ok. Not yet proven by it: `cargo mutants` over the changed Rust lines (no test-capable Rust environment here), and the [OS image workflow](https://github.com/rikuripi/rikurinode/actions/runs/42323201274), still running.
+  1. **Important:** `count_wrong`'s lock had no test. Deleting `let _lock = dir.lock(LOCK)?;` there left every test green: the re-armed race test re-arms before `count_wrong` starts, so the hash compare alone covers it.
+  2. **Important:** in the drill, `except ssl.SSLCertVerificationError` mutated to `except ssl.SSLError` survived, so any TLS failure would have counted as "a client without the node's CA is refused".
+  - **Minor, for the backlog:**
+    - an old code can still win during one argon2 time after Enter (the `Accepted` path is not re-checked under the lock);
+    - `boot.rs` checks for `claim.json` outside the lock on the first start;
+    - `press_enter` checks for an owner, then arms slowly;
+    - `exposed_ports` reads TCP only;
+    - the policy opens 80 and 443 from every zone (a detail settled while writing the tests).
+  - **Nits, for the backlog:** greenboot's 64 KiB read bound is untested; runbook step 9's "press Enter to look again" also arms a new code; a shown code stays until Enter.
+- **Repair cycle 1** (tests only; the code was already right, so there is no fix commit):
+  - `claim.rs`: new `counting_a_wrong_try_waits_for_the_claim_lock`, of the same form as the `arm` and `finish` tests. With the lock held elsewhere, `count_wrong` must not return within 3 s and must leave `wrong_tries` unchanged; once the lock is released, it counts one wrong try. The red is the verifier's mutant (the lock line deleted), under which `count_wrong` returns at once. It is not run here: Rust tests run in CI only, so the test's pass is CI's and the mutant's red is Not yet proven locally. It compiles, and clippy passes with warnings as errors.
+  - `test_vm_drill.py`, `test_each_failure_fails_its_own_case`: a plain `ssl.SSLError` (a handshake alert) must fail "a client without the node's CA is refused". Red: the verifier's mutant gives `Ran 84 tests` `FAILED (failures=1)`; on the fix, `Ran 84 tests` `OK` (rikuri-drill, `safe-run.sh`). Additions only. `image/tests` `Ran 433 tests` `OK`.

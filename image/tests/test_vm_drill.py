@@ -856,6 +856,7 @@ class ControlPlaneSteps(unittest.TestCase):
                 ("the API over HTTPS with only the node's CA", {"with_ca": http(421, b"{}")}),
                 ("a client without the node's CA is refused", {"without_ca": http(200, SETUP)}),
                 ("a client without the node's CA is refused", {"without_ca": ConnectionResetError(104, "reset")}),
+                ("a client without the node's CA is refused", {"without_ca": ssl.SSLError(1, "alert handshake failure")}),
                 ("the claim screen on tty2", {"answers": {
                     "systemctl show -p ActiveState -p SubState -p TTYPath -p User rikuri-claim-screen.service":
                         SCREEN.replace("running", "dead")}}),
