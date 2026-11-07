@@ -51,7 +51,7 @@ jobs:
           echo "dfe6dc37d0342c891d2829b5a695aa57c2d0edecef7e7d0399a30cc6e206411e  $RUNNER_TEMP/cargo-mutants.tgz" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/cargo-mutants.tgz" -C "$RUNNER_TEMP" cargo-mutants
           sudo install -m 755 "$RUNNER_TEMP/cargo-mutants" /usr/local/bin/cargo-mutants
-          cargo-mutants --version
+          cargo-mutants mutants --version
       - name: Install the pinned Rust toolchain
         run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal && cargo --version
       - name: The control plane's changes since the base

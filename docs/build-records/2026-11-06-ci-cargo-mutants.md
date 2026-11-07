@@ -77,3 +77,9 @@
 - **Not yet proven:**
   - the workflow on a runner: the PR's own run, with no Rust in the diff, must install the binary, pass the checksum and exit 0;
   - the run by hand over 5c.1, after the merge.
+- **CI run 1 of 3** (on `ba5e786`): Rust mutants job 128288915034 **failed** at the install step. The download and `sha256sum -c` passed, then `cargo-mutants --version` gave `error: unexpected argument '--version' found`, exit 1. Cause: the binary parses its arguments as `cargo mutants ...` (`src/main.rs` at v27.1.0, `#[command(name = "cargo")] enum Cargo { Mutants(Args) }`), so run directly it needs `mutants` first. The mutation step was never reached. Through `cargo`, as the mutation step calls it, the arguments are right.
+- **Repair cycle 1:**
+  - **Red** (`test_workflows.py`, a new test `test_the_installed_binary_is_asked_as_cargo_would_ask_it`, additions only): `Ran 39 tests` `FAILED (failures=1)`.
+  - **Fix** (its own commit): `cargo-mutants mutants --version`.
+  - **Green:** `scripts/quality/tests` `Ran 169 tests`, with only the 7 known errors.
+  - Why the tests missed it: they read the workflow's text, and nothing ran the binary. Only a runner can show that.
