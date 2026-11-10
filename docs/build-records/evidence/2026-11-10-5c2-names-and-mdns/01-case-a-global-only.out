@@ -1,0 +1,22 @@
++ sudo podman run -d --rm --name exp5c2 --network podman localhost/rikuri-os:gbp sleep 900
++ sudo mkdir -p /etc/systemd/resolved.conf.d
++ printf '[Resolve]\nMulticastDNS=yes\n'
++ sudo tee /etc/systemd/resolved.conf.d/90-exp5c2-mdns.conf
+[Resolve]
+MulticastDNS=yes
++ sudo systemctl restart systemd-resolved
++ sleep 3
++ ip -br link
+lo               UNKNOWN        00:00:00:00:00:00 <LOOPBACK,UP,LOWER_UP>
+enp0s5           UP             00:1c:42:8d:41:77 <BROADCAST,MULTICAST,UP,LOWER_UP>
+podman0          UP             3e:7b:73:6f:28:af <BROADCAST,MULTICAST,UP,LOWER_UP>
+veth0@if2        UP             6e:3f:66:be:fc:b8 <BROADCAST,MULTICAST,UP,LOWER_UP>
++ resolvectl mdns
+Global: yes
+Link 2 (enp0s5): yes
+Link 3 (podman0): yes
+Link 4 (veth0): yes
++ ss -ulnp
++ grep 5353
+UNCONN 0      0            0.0.0.0:5353      0.0.0.0:*
+UNCONN 0      0               [::]:5353         [::]:*
