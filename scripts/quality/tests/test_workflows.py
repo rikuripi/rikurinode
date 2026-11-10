@@ -532,57 +532,88 @@ class MutantsExclusions(unittest.TestCase):
     VM drill check that kills it instead (docs/build-records/2026-11-10-mutants-survivors.md)."""
 
     CONFIG = os.path.join(ROOT, "control-plane", ".cargo", "mutants.toml")
-    # Each survivor of run 42905996478, as cargo-mutants names it for its filters
-    # (Mutant::name(false): the tree-relative path, no line or column).
+    # Each survivor of run 42905996478, as cargo-mutants 27.1.0 names it for its
+    # filters: Options::allows_mutant matches Mutant::name(true), the
+    # tree-relative path with line and column, ": ", then the mutation.
     SURVIVORS = {
-        "crates/rikuri-control/src/console.rs: replace lan_address -> Option<IpAddr> with None":
+        "crates/rikuri-control/src/console.rs:80:5: replace lan_address -> Option<IpAddr> with None":
             "the claim screen shows the node's address",
-        "apps/rikuri-control-plane/src/main.rs: replace main -> ExitCode with Default::default()":
+        "apps/rikuri-control-plane/src/main.rs:31:5: replace main -> ExitCode with Default::default()":
             "the control plane runs as its own user",
-        "apps/rikuri-control-plane/src/main.rs: replace run -> Result<(), Box<dyn Error>> with Ok(())":
+        "apps/rikuri-control-plane/src/main.rs:83:5: replace run -> Result<(), Box<dyn Error>> with Ok(())":
             "the control plane runs as its own user",
-        "apps/rikuri-control-plane/src/main.rs: replace claim_screen -> ExitCode with Default::default()":
+        "apps/rikuri-control-plane/src/main.rs:181:5: replace claim_screen -> ExitCode with Default::default()":
             "the claim screen shows the node's address",
     }
-    # Mutants of the same functions that must still be tested.
-    NEAR = ("crates/rikuri-control/src/console.rs: replace shown_address -> Option<IpAddr> with None",
-            "apps/rikuri-control-plane/src/main.rs: replace daemon -> ExitCode with Default::default()",
-            "apps/rikuri-control-plane/src/main.rs: replace rearm_claim -> ExitCode with Default::default()",
-            "apps/rikuri-control-plane/src/main.rs: replace match guard with true in main",
-            "apps/rikuri-control-plane/src/main.rs: delete match arm in claim_screen",
-            "x/apps/rikuri-control-plane/src/main.rs: replace main -> ExitCode with Default::default()",
-            "apps/rikuri-control-plane/src/main.rs: replace main -> ExitCode with Default::default() ")
+    # The same mutants after the code above them moves: still excluded.
+    MOVED = ("crates/rikuri-control/src/console.rs:97:5: replace lan_address -> Option<IpAddr> with None",
+             "apps/rikuri-control-plane/src/main.rs:40:9: replace main -> ExitCode with Default::default()",
+             "apps/rikuri-control-plane/src/main.rs:120:5: replace run -> Result<(), Box<dyn Error>> with Ok(())",
+             "apps/rikuri-control-plane/src/main.rs:1:1: replace claim_screen -> ExitCode with Default::default()")
+    # Other mutants, of these functions and of their neighbours, that must still be tested.
+    NEAR = ("crates/rikuri-control/src/console.rs:70:5: replace shown_address -> Option<IpAddr> with None",
+            "crates/rikuri-control/src/console.rs:80:5: replace lan_address -> Option<IpAddr> with Some(Default::default())",
+            "apps/rikuri-control-plane/src/main.rs:31:5: replace main -> ExitCode with ExitCode::FAILURE",
+            "apps/rikuri-control-plane/src/main.rs:83:5: replace run -> Result<(), Box<dyn Error>> with Ok(Default::default())",
+            "apps/rikuri-control-plane/src/main.rs:83:5: replace run -> Result<(), Box<dyn Error>> with Err(Default::default())",
+            "apps/rikuri-control-plane/src/main.rs:181:5: replace claim_screen -> ExitCode with ExitCode::FAILURE",
+            "apps/rikuri-control-plane/src/main.rs:52:5: replace daemon -> ExitCode with Default::default()",
+            "apps/rikuri-control-plane/src/main.rs:136:5: replace rearm_claim -> ExitCode with Default::default()",
+            "apps/rikuri-control-plane/src/main.rs:34:9: delete match arm (Some(\"claim-screen\"), None) in main",
+            "apps/rikuri-control-plane/src/main.rs: replace main -> ExitCode with Default::default()",
+            "apps/rikuri-control-plane/src/main.rs:31: replace main -> ExitCode with Default::default()",
+            "apps/rikuri-control-plane/src/mainXrs:31:5: replace main -> ExitCode with Default::default()",
+            "crates/rikuri-control/src/consoleXrs:80:5: replace lan_address -> Option<IpAddr> with None",
+            "x/apps/rikuri-control-plane/src/main.rs:31:5: replace main -> ExitCode with Default::default()",
+            "apps/rikuri-control-plane/src/main.rs:31:5: replace main -> ExitCode with Default::default() ")
 
-    def config(self):
-        import tomllib
-        with open(self.CONFIG, "rb") as f:
-            return tomllib.load(f)
+    def lines(self):
+        with open(self.CONFIG, encoding="utf-8") as f:
+            return f.read().splitlines()
+
+    def regexes(self):
+        """The file's every line that is not a comment or blank: `exclude_re = [`,
+        one TOML literal string per line, `]`. Read by hand, so no other key,
+        table or string form can get in, on every Python the tools support."""
+        body = [line.strip() for line in self.lines() if line.strip() and not line.strip().startswith("#")]
+        self.assertEqual((body[0], body[-1]), ("exclude_re = [", "]"))
+        out = []
+        for line in body[1:-1]:
+            m = re.fullmatch(r"'([^']*)',", line)
+            self.assertIsNotNone(m, "not one literal string: %r" % line)
+            out.append(m.group(1))
+        return out
 
     def test_only_name_regexes_and_nothing_wider(self):
-        self.assertEqual(set(self.config()), {"exclude_re"})
+        regexes = self.regexes()
+        try:
+            import tomllib
+        except ImportError:   # Python < 3.11: the hand reading above is the check
+            return
+        with open(self.CONFIG, "rb") as f:
+            self.assertEqual(tomllib.load(f), {"exclude_re": regexes})
 
     def test_each_regex_matches_its_one_survivor_and_nothing_else(self):
-        regexes = self.config()["exclude_re"]
+        regexes = self.regexes()
         self.assertEqual(len(regexes), len(self.SURVIVORS))
         for rx in regexes:
             with self.subTest(rx=rx):
                 self.assertTrue(rx.startswith("^") and rx.endswith("$"), "anchored at both ends")
                 self.assertEqual(len([n for n in self.SURVIVORS if re.search(rx, n)]), 1)
+                self.assertEqual(len([n for n in self.MOVED if re.search(rx, n)]), 1)
                 for name in self.NEAR:
                     self.assertIsNone(re.search(rx, name), name)
-        for name in self.SURVIVORS:
+        for name in tuple(self.SURVIVORS) + self.MOVED:
             with self.subTest(name=name):
                 self.assertTrue(any(re.search(rx, name) for rx in regexes), "not excluded")
 
     def test_each_exclusion_says_why_and_names_the_drill_check_that_kills_it(self):
         sys.path.insert(0, os.path.join(ROOT, "image", "drill"))
         import vm_drill
-        with open(self.CONFIG, encoding="utf-8") as f:
-            lines = f.read().splitlines()
-        regexes = self.config()["exclude_re"]
-        for rx in regexes:
+        lines = self.lines()
+        for rx in self.regexes():
             with self.subTest(rx=rx):
-                at = next(i for i, line in enumerate(lines) if line.strip().startswith(("'" + rx, '"' + rx)))
+                at = next(i for i, line in enumerate(lines) if line.strip() == "'%s'," % rx)
                 above = []
                 for line in reversed(lines[:at]):
                     if not line.strip().startswith("#"):
@@ -590,8 +621,7 @@ class MutantsExclusions(unittest.TestCase):
                     above.insert(0, line.strip().lstrip("#").strip())
                 why = " ".join(above)
                 self.assertIn("Why:", why)
-                name = next(n for n in self.SURVIVORS if re.search(rx, n))
-                check = self.SURVIVORS[name]
+                check = self.SURVIVORS[next(n for n in self.SURVIVORS if re.search(rx, n))]
                 self.assertIn(check, vm_drill.EXPECTED)
                 self.assertIn('Killed by the drill\'s "%s"' % check, why)
 

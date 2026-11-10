@@ -742,7 +742,9 @@ class ControlPlaneReads(unittest.TestCase):
 
     def test_the_route_source_is_the_address_the_screen_must_show(self):
         self.assertEqual(d.route_source(ROUTE), "10.0.2.15")
-        for text in ("", "192.0.2.1 via 10.0.2.2 dev enp0s2 uid 0\n", "RTNETLINK answers: Network is unreachable\n"):
+        for text in ("", "192.0.2.1 via 10.0.2.2 dev enp0s2 uid 0\n", "RTNETLINK answers: Network is unreachable\n",
+                     "192.0.2.1 dev enp0s2 xsrc 10.0.2.15 uid 0\n",      # not the word src
+                     "192.0.2.1 dev enp0s2 src 10.0.2.1534 uid 0\n"):    # not an address
             with self.subTest(text=text):
                 self.assertIsNone(d.route_source(text))
 
@@ -752,7 +754,11 @@ class ControlPlaneReads(unittest.TestCase):
                                 (TTY2, "10.0.2.150"),        # the shown one is a prefix
                                 (TTY2, None), (TTY2_NONE_YET, "10.0.2.15"), ("", "10.0.2.15"),
                                 (vcs("  Address:  http://127.0.0.1"), "127.0.0.1"),
-                                (vcs("  Fingerprint:  http://10.0.2.15"), "10.0.2.15")):
+                                (vcs("  Fingerprint:  http://10.0.2.15"), "10.0.2.15"),
+                                (vcs("  NoAddress:  http://10.0.2.15"), "10.0.2.15"),   # not the word Address
+                                (vcs("  Address: http://10.0.2.15"), "10.0.2.15"),      # the screen writes two spaces
+                                (vcs("  Address:   http://10.0.2.15"), "10.0.2.15"),
+                                (vcs("  Address:  http://10a0b2c15"), "10.0.2.15")):    # dots are dots
             with self.subTest(screen=screen.strip()[:60], address=address):
                 self.assertFalse(d.shows_address(screen, address))
 
