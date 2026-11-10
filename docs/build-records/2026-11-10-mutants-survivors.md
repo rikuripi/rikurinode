@@ -5,8 +5,8 @@
 | **Date** | 2026-11-10 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `rust/mutants-survivors`, from `main` at `22f9b98`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `a2bfd4b` (red), `fb756e5` (fix), `6a4025f` (red), `cbb3041` (fix), `a2f8d42` (tests, with reason), `c5bcff9` (red), `153572a` (fix), with records `f25e52c`, `d81ae5a`; merged as `b710b1d` (#73) |
+| **Status** | DONE |
 | **Change type** | fix (test gaps) |
 
 ## Why
@@ -88,4 +88,16 @@ The owner's rule (2026-11-06): survivors are their own task. The owner's answers
   - It found the host route sound on reading: one ssh argument expanded in root's shell in the VM; awk's `$2` is the interface; no `src`, so the kernel picks the interface's primary address; `IPAddressDeny=any` filters packets, and a UDP connect sends none; the unit has no `PrivateNetwork`; the `/32` is removed in a `finally`, and runtime routes do not survive the drill's reboots.
   - Its own pass: `image/tests` `Ran 442` `OK`; hooks `Ran 91` `OK`; `scripts/quality/tests` `Ran 175` with only the 7 known errors; `ast.parse(..., feature_version=(3, 9))` accepts the three Python files; 21 of its 25 hand mutants killed.
   - **Nits, for the backlog:** N1, the reason for `main` still says a test "would have to spawn the binary", where a direct call to `main()` has the same cost as for `run`; N2, two regex weakenings (the line and column made optional or `.*`) survive, matching only names cargo-mutants never produces; N3, two weakenings of the route command (`$1`, no `scope global`) survive the unit tests and would fail loudly in the VM drill.
-- **CI run 2 of 3** (on `d81ae5a`): `Full gate (Ubuntu)`, the py3.9 and py3.12 tools, the image build and Rust mutants on the PR passed; the VM drill and the installer were still running at this writing.
+- **CI run 2 of 3** (on `d81ae5a`): `Full gate (Ubuntu)`, the py3.9 and py3.12 tools, the image build and Rust mutants on the PR passed; the VM drill and the installer were still running at this writing (they passed: below).
+
+## Close-out
+
+- **CI run 2 of 3, finished** (on `d81ae5a`): the OS image workflow passed all four jobs ([run 42912715976](https://github.com/rikuripi/rikurinode/actions/runs/42912715976)): the image build, the installer, and the VM drill, with
+  `vm-drill: PASS the claim screen on tty2: ActiveState=active; SubState=running; TTYPath=/dev/tty2; User=rikuri-control` and
+  `vm-drill: PASS the claim screen shows the node's address: tty2 shows 'Address:  http://10.0.2.15'; the route's source: 10.0.2.15`.
+  That is the real entry point proving what the two screen exclusions stand on: the binary's `claim-screen` drew the address that `lan_address` found, on a real tty2.
+- **Every item in "Done when" seen:** red then green in rikuri-drill; the run by hand passed with no missed mutant (19 tested, the four gone); the VM drill's new check passed; `Full gate (Ubuntu)` passed; the verifier's follow-up has no Important finding open.
+- **Merged** by the owner as `b710b1d` (#73, 2026-11-10T22:48:29Z). The round 2 record (`d345995`, held back so as not to spend the last CI run) and this close-out land in their own PR.
+- **Used:** CI 2 of 3 runs on the PR, plus 2 of 2 runs by hand; two repair cycles (the limit); two review rounds.
+- **Not proven by a VM, and not claimed:** that the `main` and `run` mutants fail the drill. That rests on reading (`rikuri-control-plane.service` has `Restart=on-failure`, so an exit 0 leaves it inactive, and "the control plane runs as its own user" needs it active and running), checked by the verifier; no image was built with those mutants.
+- **Backlog, from this task:** the verifier's nits N1 (the reason for `main` overstates the spawn), N2 (two regex weakenings that match only names cargo-mutants never produces) and N3 (two route-command weakenings caught only by the VM drill). Also noted, unchanged here: the claim screen is drawn at start and on Enter only, so a node whose network comes up after the screen shows "none yet" until Enter, as the runbook says.
