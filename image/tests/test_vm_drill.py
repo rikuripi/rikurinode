@@ -822,6 +822,8 @@ class ControlPlaneDrill(d.Drill):
             "stat -c %U /proc/812": "rikuri-control\n",
             "systemctl show -p ActiveState -p SubState -p TTYPath -p User rikuri-claim-screen.service": SCREEN,
             "systemctl restart rikuri-claim-screen.service": "",
+            d.PROBE_ROUTE_ADD: "",
+            d.PROBE_ROUTE_DEL: "",
             "ip -4 route get 192.0.2.1": ROUTE,
             "cat /dev/vcs2": TTY2,
             "ss -Htln": SS,
@@ -925,6 +927,25 @@ class ControlPlaneSteps(unittest.TestCase):
         restart = drill.commands.index("systemctl restart rikuri-claim-screen.service")
         self.assertGreater(drill.commands.index("cat /dev/vcs2"), restart)
         self.assertGreater(drill.commands.index("ip -4 route get 192.0.2.1"), restart)
+
+    def test_the_probe_gets_a_route_for_the_reads_only(self):
+        # The drill's network has no default route (restrict=on), as a node
+        # without its router: the screen is drawn with a host route to the probe.
+        drill, _ = self.results()
+        c = drill.commands
+        self.assertEqual(c.count(d.PROBE_ROUTE_ADD), 1)
+        self.assertEqual(c.count(d.PROBE_ROUTE_DEL), 1)
+        self.assertLess(c.index(d.PROBE_ROUTE_ADD), c.index("systemctl restart rikuri-claim-screen.service"))
+        self.assertLess(c.index(d.PROBE_ROUTE_ADD), c.index("ip -4 route get 192.0.2.1"))
+        self.assertGreater(c.index(d.PROBE_ROUTE_DEL), max(i for i, x in enumerate(c) if x == "cat /dev/vcs2"))
+        self.assertIn("192.0.2.1/32", d.PROBE_ROUTE_ADD)
+        self.assertNotIn("via", d.PROBE_ROUTE_ADD)
+        self.assertIn("192.0.2.1/32", d.PROBE_ROUTE_DEL)
+
+    def test_the_probe_route_is_removed_even_when_the_check_fails(self):
+        drill, results = self.results(answers={"cat /dev/vcs2": TTY2_NONE_YET})
+        self.assertFalse(results["the claim screen shows the node's address"])
+        self.assertEqual(drill.commands.count(d.PROBE_ROUTE_DEL), 1)
 
     def test_a_screen_still_drawing_is_read_again(self):
         screens = iter([vcs(), vcs("Rikuri Node"), TTY2])
