@@ -62,7 +62,7 @@ Stage 1, change 5c, slice 2 of 4 (owner, 2026-11-06: "4 slices, 5c.1 first (Reco
 - **I-2:** the drill did not check that the boot certificate lacked the address, nor that the service was not restarted. Repair 1: before the probe's route it reads the guest's address and the service's `MainPID` and `NRestarts`, and needs HTTPS as that address refused *for its certificate* (no answer is no refusal); after, verified; the guest's address equal to the route's source; the same process and restart count. The check is renamed "the certificate follows the node's address without a restart". Red `b1c4fa3`, fix `11f1727`. Test changes in the red commit, with their reason: the stand-in VM now answers before the route as a boot certificate would, and the check's name changed in every list that names it.
 - **I-3:** the PLAT-01 section said the failure "cannot happen" on Fedora 44 evidence, and left out the rule's tripwire clause and the name conflict. Reworded below.
 - **Nits:** 1 (`address_change.rs` not seen red) recorded above; 2 (the runbook said the browser "offers the node's certificate"; `http://` redirects straight to HTTPS) fixed in the runbook. Backlog: 3, the follow task's handle is dropped, so a panic would end following with no heartbeat, and `Identity.server_der` and `server_meta` go stale after a refresh; 4, `mdns_on`'s loopback clause is vacuous and `mdns_listens` is not a closed world over UDP; 5, the resolved drop-in checks (mDNS and, before this change, LLMNR) do not refuse a later-sorting drop-in or `usr/local/lib/systemd/resolved.conf.d`.
-- **Repair 1 in rikuri-drill** (`safe-run.sh`): at `b1c4fa3` `image/tests` `Ran 457 tests`, `FAILED (failures=2, errors=20)`, all in the drill's control-plane tests; at `11f1727` `Ran 457 tests` `OK`; hooks `Ran 91 tests` `OK`; scripts only the 7 known errors. The Rust red and green are CI's.
+- **Repair 1 in rikuri-drill** (`safe-run.sh`): at `b1c4fa3` `image/tests` `Ran 457 tests`, `FAILED (failures=2, errors=20)`, all in the drill's control-plane tests; at `11f1727` `Ran 457 tests` `OK`; hooks `Ran 91 tests` `OK`; scripts only the 7 known errors. The Rust green is CI's run on `523f34c`. The Rust red of `b1c4fa3` was **not observed**: CI never ran that commit on its own (pushed together with the fix), so `refresh_never_makes_or_uses_another_ca` is red by reading the stub only (verifier, round 2).
 
 ## PLAT-01: the lesson's outcome, by another mechanism
 
@@ -74,3 +74,9 @@ Left out against the rule:
 - a name conflict: by mDNS's rules another host on any link where resolved answers (a future container on `podman0`, or a second Rikuri node being set up on the same LAN, such as the N150 and the Pi) can hold `rikurisetup.local`, and resolved then answers under another name. The certificate (`RIKURI_NAMES=rikurisetup.local`) would no longer match the name the node answers to; the address still works. This comes from mDNS's rules as documented, not seen on the image.
 
 The register's rule text is unchanged. Whether it is clarified to "the LAN receives only the LAN's addresses", or an allow-list and the tripwire are added, is the owner's decision (asked at close-out).
+
+## Verifier, round 2 (2026-11-10): corrections only
+
+No Important finding open. I-1, I-2 and I-3 and nit 2 pass. Two nits for the backlog:
+- the guard checks that `ca.key` exists, not that it is the served CA's key: an outside writer to the 0700 state folder replacing `ca.key` alone would make `refresh` serve a certificate that does not chain to the served CA (the code writes both CA files together). Hardening: verify the fresh certificate against `current.ca` before `set`;
+- the Rust red of `b1c4fa3` was not observed (recorded above).
