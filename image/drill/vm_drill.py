@@ -110,6 +110,12 @@ RESTART_SCREEN = "systemctl restart rikuri-claim-screen.service"
 # The route to TEST-NET-1, as console::lan_address asks for it: its source is the address the screen must show.
 PROBE_ROUTE = "ip -4 route get 192.0.2.1"
 TTY2_TEXT = "cat /dev/vcs2"
+# The drill's network (restrict=on) has no default route, as a node without its
+# router: a host route to the probe, on the interface of the guest's address,
+# lets the screen find that address. No gateway is assumed; nothing is sent.
+PROBE_ROUTE_ADD = ("dev=$(ip -o -4 addr show scope global | awk '{print $2; exit}') && "
+                   "ip route replace 192.0.2.1/32 dev \"$dev\"")
+PROBE_ROUTE_DEL = "ip route del 192.0.2.1/32"
 SCREEN_READS = 10
 MAX_BYTES = 64 * 1024
 
@@ -625,16 +631,21 @@ class Drill:
         self.check("the claim screen on tty2", screen_ok(screen), "; ".join(screen.split()))
         # The unit is not ordered after the network: drawn at boot, the screen may
         # say "none yet" (the runbook's "press Enter to look again"). This SSH
-        # session proves the network is up, so draw it again, then read it.
-        self.vm(RESTART_SCREEN, check=False)
-        source = route_source(self.vm(PROBE_ROUTE, check=False))
-        tty2 = ""
-        for read in range(SCREEN_READS):
-            if read:
-                time.sleep(self.screen_pause)
-            tty2 = self.vm(TTY2_TEXT, check=False) or ""
-            if shows_address(tty2, source):
-                break
+        # session proves the network is up; with the probe's route in place,
+        # draw it again, then read it.
+        self.vm(PROBE_ROUTE_ADD, check=False)
+        try:
+            self.vm(RESTART_SCREEN, check=False)
+            source = route_source(self.vm(PROBE_ROUTE, check=False))
+            tty2 = ""
+            for read in range(SCREEN_READS):
+                if read:
+                    time.sleep(self.screen_pause)
+                tty2 = self.vm(TTY2_TEXT, check=False) or ""
+                if shows_address(tty2, source):
+                    break
+        finally:
+            self.vm(PROBE_ROUTE_DEL, check=False)
         shown = re.search(r"Address:  .*?(?=\s{2,}|$)", tty2)
         self.check("the claim screen shows the node's address", shows_address(tty2, source),
                    "tty2 shows %r; the route's source: %s" % (shown.group(0) if shown else "no address line", source))
