@@ -26,7 +26,7 @@ The owner's rule (2026-11-06): survivors are their own task. The owner's answers
 
 1. **Outcome:** each of the four mutants no `cargo test` can kill is excluded from mutation by name, with its reason, and is killed instead by a VM drill check at the real entry point, so **Rust mutants** passes over 5c.1's lines without hiding anything a test could catch.
 2. **Scope:**
-   - New `control-plane/.cargo/mutants.toml`: four `exclude_re` entries, each anchored (`^…$`) to exactly one survivor's name as cargo-mutants filters on it (`Mutant::name(false)`: the tree-relative path, no line or column; cargo-mutants 27.1.0's `src/mutant.rs` and `src/options.rs`), each with its reason and the drill check that kills it:
+   - New `control-plane/.cargo/mutants.toml`: four `exclude_re` entries, each anchored (`^…$`) to exactly one survivor's name as cargo-mutants filters on it (`Options::allows_mutant` matches `Mutant::name(true)`: the tree-relative path, `:line:column: `, the mutation; cargo-mutants 27.1.0's `src/options.rs:479-483`; corrected in repair cycle 1, it said `name(false)`), with the line and column left free, each with its reason and the drill check that kills it:
      - `main` → `Default::default()` and `run` → `Ok(())`: the daemon exits 0 at once; the drill's "the control plane runs as its own user" (active, running) and the HTTPS checks fail;
      - `claim_screen` → `Default::default()` and `lan_address` → `None`: tty2 shows no address; the new check fails.
      Every other mutant of these functions (a match arm, a guard) is still tested.
@@ -44,7 +44,7 @@ The owner's rule (2026-11-06): survivors are their own task. The owner's answers
 
 ## Evidence log
 
-- **Characterized first:** the four survivors' code read on `main` at `22f9b98`; the spawn ban read in `control-plane/clippy.toml`, `Cargo.toml` and its record; cargo-mutants 27.1.0's filter read in its source (`Config::read_tree_config` reads `<dir>/.cargo/mutants.toml`; `exclude_re` is matched against `Mutant::name(false)`).
+- **Characterized first:** the four survivors' code read on `main` at `22f9b98`; the spawn ban read in `control-plane/clippy.toml`, `Cargo.toml` and its record; cargo-mutants 27.1.0's filter read in its source (`Config::read_tree_config` reads `<dir>/.cargo/mutants.toml`; `exclude_re` is matched against `Mutant::name(false)`; wrong, see repair cycle 1: it is `name(true)`).
 - **Red** (`a2bfd4b`, rikuri-drill through `safe-run.sh`):
   - `image/tests` `Ran 440 tests` `FAILED (failures=3, errors=10)`: the 10 errors are the new reads and steps (`route_source`, `shows_address`, `SCREEN_READS` absent); the 3 failures are the lists that now name the new check;
   - `scripts/quality/tests` `Ran 175 tests` with the 7 known errors (they need a git checkout; the copy is an archive) plus the 3 new `MutantsExclusions` errors (no file), and one `ControlPlaneInTheImage` error because that archive lacked `.containerignore` (the green archive has it);

@@ -2,32 +2,36 @@
 # runs it with --dir control-plane, so this file is read from here).
 #
 # Only `exclude_re`, and each entry skips exactly one mutant: anchored at both
-# ends to the name cargo-mutants filters on (the tree-relative path, ": ", the
-# mutation; no line or column). Each says why no `cargo test` can kill it and
-# names the VM drill check (image/drill/vm_drill.py) that does.
+# ends to the name cargo-mutants 27.1.0 filters on (Options::allows_mutant
+# matches Mutant::name(true): the tree-relative path, `:line:column: `, the
+# mutation). The line and column are left free, so an entry still holds when
+# the code above it moves. Each says why it is not killed by `cargo test` and
+# names the VM drill check (image/drill/vm_drill.py) that kills it.
 # scripts/quality/tests/test_workflows.py (MutantsExclusions) holds this list
 # exactly; adding to it is a reviewed change with its reason.
 # Record: docs/build-records/2026-11-10-mutants-survivors.md
 
 exclude_re = [
-    # Why: the binary's entry point. A test would have to spawn the binary, and
-    # the control plane never spawns a process, tests included (clippy.toml,
-    # ADR 0005, ADR 0014). Mutated, the daemon exits 0 at once.
+    # Why: the binary's entry point, reading the process's own arguments. A
+    # test would have to spawn the binary, and the control plane never spawns
+    # a process, tests included (clippy.toml, ADR 0005, ADR 0014). Mutated,
+    # the daemon exits 0 at once.
     # Killed by the drill's "the control plane runs as its own user".
-    '^apps/rikuri-control-plane/src/main\.rs: replace main -> ExitCode with Default::default\(\)$',
+    '^apps/rikuri-control-plane/src/main\.rs:\d+:\d+: replace main -> ExitCode with Default::default\(\)$',
 
-    # Why: the daemon's start, from the process environment (`Config::from_env`,
-    # and `set_var` is unsafe, which the workspace forbids) to the listeners
-    # and signals; only a spawned binary would reach it. Mutated, the daemon
-    # exits 0 at once.
+    # Why: the daemon's start, from the process environment (`Config::from_env`)
+    # to the listeners and signals. A test in this process could reach it only
+    # by setting the environment of every control-plane test (`set_var` is
+    # unsafe, which the workspace forbids; or cargo's [env] table), the owner's
+    # choice not to (2026-11-10). Mutated, the daemon exits 0 at once.
     # Killed by the drill's "the control plane runs as its own user".
-    '^apps/rikuri-control-plane/src/main\.rs: replace run -> Result<\(\), Box<dyn Error>> with Ok\(\(\)\)$',
+    '^apps/rikuri-control-plane/src/main\.rs:\d+:\d+: replace run -> Result<\(\), Box<dyn Error>> with Ok\(\(\)\)$',
 
-    # Why: the claim screen's loop over the process's own stdin and stdout, run
-    # by its unit on tty2; only a spawned binary would reach it. Mutated, the
-    # screen draws nothing.
+    # Why: the claim screen's loop over the process's own environment, stdin
+    # and stdout, run by its unit on tty2; reaching it in a test has the same
+    # cost as for `run`, above. Mutated, the screen draws nothing.
     # Killed by the drill's "the claim screen shows the node's address".
-    '^apps/rikuri-control-plane/src/main\.rs: replace claim_screen -> ExitCode with Default::default\(\)$',
+    '^apps/rikuri-control-plane/src/main\.rs:\d+:\d+: replace claim_screen -> ExitCode with Default::default\(\)$',
 
     # Why: it asks the kernel for the route to TEST-NET-1, so its true answer
     # is the machine's. Inside safe-run.sh's namespaces there is only loopback,
@@ -35,5 +39,5 @@ exclude_re = [
     # has only its stand-ins, it is the runner's address. A test that asserts
     # either is wrong on the other.
     # Killed by the drill's "the claim screen shows the node's address".
-    '^crates/rikuri-control/src/console\.rs: replace lan_address -> Option<IpAddr> with None$',
+    '^crates/rikuri-control/src/console\.rs:\d+:\d+: replace lan_address -> Option<IpAddr> with None$',
 ]
