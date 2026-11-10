@@ -170,8 +170,19 @@
 - That was 2 CI runs of the 6 allowed, one repair cycle and two review rounds.
 - **Merged** by the owner as `f190669` (#69, 2026-11-07T03:22:51Z). The two record commits made after the push (verifier round 2, the owner's decision on `cargo mutants`) and this close-out land in their own PR.
 - **Not yet proven, and not in this task:**
-  - `cargo mutants` over the changed Rust lines (the owner's decision above; the follow-up task);
+  - `cargo mutants` over the changed Rust lines: run since, by the follow-up task (below);
   - Ctrl+Alt+F2 and the claim screen on the N150 (the owner's, from a stick published after this merge; `docs/runbooks/install-node.md`, step 9).
 - **Backlog, from this task:**
   - `repo_hygiene.py` never reads `RUN --mount=... from=`;
   - the verifier's Minor findings and nits: an old code winning in the argon2 window after Enter; `boot.rs`'s unlocked first-start check; `press_enter`'s owner check before a slow arm; TCP-only port reads; the policy opening on every zone; same-name-only LLMNR overrides; greenboot's untested read bound; runbook step 9's "press Enter to look again" also arming a new code; a shown code staying until Enter.
+
+## `cargo mutants`, run after the close-out
+
+- The follow-up task (`docs/build-records/2026-11-06-ci-cargo-mutants.md`, merged as `22f9b98`, #71) ran **Rust mutants** by hand over 5c.1's lines, `base` `f5584b6`: [run 42905996478](https://github.com/rikuripi/rikurinode/actions/runs/42905996478). **Fail:** `23 mutants tested in 2m: 4 missed, 9 caught, 10 unviable`.
+- **Missed:**
+  - `crates/rikuri-control/src/console.rs:80:5`: `lan_address` → `None`;
+  - `apps/rikuri-control-plane/src/main.rs:31:5`: `main` → `Default::default()`;
+  - `apps/rikuri-control-plane/src/main.rs:83:5`: `run` → `Ok(())`;
+  - `apps/rikuri-control-plane/src/main.rs:181:5`: `claim_screen` → `Default::default()`.
+- The other 19 were caught or unviable. The four survivors are the binary's entry points and the address probe, which `cargo test` never runs. The VM drill exercises them only in part: it sees the service and the claim screen running, not what the screen shows.
+- This record's Status stays DONE: the owner closed 5c.1 with `cargo mutants` Not yet proven, and the survivors are their own task (the owner, 2026-11-06), not a reopening of this one.
