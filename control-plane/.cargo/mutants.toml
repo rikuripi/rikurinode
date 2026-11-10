@@ -12,10 +12,14 @@
 # Record: docs/build-records/2026-11-10-mutants-survivors.md
 
 exclude_re = [
-    # Why: the binary's entry point, reading the process's own arguments. A
-    # test would have to spawn the binary, and the control plane never spawns
-    # a process, tests included (clippy.toml, ADR 0005, ADR 0014). Mutated,
-    # the daemon exits 0 at once.
+    # Why: the binary's entry point, over the process's own arguments and
+    # environment. A test that spawned the binary is barred: the control plane
+    # never spawns a process, tests included (clippy.toml, ADR 0005, ADR 0014).
+    # A test calling `main()` in its own process sees whatever arguments the
+    # test runner was given: with none, `main()` starts the daemon itself. To
+    # tell the mutant apart reliably it would have to set the environment of
+    # every control-plane test, the cost named for `run` below, which the owner
+    # chose not to pay (2026-11-10). Mutated, the daemon exits 0 at once.
     # Killed by the drill's "the control plane runs as its own user".
     '^apps/rikuri-control-plane/src/main\.rs:\d+:\d+: replace main -> ExitCode with Default::default\(\)$',
 

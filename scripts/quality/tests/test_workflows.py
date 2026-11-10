@@ -573,6 +573,17 @@ class MutantsExclusions(unittest.TestCase):
             "x/apps/rikuri-control-plane/src/main.rs:31:5: replace main -> ExitCode with Default::default()",
             "apps/rikuri-control-plane/src/main.rs:31:5: replace main -> ExitCode with Default::default() ")
 
+    @classmethod
+    def without_line_or_column(cls):
+        """Each survivor's name with no line and column, and with a line only:
+        names cargo-mutants never filters on, so a regex that takes them has
+        loosened its `:line:column:`."""
+        out = []
+        for name in cls.SURVIVORS:
+            m = re.fullmatch(r"(.*?\.rs):(\d+):\d+(: .*)", name)
+            out += [m.group(1) + m.group(3), m.group(1) + ":" + m.group(2) + m.group(3)]
+        return out
+
     def lines(self):
         with open(self.CONFIG, encoding="utf-8") as f:
             return f.read().splitlines()
@@ -589,6 +600,9 @@ class MutantsExclusions(unittest.TestCase):
             self.assertIsNotNone(m, "not one literal string: %r" % line)
             out.append(m.group(1))
         return out
+
+    def test_the_loosened_names_are_eight(self):
+        self.assertEqual(len(set(self.without_line_or_column())), 2 * len(self.SURVIVORS))
 
     def test_only_name_regexes_and_nothing_wider(self):
         regexes = self.regexes()
@@ -607,7 +621,7 @@ class MutantsExclusions(unittest.TestCase):
                 self.assertTrue(rx.startswith("^") and rx.endswith("$"), "anchored at both ends")
                 self.assertEqual(len([n for n in self.SURVIVORS if re.search(rx, n)]), 1)
                 self.assertEqual(len([n for n in self.MOVED if re.search(rx, n)]), 1)
-                for name in self.NEAR:
+                for name in self.NEAR + tuple(self.without_line_or_column()):
                     self.assertIsNone(re.search(rx, name), name)
         for name in tuple(self.SURVIVORS) + self.MOVED:
             with self.subTest(name=name):
