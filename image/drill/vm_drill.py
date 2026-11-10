@@ -101,6 +101,9 @@ HTTP_PORT = 8080
 HTTPS_PORT = 8443
 CP_USER = "rikuri-control"
 SERVER_NAME = "localhost"
+# 5c.2: the name mDNS answers and the certificate carries; the hostname behind it.
+NODE_NAME = "rikurisetup.local"
+NODE_HOSTNAME = "rikurisetup"
 ALLOWED_PORTS = frozenset({22, 80, 443})
 CP_REQUIRED = "/usr/lib/greenboot/check/required.d/50-rikuri-control-plane"
 SHOW_CP = "systemctl show -p ActiveState -p SubState -p MainPID rikuri-control-plane.service"
@@ -110,13 +113,24 @@ RESTART_SCREEN = "systemctl restart rikuri-claim-screen.service"
 # The route to TEST-NET-1, as console::lan_address asks for it: its source is the address the screen must show.
 PROBE_ROUTE = "ip -4 route get 192.0.2.1"
 TTY2_TEXT = "cat /dev/vcs2"
+# The interface of the guest's global IPv4 address, the one PROBE_ROUTE_ADD routes on.
+NIC = "ip -o -4 addr show scope global | awk '{print $2; exit}'"
 # The drill's network (restrict=on) has no default route, as a node without its
 # router: a host route to the probe, on the interface of the guest's address,
 # lets the screen find that address. No gateway is assumed; nothing is sent.
-PROBE_ROUTE_ADD = ("dev=$(ip -o -4 addr show scope global | awk '{print $2; exit}') && "
+PROBE_ROUTE_ADD = ("dev=$(" + NIC + ") && "
                    "ip route replace 192.0.2.1/32 dev \"$dev\"")
 PROBE_ROUTE_DEL = "ip route del 192.0.2.1/32"
 SCREEN_READS = 10
+# The daemon looks at its address every 60 s (address::EVERY): the certificate
+# names the guest's address within a minute of the probe's route, so 30 tries
+# 5 s apart wait well past one look.
+ADDRESS_TRIES = 30
+HOSTNAME_CMD = "cat /proc/sys/kernel/hostname"   # the kernel's name now, runtime truth
+MDNS_STATUS = "resolvectl mdns"
+UDP_LISTEN = "ss -Huln"
+MDNS_PORT = 5353
+LLMNR_PORT = 5355
 MAX_BYTES = 64 * 1024
 
 
@@ -337,9 +351,25 @@ def shows_address(screen: str, address) -> bool:
 
 
 def policy_active(info: str) -> bool:
-    """`firewall-cmd --info-policy=rikuri-node`: active, with exactly http and https."""
+    """`firewall-cmd --info-policy=rikuri-node`: active, with exactly http, https and mdns."""
     lines = [line.strip() for line in info.splitlines()]
-    return bool(lines) and lines[0] == "rikuri-node (active)" and "services: http https" in lines
+    return bool(lines) and lines[0] == "rikuri-node (active)" and "services: http https mdns" in lines
+
+
+def mdns_on(status: str, nic: str) -> bool:
+    """`resolvectl mdns`: on globally and on the guest's interface, and on no
+    loopback link (resolved lists none)."""
+    lines = [line.strip() for line in (status or "").splitlines()]
+    nic = (nic or "").strip()
+    return (bool(nic) and "Global: yes" in lines
+            and any(re.fullmatch(r"Link \d+ \(%s\): yes" % re.escape(nic), line) for line in lines)
+            and not any(re.fullmatch(r"Link \d+ \(lo\): .*", line) and not line.endswith(": no")
+                        for line in lines))
+
+
+def mdns_listens(ports: set) -> bool:
+    """UDP: mDNS's 5353 bound outside loopback, LLMNR's 5355 not."""
+    return MDNS_PORT in ports and LLMNR_PORT not in ports
 
 
 def required_passed(journal: str) -> bool:
@@ -429,7 +459,11 @@ EXPECTED = frozenset({"first boot", "the containers range at the first boot", "c
                       "the control plane runs as its own user", "the CA certificate over HTTP",
                       "the API over HTTPS with only the node's CA", "a client without the node's CA is refused",
                       "the claim screen on tty2", "the claim screen shows the node's address",
-                      "only SSH, 80 and 443 listen outside", "the firewall opens 80 and 443", "greenboot's control plane check",
+                      "only SSH, 80 and 443 listen outside", "the firewall opens 80, 443 and mDNS",
+                      "greenboot's control plane check",
+                      "HTTPS as rikurisetup.local with only the node's CA",
+                      "HTTPS as the node's address with only the node's CA", "the node is named rikurisetup",
+                      "mDNS on the node's interface", "mDNS listens on 5353, LLMNR does not",
                       "no claim code in the journal"})
 
 
@@ -452,6 +486,7 @@ class Drill:
         self.first_subid = []
         self.registry = None
         self.screen_pause = 2   # seconds between reads of tty2, while the screen draws
+        self.address_pause = 5  # seconds between tries as the guest's address, while the daemon looks again
 
     # --- plumbing ------------------------------------------------------------
     def log(self, message: str) -> None:
@@ -568,15 +603,25 @@ class Drill:
             conn.sendall(b"GET %s HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n" % path.encode())
             return _read_all(conn)
 
-    def fetch_tls(self, path: str, cafile):
-        """One HTTPS request to the VM's 443, through its forward, as `localhost`:
-        trusting only `cafile`, or with None the system's CAs alone."""
+    def fetch_tls(self, path: str, cafile, name: str = SERVER_NAME):
+        """One HTTPS request to the VM's 443, through its forward, as `name`
+        (a host name, or an IP address that must be in the certificate as
+        one): trusting only `cafile`, or with None the system's CAs alone."""
         context = ssl.create_default_context(cafile=cafile) if cafile else ssl.create_default_context()
         with socket.create_connection(("127.0.0.1", HTTPS_PORT), timeout=10) as raw:
-            with context.wrap_socket(raw, server_hostname=SERVER_NAME) as conn:
+            with context.wrap_socket(raw, server_hostname=name) as conn:
                 conn.sendall(b"GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n"
-                             % (path.encode(), SERVER_NAME.encode()))
+                             % (path.encode(), name.encode()))
                 return _read_all(conn)
+
+    def setup_as(self, cafile, fingerprint, name: str):
+        """Whether /api/setup answers as `name`, trusting only the node's CA, and what it said."""
+        try:
+            status, body = parse_http(self.fetch_tls("/api/setup", cafile, name))
+        except OSError as e:     # ssl's errors, a refused certificate among them, are OSErrors
+            return False, "no answer as %s (%s)" % (name, e)
+        return (status == 200 and setup_ok(body, fingerprint),
+                "as %s: %s %s" % (name, status, body[:120].decode("utf-8", "replace")))
 
     def control_plane(self) -> None:
         """5c.1, at the first boot: the service runs as its own user; from outside
@@ -586,7 +631,11 @@ class Drill:
         the address the route to TEST-NET-1 leaves from (what
         console::lan_address asks); only SSH, 80 and 443 listen outside
         loopback; the firewall policy is active; greenboot's required check
-        passed."""
+        passed. 5c.2: the node is named rikurisetup and resolved answers mDNS
+        on its interface, on UDP 5353 (LLMNR's 5355 stays closed); HTTPS is
+        verified by the node's CA as rikurisetup.local and, once the probe's
+        route gives the guest an address, as that address, which the daemon
+        puts in its certificate without a restart."""
         show = self.vm(SHOW_CP, check=False) or ""
         pid = main_pid(show)
         owner = (self.vm("stat -c %%U /proc/%d" % pid, check=False) or "").strip() if pid else ""
@@ -626,6 +675,8 @@ class Drill:
         except OSError as e:
             refused, detail = False, "no answer, so no refusal seen (%s)" % e
         self.check("a client without the node's CA is refused", refused, detail)
+        by_name, detail = self.setup_as(cafile, fingerprint, NODE_NAME) if fingerprint else (False, "no CA certificate")
+        self.check("HTTPS as rikurisetup.local with only the node's CA", by_name, detail)
 
         screen = self.vm(SHOW_SCREEN, check=False) or ""
         self.check("the claim screen on tty2", screen_ok(screen), "; ".join(screen.split()))
@@ -644,17 +695,36 @@ class Drill:
                 tty2 = self.vm(TTY2_TEXT, check=False) or ""
                 if shows_address(tty2, source):
                     break
+            by_address, address_detail = False, "no CA certificate, or no address: %s" % source
+            if fingerprint and source:
+                for attempt in range(ADDRESS_TRIES):
+                    if attempt:
+                        time.sleep(self.address_pause)
+                    by_address, address_detail = self.setup_as(cafile, fingerprint, source)
+                    if by_address:
+                        break
         finally:
             self.vm(PROBE_ROUTE_DEL, check=False)
         shown = re.search(r"Address:  .*?(?=\s{2,}|$)", tty2)
         self.check("the claim screen shows the node's address", shows_address(tty2, source),
                    "tty2 shows %r; the route's source: %s" % (shown.group(0) if shown else "no address line", source))
+        self.check("HTTPS as the node's address with only the node's CA", by_address, address_detail)
+        hostname = (self.vm(HOSTNAME_CMD, check=False) or "").strip()
+        self.check("the node is named rikurisetup", hostname == NODE_HOSTNAME, "hostname: %r" % hostname)
+        nic = (self.vm(NIC, check=False) or "").strip()
+        mdns = self.vm(MDNS_STATUS, check=False) or ""
+        self.check("mDNS on the node's interface", mdns_on(mdns, nic),
+                   "interface %r; %s" % (nic, "; ".join(line.strip() for line in mdns.splitlines()[:8])))
+        udp = self.vm(UDP_LISTEN, check=False) or ""
+        udp_ports = exposed_ports(udp)
+        self.check("mDNS listens on 5353, LLMNR does not", mdns_listens(udp_ports),
+                   "UDP bound outside loopback: %s" % sorted(udp_ports))
         ss = self.vm("ss -Htln", check=False) or ""
         exposed = exposed_ports(ss)
         self.check("only SSH, 80 and 443 listen outside", ports_ok(exposed),
                    "listening outside loopback: %s" % sorted(exposed))
         policy = self.vm(POLICY_INFO, check=False) or ""
-        self.check("the firewall opens 80 and 443", policy_active(policy),
+        self.check("the firewall opens 80, 443 and mDNS", policy_active(policy),
                    "; ".join(line.strip() for line in policy.splitlines()[:6]) or "no policy reported")
         greenboot = self.journal("-b -u greenboot-healthcheck")
         self.check("greenboot's control plane check", required_passed(greenboot),
@@ -663,7 +733,8 @@ class Drill:
         self.check("no claim code in the journal", code_kept_out(journal),
                    "%r in the service's journal: %s; a code there: %s"
                    % (CODE_NOT_SHOWN, CODE_NOT_SHOWN in journal, bool(CLAIM_CODE.search(journal))))
-        self.keep("02-control-plane.out", "\n\n".join([show, screen, tty2, ss, policy, pem, greenboot, journal]))
+        self.keep("02-control-plane.out", "\n\n".join([show, screen, tty2, address_detail, hostname, nic, mdns, udp,
+                                                       ss, policy, pem, greenboot, journal]))
 
     def load_variants(self) -> None:
         archive = os.path.join(self.workdir, "image.tar")

@@ -175,7 +175,9 @@ pub fn san_names(names: &Names, lan: Option<IpAddr>) -> Vec<String> {
     let mut all: Vec<String> = names.iter().map(str::to_owned).collect();
     all.push("127.0.0.1".to_owned());
     all.push("::1".to_owned());
-    let _ = lan; // red stub: the address is not named yet
+    if let Some(ip) = lan {
+        all.push(ip.to_string());
+    }
     all.sort();
     all.dedup();
     all
@@ -295,7 +297,7 @@ pub fn refresh(
     if !fresh.server_issued {
         return Ok(None);
     }
-    current.set(current.get()); // red stub: the new certificate is not served yet
+    current.set(fresh.current.get());
     Ok(Some(fresh.server_meta))
 }
 

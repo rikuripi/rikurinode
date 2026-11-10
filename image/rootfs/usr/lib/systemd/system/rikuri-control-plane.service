@@ -2,7 +2,10 @@
 # and on 80 only the CA certificate and a redirect. Its own user, one
 # capability (to bind the two ports), its state under /var. Each key appears
 # once, as image/check_image_root.py requires (a closed world).
-# Record: docs/build-records/2026-11-06-5c1-control-plane-on-node.md
+# Its name, rikurisetup.local, is the one mDNS answers; the server certificate
+# also carries the node's current LAN address, which the daemon follows.
+# Records: docs/build-records/2026-11-06-5c1-control-plane-on-node.md,
+# docs/build-records/2026-11-10-5c2-names-and-mdns.md
 [Unit]
 Description=Rikuri Node control plane
 After=network.target
@@ -12,7 +15,7 @@ Type=exec
 User=rikuri-control
 Group=rikuri-control
 ExecStart=/usr/bin/rikuri-control-plane
-Environment=RIKURI_LISTEN=0.0.0.0:443 RIKURI_HTTP_LISTEN=0.0.0.0:80 RIKURI_STATE_DIR=/var/lib/rikuri/control-plane
+Environment=RIKURI_LISTEN=0.0.0.0:443 RIKURI_HTTP_LISTEN=0.0.0.0:80 RIKURI_STATE_DIR=/var/lib/rikuri/control-plane RIKURI_NAMES=rikurisetup.local
 StateDirectory=rikuri/control-plane
 StateDirectoryMode=0700
 UMask=0077
