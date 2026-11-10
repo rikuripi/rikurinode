@@ -239,7 +239,7 @@ class CheckImageRoot(unittest.TestCase):
             self.assertEqual(cir.main([os.path.join(self.root.path, "nope"), "--fedora", "44"]), 2)
         self.assertIn("FAIL usr/lib/os-release: VERSION_ID is '44', expected '45'", out.getvalue())
         # F3: the scan says what it read, so an empty scan is visible in the CI log.
-        self.assertIn("scan etc: 4 file(s) read", out.getvalue())
+        self.assertIn("scan etc: 5 file(s) read", out.getvalue())
 
     # --- the release ---------------------------------------------------------
     def test_wrong_release(self):
@@ -875,7 +875,7 @@ class CheckImageRoot(unittest.TestCase):
         found, notes = self.root.check_with_notes()
         self.assertEqual(found, [])
         self.assertEqual([n.split(":")[0] for n in notes], ["scan " + t for t in cir.SECRET_DIRS])
-        self.assertIn("scan etc: 4 file(s) read", notes)
+        self.assertIn("scan etc: 5 file(s) read", notes)
         self.assertIn("scan var: skipped (absent)", notes)
 
     def test_etc_without_a_regular_file_is_a_finding(self):

@@ -407,8 +407,11 @@ class Verdict(unittest.TestCase):
             "the API over HTTPS with only the node's CA", "a client without the node's CA is refused",
             "the claim screen on tty2", "the claim screen shows the node's address",
             "only SSH, 80 and 443 listen outside",
-            "the firewall opens 80 and 443", "greenboot's control plane check",
-            "no claim code in the journal"})
+            "the firewall opens 80, 443 and mDNS", "greenboot's control plane check",
+            "no claim code in the journal",
+            "HTTPS as rikurisetup.local with only the node's CA",
+            "HTTPS as the node's address with only the node's CA", "the node is named rikurisetup",
+            "mDNS on the node's interface", "mDNS listens on 5353, LLMNR does not"})
 
     def test_all_passed_and_no_error_is_zero(self):
         self.assertEqual(d.verdict(self.ALL, None), 0)
