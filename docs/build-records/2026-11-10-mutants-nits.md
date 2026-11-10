@@ -30,3 +30,7 @@ The verifier's follow-up pass on the mutants survivors (`docs/build-records/2026
 5. **Limits:** one task; two repair cycles; two review rounds; CI at most 2 runs on the PR. No run of **Rust mutants** by hand: no regex changes.
 
 ## Evidence log
+
+- **Red: the weakenings the new tests catch** (rikuri-drill, `safe-run.sh`, each applied to a fresh copy). Eight weakenings: in `mutants.toml`, `claim_screen`'s `:\d+:\d+:` made optional (M1), `lan_address`'s loosened to `:.*:` (M2), `run`'s to `.*` (M3), `main`'s column made optional (M4); in `vm_drill.py`, awk's `$1` (M5), `scope global` dropped (M6), `-4` dropped (M7), the route sent to `lo` (M8). Against `main`'s tests (`6b6e5cc`), **7 of 8 survive**: M1 to M3 leave only the 7 known errors, M5 to M8 give `OK`, and only M4 was already caught. Against this branch's (`76cd7b7`): **8 of 8 fail**.
+- **Green** (`76cd7b7`): `image/tests` `Ran 443 tests` `OK`; `.claude/hooks` `Ran 91 tests` `OK`; `scripts/quality/tests` `Ran 176 tests` with only the 7 known errors (the archive copy has no git checkout).
+- **N1:** the `main` reason no longer says a test "would have to spawn the binary". It now says that spawning is barred, that `main()` called in a test's own process sees whatever arguments the test runner was given (with none, it starts the daemon), and that telling the mutant apart reliably costs what `run`'s does. A comment only; the four regexes are unchanged, so there was no run of **Rust mutants** by hand.
