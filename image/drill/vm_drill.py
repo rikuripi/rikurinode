@@ -106,6 +106,11 @@ CP_REQUIRED = "/usr/lib/greenboot/check/required.d/50-rikuri-control-plane"
 SHOW_CP = "systemctl show -p ActiveState -p SubState -p MainPID rikuri-control-plane.service"
 SHOW_SCREEN = "systemctl show -p ActiveState -p SubState -p TTYPath -p User rikuri-claim-screen.service"
 POLICY_INFO = "firewall-cmd --info-policy=rikuri-node"
+RESTART_SCREEN = "systemctl restart rikuri-claim-screen.service"
+# The route to TEST-NET-1, as console::lan_address asks for it: its source is the address the screen must show.
+PROBE_ROUTE = "ip -4 route get 192.0.2.1"
+TTY2_TEXT = "cat /dev/vcs2"
+SCREEN_READS = 10
 MAX_BYTES = 64 * 1024
 
 
@@ -312,6 +317,19 @@ def screen_ok(show: str) -> bool:
             and v.get("TTYPath") == "/dev/tty2" and v.get("User") == CP_USER)
 
 
+def route_source(route: str):
+    """The source address of `ip -4 route get`, or None if it names none."""
+    m = re.search(r"\bsrc (\d{1,3}(?:\.\d{1,3}){3})(?!\S)", route or "")
+    return m.group(1) if m else None
+
+
+def shows_address(screen: str, address) -> bool:
+    """tty2's text shows `Address:  http://<address>` and nothing longer, for an address not on loopback."""
+    if not address or address.startswith("127."):
+        return False
+    return re.search(r"\bAddress:  http://%s(?!\S)" % re.escape(address), screen or "") is not None
+
+
 def policy_active(info: str) -> bool:
     """`firewall-cmd --info-policy=rikuri-node`: active, with exactly http and https."""
     lines = [line.strip() for line in info.splitlines()]
@@ -404,8 +422,8 @@ EXPECTED = frozenset({"first boot", "the containers range at the first boot", "c
                       "case 4, an unsigned update refused", "case 5, a signed update staged",
                       "the control plane runs as its own user", "the CA certificate over HTTP",
                       "the API over HTTPS with only the node's CA", "a client without the node's CA is refused",
-                      "the claim screen on tty2", "only SSH, 80 and 443 listen outside",
-                      "the firewall opens 80 and 443", "greenboot's control plane check",
+                      "the claim screen on tty2", "the claim screen shows the node's address",
+                      "only SSH, 80 and 443 listen outside", "the firewall opens 80 and 443", "greenboot's control plane check",
                       "no claim code in the journal"})
 
 
@@ -427,6 +445,7 @@ class Drill:
         self.results = []
         self.first_subid = []
         self.registry = None
+        self.screen_pause = 2   # seconds between reads of tty2, while the screen draws
 
     # --- plumbing ------------------------------------------------------------
     def log(self, message: str) -> None:
@@ -557,8 +576,11 @@ class Drill:
         """5c.1, at the first boot: the service runs as its own user; from outside
         the VM, the CA certificate comes over HTTP and the API answers over HTTPS
         trusting only that CA, while a client without it is refused; the claim
-        screen holds tty2; only SSH, 80 and 443 listen outside loopback; the
-        firewall policy is active; greenboot's required check passed."""
+        screen holds tty2 and, drawn again now that the network is up, shows
+        the address the route to TEST-NET-1 leaves from (what
+        console::lan_address asks); only SSH, 80 and 443 listen outside
+        loopback; the firewall policy is active; greenboot's required check
+        passed."""
         show = self.vm(SHOW_CP, check=False) or ""
         pid = main_pid(show)
         owner = (self.vm("stat -c %%U /proc/%d" % pid, check=False) or "").strip() if pid else ""
@@ -601,6 +623,21 @@ class Drill:
 
         screen = self.vm(SHOW_SCREEN, check=False) or ""
         self.check("the claim screen on tty2", screen_ok(screen), "; ".join(screen.split()))
+        # The unit is not ordered after the network: drawn at boot, the screen may
+        # say "none yet" (the runbook's "press Enter to look again"). This SSH
+        # session proves the network is up, so draw it again, then read it.
+        self.vm(RESTART_SCREEN, check=False)
+        source = route_source(self.vm(PROBE_ROUTE, check=False))
+        tty2 = ""
+        for read in range(SCREEN_READS):
+            if read:
+                time.sleep(self.screen_pause)
+            tty2 = self.vm(TTY2_TEXT, check=False) or ""
+            if shows_address(tty2, source):
+                break
+        shown = re.search(r"Address:  .*?(?=\s{2,}|$)", tty2)
+        self.check("the claim screen shows the node's address", shows_address(tty2, source),
+                   "tty2 shows %r; the route's source: %s" % (shown.group(0) if shown else "no address line", source))
         ss = self.vm("ss -Htln", check=False) or ""
         exposed = exposed_ports(ss)
         self.check("only SSH, 80 and 443 listen outside", ports_ok(exposed),
@@ -615,7 +652,7 @@ class Drill:
         self.check("no claim code in the journal", code_kept_out(journal),
                    "%r in the service's journal: %s; a code there: %s"
                    % (CODE_NOT_SHOWN, CODE_NOT_SHOWN in journal, bool(CLAIM_CODE.search(journal))))
-        self.keep("02-control-plane.out", "\n\n".join([show, screen, ss, policy, pem, greenboot, journal]))
+        self.keep("02-control-plane.out", "\n\n".join([show, screen, tty2, ss, policy, pem, greenboot, journal]))
 
     def load_variants(self) -> None:
         archive = os.path.join(self.workdir, "image.tar")
