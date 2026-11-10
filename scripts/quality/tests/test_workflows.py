@@ -563,6 +563,12 @@ class MutantsExclusions(unittest.TestCase):
             "apps/rikuri-control-plane/src/main.rs: replace main -> ExitCode with Default::default()",
             "apps/rikuri-control-plane/src/main.rs:31: replace main -> ExitCode with Default::default()",
             "apps/rikuri-control-plane/src/mainXrs:31:5: replace main -> ExitCode with Default::default()",
+            "apps/rikuri-control-plane/src/mainXrs:83:5: replace run -> Result<(), Box<dyn Error>> with Ok(())",
+            "apps/rikuri-control-plane/src/mainXrs:181:5: replace claim_screen -> ExitCode with Default::default()",
+            # A changed signature is a new mutant, to be tested or excluded anew.
+            "apps/rikuri-control-plane/src/main.rs:83:5: replace run -> Result<(), std::io::Error> with Ok(())",
+            "apps/rikuri-control-plane/src/main.rs:181:5: replace claim_screen -> u8 with Default::default()",
+            "crates/rikuri-control/src/console.rs:80:5: replace lan_address -> Option<Ipv4Addr> with None",
             "crates/rikuri-control/src/consoleXrs:80:5: replace lan_address -> Option<IpAddr> with None",
             "x/apps/rikuri-control-plane/src/main.rs:31:5: replace main -> ExitCode with Default::default()",
             "apps/rikuri-control-plane/src/main.rs:31:5: replace main -> ExitCode with Default::default() ")
