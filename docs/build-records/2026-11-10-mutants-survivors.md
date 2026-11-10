@@ -43,3 +43,12 @@ The owner's rule (2026-11-06): survivors are their own task. The owner's answers
 5. **Limits:** one task; two repair cycles; two review rounds; CI at most 3 runs on the PR plus 2 runs by hand.
 
 ## Evidence log
+
+- **Characterized first:** the four survivors' code read on `main` at `22f9b98`; the spawn ban read in `control-plane/clippy.toml`, `Cargo.toml` and its record; cargo-mutants 27.1.0's filter read in its source (`Config::read_tree_config` reads `<dir>/.cargo/mutants.toml`; `exclude_re` is matched against `Mutant::name(false)`).
+- **Red** (`a2bfd4b`, rikuri-drill through `safe-run.sh`):
+  - `image/tests` `Ran 440 tests` `FAILED (failures=3, errors=10)`: the 10 errors are the new reads and steps (`route_source`, `shows_address`, `SCREEN_READS` absent); the 3 failures are the lists that now name the new check;
+  - `scripts/quality/tests` `Ran 175 tests` with the 7 known errors (they need a git checkout; the copy is an archive) plus the 3 new `MutantsExclusions` errors (no file), and one `ControlPlaneInTheImage` error because that archive lacked `.containerignore` (the green archive has it);
+  - `.claude/hooks` `Ran 91 tests` `OK`.
+- **Green** (`fb756e5`, the same way): `image/tests` `Ran 440 tests` `OK`; `.claude/hooks` `Ran 91 tests` `OK`; `scripts/quality/tests` `Ran 175 tests` with only the 7 known errors.
+- **Hand mutants: 13 of 13 red** (rikuri-drill, each on a fresh copy, its suite through `safe-run.sh`): in `vm_drill.py`, the address matched as a prefix; loopback allowed; no restart; no early stop; one read only; any `Address:` line accepted; the check left out of `EXPECTED`; any IPv4 taken as the route's source. In `mutants.toml`: an added `exclude_globs = ["**"]`; the `main` regex widened to every `Default::default()` replacement in `main.rs`; the `lan_address` regex unanchored at the end; a reason without its drill check; a fifth exclusion (`claim.rs`'s `arm`).
+- **Rust:** no Rust source changes, so there is nothing to compile; `mutants.toml` is read by cargo-mutants only.
