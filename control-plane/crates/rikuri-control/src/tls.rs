@@ -50,12 +50,20 @@ pub struct ServerMeta {
 
 /// The server certificate new connections get. One per daemon, shared by its
 /// TLS config; `refresh` replaces what it holds, and connections already open
-/// keep the certificate they began with.
-pub struct CurrentCert(RwLock<Arc<CertifiedKey>>);
+/// keep the certificate they began with. It remembers the CA (DER) it was
+/// issued under, the one the daemon serves at `/ca.crt`: `refresh` issues only
+/// under that CA, never a new one.
+pub struct CurrentCert {
+    key: RwLock<Arc<CertifiedKey>>,
+    ca: Vec<u8>,
+}
 
 impl CurrentCert {
-    fn new(key: Arc<CertifiedKey>) -> Self {
-        CurrentCert(RwLock::new(key))
+    fn new(key: Arc<CertifiedKey>, ca: Vec<u8>) -> Self {
+        CurrentCert {
+            key: RwLock::new(key),
+            ca,
+        }
     }
 
     /// The certificate (DER) a new connection would get now.
@@ -69,11 +77,11 @@ impl CurrentCert {
 
     fn get(&self) -> Arc<CertifiedKey> {
         // A poisoned lock still holds a whole Arc: a writer only ever swaps it.
-        self.0.read().unwrap_or_else(|e| e.into_inner()).clone()
+        self.key.read().unwrap_or_else(|e| e.into_inner()).clone()
     }
 
     fn set(&self, key: Arc<CertifiedKey>) {
-        *self.0.write().unwrap_or_else(|e| e.into_inner()) = key;
+        *self.key.write().unwrap_or_else(|e| e.into_inner()) = key;
     }
 }
 
@@ -118,6 +126,9 @@ pub enum TlsError {
     State(StateError),
     Certificate(rcgen::Error),
     Rustls(rustls::Error),
+    /// The CA in the state folder is missing or not the one being served:
+    /// `refresh` re-issues nothing rather than make or use another CA.
+    CaChanged,
 }
 
 impl fmt::Display for TlsError {
@@ -126,6 +137,9 @@ impl fmt::Display for TlsError {
             TlsError::State(e) => write!(f, "TLS identity: {e}"),
             TlsError::Certificate(e) => write!(f, "TLS identity: certificate: {e}"),
             TlsError::Rustls(e) => write!(f, "TLS identity: {e}"),
+            TlsError::CaChanged => f.write_str(
+                "TLS identity: the CA in the state folder is missing or is not the one being served",
+            ),
         }
     }
 }
@@ -263,7 +277,7 @@ pub fn load_or_create(
         key,
     ));
     certified.keys_match()?;
-    let current = Arc::new(CurrentCert::new(certified));
+    let current = Arc::new(CurrentCert::new(certified, ca_der.clone()));
     let mut config = ServerConfig::builder()
         .with_no_client_auth()
         .with_cert_resolver(current.clone());
@@ -293,6 +307,7 @@ pub fn refresh(
     now: OffsetDateTime,
     current: &CurrentCert,
 ) -> Result<Option<ServerMeta>, TlsError> {
+    let _ = (&current.ca, TlsError::CaChanged); // red stub: the CA is not checked yet
     let fresh = load_or_create(dir, names, lan, now)?;
     if !fresh.server_issued {
         return Ok(None);
@@ -482,6 +497,55 @@ mod tests {
         let id = load_or_create(&dir, &names(), None, now()).unwrap();
         assert!(!verifies(&id.ca_der, &id.server_der, "192.168.1.20"));
         assert!(verifies(&id.ca_der, &id.server_der, "rikuri01.local"));
+    }
+
+    #[test]
+    fn refresh_never_makes_or_uses_another_ca() {
+        // A CA file gone, or another CA in its place, while the daemon runs:
+        // refresh issues nothing, keeps the files as they are, and serves on.
+        for case in [
+            "the CA certificate missing",
+            "the CA key missing",
+            "another CA",
+        ] {
+            let scratch = Scratch::new();
+            let dir = StateDir::open(&scratch.0).unwrap();
+            let id = load_or_create(&dir, &names(), Some(LAN), now()).unwrap();
+            let served = id.current.der();
+            match case {
+                "the CA certificate missing" => assert!(dir.remove(CA_CERT).unwrap()),
+                "the CA key missing" => assert!(dir.remove(CA_KEY).unwrap()),
+                _ => {
+                    let other = Scratch::new();
+                    let other_dir = StateDir::open(&other.0).unwrap();
+                    load_or_create(&other_dir, &names(), None, now()).unwrap();
+                    for file in [CA_KEY, CA_CERT] {
+                        dir.write(file, &other_dir.read(file).unwrap().unwrap())
+                            .unwrap();
+                    }
+                }
+            }
+            let before: Vec<_> = [CA_KEY, CA_CERT, SERVER_KEY, SERVER_CERT, SERVER_META]
+                .iter()
+                .map(|f| dir.read(f).unwrap())
+                .collect();
+            let result = refresh(&dir, &names(), Some(LAN2), now(), &id.current);
+            assert!(
+                matches!(result, Err(TlsError::CaChanged)),
+                "{case}: {result:?}"
+            );
+            let after: Vec<_> = [CA_KEY, CA_CERT, SERVER_KEY, SERVER_CERT, SERVER_META]
+                .iter()
+                .map(|f| dir.read(f).unwrap())
+                .collect();
+            assert_eq!(before, after, "{case}: the state folder is left as it was");
+            assert_eq!(
+                id.current.der(),
+                served,
+                "{case}: the certificate in use stays"
+            );
+            assert!(verifies(&id.ca_der, &served, "rikuri01.local"), "{case}");
+        }
     }
 
     #[test]

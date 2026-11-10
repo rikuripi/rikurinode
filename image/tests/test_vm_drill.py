@@ -410,7 +410,7 @@ class Verdict(unittest.TestCase):
             "the firewall opens 80, 443 and mDNS", "greenboot's control plane check",
             "no claim code in the journal",
             "HTTPS as rikurisetup.local with only the node's CA",
-            "HTTPS as the node's address with only the node's CA", "the node is named rikurisetup",
+            "the certificate follows the node's address without a restart", "the node is named rikurisetup",
             "mDNS on the node's interface", "mDNS listens on 5353, LLMNR does not"})
 
     def test_all_passed_and_no_error_is_zero(self):
@@ -702,6 +702,8 @@ TTY2_NONE_YET = vcs("Rikuri Node", "",
                     "  Address:  none yet. Connect the node to your router with a network cable.")
 POLICY_INFO = ("rikuri-node (active)\n  priority: -100\n  target: CONTINUE\n  ingress-zones: ANY\n"
                "  egress-zones: HOST\n  services: http https mdns\n  ports: \n  protocols: \n")
+# The service's process and restarts, as `systemctl show -p MainPID -p NRestarts` gives them.
+RUN = "MainPID=812\nNRestarts=0\n"
 # 5c.2: resolved's mDNS as `resolvectl mdns` shows it, and the UDP sockets as `ss -Huln` does.
 MDNS = "Global: yes\nLink 2 (enp0s2): yes\n"
 UDP = ("UNCONN 0 0 0.0.0.0:5353 0.0.0.0:*\n"
@@ -796,6 +798,22 @@ class ControlPlaneReads(unittest.TestCase):
             with self.subTest(why=why):
                 self.assertFalse(d.mdns_on(status, nic))
 
+    def test_the_guests_address_is_read_without_its_prefix(self):
+        self.assertEqual(d.guest_address("10.0.2.15/24\n"), "10.0.2.15")
+        for text in ("", "10.0.2.15", "10.0.2/24", "fe80::1/64", "127.0.0.1/8", "10.0.2.1534/24", None):
+            with self.subTest(text=text):
+                self.assertIsNone(d.guest_address(text))
+
+    def test_the_same_run_is_the_same_process_with_no_restart(self):
+        self.assertTrue(d.same_run(RUN, RUN))
+        for before, after, why in ((RUN, "MainPID=901\nNRestarts=1\n", "restarted"),
+                                   (RUN, "MainPID=812\nNRestarts=1\n", "a restart counted"),
+                                   (RUN, "MainPID=901\nNRestarts=0\n", "another process"),
+                                   ("MainPID=0\nNRestarts=0\n", "MainPID=0\nNRestarts=0\n", "not running"),
+                                   (RUN, "", "no answer"), ("MainPID=812\n", "MainPID=812\n", "no count")):
+            with self.subTest(why=why):
+                self.assertFalse(d.same_run(before, after))
+
     def test_mdns_listens_and_llmnr_does_not(self):
         self.assertEqual(d.exposed_ports(UDP), {5353, 68})
         self.assertTrue(d.mdns_listens(d.exposed_ports(UDP)))
@@ -870,13 +888,19 @@ class ControlPlaneDrill(d.Drill):
             d.NIC: "enp0s2\n",
             "resolvectl mdns": MDNS,
             "ss -Huln": UDP,
+            "systemctl show -p MainPID -p NRestarts rikuri-control-plane.service": RUN,
+            d.GUEST_ADDRESS: "10.0.2.15/24\n",
         }
         self.plain = over.pop("plain", http(200, PEM_CERT.encode()))
         self.with_ca = over.pop("with_ca", http(200, SETUP))
         # As another name than localhost: the node's mDNS name, or the guest's address.
         self.as_name = {"rikurisetup.local": http(200, SETUP), "10.0.2.15": http(200, SETUP)}
         self.as_name.update(over.pop("as_name", {}))
+        # As the guest's address before the probe's route: the boot certificate names no address.
+        self.before_route = over.pop("before_route", ssl_module().SSLCertVerificationError(1, "IP address mismatch"))
+        self.routed = False
         self.tls = []
+        self.before_tls = []
         self.without_ca = over.pop("without_ca", __import__("ssl").SSLCertVerificationError(1, "verify failed"))
         self.greenboot = over.pop("greenboot", REQUIRED_OK)
         self.cp_journal = over.pop("cp_journal", CP_JOURNAL)
@@ -888,6 +912,10 @@ class ControlPlaneDrill(d.Drill):
 
     def vm(self, command, check=True, timeout=300, stdin=None):
         self.commands.append(command)
+        if command == d.PROBE_ROUTE_ADD:
+            self.routed = True
+        elif command == d.PROBE_ROUTE_DEL:
+            self.routed = False
         if command in self.answers:
             answer = self.answers[command]
             return answer() if callable(answer) else answer
@@ -905,6 +933,15 @@ class ControlPlaneDrill(d.Drill):
         assert path == "/api/setup", path
         self.tls.append((name, cafile))
         self.commands.append("TLS as " + name)
+        if name != d.SERVER_NAME and name != d.NODE_NAME and not self.routed:
+            assert cafile, "as %s without the node's CA" % name
+            self.tls.pop()
+            self.commands[-1] = "TLS before the route as " + name
+            self.before_tls.append(name)
+            answer = self.before_route
+            if isinstance(answer, Exception):
+                raise answer
+            return answer
         if name != d.SERVER_NAME:
             assert cafile, "as %s without the node's CA" % name
             answer = self.as_name.get(name, ssl_module().SSLCertVerificationError(1, "IP address mismatch"))
@@ -927,7 +964,7 @@ class ControlPlaneSteps(unittest.TestCase):
              "the firewall opens 80, 443 and mDNS", "greenboot's control plane check",
              "no claim code in the journal",
              "HTTPS as rikurisetup.local with only the node's CA",
-             "HTTPS as the node's address with only the node's CA", "the node is named rikurisetup",
+             "the certificate follows the node's address without a restart", "the node is named rikurisetup",
              "mDNS on the node's interface", "mDNS listens on 5353, LLMNR does not")
 
     def setUp(self):
@@ -973,10 +1010,21 @@ class ControlPlaneSteps(unittest.TestCase):
                     "rikurisetup.local": ssl_module().SSLCertVerificationError(1, "Hostname mismatch")}}),
                 ("HTTPS as rikurisetup.local with only the node's CA", {"as_name": {
                     "rikurisetup.local": http(421, b"{}")}}),
-                ("HTTPS as the node's address with only the node's CA", {"as_name": {
+                ("the certificate follows the node's address without a restart", {"as_name": {
                     "10.0.2.15": ssl_module().SSLCertVerificationError(1, "IP address mismatch")}}),
-                ("HTTPS as the node's address with only the node's CA", {"as_name": {
+                ("the certificate follows the node's address without a restart", {"as_name": {
                     "10.0.2.15": ConnectionResetError(104, "reset")}}),
+                ("the certificate follows the node's address without a restart",
+                 {"before_route": http(200, SETUP)}),                       # named it already: no follow seen
+                ("the certificate follows the node's address without a restart",
+                 {"before_route": ConnectionRefusedError(111, "refused")}),  # no answer is no refusal
+                ("the certificate follows the node's address without a restart",
+                 {"answers": {d.GUEST_ADDRESS: ""}}),
+                ("the certificate follows the node's address without a restart",
+                 {"answers": {d.GUEST_ADDRESS: "10.0.2.16/24\n"}}),         # not the route's source
+                ("the certificate follows the node's address without a restart", {"answers": {
+                    "systemctl show -p MainPID -p NRestarts rikuri-control-plane.service":
+                        (lambda runs: lambda: next(runs))(iter([RUN, "MainPID=901\nNRestarts=1\n"]))}}),
                 ("the node is named rikurisetup", {"answers": {"cat /proc/sys/kernel/hostname": "localhost\n"}}),
                 ("the node is named rikurisetup", {"answers": {"cat /proc/sys/kernel/hostname": None}}),
                 ("mDNS on the node's interface", {"answers": {"resolvectl mdns": "Global: no\n"}}),
@@ -1051,15 +1099,28 @@ class ControlPlaneSteps(unittest.TestCase):
         self.assertGreater(c.index(d.PROBE_ROUTE_DEL), c.index("TLS as 10.0.2.15"))
         self.assertGreaterEqual(d.ADDRESS_TRIES * 5, 2 * 60, "the tries outlast two of the daemon's looks")
 
+    def test_the_address_is_refused_before_the_route_and_the_run_compared_around_it(self):
+        # I-2 (verifier, 2026-11-10): the boot certificate must not name the
+        # address, and the same process, never restarted, must serve the one that does.
+        drill, results = self.results()
+        self.assertTrue(results["the certificate follows the node's address without a restart"])
+        c = drill.commands
+        show = "systemctl show -p MainPID -p NRestarts rikuri-control-plane.service"
+        self.assertEqual(drill.before_tls, ["10.0.2.15"])
+        self.assertLess(c.index("TLS before the route as 10.0.2.15"), c.index(d.PROBE_ROUTE_ADD))
+        self.assertLess(c.index(show), c.index(d.PROBE_ROUTE_ADD))
+        self.assertEqual(c.count(show), 2)
+        self.assertGreater(len(c) - 1 - c[::-1].index(show), c.index("TLS as 10.0.2.15"))
+
     def test_the_address_is_tried_again_until_the_daemon_has_reissued(self):
         answers = iter([ssl_module().SSLCertVerificationError(1, "IP address mismatch")] * 3 + [http(200, SETUP)])
         drill, results = self.results(as_name={"10.0.2.15": lambda: next(answers)})
-        self.assertTrue(results["HTTPS as the node's address with only the node's CA"])
+        self.assertTrue(results["the certificate follows the node's address without a restart"])
         self.assertEqual(drill.commands.count("TLS as 10.0.2.15"), 4)
 
     def test_the_address_is_tried_a_bounded_number_of_times(self):
         drill, results = self.results(as_name={"10.0.2.15": ssl_module().SSLCertVerificationError(1, "mismatch")})
-        self.assertFalse(results["HTTPS as the node's address with only the node's CA"])
+        self.assertFalse(results["the certificate follows the node's address without a restart"])
         self.assertEqual(drill.commands.count("TLS as 10.0.2.15"), d.ADDRESS_TRIES)
         self.assertEqual(drill.commands.count(d.PROBE_ROUTE_DEL), 1)
 
@@ -1070,12 +1131,12 @@ class ControlPlaneSteps(unittest.TestCase):
             with self.subTest(route=route):
                 _, results = self.results(answers={"ip -4 route get 192.0.2.1": route})
                 self.assertEqual(sorted(c for c, ok in results.items() if not ok),
-                                 ["HTTPS as the node's address with only the node's CA",
+                                 ["the certificate follows the node's address without a restart",
                                   "the claim screen shows the node's address"])
 
     def test_no_route_source_means_no_address_to_try(self):
         drill, results = self.results(answers={"ip -4 route get 192.0.2.1": None})
-        self.assertFalse(results["HTTPS as the node's address with only the node's CA"])
+        self.assertFalse(results["the certificate follows the node's address without a restart"])
         self.assertNotIn("TLS as None", drill.commands)
         self.assertEqual([n for n, _ in drill.tls if n not in ("localhost", "rikurisetup.local")], [])
 
