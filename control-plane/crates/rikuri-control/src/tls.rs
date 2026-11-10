@@ -1,12 +1,14 @@
 //! The node's own certificate authority and the server certificate it signs
 //! (D10): made at first start, kept as DER under the state folder. The CA is
 //! never re-issued, so a browser that installed it keeps trusting the node;
-//! the server certificate is re-issued when the node's names change or it
-//! expires within 30 days. HTTPS is rustls with the `ring` provider, TLS 1.3
-//! and 1.2, HTTP/1.1 only.
+//! the server certificate is re-issued when the node's names or its LAN
+//! address change, or it expires within 30 days, and served to new
+//! connections without a restart (stage 1 change 5c.2). HTTPS is rustls with
+//! the `ring` provider, TLS 1.3 and 1.2, HTTP/1.1 only.
 
 use std::fmt;
-use std::sync::Arc;
+use std::net::IpAddr;
+use std::sync::{Arc, RwLock};
 
 use base64ct::{Base64, Encoding};
 use rcgen::{
@@ -14,6 +16,8 @@ use rcgen::{
     Issuer, KeyPair, KeyUsagePurpose, PKCS_ECDSA_P256_SHA256,
 };
 use rustls::ServerConfig;
+use rustls::server::{ClientHello, ResolvesServerCert};
+use rustls::sign::CertifiedKey;
 use rustls_pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
@@ -44,6 +48,47 @@ pub struct ServerMeta {
     pub not_after_unix: i64,
 }
 
+/// The server certificate new connections get. One per daemon, shared by its
+/// TLS config; `refresh` replaces what it holds, and connections already open
+/// keep the certificate they began with.
+pub struct CurrentCert(RwLock<Arc<CertifiedKey>>);
+
+impl CurrentCert {
+    fn new(key: Arc<CertifiedKey>) -> Self {
+        CurrentCert(RwLock::new(key))
+    }
+
+    /// The certificate (DER) a new connection would get now.
+    pub fn der(&self) -> Vec<u8> {
+        self.get()
+            .cert
+            .first()
+            .map(|c| c.to_vec())
+            .unwrap_or_default()
+    }
+
+    fn get(&self) -> Arc<CertifiedKey> {
+        // A poisoned lock still holds a whole Arc: a writer only ever swaps it.
+        self.0.read().unwrap_or_else(|e| e.into_inner()).clone()
+    }
+
+    fn set(&self, key: Arc<CertifiedKey>) {
+        *self.0.write().unwrap_or_else(|e| e.into_inner()) = key;
+    }
+}
+
+impl fmt::Debug for CurrentCert {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("CurrentCert")
+    }
+}
+
+impl ResolvesServerCert for CurrentCert {
+    fn resolve(&self, _hello: ClientHello<'_>) -> Option<Arc<CertifiedKey>> {
+        Some(self.get())
+    }
+}
+
 pub struct Identity {
     pub ca_der: Vec<u8>,
     pub ca_pem: String,
@@ -51,6 +96,8 @@ pub struct Identity {
     pub server_der: Vec<u8>,
     pub server_meta: ServerMeta,
     pub config: Arc<ServerConfig>,
+    /// What `config` serves; `refresh` swaps it.
+    pub current: Arc<CurrentCert>,
     pub ca_created: bool,
     pub server_issued: bool,
 }
@@ -120,22 +167,27 @@ fn ca_params() -> CertificateParams {
     params
 }
 
-/// The names the server certificate carries: the node's names plus the
-/// loopback addresses, sorted, so the same set always compares equal.
-pub fn san_names(names: &Names) -> Vec<String> {
+/// The names the server certificate carries: the node's names, the loopback
+/// addresses and, when it has one, the node's LAN address (a browser reaches
+/// the node by it where `.local` does not resolve), sorted, so the same set
+/// always compares equal.
+pub fn san_names(names: &Names, lan: Option<IpAddr>) -> Vec<String> {
     let mut all: Vec<String> = names.iter().map(str::to_owned).collect();
     all.push("127.0.0.1".to_owned());
     all.push("::1".to_owned());
+    let _ = lan; // red stub: the address is not named yet
     all.sort();
     all.dedup();
     all
 }
 
 /// Loads the identity from the state folder, creating what is missing: the CA
-/// once, the server certificate whenever its names or dates no longer serve.
+/// once, the server certificate whenever its names, the LAN address or its
+/// dates no longer serve.
 pub fn load_or_create(
     dir: &StateDir,
     names: &Names,
+    lan: Option<IpAddr>,
     now: OffsetDateTime,
 ) -> Result<Identity, TlsError> {
     let (ca_key, ca_der, ca_created) = match (dir.read(CA_KEY)?, dir.read(CA_CERT)?) {
@@ -159,7 +211,7 @@ pub fn load_or_create(
         }
     };
 
-    let wanted = san_names(names);
+    let wanted = san_names(names, lan);
     let meta: Option<ServerMeta> = dir.read_json(SERVER_META)?;
     let renew_at = (now + Duration::days(RENEW_WITHIN_DAYS)).unix_timestamp();
     let reuse = meta.as_ref().is_some_and(|m| {
@@ -201,12 +253,18 @@ pub fn load_or_create(
         }
     };
 
+    let key = rustls::crypto::ring::sign::any_supported_type(&PrivateKeyDer::Pkcs8(
+        PrivatePkcs8KeyDer::from(server_key_der),
+    ))?;
+    let certified = Arc::new(CertifiedKey::new(
+        vec![CertificateDer::from(server_der.clone())],
+        key,
+    ));
+    certified.keys_match()?;
+    let current = Arc::new(CurrentCert::new(certified));
     let mut config = ServerConfig::builder()
         .with_no_client_auth()
-        .with_single_cert(
-            vec![CertificateDer::from(server_der.clone())],
-            PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(server_key_der)),
-        )?;
+        .with_cert_resolver(current.clone());
     config.alpn_protocols = vec![b"http/1.1".to_vec()];
 
     Ok(Identity {
@@ -216,9 +274,29 @@ pub fn load_or_create(
         server_der,
         server_meta,
         config: Arc::new(config),
+        current,
         ca_created,
         server_issued,
     })
+}
+
+/// Re-checks the server certificate against the node's names, `lan` and the
+/// date. If it no longer serves, re-issues it from the node's CA, keeps it in
+/// the state folder, makes `current` serve it to new connections, and returns
+/// what it was issued for; otherwise changes nothing and returns `None`.
+pub fn refresh(
+    dir: &StateDir,
+    names: &Names,
+    lan: Option<IpAddr>,
+    now: OffsetDateTime,
+    current: &CurrentCert,
+) -> Result<Option<ServerMeta>, TlsError> {
+    let fresh = load_or_create(dir, names, lan, now)?;
+    if !fresh.server_issued {
+        return Ok(None);
+    }
+    current.set(current.get()); // red stub: the new certificate is not served yet
+    Ok(Some(fresh.server_meta))
 }
 
 /// A certificate in PEM: the form a browser or a phone installs.
@@ -250,7 +328,7 @@ mod tests {
     fn the_first_start_makes_a_ca_and_a_server_certificate_for_the_names() {
         let scratch = Scratch::new();
         let dir = StateDir::open(&scratch.0).unwrap();
-        let id = load_or_create(&dir, &names(), now()).unwrap();
+        let id = load_or_create(&dir, &names(), None, now()).unwrap();
         assert!(id.ca_created && id.server_issued);
         for file in [CA_KEY, CA_CERT, SERVER_KEY, SERVER_CERT, SERVER_META] {
             assert!(dir.exists(file), "{file}");
@@ -290,8 +368,8 @@ mod tests {
     fn a_second_start_reuses_both_certificates() {
         let scratch = Scratch::new();
         let dir = StateDir::open(&scratch.0).unwrap();
-        let first = load_or_create(&dir, &names(), now()).unwrap();
-        let second = load_or_create(&dir, &names(), now()).unwrap();
+        let first = load_or_create(&dir, &names(), None, now()).unwrap();
+        let second = load_or_create(&dir, &names(), None, now()).unwrap();
         assert!(!second.ca_created && !second.server_issued);
         assert_eq!(first.ca_der, second.ca_der);
         assert_eq!(first.server_der, second.server_der);
@@ -302,9 +380,9 @@ mod tests {
     fn changed_names_re_issue_the_server_certificate_and_keep_the_ca() {
         let scratch = Scratch::new();
         let dir = StateDir::open(&scratch.0).unwrap();
-        let first = load_or_create(&dir, &names(), now()).unwrap();
+        let first = load_or_create(&dir, &names(), None, now()).unwrap();
         let renamed = Names::new(["rikuri02.local"]).unwrap();
-        let second = load_or_create(&dir, &renamed, now()).unwrap();
+        let second = load_or_create(&dir, &renamed, None, now()).unwrap();
         assert!(!second.ca_created && second.server_issued);
         assert_eq!(first.ca_der, second.ca_der);
         assert_ne!(first.server_der, second.server_der);
@@ -320,15 +398,15 @@ mod tests {
     fn a_server_certificate_near_its_end_is_re_issued() {
         let scratch = Scratch::new();
         let dir = StateDir::open(&scratch.0).unwrap();
-        let first = load_or_create(&dir, &names(), now()).unwrap();
+        let first = load_or_create(&dir, &names(), None, now()).unwrap();
         let later = now() + Duration::days(SERVER_DAYS - RENEW_WITHIN_DAYS + 1);
-        let second = load_or_create(&dir, &names(), later).unwrap();
+        let second = load_or_create(&dir, &names(), None, later).unwrap();
         assert!(
             second.server_issued,
             "re-issued within {RENEW_WITHIN_DAYS} days of its end"
         );
         assert_eq!(first.ca_der, second.ca_der);
-        let third = load_or_create(&dir, &names(), later).unwrap();
+        let third = load_or_create(&dir, &names(), None, later).unwrap();
         assert!(!third.server_issued);
     }
 
@@ -336,11 +414,138 @@ mod tests {
     fn a_missing_server_file_is_re_issued_even_with_matching_metadata() {
         let scratch = Scratch::new();
         let dir = StateDir::open(&scratch.0).unwrap();
-        load_or_create(&dir, &names(), now()).unwrap();
+        load_or_create(&dir, &names(), None, now()).unwrap();
         dir.remove(SERVER_KEY).unwrap();
-        let again = load_or_create(&dir, &names(), now()).unwrap();
+        let again = load_or_create(&dir, &names(), None, now()).unwrap();
         assert!(again.server_issued);
         assert!(dir.exists(SERVER_KEY));
+    }
+
+    const LAN: IpAddr = IpAddr::V4(std::net::Ipv4Addr::new(192, 168, 1, 20));
+    const LAN2: IpAddr = IpAddr::V4(std::net::Ipv4Addr::new(192, 168, 1, 21));
+
+    /// Whether a client that trusts only the node's CA accepts `der` as `name`
+    /// (a DNS name or an IP address), as a browser would.
+    fn verifies(ca: &[u8], der: &[u8], name: &str) -> bool {
+        use rustls::client::WebPkiServerVerifier;
+        use rustls::client::danger::ServerCertVerifier;
+        let mut roots = rustls::RootCertStore::empty();
+        roots.add(CertificateDer::from(ca.to_vec())).unwrap();
+        let verifier = WebPkiServerVerifier::builder_with_provider(
+            Arc::new(roots),
+            Arc::new(rustls::crypto::ring::default_provider()),
+        )
+        .build()
+        .unwrap();
+        let name = rustls_pki_types::ServerName::try_from(name.to_owned()).unwrap();
+        verifier
+            .verify_server_cert(
+                &CertificateDer::from(der.to_vec()),
+                &[],
+                &name,
+                &[],
+                rustls_pki_types::UnixTime::now(),
+            )
+            .is_ok()
+    }
+
+    #[test]
+    fn the_lan_address_is_a_name_a_browser_accepts() {
+        let scratch = Scratch::new();
+        let dir = StateDir::open(&scratch.0).unwrap();
+        let id = load_or_create(&dir, &names(), Some(LAN), now()).unwrap();
+        assert_eq!(
+            id.server_meta.names,
+            [
+                "127.0.0.1",
+                "192.168.1.20",
+                "::1",
+                "localhost",
+                "rikuri01.local"
+            ]
+        );
+        assert_eq!(id.current.der(), id.server_der);
+        for name in ["192.168.1.20", "rikuri01.local", "localhost", "127.0.0.1"] {
+            assert!(verifies(&id.ca_der, &id.server_der, name), "{name}");
+        }
+        for name in ["192.168.1.21", "rikuri02.local", "10.0.2.15"] {
+            assert!(!verifies(&id.ca_der, &id.server_der, name), "{name}");
+        }
+    }
+
+    #[test]
+    fn without_an_address_the_certificate_names_none() {
+        let scratch = Scratch::new();
+        let dir = StateDir::open(&scratch.0).unwrap();
+        let id = load_or_create(&dir, &names(), None, now()).unwrap();
+        assert!(!verifies(&id.ca_der, &id.server_der, "192.168.1.20"));
+        assert!(verifies(&id.ca_der, &id.server_der, "rikuri01.local"));
+    }
+
+    #[test]
+    fn refresh_follows_the_address_and_keeps_the_ca() {
+        let scratch = Scratch::new();
+        let dir = StateDir::open(&scratch.0).unwrap();
+        let id = load_or_create(&dir, &names(), Some(LAN), now()).unwrap();
+        let first = id.current.der();
+
+        assert_eq!(
+            refresh(&dir, &names(), Some(LAN), now(), &id.current).unwrap(),
+            None
+        );
+        assert_eq!(id.current.der(), first, "the same address changes nothing");
+
+        let meta = refresh(&dir, &names(), Some(LAN2), now(), &id.current)
+            .unwrap()
+            .expect("a new address re-issues");
+        assert!(meta.names.contains(&"192.168.1.21".to_owned()), "{meta:?}");
+        assert!(!meta.names.contains(&"192.168.1.20".to_owned()), "{meta:?}");
+        let second = id.current.der();
+        assert_ne!(second, first);
+        assert!(verifies(&id.ca_der, &second, "192.168.1.21"));
+        assert!(!verifies(&id.ca_der, &second, "192.168.1.20"));
+        assert_eq!(
+            dir.read(SERVER_CERT).unwrap().unwrap(),
+            second,
+            "kept for the next start"
+        );
+        assert_eq!(
+            dir.read_json::<ServerMeta>(SERVER_META).unwrap().unwrap(),
+            meta
+        );
+        assert_eq!(
+            dir.read(CA_CERT).unwrap().unwrap(),
+            id.ca_der,
+            "the CA is never re-issued"
+        );
+
+        assert!(
+            refresh(&dir, &names(), None, now(), &id.current)
+                .unwrap()
+                .is_some()
+        );
+        assert!(
+            !verifies(&id.ca_der, &id.current.der(), "192.168.1.21"),
+            "a lost address leaves"
+        );
+        assert_eq!(
+            refresh(&dir, &names(), None, now(), &id.current).unwrap(),
+            None
+        );
+    }
+
+    #[test]
+    fn refresh_renews_a_certificate_near_its_end() {
+        let scratch = Scratch::new();
+        let dir = StateDir::open(&scratch.0).unwrap();
+        let id = load_or_create(&dir, &names(), None, now()).unwrap();
+        let later = now() + Duration::days(SERVER_DAYS - RENEW_WITHIN_DAYS + 1);
+        assert!(
+            refresh(&dir, &names(), None, later, &id.current)
+                .unwrap()
+                .is_some()
+        );
+        assert_ne!(id.current.der(), id.server_der);
     }
 
     #[test]
