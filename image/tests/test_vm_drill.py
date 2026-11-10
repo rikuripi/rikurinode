@@ -942,6 +942,26 @@ class ControlPlaneSteps(unittest.TestCase):
         self.assertNotIn("via", d.PROBE_ROUTE_ADD)
         self.assertIn("192.0.2.1/32", d.PROBE_ROUTE_DEL)
 
+    def test_the_probe_route_goes_to_the_guests_own_interface(self):
+        # The command as the VM's root shell runs it, with a stand-in `ip`: it
+        # lists the guest's address only when asked for exactly the global
+        # IPv4 addresses (loopback comes first otherwise), and prints the
+        # route it is asked to add.
+        import subprocess
+        stand_in = (
+            'ip() {\n'
+            '  if [ "$*" = "-o -4 addr show scope global" ]; then\n'
+            '    echo "2: enp0s2    inet 10.0.2.15/24 brd 10.0.2.255 scope global dynamic noprefixroute enp0s2\\       valid_lft 86313sec preferred_lft 86313sec"\n'
+            '  elif [ "$1" = -o ]; then\n'
+            '    echo "1: lo    inet 127.0.0.1/8 scope host lo\\       valid_lft forever preferred_lft forever"\n'
+            '    echo "2: enp0s2    inet 10.0.2.15/24 brd 10.0.2.255 scope global dynamic noprefixroute enp0s2\\       valid_lft 86313sec preferred_lft 86313sec"\n'
+            '  else\n'
+            '    echo "ip $*"\n'
+            '  fi\n'
+            '}\n')
+        p = subprocess.run(["sh", "-c", stand_in + d.PROBE_ROUTE_ADD], capture_output=True, text=True, timeout=10)
+        self.assertEqual((p.returncode, p.stdout, p.stderr), (0, "ip route replace 192.0.2.1/32 dev enp0s2\n", ""))
+
     def test_the_probe_route_is_removed_even_when_the_check_fails(self):
         drill, results = self.results(answers={"cat /dev/vcs2": TTY2_NONE_YET})
         self.assertFalse(results["the claim screen shows the node's address"])
