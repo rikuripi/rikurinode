@@ -5,8 +5,8 @@
 | **Date** | 2026-11-10 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `rust/mutants-nits`, from `main` at `6b6e5cc`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `76cd7b7` (tests and the comment), with record `195733b`; merged as `51a6fcc` (#75) |
+| **Status** | DONE |
 | **Change type** | fix (test gaps, one comment) |
 
 ## Why
@@ -44,4 +44,12 @@ The verifier's follow-up pass on the mutants survivors (`docs/build-records/2026
   - It ran 20 weakenings of its own: 12 caught. Of the 8 that survived, two widen only to names cargo-mutants never emits; five, such as awk's `exit` dropped or the interface hard-coded, would fail the VM drill's address check or are equivalent; one (`"$dev"` unquoted) behaves the same for real interface names.
   - Tests in rikuri-drill: `image/tests` `Ran 443` `OK`; hooks `Ran 91` `OK`; `scripts/quality/tests` `Ran 176` with only the 7 known errors.
   - **Nits, for the backlog:** N-a, `\d*` in place of `\d+`, or `:\d+:.+:`, survives `MutantsExclusions`; N-b, awk's `exit` dropped or the interface hard-coded survives the route test (a second global address in the stand-in would catch both); N-c, `&&` as `;` and an unquoted `$dev` survive, with no difference in behaviour.
-- **CI run 1 of 2** (on `195733b`): `Full gate (Ubuntu)` ([run 42920689624](https://github.com/rikuripi/rikurinode/actions/runs/42920689624): hooks `Ran 91` `OK`, `scripts/quality/tests` `Ran 176`, `image/tests` `Ran 443` `OK`, so the `sh` test passes under Ubuntu's dash and mawk), py3.9, py3.12, the image build and Rust mutants passed; the VM drill and the installer were still running at this writing.
+- **CI run 1 of 2** (on `195733b`): `Full gate (Ubuntu)` ([run 42920689624](https://github.com/rikuripi/rikurinode/actions/runs/42920689624): hooks `Ran 91` `OK`, `scripts/quality/tests` `Ran 176`, `image/tests` `Ran 443` `OK`, so the `sh` test passes under Ubuntu's dash and mawk), py3.9, py3.12, the image build and Rust mutants passed; the VM drill and the installer were still running at this writing (they passed: below).
+
+## Close-out
+
+- **CI run 1 of 2, finished:** the OS image workflow passed all four jobs ([run 42920689745](https://github.com/rikuripi/rikurinode/actions/runs/42920689745)), the VM drill and the installer included.
+- **Every item in "Done when" seen:** the weakenings red against `main`'s tests and caught by this branch's, the suites green in rikuri-drill, CI green, and the verifier's PASS.
+- **Merged** by the owner as `51a6fcc` (#75, 2026-11-10T23:19:31Z). The verifier's record (`c72a028`, held back so as not to spend CI run 2) and this close-out land in their own PR.
+- **Used:** CI 1 of 2 runs; no repair cycle; one review round.
+- **Backlog, from this task:** the verifier's nits N-a, N-b and N-c (above).
