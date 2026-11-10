@@ -5,8 +5,8 @@
 | **Date** | 2026-11-06 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `ci/cargo-mutants`, from `main` at `f190669`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `46c61e1` (red), `ba5e786` (fix), `f2802fb` (red), `dfcf0bf` (fix), `b33d63e` (red), `939d8a8` (fix); merged as `22f9b98` (#71) |
+| **Status** | DONE |
 | **Change type** | ops (a new CI check) |
 
 ## Why
@@ -135,4 +135,23 @@
   - [Rust mutants](https://github.com/rikuripi/rikurinode/actions/runs/42335247777). Its log, read by the verifier: `cargo-mutants.tgz: OK`, `cargo-mutants 27.1.0`, `rustc 1.98.1`, `safe-run: namespace isolation unavailable — stand-ins only`, `Diff file is empty`, then success. That proves the install, the checksum, the toolchain and the empty-diff path, not a mutation;
   - [OS image](https://github.com/rikuripi/rikurinode/actions/runs/42335247783);
   - [the guard and quality tools](https://github.com/rikuripi/rikurinode/actions/runs/42335247704).
-- **Not yet proven:** a run that mutates. That is the run by hand with `base` `f5584b6`, after the owner merges.
+- **Not yet proven at that point:** a run that mutates. That was the run by hand with `base` `f5584b6`, after the owner merged (below).
+
+## Close-out
+
+- **Merged** by the owner as `22f9b98` (#71, 2026-11-07T03:50:52Z), after CI run 2 of 3 and verifier round 2's PASS. The round 2 record (`c0ef067`, held back so as not to spend the last CI run) and this close-out land in their own PR.
+- **The run by hand** (the owner's "Yes, after merge (Recommended)"): `gh workflow run mutants.yml --ref main -f base=f5584b6`, 1 of 1. `f5584b6` is an ancestor of `main`; the diff from it under `control-plane/` is 5 files, 618 lines added. [Run 42905996478](https://github.com/rikuripi/rikurinode/actions/runs/42905996478), on `22f9b98`, **failed, as designed**:
+  - `Found 23 mutants to test`; `Unmutated baseline in 26s build + 5s test`;
+  - `23 mutants tested in 2m: 4 missed, 9 caught, 10 unviable`;
+  - `cargo-mutants exited 2: missed mutants (2) or an error`, then `Process completed with exit code 2`;
+  - the summary and `mutants-out` steps ran after the failure (`if: always()`).
+- **What that proves:** on real Rust lines the job installs the pinned binary, builds the baseline offline and `--locked` inside `safe-run.sh`, mutates only the diff, and fails on a missed mutant. Every item in "Done when" has now been seen.
+- **The four missed mutants** (5c.1's; each is a recorded result here, not repaired here, by the owner's rule):
+  - `crates/rikuri-control/src/console.rs:80:5`: `lan_address` → `None` (the UDP route probe for the node's address);
+  - `apps/rikuri-control-plane/src/main.rs:31:5`: `main` → `Default::default()` (the subcommand dispatch);
+  - `apps/rikuri-control-plane/src/main.rs:83:5`: `run` → `Ok(())` (the daemon's start: config, runtime, signals, boot);
+  - `apps/rikuri-control-plane/src/main.rs:181:5`: `claim_screen` → `Default::default()` (the tty2 claim-screen loop).
+  All four are where the code meets the operating system: `cargo test` never runs the binary or opens the probe socket. Whether each gets a test (for example one that runs the built binary) or a reasoned exclusion in `control-plane/.cargo/mutants.toml` is the follow-up task's choice, with the owner.
+- **Used:** CI 2 of 3 runs on the PR, plus the 1 run by hand; repair cycles, one by this record's count (two counted strictly); two review rounds.
+- **Not in this task:** making **Rust mutants** a required check (branch protection is the owner's).
+- **Backlog, from this task:** the verifier's Minor N2, N3 and N5 (pin the list of step names, and the diff step exactly).
