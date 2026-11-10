@@ -87,7 +87,7 @@ Use Fedora Media Writer (Fedora's own tool, free, from `fedoraproject.org/workst
 8. The N150 now starts from its own disk. After a minute or so the screen shows **Fedora Linux 45 (IoT Edition)** and a login prompt. No one signs in there: the node is set up from a browser, on the setup page that comes with a later update.
 9. Hold **Ctrl** and **Alt** and press **F2**. The claim screen appears:
    - **Address**: the node's address on your network, such as `http://192.168.1.20`. If it says **none yet**, connect the N150 to your router with a network cable; press Enter to look again.
-   - The node also answers by name: on a phone or computer on the same network, `http://rikurisetup.local` reaches it as well as the address does. Some networks and some phones do not find `.local` names; the address always works. If the router later gives the node another address, the screen shows it when you press Enter, and the node follows it by itself within a minute. Until the setup page exists, a browser there only offers the node's certificate and then warns about the connection: close it.
+   - The node also answers by name: on a phone or computer on the same network, `http://rikurisetup.local` reaches it as well as the address does. Some networks and some phones do not find `.local` names; the address always works. If the router later gives the node another address, the screen shows it when you press Enter, and the node follows it by itself within a minute. Until the setup page exists, the browser moves on to `https://` and warns that the connection is not private: that is expected; close it.
    - **Certificate fingerprint**: two lines of letters and numbers. When the setup page exists, your browser shows the same fingerprint for the node; compare them before you type anything there.
    - **Press Enter to show a claim code.** Enter shows a code such as `K7QM-4XD9-TR`. Whoever types it on the setup page first becomes the node's owner, so show it only to yourself. It lasts 24 hours and works once; Enter again replaces it, and the old one stops working. Until the setup page exists, nothing uses the code.
    - Ctrl+Alt+F1 returns to the login prompt. Power the N150 off with a short press of its power button.
@@ -95,8 +95,10 @@ Use Fedora Media Writer (Fedora's own tool, free, from `fedoraproject.org/workst
 Report: whether it started from the stick, what the disk line said, whether
 it powered off by itself and started to the login prompt, and what the claim
 screen showed after Ctrl+Alt+F2 (an address, the fingerprint, and a code after
-Enter), and whether a phone or computer on the same network opened
-`http://rikurisetup.local`. Photos of the screen are enough; a photo of a code is harmless only
+Enter), and whether a phone or computer on the same network reached
+`http://rikurisetup.local` (reached means the browser's warning about a
+connection that is not private; "cannot find" or "server not found" means it
+did not). Photos of the screen are enough; a photo of a code is harmless only
 because the setup page does not exist yet.
 
 ## When it stops
