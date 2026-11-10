@@ -526,5 +526,75 @@ class Mutants(unittest.TestCase):
         self.assertIn("path: ${{ runner.temp }}/mutants.out", self.lines)
 
 
+class MutantsExclusions(unittest.TestCase):
+    """control-plane/.cargo/mutants.toml skips exactly the four mutants no
+    `cargo test` can kill, each anchored to one mutant's name and naming the
+    VM drill check that kills it instead (docs/build-records/2026-11-10-mutants-survivors.md)."""
+
+    CONFIG = os.path.join(ROOT, "control-plane", ".cargo", "mutants.toml")
+    # Each survivor of run 42905996478, as cargo-mutants names it for its filters
+    # (Mutant::name(false): the tree-relative path, no line or column).
+    SURVIVORS = {
+        "crates/rikuri-control/src/console.rs: replace lan_address -> Option<IpAddr> with None":
+            "the claim screen shows the node's address",
+        "apps/rikuri-control-plane/src/main.rs: replace main -> ExitCode with Default::default()":
+            "the control plane runs as its own user",
+        "apps/rikuri-control-plane/src/main.rs: replace run -> Result<(), Box<dyn Error>> with Ok(())":
+            "the control plane runs as its own user",
+        "apps/rikuri-control-plane/src/main.rs: replace claim_screen -> ExitCode with Default::default()":
+            "the claim screen shows the node's address",
+    }
+    # Mutants of the same functions that must still be tested.
+    NEAR = ("crates/rikuri-control/src/console.rs: replace shown_address -> Option<IpAddr> with None",
+            "apps/rikuri-control-plane/src/main.rs: replace daemon -> ExitCode with Default::default()",
+            "apps/rikuri-control-plane/src/main.rs: replace rearm_claim -> ExitCode with Default::default()",
+            "apps/rikuri-control-plane/src/main.rs: replace match guard with true in main",
+            "apps/rikuri-control-plane/src/main.rs: delete match arm in claim_screen",
+            "x/apps/rikuri-control-plane/src/main.rs: replace main -> ExitCode with Default::default()",
+            "apps/rikuri-control-plane/src/main.rs: replace main -> ExitCode with Default::default() ")
+
+    def config(self):
+        import tomllib
+        with open(self.CONFIG, "rb") as f:
+            return tomllib.load(f)
+
+    def test_only_name_regexes_and_nothing_wider(self):
+        self.assertEqual(set(self.config()), {"exclude_re"})
+
+    def test_each_regex_matches_its_one_survivor_and_nothing_else(self):
+        regexes = self.config()["exclude_re"]
+        self.assertEqual(len(regexes), len(self.SURVIVORS))
+        for rx in regexes:
+            with self.subTest(rx=rx):
+                self.assertTrue(rx.startswith("^") and rx.endswith("$"), "anchored at both ends")
+                self.assertEqual(len([n for n in self.SURVIVORS if re.search(rx, n)]), 1)
+                for name in self.NEAR:
+                    self.assertIsNone(re.search(rx, name), name)
+        for name in self.SURVIVORS:
+            with self.subTest(name=name):
+                self.assertTrue(any(re.search(rx, name) for rx in regexes), "not excluded")
+
+    def test_each_exclusion_says_why_and_names_the_drill_check_that_kills_it(self):
+        sys.path.insert(0, os.path.join(ROOT, "image", "drill"))
+        import vm_drill
+        with open(self.CONFIG, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+        regexes = self.config()["exclude_re"]
+        for rx in regexes:
+            with self.subTest(rx=rx):
+                at = next(i for i, line in enumerate(lines) if line.strip().startswith(("'" + rx, '"' + rx)))
+                above = []
+                for line in reversed(lines[:at]):
+                    if not line.strip().startswith("#"):
+                        break
+                    above.insert(0, line.strip().lstrip("#").strip())
+                why = " ".join(above)
+                self.assertIn("Why:", why)
+                name = next(n for n in self.SURVIVORS if re.search(rx, n))
+                check = self.SURVIVORS[name]
+                self.assertIn(check, vm_drill.EXPECTED)
+                self.assertIn('Killed by the drill\'s "%s"' % check, why)
+
+
 if __name__ == "__main__":
     unittest.main()

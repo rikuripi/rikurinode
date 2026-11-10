@@ -405,7 +405,8 @@ class Verdict(unittest.TestCase):
             "case 4, an unsigned update refused", "case 5, a signed update staged",
             "the control plane runs as its own user", "the CA certificate over HTTP",
             "the API over HTTPS with only the node's CA", "a client without the node's CA is refused",
-            "the claim screen on tty2", "only SSH, 80 and 443 listen outside",
+            "the claim screen on tty2", "the claim screen shows the node's address",
+            "only SSH, 80 and 443 listen outside",
             "the firewall opens 80 and 443", "greenboot's control plane check",
             "no claim code in the journal"})
 
@@ -684,6 +685,18 @@ SS = ("LISTEN 0 4096 0.0.0.0:443 0.0.0.0:*\n"
       "LISTEN 0 4096 127.0.0.53%lo:53 0.0.0.0:*\n")
 SERVICE = "ActiveState=active\nSubState=running\nMainPID=812\n"
 SCREEN = "ActiveState=active\nSubState=running\nTTYPath=/dev/tty2\nUser=rikuri-control\n"
+ROUTE = "192.0.2.1 via 10.0.2.2 dev enp0s2 src 10.0.2.15 uid 0 \n    cache \n"
+
+
+def vcs(*lines):
+    """What /dev/vcs2 holds: 80 columns a row, padded with spaces, no newlines."""
+    return "".join(line.ljust(80) for line in lines + ("",) * (25 - len(lines)))
+
+
+TTY2 = vcs("Rikuri Node", "", "  Address:  http://10.0.2.15", "",
+           "  Certificate fingerprint (SHA-256), to compare with your browser's:")
+TTY2_NONE_YET = vcs("Rikuri Node", "",
+                    "  Address:  none yet. Connect the node to your router with a network cable.")
 POLICY_INFO = ("rikuri-node (active)\n  priority: -100\n  target: CONTINUE\n  ingress-zones: ANY\n"
                "  egress-zones: HOST\n  services: http https\n  ports: \n  protocols: \n")
 CP_JOURNAL = ("rikuri-control-plane[812]: INFO rikuri_control_plane: claim code armed and not shown: "
@@ -726,6 +739,22 @@ class ControlPlaneReads(unittest.TestCase):
                          ("ActiveState=active", "ActiveState=failed")):
             with self.subTest(new=new):
                 self.assertFalse(d.screen_ok(SCREEN.replace(old, new)))
+
+    def test_the_route_source_is_the_address_the_screen_must_show(self):
+        self.assertEqual(d.route_source(ROUTE), "10.0.2.15")
+        for text in ("", "192.0.2.1 via 10.0.2.2 dev enp0s2 uid 0\n", "RTNETLINK answers: Network is unreachable\n"):
+            with self.subTest(text=text):
+                self.assertIsNone(d.route_source(text))
+
+    def test_the_screen_shows_exactly_the_routes_address(self):
+        self.assertTrue(d.shows_address(TTY2, "10.0.2.15"))
+        for screen, address in ((TTY2, "10.0.2.1"),          # a prefix of the shown one
+                                (TTY2, "10.0.2.150"),        # the shown one is a prefix
+                                (TTY2, None), (TTY2_NONE_YET, "10.0.2.15"), ("", "10.0.2.15"),
+                                (vcs("  Address:  http://127.0.0.1"), "127.0.0.1"),
+                                (vcs("  Fingerprint:  http://10.0.2.15"), "10.0.2.15")):
+            with self.subTest(screen=screen.strip()[:60], address=address):
+                self.assertFalse(d.shows_address(screen, address))
 
     def test_the_firewall_policy_is_active_with_both_services(self):
         self.assertTrue(d.policy_active(POLICY_INFO))
@@ -786,6 +815,9 @@ class ControlPlaneDrill(d.Drill):
             "systemctl show -p ActiveState -p SubState -p MainPID rikuri-control-plane.service": SERVICE,
             "stat -c %U /proc/812": "rikuri-control\n",
             "systemctl show -p ActiveState -p SubState -p TTYPath -p User rikuri-claim-screen.service": SCREEN,
+            "systemctl restart rikuri-claim-screen.service": "",
+            "ip -4 route get 192.0.2.1": ROUTE,
+            "cat /dev/vcs2": TTY2,
             "ss -Htln": SS,
             "firewall-cmd --info-policy=rikuri-node": POLICY_INFO,
         }
@@ -796,10 +828,14 @@ class ControlPlaneDrill(d.Drill):
         self.cp_journal = over.pop("cp_journal", CP_JOURNAL)
         self.answers.update(over.pop("answers", {}))
         self.cafiles = []
+        self.commands = []
+        self.screen_pause = 0
 
     def vm(self, command, check=True, timeout=300, stdin=None):
+        self.commands.append(command)
         if command in self.answers:
-            return self.answers[command]
+            answer = self.answers[command]
+            return answer() if callable(answer) else answer
         raise AssertionError("unexpected VM command: %r" % command)
 
     def journal(self, args):
@@ -822,7 +858,8 @@ class ControlPlaneDrill(d.Drill):
 class ControlPlaneSteps(unittest.TestCase):
     CASES = ("the control plane runs as its own user", "the CA certificate over HTTP",
              "the API over HTTPS with only the node's CA", "a client without the node's CA is refused",
-             "the claim screen on tty2", "only SSH, 80 and 443 listen outside",
+             "the claim screen on tty2", "the claim screen shows the node's address",
+             "only SSH, 80 and 443 listen outside",
              "the firewall opens 80 and 443", "greenboot's control plane check",
              "no claim code in the journal")
 
@@ -860,6 +897,12 @@ class ControlPlaneSteps(unittest.TestCase):
                 ("the claim screen on tty2", {"answers": {
                     "systemctl show -p ActiveState -p SubState -p TTYPath -p User rikuri-claim-screen.service":
                         SCREEN.replace("running", "dead")}}),
+                ("the claim screen shows the node's address", {"answers": {"cat /dev/vcs2": TTY2_NONE_YET}}),
+                ("the claim screen shows the node's address", {"answers": {"cat /dev/vcs2": None}}),
+                ("the claim screen shows the node's address", {"answers": {"cat /dev/vcs2": vcs()}}),
+                ("the claim screen shows the node's address", {"answers": {
+                    "ip -4 route get 192.0.2.1": ROUTE.replace("10.0.2.15", "10.0.2.16")}}),
+                ("the claim screen shows the node's address", {"answers": {"ip -4 route get 192.0.2.1": None}}),
                 ("only SSH, 80 and 443 listen outside", {"answers": {"ss -Htln": SS + "LISTEN 0 1 0.0.0.0:5355 0.0.0.0:*\n"}}),
                 ("the firewall opens 80 and 443", {"answers": {"firewall-cmd --info-policy=rikuri-node": ""}}),
                 ("greenboot's control plane check", {"greenboot": ""}),
@@ -870,6 +913,23 @@ class ControlPlaneSteps(unittest.TestCase):
                 _, results = self.results(**over)
                 self.assertFalse(results[case])
                 self.assertEqual([c for c, ok in results.items() if not ok], [case])
+
+    def test_the_screen_is_drawn_again_after_the_network_is_up_then_read(self):
+        drill, _ = self.results()
+        restart = drill.commands.index("systemctl restart rikuri-claim-screen.service")
+        self.assertGreater(drill.commands.index("cat /dev/vcs2"), restart)
+        self.assertGreater(drill.commands.index("ip -4 route get 192.0.2.1"), restart)
+
+    def test_a_screen_still_drawing_is_read_again(self):
+        screens = iter([vcs(), vcs("Rikuri Node"), TTY2])
+        drill, results = self.results(answers={"cat /dev/vcs2": lambda: next(screens)})
+        self.assertTrue(results["the claim screen shows the node's address"])
+        self.assertEqual(drill.commands.count("cat /dev/vcs2"), 3)
+
+    def test_the_screen_is_read_a_bounded_number_of_times(self):
+        drill, results = self.results(answers={"cat /dev/vcs2": TTY2_NONE_YET})
+        self.assertFalse(results["the claim screen shows the node's address"])
+        self.assertEqual(drill.commands.count("cat /dev/vcs2"), d.SCREEN_READS)
 
     def test_an_https_port_that_does_not_answer_fails_without_raising(self):
         _, results = self.results(with_ca=ConnectionRefusedError(111, "refused"),
