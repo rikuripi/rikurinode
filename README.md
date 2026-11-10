@@ -20,7 +20,9 @@ start, takes a claim code from the console to make the first person the
 owner, signs the owner in with a password and a revocable session, and
 reports every component as `unknown`, because nothing probes the node yet.
 The OS image builds the control plane in and runs it as a service of its own
-user, open to the LAN on 80 and 443, with a claim screen on the node's second
+user, open to the LAN on 80 and 443 and answering as `rikurisetup.local` over
+mDNS, with a certificate that names that name and the node's current address,
+and a claim screen on the node's second
 console (Ctrl+Alt+F2) that shows its address, its CA fingerprint and, on
 Enter, a claim code; the setup page that takes the code is still to come.
 Nothing here is ready to run on a node. The
@@ -69,7 +71,10 @@ hashes of the claim code and the owner's password, the sessions). A plain
 listener (`RIKURI_HTTP_LISTEN`, off unless set) serves only the CA
 certificate at `/ca.crt` and a redirect to HTTPS. `RIKURI_NAMES` lists the
 names a request may use for the node (`localhost` always may); any other
-`Host` is refused. At its first start the daemon logs a claim code; the first
+`Host` is refused. The server certificate names them, the loopback addresses
+and the node's LAN address; the daemon looks at that address again every
+60 s and, when it changes, reissues the certificate from the same CA and
+serves it to new connections without a restart. At its first start the daemon logs a claim code; the first
 person to send it with a password becomes the owner, and only
 `rikuri-control-plane rearm-claim`, run at the console, arms another once it
 expires or is retired. Logs go to stderr at the level `RUST_LOG` sets

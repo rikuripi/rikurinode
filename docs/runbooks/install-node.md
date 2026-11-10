@@ -8,14 +8,15 @@ the node from the stick, with no network. The installed node updates from
 `ghcr.io/rikuripi/rikurinode` under that release's fixed name.
 **Everything on the N150's internal disk is lost.**
 
-Stage 1 changes 5b and 5c.1. The setup page does not exist yet (5c.3), so the
+Stage 1 changes 5b, 5c.1 and 5c.2. The setup page does not exist yet (5c.3), so the
 node's screen keeps a login prompt nobody can use, and a second screen, the
 claim screen, shows the node's address, its certificate fingerprint and a
 claim code: that is the expected result. Workflow:
 `.github/workflows/publish.yml`, job **Build the USB installer from the signed
 digest, with no credential**; records:
 `docs/build-records/2026-10-29-install-media.md`,
-`docs/build-records/2026-11-06-5c1-control-plane-on-node.md`.
+`docs/build-records/2026-11-06-5c1-control-plane-on-node.md`,
+`docs/build-records/2026-11-10-5c2-names-and-mdns.md`.
 
 ## What you need
 
@@ -86,6 +87,7 @@ Use Fedora Media Writer (Fedora's own tool, free, from `fedoraproject.org/workst
 8. The N150 now starts from its own disk. After a minute or so the screen shows **Fedora Linux 45 (IoT Edition)** and a login prompt. No one signs in there: the node is set up from a browser, on the setup page that comes with a later update.
 9. Hold **Ctrl** and **Alt** and press **F2**. The claim screen appears:
    - **Address**: the node's address on your network, such as `http://192.168.1.20`. If it says **none yet**, connect the N150 to your router with a network cable; press Enter to look again.
+   - The node also answers by name: on a phone or computer on the same network, `http://rikurisetup.local` reaches it as well as the address does. Some networks and some phones do not find `.local` names; the address always works. If the router later gives the node another address, the screen shows it when you press Enter, and the node follows it by itself within a minute. Until the setup page exists, a browser there only offers the node's certificate and then warns about the connection: close it.
    - **Certificate fingerprint**: two lines of letters and numbers. When the setup page exists, your browser shows the same fingerprint for the node; compare them before you type anything there.
    - **Press Enter to show a claim code.** Enter shows a code such as `K7QM-4XD9-TR`. Whoever types it on the setup page first becomes the node's owner, so show it only to yourself. It lasts 24 hours and works once; Enter again replaces it, and the old one stops working. Until the setup page exists, nothing uses the code.
    - Ctrl+Alt+F1 returns to the login prompt. Power the N150 off with a short press of its power button.
@@ -93,7 +95,8 @@ Use Fedora Media Writer (Fedora's own tool, free, from `fedoraproject.org/workst
 Report: whether it started from the stick, what the disk line said, whether
 it powered off by itself and started to the login prompt, and what the claim
 screen showed after Ctrl+Alt+F2 (an address, the fingerprint, and a code after
-Enter). Photos of the screen are enough; a photo of a code is harmless only
+Enter), and whether a phone or computer on the same network opened
+`http://rikurisetup.local`. Photos of the screen are enough; a photo of a code is harmless only
 because the setup page does not exist yet.
 
 ## When it stops
