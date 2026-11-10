@@ -129,6 +129,10 @@ ADDRESS_TRIES = 30
 HOSTNAME_CMD = "cat /proc/sys/kernel/hostname"   # the kernel's name now, runtime truth
 MDNS_STATUS = "resolvectl mdns"
 UDP_LISTEN = "ss -Huln"
+# The guest's global IPv4 address with its prefix, read before the probe has a route.
+GUEST_ADDRESS = "ip -o -4 addr show scope global | awk '{print $4; exit}'"
+# The service's process and its restarts, compared around the follow.
+SHOW_CP_RUN = "systemctl show -p MainPID -p NRestarts rikuri-control-plane.service"
 MDNS_PORT = 5353
 LLMNR_PORT = 5355
 MAX_BYTES = 64 * 1024
@@ -367,6 +371,19 @@ def mdns_on(status: str, nic: str) -> bool:
                         for line in lines))
 
 
+def guest_address(text):
+    """The address of `ip -o -4 addr` 's `10.0.2.15/24`, or None if it is not one, or is loopback."""
+    m = re.fullmatch(r"(\d{1,3}(?:\.\d{1,3}){3})/\d{1,2}", (text or "").strip())
+    return m.group(1) if m and not m.group(1).startswith("127.") else None
+
+
+def same_run(before: str, after: str) -> bool:
+    """The same running process, with the same restart count, in both `systemctl show`s."""
+    b, a = _show(before), _show(after)
+    return (main_pid(before) is not None and main_pid(before) == main_pid(after)
+            and b.get("NRestarts", "").isdigit() and b.get("NRestarts") == a.get("NRestarts"))
+
+
 def mdns_listens(ports: set) -> bool:
     """UDP: mDNS's 5353 bound outside loopback, LLMNR's 5355 not."""
     return MDNS_PORT in ports and LLMNR_PORT not in ports
@@ -462,7 +479,7 @@ EXPECTED = frozenset({"first boot", "the containers range at the first boot", "c
                       "only SSH, 80 and 443 listen outside", "the firewall opens 80, 443 and mDNS",
                       "greenboot's control plane check",
                       "HTTPS as rikurisetup.local with only the node's CA",
-                      "HTTPS as the node's address with only the node's CA", "the node is named rikurisetup",
+                      "the certificate follows the node's address without a restart", "the node is named rikurisetup",
                       "mDNS on the node's interface", "mDNS listens on 5353, LLMNR does not",
                       "no claim code in the journal"})
 
@@ -614,6 +631,17 @@ class Drill:
                              % (path.encode(), name.encode()))
                 return _read_all(conn)
 
+    def refused_as(self, cafile, name: str):
+        """Whether HTTPS as `name`, trusting only the node's CA, is refused for
+        its certificate (not merely unanswered), and what happened."""
+        try:
+            answer = self.fetch_tls("/api/setup", cafile, name)
+            return False, "as %s, answered: %r" % (name, answer[:60])
+        except ssl.SSLCertVerificationError as e:
+            return True, "as %s, refused: %s" % (name, e)
+        except OSError as e:
+            return False, "as %s, no answer, so no refusal seen (%s)" % (name, e)
+
     def setup_as(self, cafile, fingerprint, name: str):
         """Whether /api/setup answers as `name`, trusting only the node's CA, and what it said."""
         try:
@@ -633,9 +661,9 @@ class Drill:
         loopback; the firewall policy is active; greenboot's required check
         passed. 5c.2: the node is named rikurisetup and resolved answers mDNS
         on its interface, on UDP 5353 (LLMNR's 5355 stays closed); HTTPS is
-        verified by the node's CA as rikurisetup.local and, once the probe's
-        route gives the guest an address, as that address, which the daemon
-        puts in its certificate without a restart."""
+        verified by the node's CA as rikurisetup.local; as the guest's address
+        it is refused before the probe's route and verified after it, with the
+        same service process and no restart between."""
         show = self.vm(SHOW_CP, check=False) or ""
         pid = main_pid(show)
         owner = (self.vm("stat -c %%U /proc/%d" % pid, check=False) or "").strip() if pid else ""
@@ -684,6 +712,15 @@ class Drill:
         # say "none yet" (the runbook's "press Enter to look again"). This SSH
         # session proves the network is up; with the probe's route in place,
         # draw it again, then read it.
+        # Before the route the daemon has found no address, so its certificate
+        # names none: HTTPS as the guest's address is refused. The same process,
+        # never restarted, must serve the certificate that names it.
+        guest = guest_address(self.vm(GUEST_ADDRESS, check=False))
+        run_before = self.vm(SHOW_CP_RUN, check=False) or ""
+        if fingerprint and guest:
+            refused_before, before_detail = self.refused_as(cafile, guest)
+        else:
+            refused_before, before_detail = False, "no CA certificate, or no guest address: %s" % guest
         self.vm(PROBE_ROUTE_ADD, check=False)
         try:
             self.vm(RESTART_SCREEN, check=False)
@@ -708,7 +745,11 @@ class Drill:
         shown = re.search(r"Address:  .*?(?=\s{2,}|$)", tty2)
         self.check("the claim screen shows the node's address", shows_address(tty2, source),
                    "tty2 shows %r; the route's source: %s" % (shown.group(0) if shown else "no address line", source))
-        self.check("HTTPS as the node's address with only the node's CA", by_address, address_detail)
+        run_after = self.vm(SHOW_CP_RUN, check=False) or ""
+        follows = refused_before and by_address and source == guest and same_run(run_before, run_after)
+        address_detail = "before the route %s; the route's source %s, the guest's %s; after: %s; the service %s -> %s" % (
+            before_detail, source, guest, address_detail, "; ".join(run_before.split()), "; ".join(run_after.split()))
+        self.check("the certificate follows the node's address without a restart", follows, address_detail)
         hostname = (self.vm(HOSTNAME_CMD, check=False) or "").strip()
         self.check("the node is named rikurisetup", hostname == NODE_HOSTNAME, "hostname: %r" % hostname)
         nic = (self.vm(NIC, check=False) or "").strip()

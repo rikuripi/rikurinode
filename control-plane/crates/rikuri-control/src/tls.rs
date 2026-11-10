@@ -297,7 +297,9 @@ pub fn load_or_create(
 }
 
 /// Re-checks the server certificate against the node's names, `lan` and the
-/// date. If it no longer serves, re-issues it from the node's CA, keeps it in
+/// date. If the node's CA in the state folder is missing or not the one
+/// `current` was issued under, re-issues nothing (`CaChanged`). If the
+/// certificate no longer serves, re-issues it from the node's CA, keeps it in
 /// the state folder, makes `current` serve it to new connections, and returns
 /// what it was issued for; otherwise changes nothing and returns `None`.
 pub fn refresh(
@@ -307,7 +309,12 @@ pub fn refresh(
     now: OffsetDateTime,
     current: &CurrentCert,
 ) -> Result<Option<ServerMeta>, TlsError> {
-    let _ = (&current.ca, TlsError::CaChanged); // red stub: the CA is not checked yet
+    // load_or_create would make a new CA where a file is missing, and would
+    // sign with whatever CA is there: refresh issues only under the CA this
+    // daemon serves at /ca.crt and the browser has installed.
+    if !dir.exists(CA_KEY) || dir.read(CA_CERT)?.as_deref() != Some(current.ca.as_slice()) {
+        return Err(TlsError::CaChanged);
+    }
     let fresh = load_or_create(dir, names, lan, now)?;
     if !fresh.server_issued {
         return Ok(None);
