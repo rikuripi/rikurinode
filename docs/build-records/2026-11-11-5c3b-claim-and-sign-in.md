@@ -5,8 +5,8 @@
 | **Date** | 2026-11-11 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/5c3b-claim-pages`, from `main` at `1265136`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `5999df2` contract, `eba96ce` red, `968db6a` fix, `e5fe2d5` test change, `dea7dcb` docs, `399d449` repair-1 tests, `ef951a1` repair-1 fix; merged as `e4dba17` (PR #83) |
+| **Status** | DONE (2026-11-11) |
 | **Change type** | feature |
 
 ## Why
@@ -115,3 +115,40 @@ The owner (2026-11-11), after "Next":
   - N3: the fields lose `name`, and the forms say `method="post"`, so a native submission sends no secret and never in a URL.
   - N4: sign-out's 401 goes to sign-in, and an unreadable session leads nowhere.
   - The countdown stops when its page goes.
+
+### CI run 2 (`ef951a1`): Pass, 8 of 8
+
+- `Full gate (Ubuntu)`: Pass, https://github.com/rikuripi/rikurinode/actions/runs/43107419540/job/130814263957. In its log: `svelte-check found 0 errors and 0 warnings`; Playwright `231 passed`, owner.spec at every width; `every_refusal_is_an_error_reply_as_before ... ok`, `the_ui_types_are_the_rust_types ... ok`, `the_owners_pages_are_the_secure_app_over_tls_only ... ok`; the library's `140 passed; 0 failed`.
+- `Rust mutants (changed lines)`: Pass. 5 mutants: 3 caught, 2 unviable, none missed. https://github.com/rikuripi/rikurinode/actions/runs/43107419467/job/130814264128
+- The tool tests (py3.9, py3.12), the image build, and both VM drills: Pass. https://github.com/rikuripi/rikurinode/actions/runs/43107419472. The rollback drill's lines, verbatim:
+  - `vm-drill: PASS the owner's pages over HTTPS with only the node's CA: GET https://localhost:8443/claim|/signin: /claim: secure page: 200, policy, nosniff, scripts from /assets/ only; /signin: secure page: 200, policy, nosniff, scripts from /assets/ only`
+  - `vm-drill: PASS a wrong claim code is refused and the node stays unclaimed: POST /api/claim with 0000-0000-00: refused 401 {"error":"claim refused"}; then /api/setup claimed: False`
+  - `vm-drill: PASS the owner's pages never over HTTP: GET http://127.0.0.1:8080: /claim: 308 to https://127.0.0.1/claim; /signin: 308 to https://127.0.0.1/signin (wanted 308 to https://127.0.0.1 and the same path)`
+
+### The verifier's follow-up pass: PASS
+
+- I1 and I2 are resolved; N1 to N4 and the countdown fix pass.
+- The test changes only add (0 lines removed in `ui/tests`), each with its reason.
+- The record's account is honest. No new Important finding.
+- Minor, for the backlog:
+  - **M1:** the two unviable mutants are not named in the log read, so "unviable only because they do not build" is Not yet proven.
+  - **M2:** on a claimed node whose session cannot be read, the secure page offers no way on and no message.
+
+### The merge, and close-out
+
+- The owner reported "CI passed" and merged PR #83 at head `ef951a1` as `e4dba17` (2026-11-11T22:11:11Z), the head that CI run 2 and the verifier's follow-up passed.
+- **Done when:**
+  - **The gates, Pass:** `Full gate (Ubuntu)`, py3.9 and py3.12, Rust mutants on the changed lines, and the OS image workflow with both VM drills, all on the PR (run 2).
+  - **The verifier, Pass:** round 1 FAIL (I1, I2), round 2 PASS.
+  - **Red before green, Pass in part:** Python was observed red on rikuri-drill, and the Rust library on the Mac by clippy. The UI's red was **not observed** (no CI run for `eba96ce`); it is red by reading. This is recorded for the owner, not waived.
+  - **The real devices, Not yet proven:** claiming, signing in and signing out on a real phone and laptop against the N150, as runbook steps 12 and 13 describe.
+- **Used:** one of two repair cycles; both review rounds; CI runs 1 and 2 of 8 on the PR, plus this close-out's own run.
+- **Backlog, not started:**
+  - a password reset at the node;
+  - M1, name the unviable mutants;
+  - M2, a message when the session cannot be read;
+  - the weekly OSV audit should read `ui/package-lock.json`;
+  - an exception should pin the advisory's severity;
+  - the image's UI stage could run the audit and type check;
+  - drill case 1's timeout, if it recurs;
+  - push red commits, so that a UI red is observed in CI.
