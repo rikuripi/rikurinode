@@ -74,7 +74,7 @@
 
 ## Verifier, round 1 (2026-11-10): FAIL, one Important
 
-- **I-1:** both units' `RestrictAddressFamilies=AF_UNIX` blocks the netlink socket that `resolvectl` (systemd 259) opens to find a link by name and to list links, so on the node every call would fail and the bridges keep answering. The verifier found it by reading systemd's source. **Seen in rikuri-drill** with the shipped unit, only its `ExecStart` pointed at a copy of the program under `/run` (`06-shipped-units.out`):
+- **I-1:** both units' `RestrictAddressFamilies=AF_UNIX` blocks the netlink socket that `resolvectl` (systemd 259) opens to find a link by name and to list links, so on the node every call would fail and the bridges keep answering. The verifier found it by reading systemd's source. **Seen in rikuri-drill** with the shipped `rikuri-mdns-links.service`, run as `exp-plat01b.service` from `/run/systemd/system`: its `ExecStart` pointed at a copy of the program under `/run`, its `[Install]` removed, and started by hand, not by resolved or udev. The template was not run; its `[Service]` differs only by the `%i` argument, and the real triggers are the drill's to prove (`06-shipped-units.out`):
   - **as shipped:** `could not turn mDNS off on podman0 after 5 tries: Failed to resolve interface "podman0": Address family not supported by protocol`, then `Failed to connect to netlink`; `Result=exit-code`, and `podman0` and `veth0` stayed `yes`;
   - **`AF_UNIX AF_NETLINK`:** `mDNS off on podman0`, `mDNS off on veth0`, `Result=success`, both `no`;
   - **`AF_UNIX AF_NETLINK` with `CapabilityBoundingSet=` empty:** the same. That confirms the verifier's N1: resolved lets root set a link's mDNS with no capability.
@@ -91,3 +91,9 @@
   - N9: the drill reads resolved's per-link state, not a question asked on the bridge.
 
   N1's comments are fixed with I-1.
+
+## Verifier, round 2 (2026-11-10): PASS, corrections only
+
+I-1 is closed by `968db6e`, backed by evidence 06; no Important finding is open. Nits:
+- R2-N1, the exact description of evidence 06: fixed above;
+- R2-N2, backlog: `unit_problems` prints a missing `CapabilityBoundingSet=` as `CapabilityBoundingSet=...`.
