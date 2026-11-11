@@ -17,21 +17,34 @@ const IMMUTABLE: &str = "public, max-age=31536000, immutable";
 
 fn assert_page(reply: &Reply, page: &str) {
     assert_eq!(reply.status, 200, "{}", reply.body);
-    assert_eq!(reply.header("content-type"), Some("text/html; charset=utf-8"));
+    assert_eq!(
+        reply.header("content-type"),
+        Some("text/html; charset=utf-8")
+    );
     assert_eq!(reply.header("content-security-policy"), Some(CSP));
     assert_eq!(reply.header("x-content-type-options"), Some("nosniff"));
     assert_eq!(reply.header("referrer-policy"), Some("no-referrer"));
     assert_eq!(reply.header("x-frame-options"), Some("DENY"));
     assert_eq!(reply.header("cache-control"), Some("no-cache"));
     let marker = format!("<meta name=\"rikuri-page\" content=\"{page}\">");
-    assert!(reply.body.contains(&marker), "no {marker} in {}", reply.body);
+    assert!(
+        reply.body.contains(&marker),
+        "no {marker} in {}",
+        reply.body
+    );
     // Every script is a file the CSP allows: no inline script, no inline style.
     for (i, _) in reply.body.match_indices("<script") {
         let tag = &reply.body[i..i + reply.body[i..].find('>').unwrap()];
-        assert!(tag.contains(" src=\"/assets/"), "an inline or outside script: {tag}");
+        assert!(
+            tag.contains(" src=\"/assets/"),
+            "an inline or outside script: {tag}"
+        );
     }
     assert!(!reply.body.contains("<style"), "an inline style block");
-    assert!(!reply.body.contains(" style=\""), "an inline style attribute");
+    assert!(
+        !reply.body.contains(" style=\""),
+        "an inline style attribute"
+    );
 }
 
 /// The `/assets/` paths a page names (its scripts and its stylesheets).
@@ -66,7 +79,11 @@ fn assert_asset(reply: &Reply, path: &str) {
     };
     assert_eq!(reply.header("content-type"), Some(expected), "{path}");
     assert_eq!(reply.header("cache-control"), Some(IMMUTABLE), "{path}");
-    assert_eq!(reply.header("x-content-type-options"), Some("nosniff"), "{path}");
+    assert_eq!(
+        reply.header("x-content-type-options"),
+        Some("nosniff"),
+        "{path}"
+    );
     assert!(!reply.body.is_empty(), "{path} is empty");
 }
 
@@ -156,8 +173,16 @@ async fn the_shipped_fonts_carry_their_licence() {
     let node = Node::start().await;
     let notice = https(&node, Req::get("/licenses.txt")).await.unwrap();
     assert_eq!(notice.status, 200, "{}", notice.body);
-    assert_eq!(notice.header("content-type"), Some("text/plain; charset=utf-8"));
-    for needed in ["SIL OPEN FONT LICENSE Version 1.1", "Fredoka", "Inter", "Svelte"] {
+    assert_eq!(
+        notice.header("content-type"),
+        Some("text/plain; charset=utf-8")
+    );
+    for needed in [
+        "SIL OPEN FONT LICENSE Version 1.1",
+        "Fredoka",
+        "Inter",
+        "Svelte",
+    ] {
         assert!(notice.body.contains(needed), "no {needed:?} in the notice");
     }
     node.stop().await;
