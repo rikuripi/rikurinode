@@ -651,7 +651,10 @@ mod tests {
     #[test]
     fn the_ui_types_are_the_rust_types() {
         use ts_rs::TS;
-        let cfg = ts_rs::Config::new();
+        // 5c.3b: the session's times are JSON numbers, so u64 is `number`
+        // here (ts-rs's default is `bigint`, which the environment can also
+        // set; set here, it is the same in every build).
+        let cfg = ts_rs::Config::new().with_large_int("number");
         let dir = std::path::Path::new(env!("RIKURI_UI_DIR")).join("src/generated");
         for (file, ts) in [
             ("SetupClaim.ts", SetupClaim::export_to_string(&cfg).unwrap()),
@@ -659,6 +662,23 @@ mod tests {
                 "SetupReport.ts",
                 SetupReport::export_to_string(&cfg).unwrap(),
             ),
+            (
+                "ClaimRequest.ts",
+                ClaimRequest::export_to_string(&cfg).unwrap(),
+            ),
+            (
+                "SignInRequest.ts",
+                SignInRequest::export_to_string(&cfg).unwrap(),
+            ),
+            (
+                "SessionOpened.ts",
+                SessionOpened::export_to_string(&cfg).unwrap(),
+            ),
+            (
+                "SessionInfo.ts",
+                SessionInfo::export_to_string(&cfg).unwrap(),
+            ),
+            ("ErrorReply.ts", ErrorReply::export_to_string(&cfg).unwrap()),
         ] {
             let committed = std::fs::read_to_string(dir.join(file)).unwrap_or_default();
             assert_eq!(
@@ -666,6 +686,40 @@ mod tests {
                 "ui/src/generated/{file} is not the Rust type; it must read exactly:\n{ts}"
             );
         }
+    }
+
+    /// 5c.3b: the pages read every refusal as `ErrorReply`; its JSON stays
+    /// the API's as it was (B0.2), byte for byte, for each kind.
+    #[tokio::test]
+    async fn every_refusal_is_an_error_reply_as_before() {
+        use http_body_util::BodyExt;
+        async fn body(r: Refusal) -> (StatusCode, String) {
+            let response = r.into_response();
+            let status = response.status();
+            let bytes = response.into_body().collect().await.unwrap().to_bytes();
+            (status, String::from_utf8(bytes.to_vec()).unwrap())
+        }
+        assert_eq!(
+            body(refuse(StatusCode::UNAUTHORIZED, "claim refused")).await,
+            (
+                StatusCode::UNAUTHORIZED,
+                r#"{"error":"claim refused"}"#.to_owned()
+            )
+        );
+        assert_eq!(
+            body(Refusal::RetryAfter(7)).await,
+            (
+                StatusCode::TOO_MANY_REQUESTS,
+                r#"{"error":"too many tries","retry_after_seconds":7}"#.to_owned()
+            )
+        );
+        assert_eq!(
+            body(internal("a detail that never reaches the client")).await,
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                r#"{"error":"internal error"}"#.to_owned()
+            )
+        );
     }
 
     #[test]

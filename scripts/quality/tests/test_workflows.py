@@ -486,7 +486,9 @@ class UiGate(unittest.TestCase):
         config = read(os.path.join(ROOT, "ui", "playwright.config.ts"))
         self.assertIn("forbidOnly: true", config)
         self.assertIn("retries: 0", config)
-        for spec in ("render.spec.ts", "text-keys.spec.ts"):
+        # 5c.3b: every width runs the owner's pages too.
+        self.assertEqual(config.count("testMatch: /(render|owner)\\.spec\\.ts$/"), 4)
+        for spec in ("render.spec.ts", "owner.spec.ts", "text-keys.spec.ts"):
             with self.subTest(spec=spec):
                 text = read(os.path.join(ROOT, "ui", "tests", spec))
                 self.assertNotRegex(text, r"\.(only|skip|fixme)\(")

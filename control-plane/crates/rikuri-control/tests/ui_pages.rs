@@ -204,3 +204,26 @@ async fn the_icon_is_served_on_both_listeners() {
     }
     node.stop().await;
 }
+
+/// 5c.3b: the owner's pages are the secure app, over TLS only; in the clear
+/// each is a redirect to HTTPS, like /setup; none takes a POST.
+/// Record: docs/build-records/2026-11-11-5c3b-claim-and-sign-in.md
+#[tokio::test]
+async fn the_owners_pages_are_the_secure_app_over_tls_only() {
+    let node = Node::start().await;
+    let port = node.https.port();
+    for path in ["/claim", "/signin", "/home"] {
+        assert_page(&https(&node, Req::get(path)).await.unwrap(), "secure");
+        let clear = plain(&node, Req::get(path)).await;
+        assert_eq!(clear.status, 308, "{path}: {}", clear.body);
+        assert_eq!(
+            clear.header("location"),
+            Some(format!("https://localhost:{port}{path}").as_str())
+        );
+        let post = https(&node, Req::post(path, serde_json::json!({})))
+            .await
+            .unwrap();
+        assert_eq!(post.status, 405, "{path}: {}", post.body);
+    }
+    node.stop().await;
+}
