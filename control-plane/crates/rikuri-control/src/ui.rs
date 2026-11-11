@@ -1,6 +1,6 @@
 //! The setup pages (5c.3a), served from the table `build.rs` embeds: the
-//! certificate screen in the clear at `/`, the secure page over TLS at `/`
-//! and `/setup`, and their assets on both. A path not in the table is a 404;
+//! certificate screen in the clear at `/`, the secure app over TLS at `/`,
+//! `/setup`, `/claim`, `/signin` and `/home` (5c.3b), and their assets on both. A path not in the table is a 404;
 //! nothing here reads the disk.
 //! Record: docs/build-records/2026-11-11-5c3a-ui-pipeline.md
 
@@ -111,7 +111,11 @@ pub(crate) fn secure_routes<S: Clone + Send + Sync + 'static>() -> Router<S> {
     shared(
         Router::new()
             .route("/", get(secure_page))
-            .route("/setup", get(secure_page)),
+            .route("/setup", get(secure_page))
+            // 5c.3b: the owner's pages, the same app.
+            .route("/claim", get(secure_page))
+            .route("/signin", get(secure_page))
+            .route("/home", get(secure_page)),
     )
 }
 

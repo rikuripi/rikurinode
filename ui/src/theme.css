@@ -72,3 +72,26 @@ kbd {
 }
 
 :focus-visible { outline: 3px solid var(--link); outline-offset: 2px; }
+
+/* 5c.3b: the owner's pages share their forms and actions. Every control is
+   at least 44 px, as the render tests check. */
+.action {
+  min-height: 52px; border-radius: var(--radius-pill); text-decoration: none; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 20px;
+  border: 0; font: inherit; font-weight: 600; cursor: pointer;
+}
+.action.primary { background: var(--accent); color: var(--accent-ink); font-family: var(--font-display); font-size: 18px; }
+.action.strong { background: var(--strong-btn); color: var(--strong-btn-ink); }
+.action:disabled { opacity: 0.55; cursor: not-allowed; }
+.quietaction {
+  min-height: 44px; min-width: 44px; padding: 0 14px; border-radius: var(--radius-pill);
+  border: 2px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; cursor: pointer;
+}
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-weight: 600; }
+.field input {
+  min-height: 48px; padding: 0 14px; border-radius: var(--radius-chip); border: 2px solid var(--line);
+  background: var(--surface); color: var(--ink); font: inherit; font-size: 17px; width: 100%; box-sizing: border-box;
+}
+.hint { margin: 0; font-size: 15px; color: var(--muted); }
+.alert { margin: 0; padding: 14px 16px; border-radius: var(--radius-chip); background: var(--panel); color: var(--ink); font-weight: 600; }
