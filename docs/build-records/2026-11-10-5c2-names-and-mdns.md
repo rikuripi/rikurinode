@@ -80,3 +80,11 @@ The register's rule text is unchanged. Whether it is clarified to "the LAN recei
 No Important finding open. I-1, I-2 and I-3 and nit 2 pass. Two nits for the backlog:
 - the guard checks that `ca.key` exists, not that it is the served CA's key: an outside writer to the 0700 state folder replacing `ca.key` alone would make `refresh` serve a certificate that does not chain to the served CA (the code writes both CA files together). Hardening: verify the fresh certificate against `current.ca` before `set`;
 - the Rust red of `b1c4fa3` was not observed (recorded above).
+
+## CI run 2 (`523f34c`): Rust mutants FAIL; repair 2 of 2
+
+- **Rust mutants (changed lines)**, job 130222350662: `21 mutants tested in 3m: 2 missed, 14 caught, 5 unviable`, both missed in formatting code this change touched:
+  - `tls.rs:90:9: replace <impl fmt::Debug for CurrentCert>::fmt -> fmt::Result with Ok(Default::default())`;
+  - `tls.rs:136:9: replace <impl fmt::Display for TlsError>::fmt -> fmt::Result with Ok(Default::default())`.
+  That run is the red: both mutants observed surviving.
+- **Repair 2** (the last this task allows): two tests in `tls.rs`, with no product change. `the_served_certificate_prints_no_key` checks that `CurrentCert`'s Debug is exactly `CurrentCert`, since it holds the server's private key. `a_refused_refresh_says_why_in_the_log` checks the exact text of `CaChanged`, the only thing the follow loop logs when it refuses. They pass against the code as it is, so their red is the CI run above; their green is the mutants run on the next push. New tests only, nothing changed or loosened.

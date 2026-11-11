@@ -507,6 +507,25 @@ mod tests {
     }
 
     #[test]
+    fn the_served_certificate_prints_no_key() {
+        // It holds the server's private key: Debug names the type and nothing else.
+        let scratch = Scratch::new();
+        let dir = StateDir::open(&scratch.0).unwrap();
+        let id = load_or_create(&dir, &names(), None, now()).unwrap();
+        assert_eq!(format!("{:?}", id.current), "CurrentCert");
+        assert_eq!(format!("{:#?}", id.current), "CurrentCert");
+    }
+
+    #[test]
+    fn a_refused_refresh_says_why_in_the_log() {
+        // The follow loop logs only this text when refresh refuses.
+        assert_eq!(
+            TlsError::CaChanged.to_string(),
+            "TLS identity: the CA in the state folder is missing or is not the one being served"
+        );
+    }
+
+    #[test]
     fn refresh_never_makes_or_uses_another_ca() {
         // A CA file gone, or another CA in its place, while the daemon runs:
         // refresh issues nothing, keeps the files as they are, and serves on.
