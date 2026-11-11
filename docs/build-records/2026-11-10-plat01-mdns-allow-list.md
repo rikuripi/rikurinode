@@ -71,3 +71,23 @@
 - **What the port leaves out, against the register's rule:**
   - "restores its config": there is no config file to restore. A link outside the list still answering fails the unit, so it shows in `systemctl --failed` and the journal, and the next start of resolved or of the link tries again.
   - "if the name resolves to anything but the LAN address": the node cannot see a LAN client's answer. The read-back checks resolved's per-link state instead, and the N150 report is the real view. Recorded in the register's Port line.
+
+## Verifier, round 1 (2026-11-10): FAIL, one Important
+
+- **I-1:** both units' `RestrictAddressFamilies=AF_UNIX` blocks the netlink socket that `resolvectl` (systemd 259) opens to find a link by name and to list links, so on the node every call would fail and the bridges keep answering. The verifier found it by reading systemd's source. **Seen in rikuri-drill** with the shipped unit, only its `ExecStart` pointed at a copy of the program under `/run` (`06-shipped-units.out`):
+  - **as shipped:** `could not turn mDNS off on podman0 after 5 tries: Failed to resolve interface "podman0": Address family not supported by protocol`, then `Failed to connect to netlink`; `Result=exit-code`, and `podman0` and `veth0` stayed `yes`;
+  - **`AF_UNIX AF_NETLINK`:** `mDNS off on podman0`, `mDNS off on veth0`, `Result=success`, both `no`;
+  - **`AF_UNIX AF_NETLINK` with `CapabilityBoundingSet=` empty:** the same. That confirms the verifier's N1: resolved lets root set a link's mDNS with no capability.
+  - Undone; `08-after.out` is identical to `00-before.out`.
+
+  The record's evidence before this had run the program only through a stand-in and an unhardened unit: the gap the verifier named.
+- **Repair 1** (of two): red `9a2e1f8` (the checker's tests expect `AF_UNIX AF_NETLINK` and no capability; `image/tests` `FAILED (failures=9)`, all in `MdnsLinks`), fix `968db6e` (both units and the checker; `image/tests` `Ran 496 tests` `OK`, hooks `OK`, scripts only the 7 known errors). The test change after the first red is that red itself: the expected values, and four closed-world cases (a capability, every capability kept, the network, no netlink) for the two old ones. Nothing loosened.
+- **Nits, backlog:**
+  - N2, N3, N5: races. A link recreated, or a virtual link renamed, while its instance runs can stay answering until resolved next starts; a link made between a full run's listing and its read-back fails that run falsely.
+  - N4: failures show only as failed units and in the journal; there is no greenboot wanted check or heartbeat.
+  - N6: likely mutation survivors (the `code == 0` guard; `NAME`'s 15-character boundary).
+  - N7: a later rule clearing `SYSTEMD_WANTS` is not detected.
+  - N8: the rule's overrides list `run/udev/rules.d`, which the units' model leaves out as unshippable. Harmless.
+  - N9: the drill reads resolved's per-link state, not a question asked on the bridge.
+
+  N1's comments are fixed with I-1.
