@@ -411,7 +411,8 @@ class Verdict(unittest.TestCase):
             "no claim code in the journal",
             "HTTPS as rikurisetup.local with only the node's CA",
             "the certificate follows the node's address without a restart", "the node is named rikurisetup",
-            "mDNS on the node's interface", "mDNS listens on 5353, LLMNR does not"})
+            "mDNS on the node's interface", "mDNS listens on 5353, LLMNR does not",
+            "mDNS only on the node's interface, with a container's bridge up"})
 
     def test_all_passed_and_no_error_is_zero(self):
         self.assertEqual(d.verdict(self.ALL, None), 0)
@@ -1168,6 +1169,114 @@ class ControlPlaneSteps(unittest.TestCase):
                 _, results = self.results(plain=plain)
                 self.assertFalse(results["the CA certificate over HTTP"])
                 self.assertFalse(results["the API over HTTPS with only the node's CA"])
+
+
+# PLAT-01 (docs/build-records/2026-11-10-plat01-mdns-allow-list.md): with a
+# container on podman's bridge, resolved answers mDNS on the NIC only.
+MDNS_BRIDGE_UP = "Global: yes\nLink 2 (enp0s2): yes\nLink 5 (podman0): no\nLink 6 (veth0): no\n"
+MDNS_BRIDGE_ON = "Global: yes\nLink 2 (enp0s2): yes\nLink 5 (podman0): yes\nLink 6 (veth0): yes\n"
+RAN = "Result=success\nExecMainStatus=0\nExecMainStartTimestampMonotonic=41234567\n"
+
+
+class MdnsLinksReads(unittest.TestCase):
+    def test_mdns_only_on_the_nic_with_the_bridge_present_and_off(self):
+        self.assertTrue(d.mdns_only(MDNS_BRIDGE_UP, "enp0s2"))
+        for status, nic, why in ((MDNS_BRIDGE_ON, "enp0s2", "the bridge answers"),
+                                 (MDNS_BRIDGE_UP.replace("(veth0): no", "(veth0): yes"), "enp0s2", "a veth answers"),
+                                 (MDNS_BRIDGE_UP.replace("Link 5 (podman0): no\n", ""), "enp0s2", "no bridge seen"),
+                                 (MDNS_BRIDGE_UP.replace("(enp0s2): yes", "(enp0s2): no"), "enp0s2", "the NIC off"),
+                                 (MDNS_BRIDGE_UP, "enp0s3", "another NIC"),
+                                 (MDNS_BRIDGE_UP, "", "no NIC"),
+                                 ("", "enp0s2", "no answer"),
+                                 (MDNS_BRIDGE_UP.replace("Global: yes", "Global: no"), "enp0s2", "off globally")):
+            with self.subTest(why=why):
+                self.assertFalse(d.mdns_only(status, nic))
+
+    def test_a_oneshot_ran_and_succeeded_in_this_boot(self):
+        self.assertTrue(d.oneshot_ran(RAN))
+        for show, why in ((RAN.replace("41234567", "0"), "never started: Result is success by default"),
+                          (RAN.replace("ExecMainStatus=0", "ExecMainStatus=1"), "exited 1"),
+                          (RAN.replace("Result=success", "Result=exit-code"), "failed"),
+                          ("", "no answer")):
+            with self.subTest(why=why):
+                self.assertFalse(d.oneshot_ran(show))
+
+
+class MdnsLinksDrill(d.Drill):
+    def __init__(self, artifacts, **over):
+        super().__init__("localhost/rikuri-os:test", artifacts, artifacts)
+        self.log = lambda message: None
+        self.answers = {
+            "podman run -d --rm --name drill-mdns --read-only localhost/rikuri-os:test sleep 600 && echo started":
+                "3f2a\nstarted\n",
+            "resolvectl mdns": MDNS_BRIDGE_UP,
+            d.NIC: "enp0s2\n",
+            d.SHOW_MDNS_LINKS: RAN,
+            d.SHOW_MDNS_BRIDGE: RAN,
+            "podman stop -t 1 drill-mdns": "drill-mdns\n",
+        }
+        self.answers.update(over.pop("answers", {}))
+        self.commands = []
+        self.mdns_pause = 0
+
+    def vm(self, command, check=True, timeout=300, stdin=None):
+        self.commands.append(command)
+        if command in self.answers:
+            answer = self.answers[command]
+            return answer() if callable(answer) else answer
+        raise AssertionError("unexpected VM command: %r" % command)
+
+
+class MdnsLinksSteps(unittest.TestCase):
+    CASE = "mDNS only on the node's interface, with a container's bridge up"
+
+    def setUp(self):
+        self.artifacts = tempfile.mkdtemp(prefix="drill-artifacts-")
+        self.addCleanup(shutil.rmtree, self.artifacts)
+
+    def results(self, **over):
+        drill = MdnsLinksDrill(self.artifacts, **over)
+        drill.mdns_links()
+        return drill, {name: ok for name, ok, _ in drill.results}
+
+    def test_the_case_is_expected(self):
+        self.assertIn(self.CASE, d.EXPECTED)
+        self.assertEqual(d.SHOW_MDNS_BRIDGE.split()[-1], "rikuri-mdns-links@podman0.service")
+
+    def test_a_good_node_passes_and_keeps_the_evidence(self):
+        drill, results = self.results()
+        self.assertEqual(results, {self.CASE: True})
+        self.assertTrue(os.path.isfile(os.path.join(self.artifacts, "01c-mdns-links.out")))
+
+    def test_the_container_is_stopped_after_the_reads_even_when_the_check_fails(self):
+        for over in ({}, {"answers": {"resolvectl mdns": MDNS_BRIDGE_ON}}):
+            with self.subTest(over=over):
+                drill, _ = self.results(**over)
+                c = drill.commands
+                self.assertEqual(c.count("podman stop -t 1 drill-mdns"), 1)
+                self.assertGreater(c.index("podman stop -t 1 drill-mdns"),
+                                   max(i for i, x in enumerate(c) if x in ("resolvectl mdns", d.SHOW_MDNS_BRIDGE)))
+
+    def test_each_failure_fails_the_case(self):
+        for why, answers in (("the bridge answers", {"resolvectl mdns": MDNS_BRIDGE_ON}),
+                             ("no container", {"podman run -d --rm --name drill-mdns --read-only "
+                                               "localhost/rikuri-os:test sleep 600 && echo started": ""}),
+                             ("the boot unit never ran", {d.SHOW_MDNS_LINKS: RAN.replace("41234567", "0")}),
+                             ("the bridge's unit failed", {d.SHOW_MDNS_BRIDGE: RAN.replace("Result=success",
+                                                                                           "Result=exit-code")}),
+                             ("no NIC", {d.NIC: ""})):
+            with self.subTest(why=why):
+                _, results = self.results(answers=answers)
+                self.assertEqual(results, {self.CASE: False})
+
+    def test_a_bridge_still_being_set_is_read_again_a_bounded_number_of_times(self):
+        reads = iter([MDNS_BRIDGE_ON, MDNS_BRIDGE_ON, MDNS_BRIDGE_UP])
+        drill, results = self.results(answers={"resolvectl mdns": lambda: next(reads)})
+        self.assertEqual(results, {self.CASE: True})
+        self.assertEqual(drill.commands.count("resolvectl mdns"), 3)
+        drill, results = self.results(answers={"resolvectl mdns": MDNS_BRIDGE_ON})
+        self.assertEqual(results, {self.CASE: False})
+        self.assertEqual(drill.commands.count("resolvectl mdns"), d.MDNS_READS)
 
 
 if __name__ == "__main__":

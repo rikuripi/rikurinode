@@ -1,0 +1,36 @@
+# mDNS only on the node's physical interfaces (PLAT-01), for one new link:
+# udev starts it for each (usr/lib/udev/rules.d/90-rikuri-mdns-links.rules)
+# with the link's name as the instance, unescaped (%i: a dash stays a dash).
+# The same program and the same limits as rikuri-mdns-links.service.
+# Record: docs/build-records/2026-11-10-plat01-mdns-allow-list.md
+[Unit]
+Description=Rikuri Node: mDNS only on physical interfaces, for %i
+After=systemd-resolved.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/rikuri/mdns-links %i
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+IPAddressDeny=any
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+UMask=0077

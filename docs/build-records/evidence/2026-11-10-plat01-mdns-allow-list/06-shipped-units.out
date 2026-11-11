@@ -1,0 +1,134 @@
++ sudo mkdir -p /etc/systemd/resolved.conf.d /run/rikuri-exp
++ printf '[Resolve]\nMulticastDNS=yes\n'
++ sudo tee /etc/systemd/resolved.conf.d/90-exp-plat01b.conf
+[Resolve]
+MulticastDNS=yes
++ sudo systemctl restart systemd-resolved
++ sleep 2
++ sudo install -m 755 /tmp/plat01b/usr/libexec/rikuri/mdns-links /run/rikuri-exp/mdns-links
++ sudo podman run -d --rm --name exp --network podman localhost/rikuri-os:gbp sleep 900
+6181954c715666323ba3e840ce77343cf1ab36f7070ebf9072c7b11fffeb1665
++ sleep 3
++ U=/tmp/plat01b/usr/lib/systemd/system/rikuri-mdns-links.service
++ try shipped s/x/x/
++ : '=== variant shipped'
++ sed -e 's|^ExecStart=/usr/libexec/rikuri/mdns-links|ExecStart=/run/rikuri-exp/mdns-links|' -e '/^\[Install\]/,$d' /tmp/plat01b/usr/lib/systemd/system/rikuri-mdns-links.service
++ sed s/x/x/
++ sudo tee /run/systemd/system/exp-plat01b.service
++ grep -E '^(ExecStart|RestrictAddressFamilies|CapabilityBoundingSet)=' /run/systemd/system/exp-plat01b.service
+ExecStart=/run/rikuri-exp/mdns-links
+CapabilityBoundingSet=CAP_NET_ADMIN
+RestrictAddressFamilies=AF_UNIX
++ sudo systemctl daemon-reload
++ for i in podman0 veth0
++ sudo resolvectl mdns podman0 yes
++ for i in podman0 veth0
++ sudo resolvectl mdns veth0 yes
++ resolvectl mdns
+Global: yes
+Link 2 (enp0s5): yes
+Link 11 (podman0): yes
+Link 12 (veth0): yes
++ sudo systemctl start exp-plat01b.service
+Job for exp-plat01b.service failed because the control process exited with error code.
+See "systemctl status exp-plat01b.service" and "journalctl -xeu exp-plat01b.service" for details.
+start exit 1
++ echo 'start exit 1'
++ systemctl show -p Result -p ExecMainStatus exp-plat01b.service
+Result=exit-code
+ExecMainStatus=1
++ sudo journalctl -q -u exp-plat01b.service --since -20s --no-pager
++ tail -8
+Nov 10 01:19:01 rikuri-drill mdns-links[235797]: allowed: enp0s5
+Nov 10 01:19:01 rikuri-drill mdns-links[235797]: could not turn mDNS off on podman0 after 5 tries: Failed to resolve interface "podman0": Address family not supported by protocol
+Nov 10 01:19:01 rikuri-drill mdns-links[235797]: could not turn mDNS off on veth0 after 5 tries: Failed to resolve interface "veth0": Address family not supported by protocol
+Nov 10 01:19:01 rikuri-drill mdns-links[235797]: could not read resolved's mDNS state: Global: yes
+Nov 10 01:19:01 rikuri-drill mdns-links[235797]: Failed to connect to netlink: Address family not supported by protocol
+Nov 10 01:19:01 rikuri-drill systemd[1]: exp-plat01b.service: Main process exited, code=exited, status=1/FAILURE
+Nov 10 01:19:01 rikuri-drill systemd[1]: exp-plat01b.service: Failed with result 'exit-code'.
+Nov 10 01:19:01 rikuri-drill systemd[1]: Failed to start exp-plat01b.service - Rikuri Node: mDNS only on physical interfaces.
++ resolvectl mdns
+Global: yes
+Link 2 (enp0s5): yes
+Link 11 (podman0): yes
+Link 12 (veth0): yes
++ try netlink 's/^RestrictAddressFamilies=AF_UNIX$/RestrictAddressFamilies=AF_UNIX AF_NETLINK/'
++ : '=== variant netlink'
++ sed -e 's|^ExecStart=/usr/libexec/rikuri/mdns-links|ExecStart=/run/rikuri-exp/mdns-links|' -e '/^\[Install\]/,$d' /tmp/plat01b/usr/lib/systemd/system/rikuri-mdns-links.service
++ sed 's/^RestrictAddressFamilies=AF_UNIX$/RestrictAddressFamilies=AF_UNIX AF_NETLINK/'
++ sudo tee /run/systemd/system/exp-plat01b.service
++ grep -E '^(ExecStart|RestrictAddressFamilies|CapabilityBoundingSet)=' /run/systemd/system/exp-plat01b.service
+ExecStart=/run/rikuri-exp/mdns-links
+CapabilityBoundingSet=CAP_NET_ADMIN
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
++ sudo systemctl daemon-reload
++ for i in podman0 veth0
++ sudo resolvectl mdns podman0 yes
++ for i in podman0 veth0
++ sudo resolvectl mdns veth0 yes
++ resolvectl mdns
+Global: yes
+Link 2 (enp0s5): yes
+Link 11 (podman0): yes
+Link 12 (veth0): yes
++ sudo systemctl start exp-plat01b.service
+start exit 0
++ echo 'start exit 0'
++ systemctl show -p Result -p ExecMainStatus exp-plat01b.service
+Result=success
+ExecMainStatus=0
++ tail -8
++ sudo journalctl -q -u exp-plat01b.service --since -20s --no-pager
+Nov 10 01:19:01 rikuri-drill systemd[1]: exp-plat01b.service: Failed with result 'exit-code'.
+Nov 10 01:19:01 rikuri-drill systemd[1]: Failed to start exp-plat01b.service - Rikuri Node: mDNS only on physical interfaces.
+Nov 10 01:19:02 rikuri-drill systemd[1]: Starting exp-plat01b.service - Rikuri Node: mDNS only on physical interfaces...
+Nov 10 01:19:02 rikuri-drill mdns-links[235891]: allowed: enp0s5
+Nov 10 01:19:02 rikuri-drill mdns-links[235891]: mDNS off on podman0
+Nov 10 01:19:02 rikuri-drill mdns-links[235891]: mDNS off on veth0
+Nov 10 01:19:02 rikuri-drill systemd[1]: exp-plat01b.service: Deactivated successfully.
+Nov 10 01:19:02 rikuri-drill systemd[1]: Finished exp-plat01b.service - Rikuri Node: mDNS only on physical interfaces.
++ resolvectl mdns
+Global: yes
+Link 2 (enp0s5): yes
+Link 11 (podman0): no
+Link 12 (veth0): no
++ try netlink-nocaps 's/^RestrictAddressFamilies=AF_UNIX$/RestrictAddressFamilies=AF_UNIX AF_NETLINK/;s/^CapabilityBoundingSet=CAP_NET_ADMIN$/CapabilityBoundingSet=/'
++ : '=== variant netlink-nocaps'
++ sed -e 's|^ExecStart=/usr/libexec/rikuri/mdns-links|ExecStart=/run/rikuri-exp/mdns-links|' -e '/^\[Install\]/,$d' /tmp/plat01b/usr/lib/systemd/system/rikuri-mdns-links.service
++ sed 's/^RestrictAddressFamilies=AF_UNIX$/RestrictAddressFamilies=AF_UNIX AF_NETLINK/;s/^CapabilityBoundingSet=CAP_NET_ADMIN$/CapabilityBoundingSet=/'
++ sudo tee /run/systemd/system/exp-plat01b.service
++ grep -E '^(ExecStart|RestrictAddressFamilies|CapabilityBoundingSet)=' /run/systemd/system/exp-plat01b.service
+ExecStart=/run/rikuri-exp/mdns-links
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
++ sudo systemctl daemon-reload
++ for i in podman0 veth0
++ sudo resolvectl mdns podman0 yes
++ for i in podman0 veth0
++ sudo resolvectl mdns veth0 yes
++ resolvectl mdns
+Global: yes
+Link 2 (enp0s5): yes
+Link 11 (podman0): yes
+Link 12 (veth0): yes
++ sudo systemctl start exp-plat01b.service
+start exit 0
++ echo 'start exit 0'
++ systemctl show -p Result -p ExecMainStatus exp-plat01b.service
+Result=success
+ExecMainStatus=0
++ tail -8
++ sudo journalctl -q -u exp-plat01b.service --since -20s --no-pager
+Nov 10 01:19:02 rikuri-drill systemd[1]: exp-plat01b.service: Deactivated successfully.
+Nov 10 01:19:02 rikuri-drill systemd[1]: Finished exp-plat01b.service - Rikuri Node: mDNS only on physical interfaces.
+Nov 10 01:19:02 rikuri-drill systemd[1]: Starting exp-plat01b.service - Rikuri Node: mDNS only on physical interfaces...
+Nov 10 01:19:02 rikuri-drill mdns-links[235974]: allowed: enp0s5
+Nov 10 01:19:02 rikuri-drill mdns-links[235974]: mDNS off on podman0
+Nov 10 01:19:02 rikuri-drill mdns-links[235974]: mDNS off on veth0
+Nov 10 01:19:02 rikuri-drill systemd[1]: exp-plat01b.service: Deactivated successfully.
+Nov 10 01:19:02 rikuri-drill systemd[1]: Finished exp-plat01b.service - Rikuri Node: mDNS only on physical interfaces.
++ resolvectl mdns
+Global: yes
+Link 2 (enp0s5): yes
+Link 11 (podman0): no
+Link 12 (veth0): no

@@ -1,0 +1,151 @@
+++ hostname
++ H=rikuri-drill.local
++ sudo mkdir -p /etc/systemd/resolved.conf.d
++ printf '[Resolve]\nMulticastDNS=yes\n'
++ sudo tee /etc/systemd/resolved.conf.d/90-exp-plat01.conf
+[Resolve]
+MulticastDNS=yes
++ sudo systemctl restart systemd-resolved
++ sleep 3
++ sudo podman run -d --rm --name exp --network podman localhost/rikuri-os:gbp sleep 900
+7a1a5eab0c75794d39fc15255da875c0404b08fcb75128a5a3677bc4de077a40
++ sleep 3
++ ip -br link
+lo               UNKNOWN        00:00:00:00:00:00 <LOOPBACK,UP,LOWER_UP>
+enp0s5           UP             00:1c:42:8d:41:77 <BROADCAST,MULTICAST,UP,LOWER_UP>
+podman0          UP             22:e5:11:84:51:6d <BROADCAST,MULTICAST,UP,LOWER_UP>
+veth0@if2        UP             6e:3f:66:be:fc:b8 <BROADCAST,MULTICAST,UP,LOWER_UP>
+++ ls /sys/class/net
++ for i in $(ls /sys/class/net)
+++ '[' -e /sys/class/net/enp0s5/device ']'
+++ echo yes
+enp0s5 device=yes
++ printf '%s device=%s\n' enp0s5 yes
++ for i in $(ls /sys/class/net)
+++ '[' -e /sys/class/net/lo/device ']'
+++ echo no
+lo device=no
++ printf '%s device=%s\n' lo no
++ for i in $(ls /sys/class/net)
+podman0 device=no
+veth0 device=no
+++ '[' -e /sys/class/net/podman0/device ']'
+++ echo no
++ printf '%s device=%s\n' podman0 no
++ for i in $(ls /sys/class/net)
+++ '[' -e /sys/class/net/veth0/device ']'
+++ echo no
++ printf '%s device=%s\n' veth0 no
++ L
++ resolvectl mdns
+Global: yes
+Link 2 (enp0s5): yes
+Link 5 (podman0): yes
+Link 6 (veth0): yes
++ : 'A. all links on: a question from inside the bridge'
++ Q
++ sudo podman exec exp python3 - rikuri-drill.local
++ : 'B. podman0 and the veth off'
+++ ls /sys/class/net
++ for i in $(ls /sys/class/net)
++ '[' enp0s5 = lo ']'
++ '[' -e /sys/class/net/enp0s5/device ']'
++ for i in $(ls /sys/class/net)
++ '[' lo = lo ']'
++ for i in $(ls /sys/class/net)
++ '[' podman0 = lo ']'
++ '[' -e /sys/class/net/podman0/device ']'
++ sudo resolvectl mdns podman0 no
++ for i in $(ls /sys/class/net)
++ '[' veth0 = lo ']'
++ '[' -e /sys/class/net/veth0/device ']'
++ sudo resolvectl mdns veth0 no
++ L
++ resolvectl mdns
+Global: yes
+Link 2 (enp0s5): yes
+Link 5 (podman0): no
+Link 6 (veth0): no
++ Q
++ sudo podman exec exp python3 - rikuri-drill.local
++ : 'C. the container restarted: a new veth (and podman0 if netavark recreated it)'
++ sudo podman stop -t 1 exp
+time="2026-11-10T01:02:20+13:00" level=warning msg="StopSignal SIGTERM failed to stop container exp in 1 seconds, resorting to SIGKILL"
+exp
++ sleep 2
++ ip -br link
+lo               UNKNOWN        00:00:00:00:00:00 <LOOPBACK,UP,LOWER_UP>
+enp0s5           UP             00:1c:42:8d:41:77 <BROADCAST,MULTICAST,UP,LOWER_UP>
++ sudo podman run -d --rm --name exp --network podman localhost/rikuri-os:gbp sleep 900
+92b25713d2781f4ff2bd4f6498c755cd4b9b9e9576e5cdaca29a189cf430aaf2
++ sleep 3
++ ip -br link
+lo               UNKNOWN        00:00:00:00:00:00 <LOOPBACK,UP,LOWER_UP>
+enp0s5           UP             00:1c:42:8d:41:77 <BROADCAST,MULTICAST,UP,LOWER_UP>
+podman0          UP             4e:b0:82:2a:41:fc <BROADCAST,MULTICAST,UP,LOWER_UP>
+veth0@if2        UP             6e:3f:66:be:fc:b8 <BROADCAST,MULTICAST,UP,LOWER_UP>
++ L
++ resolvectl mdns
+Global: yes
+Link 2 (enp0s5): yes
+Link 7 (podman0): yes
+Link 8 (veth0): yes
++ : 'D. resolved restarted'
+++ ls /sys/class/net
++ for i in $(ls /sys/class/net)
++ '[' enp0s5 = lo ']'
++ '[' -e /sys/class/net/enp0s5/device ']'
++ for i in $(ls /sys/class/net)
++ '[' lo = lo ']'
++ for i in $(ls /sys/class/net)
++ '[' podman0 = lo ']'
++ '[' -e /sys/class/net/podman0/device ']'
++ sudo resolvectl mdns podman0 no
++ for i in $(ls /sys/class/net)
++ '[' veth0 = lo ']'
++ '[' -e /sys/class/net/veth0/device ']'
++ sudo resolvectl mdns veth0 no
++ L
++ resolvectl mdns
+Global: yes
+Link 2 (enp0s5): yes
+Link 7 (podman0): no
+Link 8 (veth0): no
++ sudo systemctl restart systemd-resolved
++ sleep 3
++ L
++ resolvectl mdns
+Global: yes
+Link 2 (enp0s5): yes
+Link 7 (podman0): no
+Link 8 (veth0): no
++ : 'E. a unit udev starts for each new link'
++ sudo mkdir -p /run/systemd/system /run/udev/rules.d
++ printf '[Service]\nType=oneshot\nExecStart=/bin/sh -c "for n in 1 2 3 4 5; do resolvectl mdns %%I no && break; sleep 1; done; echo %%I $$n $(resolvectl mdns %%I) >> /run/exp-plat01.log"\n'
++ sudo tee /run/systemd/system/exp-plat01@.service
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "for n in 1 2 3 4 5; do resolvectl mdns %I no && break; sleep 1; done; echo %I $$n $(resolvectl mdns %I) >> /run/exp-plat01.log"
++ printf 'ACTION=="add", SUBSYSTEM=="net", KERNEL!="lo", TEST!="device", TAG+="systemd", ENV{SYSTEMD_WANTS}+="exp-plat01@%%k.service"\n'
++ sudo tee /run/udev/rules.d/90-exp-plat01.rules
+ACTION=="add", SUBSYSTEM=="net", KERNEL!="lo", TEST!="device", TAG+="systemd", ENV{SYSTEMD_WANTS}+="exp-plat01@%k.service"
++ sudo systemctl daemon-reload
++ sudo udevadm control --reload
++ sudo podman stop -t 1 exp
+time="2026-11-10T01:02:29+13:00" level=warning msg="StopSignal SIGTERM failed to stop container exp in 1 seconds, resorting to SIGKILL"
+exp
++ sleep 2
++ sudo podman run -d --rm --name exp --network podman localhost/rikuri-os:gbp sleep 900
+d6634d0bb5e888b08cbab1e0a0c4673a6fe38543e7a70cdb6e6dc01a5364d929
++ sleep 5
++ sudo cat /run/exp-plat01.log
+podman0 1 Link 9 (podman0): no
+veth0 1 Link 10 (veth0): no
++ L
++ resolvectl mdns
+Global: yes
+Link 2 (enp0s5): yes
+Link 9 (podman0): no
+Link 10 (veth0): no
++ Q
++ sudo podman exec exp python3 - rikuri-drill.local

@@ -1,0 +1,30 @@
+++ hostname
++ H=rikuri-drill.local
++ : 'F. after E: podman0 and veth off (set by the udev-started unit)'
++ resolvectl mdns
+Global: yes
+Link 2 (enp0s5): yes
+Link 9 (podman0): no
+Link 10 (veth0): no
++ Q
++ sudo podman exec -i exp python3 - rikuri-drill.local
+answers: 0
++ : 'G. podman0 back on: the control'
++ sudo resolvectl mdns podman0 yes
++ sleep 2
++ resolvectl mdns
+Global: yes
+Link 2 (enp0s5): yes
+Link 9 (podman0): yes
+Link 10 (veth0): no
++ Q
++ sudo podman exec -i exp python3 - rikuri-drill.local
+answer from 10.88.0.1: A ['10.88.0.1']
+answer from 10.88.0.1: A ['10.88.0.1']
+answers: 2
++ : 'H. podman0 off again'
++ sudo resolvectl mdns podman0 no
++ sleep 2
++ Q
++ sudo podman exec -i exp python3 - rikuri-drill.local
+answers: 0

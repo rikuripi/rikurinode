@@ -21,7 +21,7 @@ owner, signs the owner in with a password and a revocable session, and
 reports every component as `unknown`, because nothing probes the node yet.
 The OS image builds the control plane in and runs it as a service of its own
 user, open to the LAN on 80 and 443 and answering as `rikurisetup.local` over
-mDNS, with a certificate that names that name and the node's current address,
+mDNS on its physical interfaces only (never on a container bridge), with a certificate that names that name and the node's current address,
 and a claim screen on the node's second
 console (Ctrl+Alt+F2) that shows its address, its CA fingerprint and, on
 Enter, a claim code; the setup page that takes the code is still to come.

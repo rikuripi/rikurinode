@@ -134,6 +134,17 @@ GUEST_ADDRESS = "ip -o -4 addr show scope global | awk '{print $4; exit}'"
 # The service's process and its restarts, compared around the follow.
 SHOW_CP_RUN = "systemctl show -p MainPID -p NRestarts rikuri-control-plane.service"
 MDNS_PORT = 5353
+# PLAT-01 (docs/build-records/2026-11-10-plat01-mdns-allow-list.md): a container
+# on podman's default network brings its bridge and a veth up; the allow-list's
+# units must leave mDNS on the NIC only.
+MDNS_CONTAINER = "drill-mdns"
+MDNS_RUN = "podman run -d --rm --name " + MDNS_CONTAINER + " --read-only %s sleep 600 && echo started"
+MDNS_STOP = "podman stop -t 1 " + MDNS_CONTAINER
+BRIDGE = "podman0"
+_ONESHOT = "systemctl show -p Result -p ExecMainStatus -p ExecMainStartTimestampMonotonic "
+SHOW_MDNS_LINKS = _ONESHOT + "rikuri-mdns-links.service"
+SHOW_MDNS_BRIDGE = _ONESHOT + "rikuri-mdns-links@" + BRIDGE + ".service"
+MDNS_READS = 10
 LLMNR_PORT = 5355
 MAX_BYTES = 64 * 1024
 
@@ -384,6 +395,24 @@ def same_run(before: str, after: str) -> bool:
             and b.get("NRestarts", "").isdigit() and b.get("NRestarts") == a.get("NRestarts"))
 
 
+def mdns_only(status: str, nic: str) -> bool:
+    """`resolvectl mdns` with the bridge up: on globally, `yes` on the NIC and on
+    no other link, and the bridge listed and off."""
+    lines = [line.strip() for line in (status or "").splitlines()]
+    nic = (nic or "").strip()
+    links = dict(m.groups() for m in (re.fullmatch(r"Link \d+ \((\S+)\): (\S+)", line) for line in lines) if m)
+    return (bool(nic) and "Global: yes" in lines and links.get(nic) == "yes"
+            and links.get(BRIDGE) == "no" and [n for n, v in links.items() if v == "yes"] == [nic])
+
+
+def oneshot_ran(show: str) -> bool:
+    """A oneshot unit started in this boot and exited 0 (Result is `success`
+    by default, so the start time must be set too)."""
+    v = _show(show)
+    return (v.get("Result") == "success" and v.get("ExecMainStatus") == "0"
+            and v.get("ExecMainStartTimestampMonotonic", "0") not in ("", "0"))
+
+
 def mdns_listens(ports: set) -> bool:
     """UDP: mDNS's 5353 bound outside loopback, LLMNR's 5355 not."""
     return MDNS_PORT in ports and LLMNR_PORT not in ports
@@ -481,6 +510,7 @@ EXPECTED = frozenset({"first boot", "the containers range at the first boot", "c
                       "HTTPS as rikurisetup.local with only the node's CA",
                       "the certificate follows the node's address without a restart", "the node is named rikurisetup",
                       "mDNS on the node's interface", "mDNS listens on 5353, LLMNR does not",
+                      "mDNS only on the node's interface, with a container's bridge up",
                       "no claim code in the journal"})
 
 
@@ -504,6 +534,7 @@ class Drill:
         self.registry = None
         self.screen_pause = 2   # seconds between reads of tty2, while the screen draws
         self.address_pause = 5  # seconds between tries as the guest's address, while the daemon looks again
+        self.mdns_pause = 2     # seconds between reads of resolved's mDNS, while udev's unit runs
 
     # --- plumbing ------------------------------------------------------------
     def log(self, message: str) -> None:
@@ -810,6 +841,31 @@ class Drill:
                    "the range once in both files: %s; the unit ran and succeeded: %s; a --userns=auto container "
                    "started: %s" % (once, unit_ran(unit), container_started(run)))
 
+    def mdns_links(self) -> None:
+        """PLAT-01: with a container's bridge and veth up, resolved answers
+        mDNS on the NIC only; the unit run when resolved started and the one
+        udev started for the bridge both succeeded."""
+        run = self.vm(MDNS_RUN % self.image, check=False) or ""
+        status = unit = bridge = nic = ""
+        try:
+            nic = (self.vm(NIC, check=False) or "").strip()
+            for read in range(MDNS_READS):
+                if read:
+                    time.sleep(self.mdns_pause)
+                status = self.vm(MDNS_STATUS, check=False) or ""
+                if mdns_only(status, nic):
+                    break
+            unit = self.vm(SHOW_MDNS_LINKS, check=False) or ""
+            bridge = self.vm(SHOW_MDNS_BRIDGE, check=False) or ""
+        finally:
+            self.vm(MDNS_STOP, check=False)
+        self.keep("01c-mdns-links.out", "\n".join([run, nic, status, unit, bridge]))
+        self.check("mDNS only on the node's interface, with a container's bridge up",
+                   container_started(run) and mdns_only(status, nic) and oneshot_ran(unit) and oneshot_ran(bridge),
+                   "a container started: %s; interface %r; %s; at resolved's start: %s; for %s: %s"
+                   % (container_started(run), nic, "; ".join(line.strip() for line in status.splitlines()[:8]),
+                      "; ".join(unit.split()), BRIDGE, "; ".join(bridge.split())))
+
     def subid_after_reboots(self) -> None:
         """Every boot since the first left the files as they were then."""
         files = self.subid_files()
@@ -992,6 +1048,7 @@ def main(argv=None) -> int:
         # (40057729110) saw case 1's update fail to finalize with it before.
         drill.subid_after_reboots()
         drill.userns_auto()
+        drill.mdns_links()
         # Last: the signed update stays staged, and no reboot follows.
         drill.serve_registry(a.registry)
         drill.configure_mirror()
