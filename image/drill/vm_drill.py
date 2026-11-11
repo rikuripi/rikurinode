@@ -565,7 +565,9 @@ EXPECTED = frozenset({"first boot", "the containers range at the first boot", "c
                       "the secure page never over HTTP",
                       "the owner's pages over HTTPS with only the node's CA",
                       "a wrong claim code is refused and the node stays unclaimed",
-                      "the owner's pages never over HTTP"})
+                      "the owner's pages never over HTTP",
+                      "the SetupHub over HTTPS only, with only the node's CA",
+                      "the hub refuses a browser without a session"})
 
 
 def verdict(results, error) -> int:
@@ -749,6 +751,23 @@ class Drill:
         return (status == 200 and setup_ok(body, fingerprint),
                 "as %s: %s %s" % (name, status, body[:120].decode("utf-8", "replace")))
 
+    def node_cafile(self, name: str):
+        """The node's CA, fetched in the clear from /ca.crt and written to
+        `name` in the workdir, so each check that trusts it stands alone:
+        (the file's path, or None, and what /ca.crt answered)."""
+        try:
+            status, body = parse_http(self.fetch_plain("/ca.crt"))
+            if status == 200:
+                pem = body.decode("ascii")
+                pem_fingerprint(pem)   # refuses what is not a certificate
+                cafile = os.path.join(self.workdir, name)
+                with open(cafile, "w", encoding="ascii") as f:
+                    f.write(pem)
+                return cafile, status
+        except (OSError, ValueError) as e:
+            return None, "no answer (%s)" % e
+        return None, status
+
     def setup_pages(self) -> None:
         """5c.3a, from outside the VM: the certificate screen in the clear at /,
         the secure page over HTTPS at /setup trusting only the node's CA (read
@@ -762,17 +781,7 @@ class Drill:
         self.check("the certificate screen over HTTP", ok, "GET http://127.0.0.1:%d/: %s" % (HTTP_PORT, detail))
         lines.append("GET / (plain): %s" % detail)
 
-        cafile = None
-        try:
-            status, body = parse_http(self.fetch_plain("/ca.crt"))
-            if status == 200:
-                pem = body.decode("ascii")
-                pem_fingerprint(pem)   # refuses what is not a certificate
-                cafile = os.path.join(self.workdir, "node-ca-pages.crt")
-                with open(cafile, "w", encoding="ascii") as f:
-                    f.write(pem)
-        except (OSError, ValueError) as e:
-            status = "no answer (%s)" % e
+        cafile, status = self.node_cafile("node-ca-pages.crt")
         if cafile:
             try:
                 ok, detail = page_ok(self.fetch_tls("/setup", cafile), "secure")
@@ -803,17 +812,7 @@ class Drill:
         claim with a code no node can show, refused, and the node still
         unclaimed after it. The password it sends is random and never kept."""
         lines = []
-        cafile = None
-        try:
-            status, body = parse_http(self.fetch_plain("/ca.crt"))
-            if status == 200:
-                pem = body.decode("ascii")
-                pem_fingerprint(pem)   # refuses what is not a certificate
-                cafile = os.path.join(self.workdir, "node-ca-owner.crt")
-                with open(cafile, "w", encoding="ascii") as f:
-                    f.write(pem)
-        except (OSError, ValueError) as e:
-            status = "no answer (%s)" % e
+        cafile, status = self.node_cafile("node-ca-owner.crt")
         no_ca = "no CA certificate to trust (/ca.crt: %s)" % status
 
         details = []
@@ -876,6 +875,49 @@ class Drill:
                    "GET http://127.0.0.1:%d: %s (wanted 308 to https://127.0.0.1 and the same path)" % (HTTP_PORT, detail))
         lines.append("GET %s (plain): %s" % (" ".join(OWNER_PAGES), detail))
         self.keep("02c-owner-pages.out", "\n".join(lines))
+
+    def setup_hub(self) -> None:
+        """5c.4a, from outside the VM, changing nothing: /home is the secure
+        page over HTTPS trusting only the node's CA, and in the clear only a
+        redirect to it; GET /api/hub without a session is refused as the API
+        refuses one. What the hub lists needs a claim, which the drill cannot
+        make (it would have to press Enter on tty2): the tests cover that."""
+        lines = []
+        cafile, status = self.node_cafile("node-ca-hub.crt")
+        no_ca = "no CA certificate to trust (/ca.crt: %s)" % status
+
+        if cafile:
+            try:
+                ok, detail = page_ok(self.fetch_tls("/home", cafile), "secure")
+            except OSError as e:     # a refused certificate among them
+                ok, detail = False, "no answer (%s)" % e
+            detail = "GET https://localhost:%d/home: %s" % (HTTPS_PORT, detail)
+        else:
+            ok, detail = False, no_ca
+        try:
+            raw = self.fetch_plain("/home")
+            location = http_header(raw, "location")
+            status, _ = parse_http(raw)
+            plain_ok = status == 308 and location == "https://127.0.0.1/home"
+            plain = "%s to %s" % (status, location)
+        except OSError as e:
+            plain_ok, plain = False, "no answer (%s)" % e
+        detail += "; GET http://127.0.0.1:%d/home: %s (wanted 308 to https://127.0.0.1/home)" % (HTTP_PORT, plain)
+        self.check("the SetupHub over HTTPS only, with only the node's CA", ok and plain_ok, detail)
+        lines.append(detail)
+
+        if cafile:
+            try:
+                status, body = parse_http(self.fetch_tls("/api/hub", cafile))
+                ok = status == 401 and body == b'{"error":"sign-in required"}'
+                detail = "GET /api/hub without a session: %s %s" % (status, body[:120].decode("utf-8", "replace"))
+            except OSError as e:
+                ok, detail = False, "no answer (%s)" % e
+        else:
+            ok, detail = False, no_ca
+        self.check("the hub refuses a browser without a session", ok, detail)
+        lines.append(detail)
+        self.keep("02d-setup-hub.out", "\n".join(lines))
 
     def control_plane(self) -> None:
         """5c.1, at the first boot: the service runs as its own user; from outside
@@ -1237,6 +1279,7 @@ def main(argv=None) -> int:
         drill.control_plane()
         drill.setup_pages()
         drill.owner_pages()
+        drill.setup_hub()
         drill.load_variants()
         for case in (drill.case1, drill.case2b, drill.case3):
             case()

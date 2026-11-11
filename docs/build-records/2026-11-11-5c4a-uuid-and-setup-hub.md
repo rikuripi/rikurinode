@@ -80,3 +80,13 @@ The owner (2026-11-11), after "Next":
   - `scripts/quality/tests`: Ran 200, only the 7 known errors of a copy without `.git`;
   - `.claude/hooks`: Ran 91, OK.
 - **Rust and the UI in CI:** this commit is pushed on its own, so that CI's run of it shows the red (see "CI run 1").
+
+### CI run 1 (`67f3c87`, the red commit alone): red, as wanted
+
+- `Full gate (Ubuntu)`: **Fail** at step 3, the drill's tests, https://github.com/rikuripi/rikurinode/actions/runs/43120088021. In `image/tests` (Ran 514), every failure is a new one: 13 in `SetupHubSteps` (no `setup_hub`) and `Verdict.test_every_check_names_a_step`. The hooks (91) and the quality tools (200) passed. The gate stops at its first failing step, so steps 8 (the UI) and 9 (Rust) did not run.
+- `Rust mutants (changed lines)`: **Fail** in its unmutated baseline, https://github.com/rikuripi/rikurinode/actions/runs/43120088034: `test result: FAILED. 141 passed; 5 failed`. The 5 are `hub::tests::every_step_in_order_with_its_state_from_the_node`, `hub::tests::the_name_is_done_only_when_the_kernel_has_another_name`, `node_id::tests::a_file_that_is_not_a_uuid_is_refused_and_never_replaced`, `node_id::tests::it_is_made_once_and_kept` and `node_id::tests::the_form_is_rfc_9562_version_4`. `the_ui_types_are_the_rust_types` passed: the hand-written TypeScript is ts-rs's output. Cargo stopped at the library's failure, so `tests/hub_route.rs` did not run.
+- **What is not yet seen red:** `tests/hub_route.rs` and the UI's hub tests. So the fix goes in two pushes. Part 1 holds the drill's `setup_hub` and the self-contained logic of `node_id.rs` and `hub.rs`, with no route and no claim wiring. The gate then gets past step 3 and runs the UI's tests (red: no hub on the page), and the mutants baseline gets past the library and runs `hub_route.rs` (red: no route, no UUID at the claim). Part 2 holds the route, the claim's UUID, the page and the docs.
+
+### Test changes after red
+
+- `ui/tests/owner.spec.ts`: one case added to "the hub unread when …", "a step listed twice". The page keys its list by step, and Svelte refuses a repeated key, so the parser must refuse such a reply; the red commit did not ask that. It adds a case and loosens none.

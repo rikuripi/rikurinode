@@ -72,17 +72,34 @@ pub struct HubReport {
 }
 
 /// The name step, from a read of [`HOSTNAME_FILE`].
-pub fn name_state(_hostname: &io::Result<String>) -> StepState {
-    StepState::Unknown // red: 5c.4a
+pub fn name_state(hostname: &io::Result<String>) -> StepState {
+    match hostname.as_deref().map(str::trim) {
+        Ok("") | Err(_) => StepState::Unknown,
+        Ok(SETUP_HOSTNAME) => StepState::Next,
+        Ok(_) => StepState::Done,
+    }
 }
 
 /// The hub for a node whose UUID is `node_id`, whose owner exists or not,
 /// and whose hostname read gave `hostname`. Reached only over the node's TLS,
 /// so the connection is done by the time anyone reads this.
-pub fn report(node_id: String, _owner: bool, _hostname: &io::Result<String>) -> HubReport {
+pub fn report(node_id: String, owner: bool, hostname: &io::Result<String>) -> HubReport {
+    let state = |step: SetupStep| match step {
+        SetupStep::Connection => StepState::Done,
+        SetupStep::Owner if owner => StepState::Done,
+        SetupStep::Owner => StepState::Next,
+        SetupStep::Name => name_state(hostname),
+        SetupStep::Bitcoin | SetupStep::Lightning | SetupStep::Backup => StepState::Later,
+    };
     HubReport {
         node_id,
-        steps: Vec::new(), // red: 5c.4a
+        steps: STEPS
+            .iter()
+            .map(|&step| HubStep {
+                step,
+                state: state(step),
+            })
+            .collect(),
     }
 }
 

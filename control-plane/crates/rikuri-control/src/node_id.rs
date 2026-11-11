@@ -14,10 +14,15 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::random::RandomError;
+use crate::random::{self, RandomError};
 use crate::state::{StateDir, StateError};
 
 pub const FILE: &str = "node-uuid.json";
+/// Held while the UUID is read or made, so two callers (the claim, a hub
+/// read) can never both make one.
+const LOCK: &str = "node-uuid.lock";
+/// Where `8-4-4-4-12` puts its hyphens.
+const HYPHENS: [usize; 4] = [8, 13, 18, 23];
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NodeUuidFile {
@@ -47,23 +52,60 @@ impl std::error::Error for NodeIdError {}
 
 /// RFC 9562's version-4 form of 16 random bytes: version 4, variant 10,
 /// lowercase, `8-4-4-4-12`.
-pub fn format_v4(_bytes: [u8; 16]) -> String {
-    String::new() // red: 5c.4a
+pub fn format_v4(mut bytes: [u8; 16]) -> String {
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    let hex = random::hex(&bytes);
+    format!(
+        "{}-{}-{}-{}-{}",
+        &hex[0..8],
+        &hex[8..12],
+        &hex[12..16],
+        &hex[16..20],
+        &hex[20..32]
+    )
 }
 
 /// Whether `text` is exactly what [`format_v4`] writes.
-pub fn is_v4(_text: &str) -> bool {
-    false // red: 5c.4a
+pub fn is_v4(text: &str) -> bool {
+    let b = text.as_bytes();
+    b.len() == 36
+        && b.iter().enumerate().all(|(i, &c)| {
+            if HYPHENS.contains(&i) {
+                c == b'-'
+            } else {
+                c.is_ascii_digit() || (b'a'..=b'f').contains(&c)
+            }
+        })
+        && b[14] == b'4'
+        && matches!(b[19], b'8' | b'9' | b'a' | b'b')
 }
 
 /// The node's UUID, if it has one.
-pub fn load(_dir: &StateDir) -> Result<Option<String>, NodeIdError> {
-    Ok(None) // red: 5c.4a
+pub fn load(dir: &StateDir) -> Result<Option<String>, NodeIdError> {
+    match dir
+        .read_json::<NodeUuidFile>(FILE)
+        .map_err(NodeIdError::State)?
+    {
+        None => Ok(None),
+        Some(file) if is_v4(&file.uuid) => Ok(Some(file.uuid)),
+        Some(_) => Err(NodeIdError::Malformed),
+    }
 }
 
 /// The node's UUID, made now if it has none; never replaced.
-pub fn ensure(_dir: &StateDir, _now_unix: u64) -> Result<String, NodeIdError> {
-    Err(NodeIdError::Malformed) // red: 5c.4a
+pub fn ensure(dir: &StateDir, now_unix: u64) -> Result<String, NodeIdError> {
+    let _held = dir.lock(LOCK).map_err(NodeIdError::State)?;
+    if let Some(uuid) = load(dir)? {
+        return Ok(uuid);
+    }
+    let uuid = format_v4(random::bytes::<16>().map_err(NodeIdError::Random)?);
+    let file = NodeUuidFile {
+        uuid: uuid.clone(),
+        created_unix: now_unix,
+    };
+    dir.write_json(FILE, &file).map_err(NodeIdError::State)?;
+    Ok(uuid)
 }
 
 #[cfg(test)]
