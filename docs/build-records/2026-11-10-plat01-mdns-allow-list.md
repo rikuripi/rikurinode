@@ -5,8 +5,8 @@
 | **Date** | 2026-11-10 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/plat01-mdns-allow-list`, from `main` at `88b1645`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | contract `4aed201`; red `d83db2e`, fix `04e4c7d`, docs `e7dc915`; repair red `9a2e1f8`, repair fix `968db6e`, round 1 `7a4c773`; merged as `0bfdb03` (#79) |
+| **Status** | DONE (the N150's LAN view: Not yet proven) |
 | **Change type** | feature |
 
 ## Why
@@ -97,3 +97,13 @@
 I-1 is closed by `968db6e`, backed by evidence 06; no Important finding is open. Nits:
 - R2-N1, the exact description of evidence 06: fixed above;
 - R2-N2, backlog: `unit_problems` prints a missing `CapabilityBoundingSet=` as `CapabilityBoundingSet=...`.
+
+## Close-out
+
+- **CI run 2 of 6** (on `7a4c773`), every job passed:
+  - `CI` ([run 42936794467](https://github.com/rikuripi/rikurinode/actions/runs/42936794467)): `Full gate (Ubuntu)`, py3.9, py3.12;
+  - `OS image` ([run 42936794445](https://github.com/rikuripi/rikurinode/actions/runs/42936794445)): the build and check, the USB installer, and the VM drill. Every check passed, the new one too: `PASS mDNS only on the node's interface, with a container's bridge up: a container started: True; interface 'enp0s2'; Global: yes; Link 3 (podman0): no; Link 2 (enp0s2): yes; Link 4 (veth0): no; at resolved's start: Result=success; … ExecMainStatus=0; for podman0: Result=success; … ExecMainStatus=0`. So the shipped units ran with their real triggers: the plain unit when resolved started, and the template that udev started for `podman0`.
+- **Merged** by the owner as `0bfdb03` (#79, 2026-11-11T16:41:18Z). The round 2 record (`91081c9`, held back so CI run 2 was not cancelled) and this close-out land in their own PR.
+- **Every item in "Done when" seen**, except the one the contract marks Not yet proven: what a LAN client receives on the N150 (the owner's check).
+- **Used:** CI 2 of 6 runs; one repair cycle of two; two review rounds of two.
+- **Backlog, from this task:** N2–N9 (round 1) and R2-N2 (round 2), above.
