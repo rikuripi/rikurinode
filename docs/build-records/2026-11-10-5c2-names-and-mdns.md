@@ -5,8 +5,8 @@
 | **Date** | 2026-11-10 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/5c2-names-and-mdns`, from `main` at `51a6fcc`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `d3cd734` contract and experiment; `851444f` red; `28b7242` fix; `bc7391a` test changes after red; `b7bde47` docs; `b1c4fa3` repair 1 red; `11f1727` repair 1 fix; `523f34c`, `b38d976` record; `cde65af` repair 2 tests; `1cb7068` merge of the branch's update from `main`. PR [#77](https://github.com/rikuripi/rikurinode/pull/77), merged by the owner as `a31a11a` (2026-11-11) |
+| **Status** | DONE (an owner decision on PLAT-01's rule text open; a phone on the N150's LAN not yet proven) |
 | **Change type** | feature |
 
 ## Why
@@ -88,3 +88,33 @@ No Important finding open. I-1, I-2 and I-3 and nit 2 pass. Two nits for the bac
   - `tls.rs:136:9: replace <impl fmt::Display for TlsError>::fmt -> fmt::Result with Ok(Default::default())`.
   That run is the red: both mutants observed surviving.
 - **Repair 2** (the last this task allows): two tests in `tls.rs`, with no product change. `the_served_certificate_prints_no_key` checks that `CurrentCert`'s Debug is exactly `CurrentCert`, since it holds the server's private key. `a_refused_refresh_says_why_in_the_log` checks the exact text of `CaChanged`, the only thing the follow loop logs when it refuses. They pass against the code as it is, so their red is the CI run above; their green is the mutants run on the next push. New tests only, nothing changed or loosened.
+
+## Close-out (2026-11-11)
+
+**CI on the merged head `1cb7068`**, all green:
+- `CI` run 42930732375, with `Full gate (Ubuntu)` and the tools' py3.9 and py3.12 jobs.
+- `Rust mutants` run 42930732358: `21 mutants tested in 2m: 16 caught, 5 unviable`, none missed. Repair 2's two tests kill the two mutants run 2 missed.
+- `OS image` run 42930732376: the image built and checked; the USB installer installed the node in a VM; the rollback drill passed. Its new checks, as the drill logged them:
+  - `PASS HTTPS as rikurisetup.local with only the node's CA` (200; `names` `["localhost","rikurisetup.local"]`).
+  - `PASS the certificate follows the node's address without a restart`. Before the route, as `10.0.2.15`: "certificate is not valid for '10.0.2.15'". After it: 200. The service was `MainPID=724; NRestarts=0` before and after.
+  - `PASS the node is named rikurisetup`.
+  - `PASS mDNS on the node's interface` (`Global: yes; Link 2 (enp0s2): yes`).
+  - `PASS mDNS listens on 5353, LLMNR does not` (UDP outside loopback: `[5353]`).
+  - `PASS the firewall opens 80, 443 and mDNS`.
+  - Every check it had before 5c.2 also passed.
+
+**CI runs:** four of the six allowed, on `851444f`, `523f34c`, `5579068` (the branch's update from `main`, made on GitHub) and `1cb7068`. **Repairs:** two of two. **Reviews:** two of two; round 2 left no Important finding.
+
+**Done when, against the contract:**
+- Unit tests red first: **Pass**. Python red seen in rikuri-drill. Rust red seen in CI for `tls.rs`'s first three tests. Not observed for `tests/address_change.rs` or for repair 1's `refresh_never_makes_or_uses_another_ca`; both are red by reading only.
+- The experiment's answer recorded, and the design follows it: **Pass**.
+- CI's VM drill: **Pass**, its new checks and every old one.
+- The gate, the py3.9 and py3.12 jobs, Rust mutants and the OS image workflow: **Pass**.
+- One verifier pass with no Important finding: **Pass** on round 2, after repair 1.
+- A phone or laptop on the N150's LAN reaching `http://rikurisetup.local`: **Not yet proven**. It is the owner's report in the install runbook, step 9.
+
+**Open for the owner:** PLAT-01 (above). The register's rule asks for an allow-list and a tripwire; this design answers on every link and has neither. The choice is to clarify the rule text, or a follow-up task for the allow-list and the tripwire.
+
+**Backlog, not started:**
+- round 1's nits 3 to 5;
+- round 2's key-chain hardening: verify a fresh certificate against `current.ca` before `set`.
