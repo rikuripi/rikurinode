@@ -414,7 +414,11 @@ class Verdict(unittest.TestCase):
             "mDNS on the node's interface", "mDNS listens on 5353, LLMNR does not",
             "mDNS only on the node's interface, with a container's bridge up",
             "the certificate screen over HTTP", "the secure page over HTTPS with only the node's CA",
-            "the secure page never over HTTP"})
+            "the secure page never over HTTP",
+            # 5c.3b, added after the red commit (Build Record, "Test changes after red"):
+            "the owner's pages over HTTPS with only the node's CA",
+            "a wrong claim code is refused and the node stays unclaimed",
+            "the owner's pages never over HTTP"})
 
     def test_all_passed_and_no_error_is_zero(self):
         self.assertEqual(d.verdict(self.ALL, None), 0)
