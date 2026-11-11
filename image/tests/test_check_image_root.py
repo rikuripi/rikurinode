@@ -1554,8 +1554,11 @@ class MdnsLinks(unittest.TestCase):
         keys = cir.MDNS_LINKS_KEYS["[Service]"]
         self.assertEqual(keys["Type"], "oneshot")
         self.assertEqual(keys["ExecStart"], "/" + MDNS_LINKS)
-        self.assertEqual(keys["CapabilityBoundingSet"], "CAP_NET_ADMIN")
-        self.assertEqual(keys["RestrictAddressFamilies"], "AF_UNIX")
+        # resolvectl opens netlink to find a link by name, and resolved lets
+        # root set a link's mDNS with no capability (verifier I-1 and N1;
+        # evidence 06-shipped-units.out): AF_NETLINK in, every capability out.
+        self.assertEqual(keys["CapabilityBoundingSet"], "")
+        self.assertEqual(keys["RestrictAddressFamilies"], "AF_UNIX AF_NETLINK")
         self.assertEqual(keys["IPAddressDeny"], "any")
         self.assertEqual(cir.MDNS_LINKS_KEYS["[Unit]"]["After"], "systemd-resolved.service")
         self.assertEqual(cir.MDNS_LINKS_KEYS["[Install]"], {"WantedBy": "systemd-resolved.service"})
@@ -1571,9 +1574,12 @@ class MdnsLinks(unittest.TestCase):
             good = shipped_file(unit).decode("ascii")
             for old, new, why in (
                     ("Type=oneshot\n", "Type=oneshot\nExecStartPre=/bin/true\n", "another command"),
-                    ("CapabilityBoundingSet=CAP_NET_ADMIN", "CapabilityBoundingSet=CAP_NET_ADMIN CAP_SYS_ADMIN",
-                     "another capability"),
-                    ("RestrictAddressFamilies=AF_UNIX", "RestrictAddressFamilies=AF_UNIX AF_INET", "the network"),
+                    ("CapabilityBoundingSet=\n", "CapabilityBoundingSet=CAP_NET_ADMIN\n", "a capability"),
+                    ("CapabilityBoundingSet=\n", "", "every capability kept"),
+                    ("RestrictAddressFamilies=AF_UNIX AF_NETLINK", "RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET",
+                     "the network"),
+                    ("RestrictAddressFamilies=AF_UNIX AF_NETLINK", "RestrictAddressFamilies=AF_UNIX",
+                     "no netlink: resolvectl cannot find a link"),
                     ("ProtectSystem=strict", "ProtectSystem=full", "a weaker protection"),
                     ("NoNewPrivileges=yes\n", "NoNewPrivileges=yes\nNoNewPrivileges=no\n", "a later value"),
                     ("After=systemd-resolved.service", "After=network.target", "before resolved")):
