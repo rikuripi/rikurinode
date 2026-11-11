@@ -146,8 +146,9 @@ class Image(unittest.TestCase):
         self.assertIn('if [ "$EVENT" != "pull_request" ]', lines)
         self.assertIn("image=true", lines)
         self.assertIn("image=false", lines)
-        # 5c.1: the image holds the control plane, so a change to it builds and drills the image.
-        self.assertIn("^(image/|control-plane/|\\.github/workflows/image\\.yml$)", lines)
+        # 5c.1: the image holds the control plane, so a change to it builds and drills the image;
+        # 5c.3a: and the control plane embeds the UI, so a change to ui/ does too.
+        self.assertIn("^(image/|control-plane/|ui/|\\.github/workflows/image\\.yml$)", lines)
         # A pipe into grep -q can fail under GitHub's `bash -e -o pipefail` and
         # skip the drill wrongly; the match reads a here-string instead.
         self.assertNotRegex(lines, r"\|\s*grep -q")
@@ -242,26 +243,45 @@ class ControlPlaneInTheImage(unittest.TestCase):
         paths = next(line for line in push if line.startswith("paths:"))
         self.assertIn('"control-plane/**"', paths)
 
+    def test_a_push_that_changes_the_ui_runs_the_image_workflow(self):
+        # 5c.3a: the UI is embedded in the control plane's binary.
+        on = block(read(IMAGE), "on")
+        push = on[on.index("push:") + 1:]
+        paths = next(line for line in push if line.startswith("paths:"))
+        self.assertIn('"ui/**"', paths)
+
     def test_the_context_lets_in_only_what_the_image_copies(self):
         with open(os.path.join(ROOT, ".containerignore"), encoding="utf-8") as f:
             lines = [l for l in f.read().splitlines() if l.strip() and not l.startswith("#")]
-        self.assertEqual(lines, ["*", "!image/rootfs", "!control-plane", "control-plane/target"])
+        # 5c.3a: the UI's sources go in for its build stage; what a local install,
+        # a build or the render tests leave in ui/ never does.
+        self.assertEqual(lines, ["*", "!image/rootfs", "!control-plane", "control-plane/target",
+                                 "!ui", "ui/node_modules", "ui/dist", "ui/test-results", "ui/playwright-report"])
 
     def test_the_build_stage_is_the_pinned_rust_image(self):
         with open(os.path.join(ROOT, "image", "Containerfile"), encoding="utf-8") as f:
             text = f.read()
         froms = [l.split() for l in text.splitlines() if l.startswith("FROM ")]
-        self.assertEqual(froms[0][1], "docker.io/library/rust:1.98.1-slim-trixie@sha256:"
+        # 5c.3a: the UI's stage comes first; the control plane embeds what it built.
+        self.assertEqual(froms[0][1], UI_NODE_IMAGE)
+        self.assertEqual(froms[0][2:], ["AS", "ui"])
+        self.assertEqual(froms[1][1], "docker.io/library/rust:1.98.1-slim-trixie@sha256:"
                          "4cd829461bd5c4d511c32e269da9cb8929223b666519d8004e35fc8d1d771ab7")
-        self.assertEqual(froms[0][2:], ["AS", "control-plane"])
+        self.assertEqual(froms[1][2:], ["AS", "control-plane"])
+        self.assertEqual(len(froms), 3, "the UI, the control plane, and the OS")
         with open(os.path.join(ROOT, "rust-toolchain.toml"), encoding="utf-8") as f:
             self.assertIn('channel = "1.98.1"', f.read(), "the build stage's Rust is the repository's")
         self.assertIn("--locked", text)
         copies = [l for l in text.splitlines() if l.startswith("COPY ")]
-        self.assertEqual(copies, ["COPY control-plane/ /src/",
+        self.assertEqual(copies, ["COPY ui/ /ui/",
+                                  "COPY control-plane/ /src/",
+                                  "COPY --from=ui /ui/dist/ /ui/dist/",
                                   "COPY --from=control-plane /src/target/release/rikuri-control-plane "
                                   "/usr/bin/rikuri-control-plane",
                                   "COPY image/rootfs/ /"])
+        runs = [l for l in text.splitlines() if l.startswith("RUN ")]
+        self.assertEqual(runs[0], "RUN " + UI_BUILD, "the UI's stage installs as locked, scripts off")
+        self.assertIn("RIKURI_UI_DIR=/ui", text)
 
 
 class Publish(unittest.TestCase):
@@ -393,10 +413,84 @@ class Publish(unittest.TestCase):
 class Gate(unittest.TestCase):
     def test_runs_the_stale_audit_warning_last(self):
         text = read(GATE)
-        self.assertIn('step "10/10', text)
+        self.assertIn('step "11/11', text)
         self.assertIn("python3 scripts/quality/advisory_audit_age.py", text)
-        self.assertIn("all 10 steps passed", text)
-        self.assertLess(text.index("advisory_audit_age.py"), text.index("all 10 steps passed"))
+        self.assertIn("all 11 steps passed", text)
+        self.assertLess(text.index("advisory_audit_age.py"), text.index("all 11 steps passed"))
+
+
+# 5c.3a: the UI's toolchain, pinned by digest, present only in CI and the image's build
+# (docs/build-records/2026-11-11-5c3a-ui-pipeline.md).
+UI = os.path.join(ROOT, "scripts", "quality", "ui.sh")
+UI_NODE_IMAGE = ("docker.io/library/node:22.23.4-trixie-slim@sha256:"
+                 "be1e2a3dc2c4fd68cdfadad2a696a280e0d2749098bee509230174d72fb768c6")
+UI_TEST_IMAGE = ("mcr.microsoft.com/playwright:v1.64.1-noble@sha256:"
+                 "2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f")
+UI_INSTALL = "npm ci --ignore-scripts --engine-strict --no-audit --no-fund"
+UI_BUILD = UI_INSTALL + " && npm run build"
+
+
+class UiGate(unittest.TestCase):
+    def setUp(self):
+        self.ui = read(UI)
+        self.gate = read(GATE)
+
+    def runs(self):
+        """Each `docker run` in ui.sh, continuation lines joined."""
+        joined = re.sub(r"\\\n\s*", " ", self.ui)
+        return [line.strip() for line in joined.splitlines() if "docker run" in line]
+
+    def test_the_gate_builds_and_tests_the_ui_before_the_rust_steps(self):
+        self.assertIn("scripts/quality/ui.sh build", self.gate)
+        self.assertIn("scripts/quality/ui.sh test", self.gate)
+        self.assertLess(self.gate.index("scripts/quality/ui.sh build"), self.gate.index('"${CARGO[@]}" fetch'))
+        self.assertIn("command -v docker", self.gate)
+
+    def test_the_toolchains_are_the_pinned_images_and_nothing_else(self):
+        self.assertIn('NODE_IMAGE="%s"' % UI_NODE_IMAGE, self.ui)
+        self.assertIn('TEST_IMAGE="%s"' % UI_TEST_IMAGE, self.ui)
+        images = set(re.findall(r'"\$(NODE_IMAGE|TEST_IMAGE)"', " ".join(self.runs())))
+        self.assertEqual(images, {"NODE_IMAGE", "TEST_IMAGE"})
+        for run in self.runs():
+            with self.subTest(run=run):
+                self.assertRegex(run, r'"\$(NODE_IMAGE|TEST_IMAGE)"')
+                self.assertIn("--rm", run)
+                self.assertIn('--user "$(id -u):$(id -g)"', run)
+                self.assertNotIn("--privileged", run)
+                self.assertNotIn("docker.sock", run)
+                self.assertNotIn("-e GITHUB_TOKEN", run)
+
+    def test_only_the_install_reaches_the_network(self):
+        runs = self.runs()
+        installs = [r for r in runs if UI_INSTALL in r]
+        self.assertEqual(len(installs), 1, runs)
+        self.assertNotIn("--network none", installs[0])
+        for run in runs:
+            if run is installs[0]:
+                continue
+            with self.subTest(run=run):
+                self.assertIn("--network none", run)
+        self.assertNotIn("npm install", self.ui)
+        self.assertNotIn("playwright install", self.ui)
+
+    def test_type_check_build_and_render_tests(self):
+        joined = " ".join(self.runs())
+        self.assertIn("npm run check", joined)
+        self.assertIn("npm run build", joined)
+        self.assertIn("npm run test:render", joined)
+        test = [r for r in self.runs() if "test:render" in r]
+        self.assertEqual(len(test), 1)
+        self.assertIn('"$TEST_IMAGE"', test[0])
+
+    def test_the_render_tests_cannot_be_trimmed(self):
+        config = read(os.path.join(ROOT, "ui", "playwright.config.ts"))
+        self.assertIn("forbidOnly: true", config)
+        self.assertIn("retries: 0", config)
+        for spec in ("render.spec.ts", "text-keys.spec.ts"):
+            with self.subTest(spec=spec):
+                text = read(os.path.join(ROOT, "ui", "tests", spec))
+                self.assertNotRegex(text, r"\.(only|skip|fixme)\(")
+
 
 
 class Mutants(unittest.TestCase):
@@ -443,6 +537,14 @@ class Mutants(unittest.TestCase):
         # every flag (Rust mutants, run 1 of this PR: job 128288915034).
         self.assertIn("cargo-mutants mutants --version", self.lines)
         self.assertFalse([line for line in self.lines if re.match(r"^cargo-mutants --", line)])
+
+    def test_the_ui_is_built_before_the_crates_are_fetched(self):
+        # 5c.3a: the control plane embeds the UI's build, and the copy of
+        # control-plane/ that cargo-mutants builds finds it by RIKURI_UI_DIR.
+        self.assertIn("RIKURI_UI_DIR: ${{ github.workspace }}/ui", self.lines)
+        self.assertIn("scripts/quality/ui.sh build", self.lines)
+        self.assertLess(self.text.index("scripts/quality/ui.sh build"),
+                        self.text.index("scripts/cargo.sh fetch --locked"))
 
     def test_the_toolchain_is_rust_toolchain_tomls(self):
         channel = re.search(r'^channel = "([^"]+)"$', read(TOOLCHAIN), re.M).group(1)

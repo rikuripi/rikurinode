@@ -412,7 +412,9 @@ class Verdict(unittest.TestCase):
             "HTTPS as rikurisetup.local with only the node's CA",
             "the certificate follows the node's address without a restart", "the node is named rikurisetup",
             "mDNS on the node's interface", "mDNS listens on 5353, LLMNR does not",
-            "mDNS only on the node's interface, with a container's bridge up"})
+            "mDNS only on the node's interface, with a container's bridge up",
+            "the certificate screen over HTTP", "the secure page over HTTPS with only the node's CA",
+            "the secure page never over HTTP"})
 
     def test_all_passed_and_no_error_is_zero(self):
         self.assertEqual(d.verdict(self.ALL, None), 0)
@@ -1281,3 +1283,153 @@ class MdnsLinksSteps(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---- 5c.3a: the setup pages ----------------------------------------------
+
+PAGE_CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; "
+            "connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'")
+
+
+def page(name, status=200, csp=PAGE_CSP, ctype="text/html; charset=utf-8", nosniff=True,
+         script='<script type="module" crossorigin src="/assets/cert-1a2b3c.js"></script>'):
+    headers = [("content-type", ctype)]
+    if csp is not None:
+        headers.append(("content-security-policy", csp))
+    if nosniff:
+        headers.append(("x-content-type-options", "nosniff"))
+    body = ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            '<meta name="rikuri-page" content="%s">%s</head><body><div id="app"></div></body></html>'
+            % (name, script)).encode()
+    head = "".join("%s: %s\r\n" % h for h in headers)
+    return (b"HTTP/1.1 %d OK\r\n" % status) + head.encode() + (b"content-length: %d\r\n\r\n" % len(body)) + body
+
+
+REDIRECT_SETUP = b"HTTP/1.1 308 Permanent Redirect\r\nlocation: https://127.0.0.1/setup\r\ncontent-length: 0\r\n\r\n"
+
+
+class SetupPagesReads(unittest.TestCase):
+    def test_the_drill_writes_the_policy_out(self):
+        self.assertEqual(d.PAGE_CSP, PAGE_CSP)
+
+    def test_a_header_is_found_whatever_its_case(self):
+        raw = b"HTTP/1.1 200 OK\r\nContent-Security-Policy: a\r\nX-Other: b\r\n\r\nbody"
+        self.assertEqual(d.http_header(raw, "content-security-policy"), "a")
+        self.assertEqual(d.http_header(raw, "X-OTHER"), "b")
+        self.assertIsNone(d.http_header(raw, "location"))
+        self.assertIsNone(d.http_header(b"garbage", "location"))
+        self.assertIsNone(d.http_header(b"", "location"))
+
+    def test_a_good_page_passes(self):
+        for name in ("certificate", "secure"):
+            ok, detail = d.page_ok(page(name), name)
+            self.assertTrue(ok, detail)
+
+    def test_each_defect_fails(self):
+        for why, raw in (
+                ("not found", page("certificate", status=404)),
+                ("not HTML", page("certificate", ctype="text/plain")),
+                ("no policy", page("certificate", csp=None)),
+                ("an inline script allowed", page("certificate", csp=PAGE_CSP.replace(
+                    "script-src 'self'", "script-src 'self' 'unsafe-inline'"))),
+                ("another origin allowed", page("certificate", csp=PAGE_CSP.replace(
+                    "connect-src 'self'", "connect-src 'self' https://example.com"))),
+                ("framing allowed", page("certificate", csp=PAGE_CSP.replace("; frame-ancestors 'none'", ""))),
+                ("no nosniff", page("certificate", nosniff=False)),
+                ("the other page", page("secure")),
+                ("an inline script", page("certificate", script="<script>alert(1)</script>")),
+                ("an outside script", page("certificate",
+                                           script='<script src="https://cdn.example/x.js"></script>')),
+                ("not HTTP", b"garbage"),
+                ("nothing", b"")):
+            with self.subTest(why=why):
+                ok, detail = d.page_ok(raw, "certificate")
+                self.assertFalse(ok, detail)
+                self.assertTrue(detail)
+
+
+class SetupPagesDrill(d.Drill):
+    """A Drill whose forwarded ports answer as the node's listeners would."""
+
+    def __init__(self, artifacts, **over):
+        super().__init__("localhost/rikuri-os:test", artifacts, artifacts)
+        self.log = lambda message: None
+        self.plain = {"/ca.crt": http(200, PEM_CERT.encode()), "/": page("certificate"), "/setup": REDIRECT_SETUP}
+        self.plain.update(over.pop("plain", {}))
+        self.secure = over.pop("secure", page("secure"))
+        self.requests = []
+        assert not over, over
+
+    def vm(self, command, check=True, timeout=300, stdin=None):
+        raise AssertionError("the pages' checks run no VM command: %r" % command)
+
+    def fetch_plain(self, path):
+        self.requests.append(("plain", path, None))
+        answer = self.plain[path]
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    def fetch_tls(self, path, cafile, name=d.SERVER_NAME):
+        self.requests.append(("tls", path, cafile))
+        assert path == "/setup", path
+        assert name == d.SERVER_NAME, name
+        if not cafile:
+            raise ssl_module().SSLCertVerificationError(1, "verify failed")
+        with open(cafile, encoding="ascii") as f:
+            assert f.read() == PEM_CERT
+        if isinstance(self.secure, Exception):
+            raise self.secure
+        return self.secure
+
+
+class SetupPagesSteps(unittest.TestCase):
+    CASES = ("the certificate screen over HTTP", "the secure page over HTTPS with only the node's CA",
+             "the secure page never over HTTP")
+
+    def setUp(self):
+        self.artifacts = tempfile.mkdtemp(prefix="drill-artifacts-")
+        self.addCleanup(shutil.rmtree, self.artifacts)
+
+    def results(self, **over):
+        drill = SetupPagesDrill(self.artifacts, **over)
+        drill.setup_pages()
+        return drill, {name: ok for name, ok, _ in drill.results}
+
+    def test_every_case_is_expected(self):
+        for case in self.CASES:
+            self.assertIn(case, d.EXPECTED)
+
+    def test_a_good_node_passes_every_case_and_keeps_the_evidence(self):
+        drill, results = self.results()
+        self.assertEqual(results, dict.fromkeys(self.CASES, True))
+        self.assertIn(("plain", "/", None), drill.requests)
+        tls = [r for r in drill.requests if r[0] == "tls"]
+        self.assertEqual(len(tls), 1)
+        self.assertTrue(tls[0][2], "the secure page is read trusting only the node's CA")
+        self.assertTrue(os.path.isfile(os.path.join(self.artifacts, "02b-setup-pages.out")))
+
+    def test_each_failure_fails_its_own_case(self):
+        for case, over in (
+                ("the certificate screen over HTTP", {"plain": {"/": page("certificate", status=404)}}),
+                ("the certificate screen over HTTP", {"plain": {"/": page("certificate", csp=None)}}),
+                ("the certificate screen over HTTP", {"plain": {"/": ConnectionResetError(104, "reset")}}),
+                ("the secure page over HTTPS with only the node's CA", {"secure": page("certificate")}),
+                ("the secure page over HTTPS with only the node's CA", {"secure": page("secure", status=500)}),
+                ("the secure page over HTTPS with only the node's CA",
+                 {"secure": ssl_module().SSLCertVerificationError(1, "verify failed")}),
+                ("the secure page never over HTTP", {"plain": {"/setup": page("secure")}}),
+                ("the secure page never over HTTP", {"plain": {"/setup": REDIRECT_SETUP.replace(
+                    b"https://", b"http://")}}),
+                ("the secure page never over HTTP", {"plain": {"/setup": REDIRECT_SETUP.replace(
+                    b"/setup\r\n", b"/\r\n")}}),
+                ("the secure page never over HTTP", {"plain": {"/setup": ConnectionResetError(104, "reset")}})):
+            with self.subTest(case=case, over=over):
+                _, results = self.results(**over)
+                self.assertFalse(results[case], case)
+                self.assertEqual([c for c in self.CASES if not results[c]], [case])
+
+    def test_no_ca_certificate_fails_the_secure_page_without_a_client_that_trusts_anything(self):
+        drill, results = self.results(plain={"/ca.crt": http(404, b"")})
+        self.assertFalse(results["the secure page over HTTPS with only the node's CA"])
+        self.assertEqual([r for r in drill.requests if r[0] == "tls"], [])

@@ -633,6 +633,27 @@ async fn redirect_to_https(State(app): State<App>, req: Request) -> Response {
 mod tests {
     use super::*;
 
+    /// D23: the UI's types are generated from these (ts-rs). The committed
+    /// files must be exactly what ts-rs makes of them, so a renamed field
+    /// fails here, and the UI's type check fails on the code that read it.
+    /// This test only compares; it never writes.
+    #[test]
+    fn the_ui_types_are_the_rust_types() {
+        use ts_rs::TS;
+        let cfg = ts_rs::Config::new();
+        let dir = std::path::Path::new(env!("RIKURI_UI_DIR")).join("src/generated");
+        for (file, ts) in [
+            ("SetupClaim.ts", SetupClaim::export_to_string(&cfg).unwrap()),
+            ("SetupReport.ts", SetupReport::export_to_string(&cfg).unwrap()),
+        ] {
+            let committed = std::fs::read_to_string(dir.join(file)).unwrap_or_default();
+            assert_eq!(
+                committed, ts,
+                "ui/src/generated/{file} is not the Rust type; it must read exactly:\n{ts}"
+            );
+        }
+    }
+
     #[test]
     fn the_authority_keeps_the_host_and_drops_the_port() {
         assert_eq!(authority_host("localhost:80"), "localhost");
