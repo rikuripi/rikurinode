@@ -5,8 +5,8 @@
 | **Date** | 2026-11-11 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/5c3a-ui-pipeline`, from `main` at `a25544d`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | PR #81, merged by the owner as `17cd28a` (head `03ff963`), 2026-11-11T20:53:50Z: the contract `aab8a32`; the look `ed8864d`–`3517ed6`; the packages `701abc1`, `0006361`; red `6b211b9`; tests after red `6b9536f`; the fix `e7f5b48`; docs `a94bfc8`, `fb701f1`; repair 1 red `4beca2d`, fix `46deff2`, docs `8e63b48`; repair 2 `03ff963`. This close-out: the record only. |
+| **Status** | DONE (2026-11-11) |
 | **Change type** | feature |
 
 ## Why
@@ -172,3 +172,34 @@ The owner (2026-11-11), after "Next" for 5c.3:
   - The fix: `src/env.d.ts` references `vite/client`. Read from the published `vite@8.3.5/client.d.ts`: `declare module '*.css' {}`.
   - Also checked before this last repair: the font files `fonts.css` names (`fredoka-latin-600-normal.woff2`, `inter-latin-400-normal.woff2`, `inter-latin-600-normal.woff2`) are in the published `@fontsource` 5.3.0 packages.
   - No test code changed.
+- **CI run 3** (head `03ff963`):
+  - **Pass:**
+    - `Full gate (Ubuntu)`, all 11 steps, including the UI's build and render tests and the Rust tests (run 43090784124);
+    - `Rust mutants (changed lines)` (43090784655);
+    - the guard and quality-tool tests, py3.9 and py3.12;
+    - the advisory audit;
+    - building and checking the OS image;
+    - the USB installer drill.
+  - **Fail:** `Boot the image in a VM and run the rollback drill` (run 43090784113, job 130768257277).
+    - Every control plane check passed, verbatim. Among them are this change's three: `PASS the certificate screen over HTTP: GET http://127.0.0.1:8080/: certificate page: 200, policy, nosniff, scripts from /assets/ only`, `PASS the secure page over HTTPS with only the node's CA: GET https://localhost:8443/setup: secure page: 200, policy, nosniff, scripts from /assets/ only`, and `PASS the secure page never over HTTP: GET http://127.0.0.1:8080/setup: 308 to https://127.0.0.1/setup`.
+    - Then `variants built in the VM: broken, a, b`, and `FAIL drill: timed out after 600s waiting for the broken update to roll back`. That is case 1, a deliberately broken update that greenboot must roll back. Nothing in this change touches the update, greenboot or the variants.
+  - Not yet known: whether case 1's timeout also explains the two failed push-to-`main` image runs (43060782808 and 42932353260). GitHub's API answered 502 when read.
+- **Status: NEEDS_OWNER_DECISION.** Both repair cycles and both review rounds are used. Whether to re-run the failed drill job (no code change, CI run 4 of 8) or to open its own task for case 1 is the owner's call.
+- **The owner, on case 1** (2026-11-11): "Re-run the drill job (Recommended)". Only job 130768257277 of run 43090784113 was re-run, with no code change (CI run 4 of 8). If case 1 passes, 5c.3a closes as DONE and the timeout is recorded as a one-off. If it fails again, 5c.3a stops as BLOCKED, and case 1 becomes its own task.
+- **The drill's re-run, and the merge** (2026-11-11): the owner reported "Drill re-run passed". The app's status for PR #81 then showed 5 checks passing and none failing. Reading the re-run attempt's jobs from GitHub's API returned HTTP 502, then a 404 for attempt 2, so this record has the owner's observation and the app's count, not the drill's own lines from the re-run. The owner merged PR #81 at head `03ff963` as `17cd28a`. Case 1's timeout in run 3 is recorded as a one-off: it passed on re-run with no code change. Whether the two earlier failed push-to-`main` image runs had the same cause stays unread (the same 502s).
+- **Close-out:**
+  - **Done when, Pass:**
+    - the look, picked by the owner, with tokens that follow it;
+    - red before green: Python on rikuri-drill, the Rust lib on the Mac, the rest in CI's runs 1 and 2;
+    - every package's inspection recorded, and the audit passing with the owner's recorded exception;
+    - the full gate, py3.9 and py3.12, Rust mutants and the image workflow on the PR, the rollback drill on its re-run;
+    - the VM drill's new checks and every earlier one;
+    - the verifier: round 1 FAIL, round 2 no Important finding, Not yet proven only on CI, which then passed.
+  - **Not yet proven:** the steps on a real phone and laptop against the N150, both phone routes included.
+  - **Used:** both repair cycles and both review rounds; CI runs 1 to 3 on the PR, plus the drill's re-run, so 4 of 8; and this close-out's own run.
+  - **Backlog, not started:**
+    - the weekly OSV audit should read `ui/package-lock.json`;
+    - an exception should pin the advisory's severity;
+    - the image's UI stage could run the audit and type check;
+    - case 1's timeout, if it recurs;
+    - 5c.3b, the claim, password and sign-in pages.
