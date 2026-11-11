@@ -1281,10 +1281,6 @@ class MdnsLinksSteps(unittest.TestCase):
         self.assertEqual(drill.commands.count("resolvectl mdns"), d.MDNS_READS)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 # ---- 5c.3a: the setup pages ----------------------------------------------
 
 PAGE_CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; "
@@ -1433,3 +1429,7 @@ class SetupPagesSteps(unittest.TestCase):
         drill, results = self.results(plain={"/ca.crt": http(404, b"")})
         self.assertFalse(results["the secure page over HTTPS with only the node's CA"])
         self.assertEqual([r for r in drill.requests if r[0] == "tls"], [])
+
+
+if __name__ == "__main__":
+    unittest.main()

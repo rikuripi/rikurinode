@@ -187,3 +187,20 @@ async fn the_shipped_fonts_carry_their_licence() {
     }
     node.stop().await;
 }
+
+/// Repair 1 (verifier nit 5): the icon both pages link, on both listeners,
+/// as an SVG the browser may not sniff, revalidated like the pages.
+#[tokio::test]
+async fn the_icon_is_served_on_both_listeners() {
+    let node = Node::start().await;
+    let secure = https(&node, Req::get("/favicon.svg")).await.unwrap();
+    let clear = plain(&node, Req::get("/favicon.svg")).await;
+    for reply in [&secure, &clear] {
+        assert_eq!(reply.status, 200, "{}", reply.body);
+        assert_eq!(reply.header("content-type"), Some("image/svg+xml"));
+        assert_eq!(reply.header("x-content-type-options"), Some("nosniff"));
+        assert_eq!(reply.header("cache-control"), Some("no-cache"));
+        assert!(reply.body.contains("<svg"), "{}", reply.body);
+    }
+    node.stop().await;
+}

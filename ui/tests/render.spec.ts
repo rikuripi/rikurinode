@@ -2,6 +2,7 @@
 // Record: docs/build-records/2026-11-11-5c3a-ui-pipeline.md
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { CSP } from '../src/csp';
 
 const en: Record<string, string> = JSON.parse(readFileSync(new URL('../src/i18n/en.json', import.meta.url), 'utf8'));
 const t = (key: string): string => {
@@ -120,6 +121,47 @@ test.describe('the secure page', () => {
       for (const key of ['state.done', 'state.armed', 'state.expired', 'state.retired', 'state.unarmed']) {
         await expect(page.getByText(t(key))).toHaveCount(0);
       }
+    });
+  }
+});
+
+// Repair 1 (verifier I2): the claim screen shows the CA's fingerprint, and
+// the padlock opens the node's server certificate, which the CA signs: the
+// reader must be sent to the CA in the chain, by its name, and on iPhone and
+// iPad (which have no certificate viewer in Safari) to the installed profile.
+test.describe('the fingerprint check', () => {
+  test('sends the reader to the CA they installed, by its name, never to the server certificate', async ({ page }) => {
+    await stubSetup(page, { claimed: false, claim: 'armed', ca_fingerprint_sha256: FINGERPRINT, names: ['rikurisetup.local'] });
+    await page.goto('/');
+    const steps = page.getByRole('list', { name: t('secure.check_steps') });
+    await expect(steps).toContainText('Rikuri Node CA');
+    await expect(steps).toContainText('SHA-256');
+    const iphone = page.getByText(t('secure.check_iphone'));
+    await expect(iphone).toBeVisible();
+    expect(t('secure.check_iphone')).toContain('VPN & Device Management');
+    expect(t('secure.check_iphone')).toContain('Rikuri Node CA');
+  });
+});
+
+// Repair 1 (verifier I3): the preview sends the control plane's own CSP
+// (ui/src/csp.ts, kept equal to src/ui.rs by scripts/quality/tests), so a
+// page the node's policy would break fails here, not only on the node.
+test.describe("the node's policy", () => {
+  for (const path of ['/cert.html', '/']) {
+    test(`${path} is drawn under the CSP the node sends, with no violation`, async ({ page }) => {
+      await page.addInitScript(() => {
+        const seen: string[] = [];
+        (window as unknown as { __violations: string[] }).__violations = seen;
+        document.addEventListener('securitypolicyviolation', (e) => seen.push(`${e.violatedDirective} ${e.blockedURI}`));
+      });
+      const errors = watchErrors(page);
+      await stubSetup(page, { claimed: false, claim: 'armed', ca_fingerprint_sha256: FINGERPRINT, names: ['rikurisetup.local'] });
+      const response = await page.goto(path);
+      expect(response?.headers()['content-security-policy']).toBe(CSP);
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+      await expect(page.getByRole('button').or(page.getByText(t('state.armed'))).first()).toBeVisible();
+      expect(await page.evaluate(() => (window as unknown as { __violations: string[] }).__violations)).toEqual([]);
+      expect(errors).toEqual([]);
     });
   }
 });

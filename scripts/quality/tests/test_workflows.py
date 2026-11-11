@@ -491,6 +491,32 @@ class UiGate(unittest.TestCase):
                 text = read(os.path.join(ROOT, "ui", "tests", spec))
                 self.assertNotRegex(text, r"\.(only|skip|fixme)\(")
 
+    def test_the_audit_is_read_by_the_gates_checker(self):
+        # Repair 1 (verifier I1): npm's --audit-level is all or nothing; the
+        # report is read by scripts/quality/npm_audit.py against the recorded
+        # exceptions, and a report that cannot be read fails.
+        install = [r for r in self.runs() if UI_INSTALL in r]
+        self.assertEqual(len(install), 1)
+        self.assertIn("npm audit --json > npm-audit.json", install[0])
+        self.assertIn('python3 scripts/quality/npm_audit.py "$UI/npm-audit.json" "$UI/audit-exceptions.json"',
+                      self.ui)
+        self.assertLess(self.ui.index("npm_audit.py"), self.ui.index("npm run check"))
+        self.assertNotIn("--audit-level", self.ui)
+        self.assertIn("/ui/npm-audit.json", read(os.path.join(ROOT, ".gitignore")).splitlines())
+
+    def test_the_render_tests_see_the_nodes_policy(self):
+        # Repair 1 (verifier I3): the preview the render tests load sends the
+        # control plane's CSP, so a page the policy would break fails there.
+        rust = read(os.path.join(ROOT, "control-plane", "crates", "rikuri-control", "src", "ui.rs"))
+        literal = re.search(r'pub\(crate\) const CSP: &str = "((?:[^"\\]|\\.)*)";', rust, re.S).group(1)
+        rust_csp = re.sub(r"\\\n\s*", "", literal)
+        ts = read(os.path.join(ROOT, "ui", "src", "csp.ts"))
+        ts_csp = re.search(r'^export const CSP =\s*"([^"]+)";$', ts, re.M).group(1)
+        self.assertEqual(ts_csp, rust_csp)
+        config = read(os.path.join(ROOT, "ui", "vite.config.ts"))
+        self.assertIn("import { CSP } from './src/csp';", config)
+        self.assertRegex(config, r"preview: \{ headers: \{ 'Content-Security-Policy': CSP \} \}")
+
 
 
 class Mutants(unittest.TestCase):
