@@ -172,6 +172,9 @@ test.describe('the claim', () => {
     ['a server failure', { status: 500, body: refused('internal error') }, 'form.unknown', 'none'],
     ['no answer', 'offline', 'form.offline', 'none'],
     ['an answer that is not the API\'s', { status: 502, body: '<html>' }, 'form.unknown', 'none'],
+    // Repair 1 (verifier I2): the framework's own refusals, in plain text, not the API's shape.
+    ['a body too large', { status: 413, body: 'length limit exceeded' }, 'form.unknown', 'none'],
+    ['a body the node cannot read', { status: 400, body: 'Failed to parse the request body as JSON' }, 'form.unknown', 'none'],
   ] as const) {
     test(`a refused claim: ${why}`, async ({ page }) => {
       await api(page, { 'GET /api/setup': { status: 200, body: UNCLAIMED }, 'POST /api/claim': answer as Answer });
@@ -278,6 +281,26 @@ test.describe('sign-in', () => {
     await expect(submit).toBeEnabled();
   });
 
+  // Repair 1 (verifier I2): every other answer is said, and the password is kept to try again.
+  for (const [why, answer, key] of [
+    ['a server failure', { status: 500, body: refused('internal error') }, 'form.unknown'],
+    ['no answer', 'offline', 'form.offline'],
+    ['an answer that is not the API\'s', { status: 502, body: '<html>' }, 'form.unknown'],
+    ['a body too large', { status: 413, body: 'length limit exceeded' }, 'form.unknown'],
+    ['a body the node cannot read', { status: 400, body: 'Failed to parse the request body as JSON' }, 'form.unknown'],
+  ] as const) {
+    test(`a refused sign-in: ${why}`, async ({ page }) => {
+      await api(page, { 'GET /api/setup': { status: 200, body: CLAIMED }, 'POST /api/session': answer as Answer });
+      await page.goto('/signin');
+      await page.getByLabel(t('signin.password'), { exact: true }).fill(PASSWORD);
+      await page.getByRole('button', { name: t('signin.submit') }).click();
+      await expect(page.getByRole('alert')).toContainText(t(key));
+      await expect(page.getByRole('alert')).not.toContainText(t('signin.wrong'));
+      await expect(page).toHaveURL(/\/signin$/);
+      await expect(page.getByLabel(t('signin.password'), { exact: true })).toHaveValue(PASSWORD);
+    });
+  }
+
   test('an unclaimed node leads to the claim instead', async ({ page }) => {
     await api(page, { 'GET /api/setup': { status: 200, body: UNCLAIMED } });
     await page.goto('/signin');
@@ -321,4 +344,67 @@ test.describe('the node, signed in', () => {
     await expect(page.getByRole('alert')).toContainText(t('form.unknown'));
     await expect(page).toHaveURL(/\/home$/);
   });
+
+  // Repair 1 (verifier I2, N4).
+  test('a sign-out with no answer is said, and the page stays', async ({ page }) => {
+    await api(page, { 'GET /api/session': { status: 200, body: INFO }, 'DELETE /api/session': 'offline' });
+    await page.goto('/home');
+    await page.getByRole('button', { name: t('home.signout') }).click();
+    await expect(page.getByRole('alert')).toContainText(t('form.offline'));
+    await expect(page).toHaveURL(/\/home$/);
+  });
+
+  test('a sign-out of a session that has already ended: to sign-in', async ({ page }) => {
+    await api(page, {
+      'GET /api/session': { status: 200, body: INFO },
+      'DELETE /api/session': { status: 401, body: refused('not signed in') },
+      'GET /api/setup': { status: 200, body: CLAIMED },
+    });
+    await page.goto('/home');
+    await page.getByRole('button', { name: t('home.signout') }).click();
+    await expect(page).toHaveURL(/\/signin$/);
+  });
 });
+
+// Repair 1 (verifier N4): a session the page cannot read leads nowhere, rather than to a guess.
+test('the secure page guesses no way on when the session cannot be read', async ({ page }) => {
+  await api(page, { 'GET /api/setup': { status: 200, body: CLAIMED }, 'GET /api/session': 'offline' });
+  await page.goto('/');
+  await expect(page.getByText(t('state.done'))).toBeVisible();
+  for (const key of ['secure.claim_link', 'secure.signin_link', 'secure.home_link']) {
+    await expect(page.getByRole('link', { name: t(key) })).toHaveCount(0);
+  }
+});
+
+// Repair 1 (verifier N2): the owner's pages, like the setup pages in
+// render.spec.ts, fit the screen with every control at least 44 px, and are
+// drawn under the node's CSP with no violation and no error.
+for (const [path, answers, ready] of [
+  ['/claim', { 'GET /api/setup': { status: 200, body: UNCLAIMED } }, 'claim.submit'],
+  ['/signin', { 'GET /api/setup': { status: 200, body: CLAIMED } }, 'signin.submit'],
+  ['/home', { 'GET /api/session': { status: 200, body: INFO } }, 'home.signout'],
+] as const) {
+  test(`${path} fits, with every control at least 44 px, under the node's CSP`, async ({ page }) => {
+    await page.addInitScript(() => {
+      const seen: string[] = [];
+      (window as unknown as { __violations: string[] }).__violations = seen;
+      document.addEventListener('securitypolicyviolation', (e) => seen.push(`${e.violatedDirective} ${e.blockedURI}`));
+    });
+    const errors = watchErrors(page);
+    await api(page, answers as Record<string, Answer>);
+    await page.goto(path);
+    await expect(page.getByRole('button', { name: t(ready) })).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow, 'no sideways scroll').toBeLessThanOrEqual(0);
+    const small = await page.evaluate(() =>
+      [...document.querySelectorAll('a[href], button, input')]
+        .filter((el) => (el as HTMLElement).offsetParent !== null)
+        .map((el) => ({ text: el.textContent?.trim() || el.id, box: el.getBoundingClientRect() }))
+        .filter(({ box }) => box.height < 44 || box.width < 44)
+        .map(({ text }) => text),
+    );
+    expect(small, 'every control at least 44 px').toEqual([]);
+    expect(await page.evaluate(() => (window as unknown as { __violations: string[] }).__violations)).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+}
