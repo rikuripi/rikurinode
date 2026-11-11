@@ -1,0 +1,40 @@
+# mDNS only on the node's physical interfaces (PLAT-01): whenever
+# systemd-resolved starts, turn its mDNS off on every link without hardware
+# behind it, then read its state back. Root, for resolved's per-link setting
+# (CAP_NET_ADMIN); no network but resolved's D-Bus socket. Each key appears
+# once, as image/check_image_root.py requires (a closed world).
+# Record: docs/build-records/2026-11-10-plat01-mdns-allow-list.md
+[Unit]
+Description=Rikuri Node: mDNS only on physical interfaces
+After=systemd-resolved.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/rikuri/mdns-links
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+CapabilityBoundingSet=CAP_NET_ADMIN
+RestrictAddressFamilies=AF_UNIX
+IPAddressDeny=any
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+UMask=0077
+
+[Install]
+WantedBy=systemd-resolved.service

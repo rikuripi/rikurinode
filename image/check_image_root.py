@@ -214,6 +214,31 @@ MDNS_OVERRIDES = ("etc/systemd/resolved.conf.d/90-rikuri-mdns.conf",
 HOSTNAME = "etc/hostname"
 HOSTNAME_LINES = ["rikurisetup"]
 CP_REQUIRED = "usr/lib/greenboot/check/required.d/50-rikuri-control-plane"
+# mDNS only on links with hardware behind them, the lessons register's PLAT-01
+# (docs/build-records/2026-11-10-plat01-mdns-allow-list.md): the program, the
+# unit run whenever resolved starts, the template udev starts for each new
+# link, and the rule. Root with one capability, no network but D-Bus.
+MDNS_LINKS = "usr/libexec/rikuri/mdns-links"
+MDNS_LINKS_UNIT = "usr/lib/systemd/system/rikuri-mdns-links.service"
+MDNS_LINKS_TEMPLATE = "usr/lib/systemd/system/rikuri-mdns-links@.service"
+MDNS_LINKS_WANTS = "usr/lib/systemd/system/systemd-resolved.service.wants/rikuri-mdns-links.service"
+_MDNS_LINKS_SERVICE = {"Type": "oneshot", "ExecStart": "/" + MDNS_LINKS, **_HARDENING,
+                       "RestrictAddressFamilies": "AF_UNIX", "PrivateDevices": "yes",
+                       "CapabilityBoundingSet": "CAP_NET_ADMIN", "IPAddressDeny": "any", "UMask": "0077"}
+MDNS_LINKS_KEYS = {"[Unit]": {"Description": None, "After": "systemd-resolved.service"},
+                   "[Service]": _MDNS_LINKS_SERVICE,
+                   "[Install]": {"WantedBy": "systemd-resolved.service"}}
+MDNS_LINKS_TEMPLATE_KEYS = {"[Unit]": {"Description": None, "After": "systemd-resolved.service"},
+                            "[Service]": {**_MDNS_LINKS_SERVICE, "ExecStart": "/" + MDNS_LINKS + " %i"}}
+MDNS_LINKS_RULE = "usr/lib/udev/rules.d/90-rikuri-mdns-links.rules"
+MDNS_LINKS_RULE_LINES = ['ACTION=="add", SUBSYSTEM=="net", KERNEL!="lo", TAG+="systemd", '
+                         'ENV{SYSTEMD_WANTS}+="rikuri-mdns-links@%k.service"']
+# udev(7): a rule of the same name in /etc, /run or /usr/local/lib replaces it.
+MDNS_LINKS_RULE_OVERRIDES = ("etc/udev/rules.d/90-rikuri-mdns-links.rules",
+                             "run/udev/rules.d/90-rikuri-mdns-links.rules",
+                             "usr/local/lib/udev/rules.d/90-rikuri-mdns-links.rules")
+# One instance's own unit or drop-in, in any unit folder, overrides the template for that link.
+MDNS_LINKS_INSTANCE = re.compile(r"^rikuri-mdns-links@[^/]+\.service(\.d)?$")
 # The one form of a line read alike by greenboot and this check (the docstring).
 PRINTABLE_LINE = re.compile(rb"^[\x20-\x7e]*$")
 # Quadlet's rootful unit folders an image can ship (podman-systemd.unit(5); /run is not in one).
@@ -682,6 +707,33 @@ def _exact_lines(root: str, rel: str, expected: list, comment, why: str) -> list
     return []
 
 
+def check_mdns_links(root: str) -> list:
+    found = []
+    problem = _executable_problem(root, MDNS_LINKS, "nothing would keep mDNS off the container bridges")
+    if problem:
+        found.append(problem)
+    found += _unit_found(root, MDNS_LINKS_UNIT, MDNS_LINKS_KEYS,
+                         "is not the allow-list's run whenever resolved starts, as root with one capability")
+    found += _unit_found(root, MDNS_LINKS_TEMPLATE, MDNS_LINKS_TEMPLATE_KEYS,
+                         "is not the allow-list's run for one link, as root with one capability")
+    problem = _enabled_problem(root, MDNS_LINKS_WANTS, MDNS_LINKS_UNIT)
+    if problem:
+        found.append(problem)
+    for d in SUBID_UNIT_DIRS:
+        if _lstat_in(root, d) is None or not os.path.isdir(os.path.join(root, d)):
+            continue
+        for name in sorted(os.listdir(os.path.join(root, d))):
+            if MDNS_LINKS_INSTANCE.match(name):
+                found.append("%s/%s: overrides the template for one link; the image must not ship it" % (d, name))
+    found += _exact_lines(root, MDNS_LINKS_RULE, MDNS_LINKS_RULE_LINES, lambda line: line.startswith("#"),
+                          "no new link would have mDNS turned off")
+    for rel in MDNS_LINKS_RULE_OVERRIDES:
+        problem = _override_problem(root, rel, "overrides the rule on every node")
+        if problem:
+            found.append("%s: %s" % (rel, problem))
+    return found
+
+
 def check_control_plane(root: str) -> list:
     found = []
     problem = _executable_problem(root, CP_BIN, "the image's build stage did not install it")
@@ -898,7 +950,7 @@ def check_signature_policy(root: str) -> list:
 def check_root(root: str, release: str, note=lambda line: None) -> list:
     return (check_os_release(root, release) + check_greenboot(root) + check_unapplied_update(root)
             + check_trigger_at_shutdown(root) + check_containers_subid(root) + check_containers_user(root)
-            + check_subid_wanted(root) + check_control_plane(root)
+            + check_subid_wanted(root) + check_control_plane(root) + check_mdns_links(root)
             + check_quadlet_health(root) + check_signature_policy(root) + check_no_private_keys(root, note))
 
 

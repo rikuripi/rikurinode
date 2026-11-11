@@ -1,0 +1,6 @@
+# mDNS only on the node's physical interfaces (PLAT-01): for every new network
+# link, start the unit that decides by the allow-list whether resolved may
+# answer mDNS there. The rule names no interface: the program decides.
+# Checked by image/check_image_root.py.
+# Record: docs/build-records/2026-11-10-plat01-mdns-allow-list.md
+ACTION=="add", SUBSYSTEM=="net", KERNEL!="lo", TAG+="systemd", ENV{SYSTEMD_WANTS}+="rikuri-mdns-links@%k.service"

@@ -1,0 +1,125 @@
+#!/usr/bin/python3 -I
+"""mDNS only on the node's physical interfaces (the lessons register's PLAT-01).
+
+systemd-resolved answers the node's name, rikurisetup.local, on every link
+where its mDNS is on, and the image turns it on globally. This turns it off
+on every link without hardware behind it: container bridges, veths, tunnels,
+whatever they are named and however often they are made again. The old node
+lost its name to a bridge because a deny-list can never name the next one,
+so this is an allow-list, derived at each run: a link with a `device` entry
+in /sys/class/net, never loopback.
+
+With no argument (whenever resolved starts) it turns mDNS off on every link
+outside the list and reads resolved's state back: it fails if any link
+outside the list still answers. With one link's name (udev starts it for
+each new link) it does the same for that link alone. An empty list is
+refused and nothing is changed: a node with no physical interface has no
+LAN to answer, and an empty list is a symptom, not a setting.
+
+It runs one program, resolvectl, by its full path; it reads /sys and writes
+nothing. Exit 0: done; 1: refused, or a link outside the list answers;
+2: an argument that is not one interface's name.
+Record: docs/build-records/2026-11-10-plat01-mdns-allow-list.md
+"""
+from __future__ import annotations
+
+import os
+import re
+import subprocess
+import sys
+import time
+
+RESOLVECTL = "/usr/bin/resolvectl"
+SYSFS = "/sys/class/net"
+# A new link may reach resolved a moment after udev sees it.
+TRIES = 5
+PAUSE_S = 1
+# An interface's name as the kernel allows it (IFNAMSIZ 16, so 15 characters),
+# without a leading dot or dash and without '/' or blanks.
+NAME = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.:-]{0,14}")
+LINK_LINE = re.compile(r"Link \d+ \(([^()\s]+)\): (\S+)")
+
+
+def resolvectl(argv):
+    p = subprocess.run(argv, capture_output=True, text=True, timeout=30)
+    return p.returncode, p.stdout + p.stderr
+
+
+def allowed(sysfs: str) -> list:
+    """The links with hardware behind them, loopback never."""
+    return sorted(n for n in os.listdir(sysfs) if n != "lo" and os.path.lexists(os.path.join(sysfs, n, "device")))
+
+
+def others(sysfs: str, allow: list) -> list:
+    """Every link but the allowed ones and loopback."""
+    return sorted(n for n in os.listdir(sysfs) if n != "lo" and n not in allow)
+
+
+def answering(text: str):
+    """The links `resolvectl mdns` shows answering (`yes`), or None if the text
+    is not its status."""
+    lines = [line.strip() for line in (text or "").splitlines() if line.strip()]
+    if not lines:
+        return None
+    links = []
+    for line in lines:
+        if line.startswith("Global: "):
+            continue
+        m = LINK_LINE.fullmatch(line)
+        if not m:
+            return None
+        if m.group(2) == "yes":
+            links.append(m.group(1))
+    return links
+
+
+def turn_off(name: str, run, sleep, out) -> bool:
+    for attempt in range(TRIES):
+        if attempt:
+            sleep(PAUSE_S)
+        code, text = run([RESOLVECTL, "mdns", name, "no"])
+        if code == 0:
+            print("mDNS off on %s" % name, file=out)
+            return True
+        last = text.strip()
+    print("could not turn mDNS off on %s after %d tries: %s" % (name, TRIES, last), file=out)
+    return False
+
+
+def main(argv=None, sysfs=SYSFS, run=resolvectl, sleep=time.sleep, out=sys.stdout) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if len(argv) > 1 or (argv and not NAME.fullmatch(argv[0])):
+        print("usage: mdns-links [INTERFACE]", file=out)
+        return 2
+    allow = allowed(sysfs)
+    if not allow:
+        print("refusing: no physical interface in %s; an empty allow-list is not a setting, "
+              "and nothing is changed" % sysfs, file=out)
+        return 1
+    print("allowed: %s" % " ".join(allow), file=out)
+    if argv:
+        name = argv[0]
+        if name == "lo" or name in allow:
+            return 0
+        if not os.path.isdir(os.path.join(sysfs, name)):
+            print("%s: gone before this ran; nothing to do" % name, file=out)
+            return 0
+        targets, status_argv = [name], [RESOLVECTL, "mdns", name]
+    else:
+        targets, status_argv = others(sysfs, allow), [RESOLVECTL, "mdns"]
+    for name in targets:
+        turn_off(name, run, sleep, out)
+    code, text = run(status_argv)
+    links = answering(text) if code == 0 else None
+    if links is None:
+        print("could not read resolved's mDNS state: %s" % text.strip(), file=out)
+        return 1
+    outside = [n for n in links if n not in allow]
+    if outside:
+        print("%s answers mDNS outside the allow-list (%s)" % (" ".join(outside), " ".join(allow)), file=out)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

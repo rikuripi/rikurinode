@@ -1612,7 +1612,8 @@ class MdnsLinks(unittest.TestCase):
     def test_overrides_are_findings(self):
         for rel in ("etc/systemd/system/rikuri-mdns-links.service",
                     "etc/systemd/system/rikuri-mdns-links.service.d/x.conf",
-                    "run/systemd/system/rikuri-mdns-links@.service.d/x.conf",
+                    "usr/local/lib/systemd/system/rikuri-mdns-links@.service.d/x.conf",
+                    "usr/local/lib/udev/rules.d/90-rikuri-mdns-links.rules",
                     "etc/systemd/system/rikuri-mdns-links@.service",
                     "etc/systemd/system/rikuri-mdns-links@podman0.service.d/x.conf",
                     "usr/lib/systemd/system/rikuri-mdns-links@veth0.service",
