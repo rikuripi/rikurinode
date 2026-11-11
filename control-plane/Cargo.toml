@@ -35,6 +35,9 @@ tokio = { version = "=1.53.3", features = ["io-util", "macros", "net", "rt-multi
 tokio-rustls = { version = "=0.26.6", default-features = false, features = ["ring", "tls12"] }
 tower = { version = "=0.5.3", features = ["util"] }
 tracing = "=0.1.44"
+# Test-only: the UI's types from the Rust ones (D23). Record:
+# docs/build-records/2026-11-11-5c3a-ui-pipeline.md
+ts-rs = { version = "=12.0.1", features = ["serde-compat"] }
 tracing-subscriber = { version = "=0.3.23", features = ["env-filter"] }
 
 [workspace.lints.rust]

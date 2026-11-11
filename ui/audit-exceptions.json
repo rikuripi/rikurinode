@@ -1,0 +1,8 @@
+{
+  "GHSA-gcqx-w48m-w2h4": {
+    "package": "deepmerge",
+    "why": "low; no fixed version; pulled in only by @sveltejs/vite-plugin-svelte, which every Svelte build needs; build-time only, never shipped to the node; it merges the plugin's own configuration, never network input (owner, 2026-11-11)",
+    "review_by": "2027-02-11",
+    "record": "docs/build-records/2026-11-11-5c3a-ui-pipeline.md"
+  }
+}

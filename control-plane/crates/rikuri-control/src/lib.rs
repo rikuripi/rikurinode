@@ -29,6 +29,7 @@ pub mod status;
 pub mod stepup;
 pub mod tls;
 pub mod trust;
+mod ui;
 
 pub use http::{App, Peer, api_router, plain_router};
 pub use serve::{serve_plain, serve_tls};

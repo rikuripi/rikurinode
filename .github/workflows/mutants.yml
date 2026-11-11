@@ -41,6 +41,9 @@ jobs:
     env:
       # rust-toolchain.toml's: the copy of control-plane/ that cargo-mutants builds has no such file.
       RUSTUP_TOOLCHAIN: "1.98.1"
+      # The control plane embeds the setup pages' build; the copy of control-plane/
+      # that cargo-mutants builds is not beside ui/ (5c.3a).
+      RIKURI_UI_DIR: ${{ github.workspace }}/ui
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -64,6 +67,9 @@ jobs:
           [[ "$BASE" =~ ^[0-9a-f]{7,40}$ ]] || { echo "base must be a commit id: $BASE"; exit 1; }
           git diff --relative=control-plane "$BASE...HEAD" > "$RUNNER_TEMP/changes.diff"
           echo "Diff from $BASE: $(grep -c '^+++ ' "$RUNNER_TEMP/changes.diff") files changed under control-plane/" >> "$GITHUB_STEP_SUMMARY"
+      - name: Build the setup pages (pinned Node image; the control plane embeds them)
+        run: |
+          scripts/quality/ui.sh build
       - name: Fetch the crates as locked
         run: |
           scripts/cargo.sh fetch --locked --manifest-path control-plane/Cargo.toml

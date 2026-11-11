@@ -660,11 +660,13 @@ class Containerfile(unittest.TestCase):
 
     def test_the_nodes_own_pinned_base(self):
         base = re.findall(r"(?m)^FROM (\S+)", self.text)
-        # The node's last stage is its base; the stage before it only builds the
-        # control plane (docs/build-records/2026-11-06-5c1-control-plane-on-node.md).
+        # The node's last stage is its base; the stages before it only build the
+        # setup pages (5c.3a: docs/build-records/2026-11-11-5c3a-ui-pipeline.md)
+        # and the control plane (docs/build-records/2026-11-06-5c1-control-plane-on-node.md).
         node = re.findall(r"(?m)^FROM (\S+)", self.node)
-        self.assertEqual(len(node), 2, node)
-        self.assertRegex(node[0], r"^docker\.io/library/rust:")
+        self.assertEqual(len(node), 3, node)
+        self.assertRegex(node[0], r"^docker\.io/library/node:")
+        self.assertRegex(node[1], r"^docker\.io/library/rust:")
         self.assertEqual(base, node[-1:])
         self.assertRegex(base[0], r"@sha256:[0-9a-f]{64}$")
 

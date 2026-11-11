@@ -28,6 +28,7 @@ tracing.workspace = true
 
 [dev-dependencies]
 http-body-util.workspace = true
+ts-rs.workspace = true
 
 [lints]
 workspace = true

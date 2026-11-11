@@ -1,5 +1,6 @@
-//! The plain listener: the CA certificate for a browser to install, and a
-//! redirect for everything else. No API route exists on it.
+//! The plain listener: the CA certificate for a browser to install, the
+//! certificate screen (tests/ui_pages.rs), and a redirect for everything else.
+//! No API route exists on it.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
@@ -64,10 +65,12 @@ async fn everything_else_is_a_redirect_to_https_never_an_api_response() {
         with_query.header("location"),
         Some(format!("https://rikuri01.local:{port}/setup?step=2").as_str())
     );
-    let v6 = plain(&node, Req::get("/").header("Host", "[::1]:80")).await;
+    // `/` is the certificate screen since 5c.3a (tests/ui_pages.rs), so the
+    // IPv6 host is checked on a path that still redirects.
+    let v6 = plain(&node, Req::get("/setup").header("Host", "[::1]:80")).await;
     assert_eq!(
         v6.header("location"),
-        Some(format!("https://[::1]:{port}/").as_str())
+        Some(format!("https://[::1]:{port}/setup").as_str())
     );
     node.stop().await;
 }

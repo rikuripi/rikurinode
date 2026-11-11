@@ -30,7 +30,7 @@ on:
     branches: [main]
   push:
     branches: [main]
-    paths: ["image/**", "control-plane/**", ".github/workflows/image.yml"]
+    paths: ["image/**", "control-plane/**", "ui/**", ".github/workflows/image.yml"]
   schedule:
     - cron: "17 6 * * 1"   # weekly, Monday 06:17 UTC: the drill against the pinned base
   workflow_dispatch:
@@ -80,11 +80,11 @@ jobs:
             reason="$EVENT: everything runs"
           elif ! changed="$(git diff --name-only "$BASE" HEAD)"; then
             reason="the diff against $BASE could not be read: everything runs"
-          elif grep -qE '^(image/|control-plane/|\.github/workflows/image\.yml$)' <<< "$changed"; then
-            reason="the pull request changes image/ or this workflow"
+          elif grep -qE '^(image/|control-plane/|ui/|\.github/workflows/image\.yml$)' <<< "$changed"; then
+            reason="the pull request changes image/, control-plane/, ui/ or this workflow"
           else
             image=false
-            reason="the pull request changes neither image/ nor this workflow: build and drill skipped"
+            reason="the pull request changes none of image/, control-plane/, ui/ or this workflow: build and drill skipped"
           fi
           echo "image=$image" >> "$GITHUB_OUTPUT"
           echo "### Changes: image=$image ($reason)" | tee -a "$GITHUB_STEP_SUMMARY"

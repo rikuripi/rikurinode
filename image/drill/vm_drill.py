@@ -443,6 +443,50 @@ def parse_http(raw: bytes):
     return int(status[1]), body
 
 
+# 5c.3a: the setup pages' policy, as the control plane sends it (src/ui.rs).
+PAGE_CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; "
+            "connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'")
+SETUP_REDIRECT = "https://127.0.0.1/setup"   # the plain listener's answer to /setup, as fetch_plain asks
+
+
+def http_header(raw: bytes, name: str):
+    """The value of header `name` (any case) in an HTTP/1.1 response, or None."""
+    head, sep, _ = raw.partition(b"\r\n\r\n")
+    if not sep:
+        return None
+    for line in head.split(b"\r\n")[1:]:
+        key, colon, value = line.partition(b":")
+        if colon and key.strip().lower() == name.lower().encode():
+            return value.strip().decode("latin-1")
+    return None
+
+
+def page_ok(raw: bytes, page: str):
+    """(ok, detail): `raw` is the setup page `page` ("certificate" or "secure"),
+    as HTML, under the pages' policy, with nosniff, and every script a file of
+    the node's own build (no inline or outside script)."""
+    status, body = parse_http(raw)
+    problems = []
+    if status != 200:
+        problems.append("status %s" % status)
+    ctype = http_header(raw, "content-type")
+    if ctype != "text/html; charset=utf-8":
+        problems.append("content-type %r" % ctype)
+    csp = http_header(raw, "content-security-policy")
+    if csp != PAGE_CSP:
+        problems.append("policy %r" % csp)
+    if http_header(raw, "x-content-type-options") != "nosniff":
+        problems.append("no nosniff")
+    text = body.decode("utf-8", "replace")
+    if '<meta name="rikuri-page" content="%s">' % page not in text:
+        problems.append("not the %s page" % page)
+    for script in re.findall(r"<script\b[^>]*>", text):
+        if ' src="/assets/' not in script:
+            problems.append("a script that is not the node's file: %s" % script)
+    return not problems, ("%s page: %s" % (page, "; ".join(problems) if problems else "200, policy, nosniff, "
+                                           "scripts from /assets/ only"))
+
+
 def pem_fingerprint(pem: str) -> str:
     """The certificate's SHA-256 as the control plane reports it: colon-separated upper-case hex."""
     return ":".join("%02X" % b for b in hashlib.sha256(ssl.PEM_cert_to_DER_cert(pem)).digest())
@@ -511,7 +555,9 @@ EXPECTED = frozenset({"first boot", "the containers range at the first boot", "c
                       "the certificate follows the node's address without a restart", "the node is named rikurisetup",
                       "mDNS on the node's interface", "mDNS listens on 5353, LLMNR does not",
                       "mDNS only on the node's interface, with a container's bridge up",
-                      "no claim code in the journal"})
+                      "no claim code in the journal",
+                      "the certificate screen over HTTP", "the secure page over HTTPS with only the node's CA",
+                      "the secure page never over HTTP"})
 
 
 def verdict(results, error) -> int:
@@ -681,6 +727,54 @@ class Drill:
             return False, "no answer as %s (%s)" % (name, e)
         return (status == 200 and setup_ok(body, fingerprint),
                 "as %s: %s %s" % (name, status, body[:120].decode("utf-8", "replace")))
+
+    def setup_pages(self) -> None:
+        """5c.3a, from outside the VM: the certificate screen in the clear at /,
+        the secure page over HTTPS at /setup trusting only the node's CA (read
+        from /ca.crt here, so this check stands alone), and /setup in the clear
+        only a redirect to HTTPS."""
+        lines = []
+        try:
+            ok, detail = page_ok(self.fetch_plain("/"), "certificate")
+        except OSError as e:
+            ok, detail = False, "no answer (%s)" % e
+        self.check("the certificate screen over HTTP", ok, "GET http://127.0.0.1:%d/: %s" % (HTTP_PORT, detail))
+        lines.append("GET / (plain): %s" % detail)
+
+        cafile = None
+        try:
+            status, body = parse_http(self.fetch_plain("/ca.crt"))
+            if status == 200:
+                pem = body.decode("ascii")
+                pem_fingerprint(pem)   # refuses what is not a certificate
+                cafile = os.path.join(self.workdir, "node-ca-pages.crt")
+                with open(cafile, "w", encoding="ascii") as f:
+                    f.write(pem)
+        except (OSError, ValueError) as e:
+            status = "no answer (%s)" % e
+        if cafile:
+            try:
+                ok, detail = page_ok(self.fetch_tls("/setup", cafile), "secure")
+            except OSError as e:     # a refused certificate among them
+                ok, detail = False, "no answer (%s)" % e
+        else:
+            ok, detail = False, "no CA certificate to trust (/ca.crt: %s)" % status
+        self.check("the secure page over HTTPS with only the node's CA", ok,
+                   "GET https://localhost:%d/setup: %s" % (HTTPS_PORT, detail))
+        lines.append("GET /setup (TLS): %s" % detail)
+
+        try:
+            raw = self.fetch_plain("/setup")
+            status, _ = parse_http(raw)
+            location = http_header(raw, "location")
+            ok = status == 308 and location == SETUP_REDIRECT
+            detail = "%s to %s" % (status, location)
+        except OSError as e:
+            ok, detail = False, "no answer (%s)" % e
+        self.check("the secure page never over HTTP", ok,
+                   "GET http://127.0.0.1:%d/setup: %s (wanted 308 to %s)" % (HTTP_PORT, detail, SETUP_REDIRECT))
+        lines.append("GET /setup (plain): %s" % detail)
+        self.keep("02b-setup-pages.out", "\n".join(lines))
 
     def control_plane(self) -> None:
         """5c.1, at the first boot: the service runs as its own user; from outside
@@ -1040,6 +1134,7 @@ def main(argv=None) -> int:
         drill.install()
         drill.first_boot()
         drill.control_plane()
+        drill.setup_pages()
         drill.load_variants()
         for case in (drill.case1, drill.case2b, drill.case3):
             case()
