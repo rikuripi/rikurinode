@@ -134,3 +134,32 @@ The owner (2026-11-11), after "Next" for 5c.3:
 - **A safety default (confirmed by the owner, 2026-11-11: "Keep the RIKURI_UI_LOCAL default"):** `scripts/quality/ui.sh` starts containers, and on the machine that runs the live node, Docker is the live node's. Outside GitHub Actions it refuses unless `RIKURI_UI_LOCAL=1` is set, so a local gate run there stops at step 8, and CI is the reference. Reversible: one line in `ui.sh`.
 - **Green, Python** (rikuri-drill, an archive of the working tree, through `safe-run.sh`): `.claude/hooks` `Ran 91` `OK`; `image/tests` `Ran 504` `OK`; `scripts/quality/tests` `Ran 183` `FAILED (errors=7, skipped=1)`, exactly the 7 no-`.git` archive errors of the red run and of every earlier archive run.
 - **The Mac** (with a stand-in `ui/dist`, ignored by git, never committed): `scripts/cargo.sh clippy --locked --workspace --all-targets -- -D warnings` clean, and `fmt --all --check` clean. shellcheck is on neither the Mac nor rikuri-drill: CI's gate runs it. Not yet proven until then.
+- **CI run 1** (PR #81, head `a94bfc8`): `Full gate (Ubuntu)` failed (run 43085490570), and so did `Rust mutants (changed lines)` (run 43085490386). Both failed in `scripts/quality/ui.sh build` on `npm audit --audit-level=low`, verbatim: `deepmerge mergeObject() allows prototype poisoning of returned objects - https://github.com/advisories/GHSA-gcqx-w48m-w2h4`, `No fix available`, `Depends on vulnerable versions of deepmerge` (via `@sveltejs/vite-plugin-svelte`), `2 low severity vulnerabilities`. These passed: Build and check the OS image, the guard and quality-tool tests (py3.9 and py3.12), and the advisory audit. The Rust tests and mutants never ran.
+- **Verifier, round 1: FAIL**, with three Important findings:
+  - **I1:** the gate is red on that advisory.
+  - **I2:** the fingerprint check compared the wrong certificate. The claim screen shows the CA's fingerprint (`console.rs`), while the padlock opens the node's server certificate, which the CA signs (`tls.rs`), so the two never match. On iPhone and iPad, Safari has no certificate viewer, so the check could not be done there at all.
+  - **I3:** no render test drew the pages under the node's CSP, because `vite preview` sends none.
+  - Nits: the drill's new tests sat after the file's `__main__` guard; AGENTS.md did not list the UI step; the image's UI stage runs no audit; plain `/` was a cached 308 in earlier images, and `cert.lead` overclaimed; nothing fetched `/favicon.svg`.
+- **The owner, on I1** (2026-11-11): "Recorded exception (Recommended)": `ui.sh` reads the audit as JSON and fails on any advisory except GHSA-gcqx-w48m-w2h4, recorded with its reason and a review date. It also fails if that advisory disappears or the date passes.
+- **Repair 1** (red `4beca2d`, then the fix):
+  - **I1:**
+    - `scripts/quality/npm_audit.py` reads `npm audit --json` against `ui/audit-exceptions.json`. That file holds one exception: GHSA-gcqx-w48m-w2h4, in `deepmerge`, reviewed by 2027-02-11.
+    - The reason: it is low and has no fixed version. It comes in only through `@sveltejs/vite-plugin-svelte`, which every Svelte build needs. It runs at build time only and never ships to the node. It merges the plugin's own configuration, never network input.
+    - The checker fails on any other advisory, on an exception that no longer matches or is past its date, on an incomplete exception, and on a report it cannot read (empty, not JSON, npm's own error, another version, or totals that disagree). A pass prints each exception it allowed.
+    - `--audit-level` is gone.
+    - A new exception is an owner decision. `TheRepositorysExceptions` pins the set, and each exception must name this record, which must name its advisory.
+  - **I2:**
+    - The secure page now sends the reader to **Rikuri Node CA** in the certificate chain (Details or Certificate Hierarchy, the top certificate) and its SHA-256.
+    - It adds a route for iPhone and iPad (Settings › General › VPN & Device Management › Rikuri Node CA › More Details) and one for Android (Settings › Trusted credentials › User › Rikuri Node CA).
+    - `secure.why` now says "your device" rather than "your browser". The runbook's step 11 says the same, and why the padlock's first certificate differs.
+    - Both phone routes are written from the systems' documented menus and are Not yet proven on a real device, like the rest of the real-device steps.
+  - **I3:**
+    - `vite preview` sends the node's CSP from `ui/src/csp.ts`. `test_workflows` keeps that file equal to `src/ui.rs`'s constant.
+    - The render tests check the header on both pages, and that no `securitypolicyviolation` event and no console error occurs.
+  - **The nits:**
+    - The drill's 5c.3a test classes were moved above the `__main__` guard. A move only: still 504 tests.
+    - AGENTS.md > Verification by maturity names the UI step.
+    - A runbook note covers the earlier cached redirect, and `cert.lead` now says the privacy holds after the check.
+    - `the_icon_is_served_on_both_listeners` added.
+    - Not changed: the image's UI stage still runs no audit or type check. The gate runs both on the same lockfile before any merge, and the image builds only from `main` or a PR that passed the gate. Noted for the backlog: the weekly OSV audit should read `ui/package-lock.json`.
+- **Test code changed during repair 1:** only new tests, plus the move above.
