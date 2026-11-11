@@ -1,0 +1,16 @@
++ resolvectl mdns
+Global: no
+Link 2 (enp0s5): no
++ ls /etc/systemd/resolved.conf.d
+ls: cannot access '/etc/systemd/resolved.conf.d': No such file or directory
++ ls /run/udev/rules.d /run/systemd/system
++ head
+ls: cannot access '/run/udev/rules.d': No such file or directory
+/run/systemd/system:
++ sudo podman ps -a --format '{{.Names}}'
++ ss -Huln
++ grep -c ':5353 '
+0
++ ip -br link
+lo               UNKNOWN        00:00:00:00:00:00 <LOOPBACK,UP,LOWER_UP>
+enp0s5           UP             00:1c:42:8d:41:77 <BROADCAST,MULTICAST,UP,LOWER_UP>

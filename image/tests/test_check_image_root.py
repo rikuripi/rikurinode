@@ -54,6 +54,12 @@ NO_LLMNR = "usr/lib/systemd/resolved.conf.d/90-rikuri-no-llmnr.conf"
 # mDNS on, in its own file; the node's name (docs/build-records/2026-11-10-5c2-names-and-mdns.md).
 MDNS = "usr/lib/systemd/resolved.conf.d/90-rikuri-mdns.conf"
 HOSTNAME = "etc/hostname"
+# mDNS only on links with hardware behind them (docs/build-records/2026-11-10-plat01-mdns-allow-list.md).
+MDNS_LINKS = "usr/libexec/rikuri/mdns-links"
+MDNS_LINKS_UNIT = "usr/lib/systemd/system/rikuri-mdns-links.service"
+MDNS_LINKS_TEMPLATE = "usr/lib/systemd/system/rikuri-mdns-links@.service"
+MDNS_LINKS_WANTS = "usr/lib/systemd/system/systemd-resolved.service.wants/rikuri-mdns-links.service"
+MDNS_LINKS_RULE = "usr/lib/udev/rules.d/90-rikuri-mdns-links.rules"
 # A built x86-64 program's first bytes: ELF, 64-bit, little-endian.
 ELF64 = b"\x7fELF\x02\x01\x01" + b"\x00" * 57
 
@@ -170,6 +176,11 @@ class Root:
         for rel in (MDNS, HOSTNAME):
             if os.path.exists(os.path.join(HERE, "..", "rootfs", rel)):
                 self.write_bytes(rel, shipped_file(rel))
+        if os.path.exists(os.path.join(HERE, "..", "rootfs", MDNS_LINKS)):
+            self.write_bytes(MDNS_LINKS, shipped_file(MDNS_LINKS), mode=0o755)
+            for rel in (MDNS_LINKS_UNIT, MDNS_LINKS_TEMPLATE, MDNS_LINKS_RULE):
+                self.write_bytes(rel, shipped_file(rel))
+            self.link(MDNS_LINKS_WANTS, "../rikuri-mdns-links.service")
         self.write("etc/ssh/sshd_config", "PermitRootLogin no\n")
 
     def _fresh(self, rel):
@@ -1504,6 +1515,117 @@ class ControlPlane(unittest.TestCase):
         self.root.write_bytes(CP_REQUIRED, shipped_file(CP_REQUIRED), mode=0o644)
         self.assertFinds(CP_REQUIRED + ": not executable")
 
+
+class MdnsLinks(unittest.TestCase):
+    """mDNS only on the node's physical interfaces: the program, the unit run
+    whenever resolved starts, the unit udev starts for each new link, and the
+    rule (docs/build-records/2026-11-10-plat01-mdns-allow-list.md)."""
+
+    def setUp(self):
+        self.root = Root()
+        self.addCleanup(self.root.cleanup)
+
+    def found(self):
+        return cir.check_mdns_links(self.root.path)
+
+    def assertFinds(self, fragment, found=None):
+        found = self.found() if found is None else found
+        self.assertTrue(any(fragment in f for f in found),
+                        "expected a finding with %r, got %r" % (fragment, found))
+
+    def test_the_shipped_files_pass(self):
+        self.assertEqual(self.found(), [])
+        self.assertEqual(self.root.check(), [])
+
+    def test_the_whole_check_includes_it(self):
+        self.root.remove(MDNS_LINKS_UNIT)
+        self.assertTrue(any(f.startswith(MDNS_LINKS_UNIT + ": missing") for f in self.root.check()))
+
+    def test_the_program_is_there_and_executable(self):
+        self.root.remove(MDNS_LINKS)
+        self.assertFinds(MDNS_LINKS + ": missing")
+        self.root.write_bytes(MDNS_LINKS, shipped_file(MDNS_LINKS), mode=0o644)
+        self.assertFinds(MDNS_LINKS + ": not executable")
+        self.root.remove(MDNS_LINKS)
+        self.root.link(MDNS_LINKS, "/bin/true")
+        self.assertFinds(MDNS_LINKS + ": missing")
+
+    def test_the_units_run_the_program_as_shipped(self):
+        keys = cir.MDNS_LINKS_KEYS["[Service]"]
+        self.assertEqual(keys["Type"], "oneshot")
+        self.assertEqual(keys["ExecStart"], "/" + MDNS_LINKS)
+        self.assertEqual(keys["CapabilityBoundingSet"], "CAP_NET_ADMIN")
+        self.assertEqual(keys["RestrictAddressFamilies"], "AF_UNIX")
+        self.assertEqual(keys["IPAddressDeny"], "any")
+        self.assertEqual(cir.MDNS_LINKS_KEYS["[Unit]"]["After"], "systemd-resolved.service")
+        self.assertEqual(cir.MDNS_LINKS_KEYS["[Install]"], {"WantedBy": "systemd-resolved.service"})
+        template = cir.MDNS_LINKS_TEMPLATE_KEYS
+        self.assertEqual(template["[Service]"]["ExecStart"], "/" + MDNS_LINKS + " %i")
+        self.assertNotIn("[Install]", template)
+        for key in ("NoNewPrivileges", "ProtectSystem", "PrivateTmp", "IPAddressDeny"):
+            with self.subTest(key=key):
+                self.assertEqual(template["[Service]"][key], keys[key])
+
+    def test_each_unit_is_a_closed_world(self):
+        for unit in (MDNS_LINKS_UNIT, MDNS_LINKS_TEMPLATE):
+            good = shipped_file(unit).decode("ascii")
+            for old, new, why in (
+                    ("Type=oneshot\n", "Type=oneshot\nExecStartPre=/bin/true\n", "another command"),
+                    ("CapabilityBoundingSet=CAP_NET_ADMIN", "CapabilityBoundingSet=CAP_NET_ADMIN CAP_SYS_ADMIN",
+                     "another capability"),
+                    ("RestrictAddressFamilies=AF_UNIX", "RestrictAddressFamilies=AF_UNIX AF_INET", "the network"),
+                    ("ProtectSystem=strict", "ProtectSystem=full", "a weaker protection"),
+                    ("NoNewPrivileges=yes\n", "NoNewPrivileges=yes\nNoNewPrivileges=no\n", "a later value"),
+                    ("After=systemd-resolved.service", "After=network.target", "before resolved")):
+                with self.subTest(unit=unit, why=why):
+                    self.assertIn(old, good)
+                    self.root.write(unit, good.replace(old, new, 1))
+                    self.assertFinds(unit + ": ")
+                    self.root.write(unit, good)
+            self.root.remove(unit)
+            self.assertFinds(unit + ": missing")
+            self.root.write(unit, good)
+        self.assertEqual(self.found(), [])
+
+    def test_the_unit_runs_whenever_resolved_starts(self):
+        self.root.remove(MDNS_LINKS_WANTS)
+        self.assertFinds(MDNS_LINKS_WANTS + ": not a link")
+        self.root.link(MDNS_LINKS_WANTS, "../other.service")
+        self.assertFinds(MDNS_LINKS_WANTS + ": points to")
+
+    def test_the_rule_starts_the_template_for_every_new_link(self):
+        self.assertEqual(cir.MDNS_LINKS_RULE_LINES, [
+            'ACTION=="add", SUBSYSTEM=="net", KERNEL!="lo", TAG+="systemd", '
+            'ENV{SYSTEMD_WANTS}+="rikuri-mdns-links@%k.service"'])
+        good = shipped_file(MDNS_LINKS_RULE).decode("ascii")
+        for old, new, why in (('ACTION=="add"', 'ACTION=="change"', "not on a new link"),
+                              ('KERNEL!="lo", ', 'KERNEL!="lo", TEST=="device", ', "physical links only"),
+                              ('KERNEL!="lo", ', 'KERNEL=="veth*", ', "a deny-list's names"),
+                              ("@%k.service", "@%k.service rikuri-other.service", "another unit")):
+            with self.subTest(why=why):
+                self.assertIn(old, good)
+                self.root.write(MDNS_LINKS_RULE, good.replace(old, new, 1))
+                self.assertFinds(MDNS_LINKS_RULE + ": not exactly")
+        self.root.remove(MDNS_LINKS_RULE)
+        self.assertFinds(MDNS_LINKS_RULE + ": missing")
+
+    def test_overrides_are_findings(self):
+        for rel in ("etc/systemd/system/rikuri-mdns-links.service",
+                    "etc/systemd/system/rikuri-mdns-links.service.d/x.conf",
+                    "run/systemd/system/rikuri-mdns-links@.service.d/x.conf",
+                    "etc/systemd/system/rikuri-mdns-links@.service",
+                    "etc/systemd/system/rikuri-mdns-links@podman0.service.d/x.conf",
+                    "usr/lib/systemd/system/rikuri-mdns-links@veth0.service",
+                    "etc/udev/rules.d/90-rikuri-mdns-links.rules",
+                    "run/udev/rules.d/90-rikuri-mdns-links.rules"):
+            with self.subTest(rel=rel):
+                self.root.write(rel, "[Service]\nExecStart=\n")
+                shown = rel[:-len("/x.conf")] if rel.endswith("/x.conf") else rel
+                self.assertTrue(any(f.startswith(shown + ": ") for f in self.found()), self.found())
+                self.root.remove(rel)
+                if rel.endswith("/x.conf"):
+                    os.rmdir(os.path.join(self.root.path, shown))
+        self.assertEqual(self.found(), [])
 
 if __name__ == "__main__":
     unittest.main()
