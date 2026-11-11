@@ -90,3 +90,13 @@ The owner (2026-11-11), after "Next":
 ### Test changes after red
 
 - `ui/tests/owner.spec.ts`: one case added to "the hub unread when …", "a step listed twice". The page keys its list by step, and Svelte refuses a repeated key, so the parser must refuse such a reply; the red commit did not ask that. It adds a case and loosens none.
+
+### CI run 2 (`a4f8d1e`, fix part 1): the rest of the red, as wanted
+
+- `Full gate (Ubuntu)`: **Fail** at step 8, https://github.com/rikuripi/rikurinode/actions/runs/43120587030. Steps 1 to 7 passed, the drill's tests among them. Playwright: `36 failed`, `231 passed`; the 36 are the 9 SetupHub tests at each of the 4 widths (`tests/owner.spec.ts › the SetupHub › …`); no other test failed. The UI's red is seen.
+- `Rust mutants (changed lines)`: **Fail** in its baseline, https://github.com/rikuripi/rikurinode/actions/runs/43120587101. The library: `test result: ok. 146 passed; 0 failed`. `tests/hub_route.rs`: `test result: FAILED. 0 passed; 5 failed`, its 5 tests. The route's red is seen.
+- The rollback drill, https://github.com/rikuripi/rikurinode/actions/runs/43120587044/job/130860881887:
+  - `PASS the SetupHub over HTTPS only, with only the node's CA`;
+  - `FAIL the hub refuses a browser without a session: GET /api/hub without a session: 404`: the drill's red on the real image (no route yet);
+  - and, **not this change's**: `FAIL drill: timed out after 600s waiting for the broken update to roll back`. This is case 1, the same timeout as 5c.3a's run 3, which passed on a re-run and was recorded as a one-off. It has now happened twice. Nothing here touches the update, greenboot or the variants. Recorded for the owner; if it recurs in the next run, the decision is theirs.
+- The USB installer drill and the image build passed.

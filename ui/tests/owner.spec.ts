@@ -488,6 +488,7 @@ test.describe('the SetupHub', () => {
     ['an answer that is not the hub', { status: 200, body: { node_id: NODE_ID, steps: [{ step: 'name', state: 'finished' }] } }],
     ['a step the page does not know', { status: 200, body: { node_id: NODE_ID, steps: [{ step: 'tor', state: 'done' }] } }],
     ['no node ID', { status: 200, body: { node_id: '', steps: HUB.steps } }],
+    ['a step listed twice', { status: 200, body: { node_id: NODE_ID, steps: [...HUB.steps, HUB.steps[0]] } }],
   ] as const) {
     test(`the hub unread when ${why}: said, never a guess, and sign-out stays`, async ({ page }) => {
       await api(page, { 'GET /api/session': { status: 200, body: INFO }, 'GET /api/hub': answer as Answer });

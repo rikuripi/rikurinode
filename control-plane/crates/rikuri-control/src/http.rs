@@ -9,9 +9,11 @@
 //! `POST`, `GET`, `DELETE /api/session` (sign in, read, sign out);
 //! `POST /api/step-up` (the password again, for one action); `PUT
 //! /api/owner/password` (needs a step-up); `GET /api/status` (open to a
-//! loopback peer, a session for anyone else).
+//! loopback peer, a session for anyone else); `GET /api/hub` (5c.4a: the
+//! node's UUID and what setup still needs, for a session only).
 
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -27,8 +29,10 @@ use subtle::ConstantTimeEq;
 use tracing::{error, info, warn};
 
 use crate::claim::{self, Attempt, ClaimState};
+use crate::hub;
 use crate::limiter::{self, Gate, Limiter};
 use crate::names::Names;
+use crate::node_id;
 use crate::owner;
 use crate::password::{self, PolicyError};
 use crate::session::{self, Record, Store};
@@ -56,6 +60,8 @@ pub struct Inner {
     pub ca_pem: String,
     pub ca_fingerprint: String,
     pub https_port: u16,
+    /// Where the running kernel's hostname is read (5c.4a; `Config`).
+    pub hostname_file: PathBuf,
     /// Held for the whole of a claim attempt, so claims are judged one at a
     /// time and the limiter's count is exact.
     claim_limiter: tokio::sync::Mutex<Limiter>,
@@ -78,6 +84,7 @@ impl App {
         ca_fingerprint: String,
         https_port: u16,
         claim_wrong_tries: u32,
+        hostname_file: PathBuf,
     ) -> Self {
         let mut claim_limiter = Limiter::new(claim::DELAY_AFTER, claim::DELAY_CAP);
         claim_limiter.sync(claim_wrong_tries);
@@ -89,6 +96,7 @@ impl App {
             ca_pem,
             ca_fingerprint,
             https_port,
+            hostname_file,
             claim_limiter: tokio::sync::Mutex::new(claim_limiter),
             signin_limiter: tokio::sync::Mutex::new(Limiter::new(
                 SIGNIN_DELAY_AFTER,
@@ -111,6 +119,7 @@ pub fn api_router(app: App) -> Router {
         .route("/api/step-up", post(step_up))
         .route("/api/owner/password", put(change_password))
         .route("/api/status", get(status_handler))
+        .route("/api/hub", get(hub_handler))
         .layer(middleware::from_fn_with_state(app.clone(), origin_check))
         // The secure page: read-only, so outside the origin check; a POST to
         // it is the method router's 405.
@@ -422,6 +431,10 @@ async fn claim_handler(
         Attempt::Accepted => {
             let password = body.password;
             password::check_policy(password.expose_secret()).map_err(policy_refusal)?;
+            // 5c.4a: the node's UUID, before it has an owner: a failure here
+            // refuses the claim with nothing changed. Made once; a later
+            // call returns the same one.
+            node_id::ensure(&dir, now).map_err(internal)?;
             let owner_in = dir.clone();
             tokio::task::spawn_blocking(move || {
                 owner::set_password(&owner_in, password.expose_secret(), now)
@@ -619,6 +632,23 @@ async fn status_handler(
         authenticate(&app, &headers)?;
     }
     Ok(Json(status::report(app.0.started)))
+}
+
+/// 5c.4a: the SetupHub, read from the node's state on each request.
+async fn hub_handler(
+    State(app): State<App>,
+    headers: HeaderMap,
+) -> Result<Json<hub::HubReport>, Refusal> {
+    authenticate(&app, &headers)?;
+    let dir = &app.0.dir;
+    // A claimed node always has one; a crash between the claim's two writes
+    // is made good here. A file that is not a UUID stays an error.
+    let node_id = node_id::ensure(dir, now_unix()).map_err(internal)?;
+    let hostname = std::fs::read_to_string(&app.0.hostname_file);
+    if let Err(e) = &hostname {
+        warn!(error = %e, "the hostname could not be read: the name step is unknown");
+    }
+    Ok(Json(hub::report(node_id, owner::exists(dir), &hostname)))
 }
 
 // ---- the plain router ----------------------------------------------------

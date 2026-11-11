@@ -116,6 +116,7 @@ pub fn boot(config: &Config, started: Started, lan: Option<IpAddr>) -> Result<Bo
         identity.ca_fingerprint.clone(),
         config.https.port(),
         claim_wrong_tries,
+        config.hostname_file.clone(),
     );
     Ok(Booted {
         app,
