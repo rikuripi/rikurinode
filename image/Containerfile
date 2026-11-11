@@ -10,8 +10,18 @@
 
 # The build context is the repository's root: `podman build -f image/Containerfile .`
 # (.github/workflows/image.yml, publish.yml). /.containerignore lets in only what is
-# copied below: image/rootfs and control-plane/ (without its target/).
+# copied below: image/rootfs, control-plane/ (without its target/) and ui/ (without
+# what an install, a build or the render tests leave there).
 #
+# The setup pages (5c.3a), built from ui/ with the official Node image, pinned by
+# digest (the same image as scripts/quality/ui.sh): packages exactly as locked in
+# ui/package-lock.json, no install scripts. The control plane embeds ui/dist.
+# Record: docs/build-records/2026-11-11-5c3a-ui-pipeline.md
+FROM docker.io/library/node:22.23.4-trixie-slim@sha256:be1e2a3dc2c4fd68cdfadad2a696a280e0d2749098bee509230174d72fb768c6 AS ui
+COPY ui/ /ui/
+WORKDIR /ui
+RUN npm ci --ignore-scripts --engine-strict --no-audit --no-fund && npm run build
+
 # The control plane (stage 1 change 5c.1), built here from control-plane/ with the
 # official Rust image at the repository's toolchain (rust-toolchain.toml, 1.98.1),
 # pinned by digest (read from Docker Hub on 2026-11-06); crates exactly as locked
@@ -19,6 +29,9 @@
 # Record: docs/build-records/2026-11-06-5c1-control-plane-on-node.md
 FROM docker.io/library/rust:1.98.1-slim-trixie@sha256:4cd829461bd5c4d511c32e269da9cb8929223b666519d8004e35fc8d1d771ab7 AS control-plane
 COPY control-plane/ /src/
+COPY --from=ui /ui/dist/ /ui/dist/
+# build.rs embeds the pages from here (control-plane/crates/rikuri-control/build.rs).
+ENV RIKURI_UI_DIR=/ui
 WORKDIR /src
 RUN cargo build --release --locked -p rikuri-control-plane
 

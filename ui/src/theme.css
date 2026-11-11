@@ -1,0 +1,74 @@
+/* The design tokens: the owner's pick, Sunrise (2026-11-11), in a light and a
+   dark theme. Every colour, radius and font the pages use is a variable here;
+   the render tests fail on one used but not defined.
+   Record: docs/build-records/2026-11-11-5c3a-ui-pipeline.md */
+:root {
+  color-scheme: light dark;
+  --font-display: 'Fredoka', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --radius-card: 20px;
+  --radius-chip: 14px;
+  --radius-badge: 9px;
+  --radius-pill: 999px;
+  --sun: #f7931a;       /* the logo's disc: Bitcoin orange */
+  --sun-mark: #ffffff;  /* the ₿ on it */
+  --glow: #ffdd70;      /* the logo's glow, and the yellow accents */
+  --accent: #ffad4d;    /* buttons and the chosen device */
+  --accent-ink: #3a2418;
+  --yellow-ink: #3a2418;
+
+  --bg: #fff6ee;
+  --surface: #ffffff;
+  --ink: #3a2418;
+  --text-soft: #5e4436;
+  --muted: #6e5244;
+  --panel: #fff0c2;
+  --line: #f2cdb8;
+  --horizon: #3a2418;
+  --link: #b03f23;
+  --strong-btn: #3a2418;
+  --strong-btn-ink: #fff6ee;
+  --shadow: 0 6px 20px rgba(194, 73, 43, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e1510;
+    --surface: #2a1e17;
+    --ink: #fff1e4;
+    --text-soft: #e8d2c2;
+    --muted: #d9bfae;
+    --panel: #3a2a1c;
+    --line: #4a3628;
+    --horizon: #fff1e4;
+    --link: #ffb98a;
+    --strong-btn: #fff1e4;
+    --strong-btn-ink: #2a1a10;
+    --shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+a { color: var(--link); }
+
+h1, h2 { font-family: var(--font-display); font-weight: 600; }
+
+kbd {
+  font-family: var(--font-body);
+  font-weight: 600;
+  background: var(--panel);
+  border-radius: var(--radius-badge);
+  padding: 1px 6px;
+}
+
+:focus-visible { outline: 3px solid var(--link); outline-offset: 2px; }

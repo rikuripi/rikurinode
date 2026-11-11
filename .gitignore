@@ -54,6 +54,9 @@ node_modules/
 # cargo's download cache, kept in the checkout (scripts/cargo.sh, D24)
 /.cargo-home/
 dist/
+# the render tests' output (ui/playwright.config.ts)
+/ui/test-results/
+/ui/playwright-report/
 __pycache__/
 *.pyc
 .venv/

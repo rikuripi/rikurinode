@@ -20,7 +20,7 @@ on:
 
 permissions:
   contents: read
-  actions: read # the audit's runs, for full-gate.sh step 10 (advisory_audit_age.py)
+  actions: read # the audit's runs, for full-gate.sh last step (advisory_audit_age.py)
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -65,5 +65,5 @@ jobs:
         # namespace tests are reported as skipped).
         env:
           SAFE_RUN_ALLOW_NO_NAMESPACE: "1"
-          GITHUB_TOKEN: ${{ github.token }} # read-only here; step 10 lists the audit's runs
+          GITHUB_TOKEN: ${{ github.token }} # read-only here; the last step lists the audit's runs
         run: scripts/quality/full-gate.sh

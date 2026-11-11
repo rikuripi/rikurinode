@@ -2,7 +2,14 @@
 # (podman build -f image/Containerfile .): only what image/Containerfile copies
 # goes in, never the rest of the checkout (.git, caches, build output).
 # Record: docs/build-records/2026-11-06-5c1-control-plane-on-node.md
+# The UI's sources for its build stage (5c.3a): never node_modules or a build.
+# Record: docs/build-records/2026-11-11-5c3a-ui-pipeline.md
 *
 !image/rootfs
 !control-plane
 control-plane/target
+!ui
+ui/node_modules
+ui/dist
+ui/test-results
+ui/playwright-report

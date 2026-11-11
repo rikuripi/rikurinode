@@ -37,6 +37,7 @@ use crate::state::StateDir;
 use crate::status::{self, Started};
 use crate::stepup::{self, Action, Grants};
 use crate::trust;
+use crate::ui;
 
 /// JSON bodies above this are refused before they are read.
 pub const BODY_LIMIT: usize = 16 * 1024;
@@ -112,17 +113,22 @@ pub fn api_router(app: App) -> Router {
         .route("/api/owner/password", put(change_password))
         .route("/api/status", get(status_handler))
         .layer(middleware::from_fn_with_state(app.clone(), origin_check))
+        // The secure page: read-only, so outside the origin check; a POST to
+        // it is the method router's 405.
+        .merge(ui::secure_routes())
         .layer(middleware::from_fn_with_state(app.clone(), host_check))
         .layer(middleware::map_response(no_store))
         .layer(DefaultBodyLimit::max(BODY_LIMIT))
         .with_state(app)
 }
 
-/// The plain listener's router: the CA certificate, and a redirect for
-/// everything else. No API route exists here by construction.
+/// The plain listener's router: the CA certificate, the certificate screen
+/// and its files, and a redirect for everything else. No API route exists
+/// here by construction.
 pub fn plain_router(app: App) -> Router {
     Router::new()
         .route("/ca.crt", get(ca_certificate))
+        .merge(ui::plain_routes())
         .fallback(redirect_to_https)
         .layer(middleware::from_fn_with_state(app.clone(), host_check))
         .with_state(app)
@@ -212,10 +218,13 @@ async fn origin_check(State(app): State<App>, req: Request, next: Next) -> Respo
     next.run(req).await
 }
 
+/// `no-store` on everything the TLS listener sends, refusals included,
+/// unless the response set its own: only the setup pages' files do.
 async fn no_store(mut response: Response) -> Response {
     response
         .headers_mut()
-        .insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+        .entry(header::CACHE_CONTROL)
+        .or_insert(HeaderValue::from_static("no-store"));
     response
 }
 
@@ -299,6 +308,7 @@ async fn verify_owner_password(app: &App, password: SecretBox<String>) -> Result
 // ---- handlers: setup and claim ------------------------------------------
 
 #[derive(Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "lowercase")]
 enum SetupClaim {
     Done,
@@ -309,6 +319,7 @@ enum SetupClaim {
 }
 
 #[derive(Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 struct SetupReport {
     claimed: bool,
     claim: SetupClaim,
@@ -644,7 +655,10 @@ mod tests {
         let dir = std::path::Path::new(env!("RIKURI_UI_DIR")).join("src/generated");
         for (file, ts) in [
             ("SetupClaim.ts", SetupClaim::export_to_string(&cfg).unwrap()),
-            ("SetupReport.ts", SetupReport::export_to_string(&cfg).unwrap()),
+            (
+                "SetupReport.ts",
+                SetupReport::export_to_string(&cfg).unwrap(),
+            ),
         ] {
             let committed = std::fs::read_to_string(dir.join(file)).unwrap_or_default();
             assert_eq!(

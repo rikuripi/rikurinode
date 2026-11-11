@@ -16,7 +16,7 @@ a stale audit is not the pull request's fault, and the warning is the alarm
 Token: GITHUB_TOKEN or GH_TOKEN (CI's token, with actions: read; the
 repository is private). Repository: GITHUB_REPOSITORY, or the origin remote.
 Usage: advisory_audit_age.py   exit 0 always (2 on a usage error)
-Run by scripts/quality/full-gate.sh, step 10.
+Run by scripts/quality/full-gate.sh, its last step.
 Record: docs/build-records/2026-10-21-weekly-advisory-audit.md
 """
 from __future__ import annotations
