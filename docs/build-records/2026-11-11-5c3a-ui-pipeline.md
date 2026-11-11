@@ -163,3 +163,12 @@ The owner (2026-11-11), after "Next" for 5c.3:
     - `the_icon_is_served_on_both_listeners` added.
     - Not changed: the image's UI stage still runs no audit or type check. The gate runs both on the same lockfile before any merge, and the image builds only from `main` or a PR that passed the gate. Noted for the backlog: the weekly OSV audit should read `ui/package-lock.json`.
 - **Test code changed during repair 1:** only new tests, plus the move above.
+- **Verifier, round 2** (the corrections only, `a94bfc8..8e63b48`): I1, I2, I3 and nits 1, 2, 4 and 5 are resolved in code and text, with no new Important finding. The verdict was Not yet proven, because CI run 2 was still pending and the verifier's own `safe-run.sh` refused to run on the Mac. Its backlog nits:
+  - an exception matches on the advisory id and the package only, so a raised severity would still be allowed until `review_by`;
+  - the phone routes are untried on a real device.
+- **CI run 2** (head `8e63b48`): the audit step passed as designed, verbatim `npm_audit: allowed GHSA-gcqx-w48m-w2h4 in deepmerge until 2027-02-11: …` and `npm_audit: npm audit: 1 advisories, all recorded exceptions`. Then `Full gate (Ubuntu)` (run 43090342002) and `Rust mutants (changed lines)` (run 43090341715) both failed at `npm run check`, verbatim `Error: Cannot find module or type declarations for side-effect import of '../fonts.css'.` and the same for `'../theme.css'`, in `src/cert/main.ts` and `src/secure/main.ts`: `svelte-check found 4 errors and 0 warnings in 2 files`. This is the red of repair 2. A separate failing test is impractical, because the type check is itself the test.
+- **Repair 2** (the last the contract allows):
+  - The cause: `tsconfig.json`'s `types: []` keeps out Vite's client types, which declare `*.css` modules, and TypeScript 6 checks side-effect imports by default.
+  - The fix: `src/env.d.ts` references `vite/client`. Read from the published `vite@8.3.5/client.d.ts`: `declare module '*.css' {}`.
+  - Also checked before this last repair: the font files `fonts.css` names (`fredoka-latin-600-normal.woff2`, `inter-latin-400-normal.woff2`, `inter-latin-600-normal.woff2`) are in the published `@fontsource` 5.3.0 packages.
+  - No test code changed.
