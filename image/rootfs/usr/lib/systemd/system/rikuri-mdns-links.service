@@ -1,8 +1,9 @@
 # mDNS only on the node's physical interfaces (PLAT-01): whenever
 # systemd-resolved starts, turn its mDNS off on every link without hardware
-# behind it, then read its state back. Root, for resolved's per-link setting
-# (CAP_NET_ADMIN); no network but resolved's D-Bus socket. Each key appears
-# once, as image/check_image_root.py requires (a closed world).
+# behind it, then read its state back. Root, which resolved lets set a link's
+# mDNS, with no capability; no network but resolved's D-Bus socket and the
+# netlink resolvectl uses to find a link by name. Each key appears once, as
+# image/check_image_root.py requires (a closed world).
 # Record: docs/build-records/2026-11-10-plat01-mdns-allow-list.md
 [Unit]
 Description=Rikuri Node: mDNS only on physical interfaces
@@ -24,8 +25,8 @@ ProtectClock=yes
 ProtectHostname=yes
 ProtectProc=invisible
 ProcSubset=pid
-CapabilityBoundingSet=CAP_NET_ADMIN
-RestrictAddressFamilies=AF_UNIX
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
 IPAddressDeny=any
 RestrictNamespaces=yes
 RestrictRealtime=yes

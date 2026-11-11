@@ -217,14 +217,16 @@ CP_REQUIRED = "usr/lib/greenboot/check/required.d/50-rikuri-control-plane"
 # mDNS only on links with hardware behind them, the lessons register's PLAT-01
 # (docs/build-records/2026-11-10-plat01-mdns-allow-list.md): the program, the
 # unit run whenever resolved starts, the template udev starts for each new
-# link, and the rule. Root with one capability, no network but D-Bus.
+# link, and the rule. Root with no capability; no network but D-Bus and the
+# netlink resolvectl opens to find a link by name (verifier I-1, evidence
+# 06-shipped-units.out: with AF_UNIX alone every call failed).
 MDNS_LINKS = "usr/libexec/rikuri/mdns-links"
 MDNS_LINKS_UNIT = "usr/lib/systemd/system/rikuri-mdns-links.service"
 MDNS_LINKS_TEMPLATE = "usr/lib/systemd/system/rikuri-mdns-links@.service"
 MDNS_LINKS_WANTS = "usr/lib/systemd/system/systemd-resolved.service.wants/rikuri-mdns-links.service"
 _MDNS_LINKS_SERVICE = {"Type": "oneshot", "ExecStart": "/" + MDNS_LINKS, **_HARDENING,
-                       "RestrictAddressFamilies": "AF_UNIX", "PrivateDevices": "yes",
-                       "CapabilityBoundingSet": "CAP_NET_ADMIN", "IPAddressDeny": "any", "UMask": "0077"}
+                       "RestrictAddressFamilies": "AF_UNIX AF_NETLINK", "PrivateDevices": "yes",
+                       "CapabilityBoundingSet": "", "IPAddressDeny": "any", "UMask": "0077"}
 MDNS_LINKS_KEYS = {"[Unit]": {"Description": None, "After": "systemd-resolved.service"},
                    "[Service]": _MDNS_LINKS_SERVICE,
                    "[Install]": {"WantedBy": "systemd-resolved.service"}}
@@ -713,9 +715,9 @@ def check_mdns_links(root: str) -> list:
     if problem:
         found.append(problem)
     found += _unit_found(root, MDNS_LINKS_UNIT, MDNS_LINKS_KEYS,
-                         "is not the allow-list's run whenever resolved starts, as root with one capability")
+                         "is not the allow-list's run whenever resolved starts, as root with no capability")
     found += _unit_found(root, MDNS_LINKS_TEMPLATE, MDNS_LINKS_TEMPLATE_KEYS,
-                         "is not the allow-list's run for one link, as root with one capability")
+                         "is not the allow-list's run for one link, as root with no capability")
     problem = _enabled_problem(root, MDNS_LINKS_WANTS, MDNS_LINKS_UNIT)
     if problem:
         found.append(problem)
