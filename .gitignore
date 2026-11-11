@@ -57,6 +57,8 @@ dist/
 # the render tests' output (ui/playwright.config.ts)
 /ui/test-results/
 /ui/playwright-report/
+# the UI's audit report, read by scripts/quality/npm_audit.py
+/ui/npm-audit.json
 __pycache__/
 *.pyc
 .venv/

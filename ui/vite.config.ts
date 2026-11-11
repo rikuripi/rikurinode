@@ -4,9 +4,12 @@
 // Record: docs/build-records/2026-11-11-5c3a-ui-pipeline.md
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig } from 'vite';
+import { CSP } from './src/csp';
 
 export default defineConfig({
   plugins: [svelte()],
+  // The render tests load the build through `vite preview`: with the node's own policy.
+  preview: { headers: { 'Content-Security-Policy': CSP } },
   build: {
     outDir: 'dist',
     assetsDir: 'assets',

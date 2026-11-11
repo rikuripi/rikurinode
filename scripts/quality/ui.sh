@@ -2,8 +2,9 @@
 # The setup pages' toolchain (5c.3a), run only in pinned images: Node and npm
 # never run on the machine itself. `build` installs the locked packages (the
 # one step with network, no install scripts) and audits them against npm's
-# advisories (any advisory fails, and so does an audit that cannot be read),
-# then type-checks and builds ui/dist with no network. `test` runs the
+# advisories: scripts/quality/npm_audit.py fails on any advisory that is not
+# a recorded exception (ui/audit-exceptions.json) and on a report it cannot
+# read. Then it type-checks and builds ui/dist with no network. `test` runs the
 # render tests in the Playwright
 # image, whose browsers are inside it, with no network. The control plane
 # embeds ui/dist (control-plane/crates/rikuri-control/build.rs).
@@ -27,9 +28,12 @@ command -v docker >/dev/null || fail "docker is missing"
 
 case "${1:-}" in
 build)
-    rm -rf "$UI/dist"
+    rm -rf "$UI/dist" "$UI/npm-audit.json"
     docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$UI:/ui" -w /ui \
-        "$NODE_IMAGE" sh -c 'npm ci --ignore-scripts --engine-strict --no-audit --no-fund && npm audit --audit-level=low'
+        "$NODE_IMAGE" sh -c 'npm ci --ignore-scripts --engine-strict --no-audit --no-fund && { npm audit --json > npm-audit.json || true; }'
+    # npm exits non-zero for any advisory; the checker decides, and fails on a
+    # report npm could not fetch or did not write.
+    python3 scripts/quality/npm_audit.py "$UI/npm-audit.json" "$UI/audit-exceptions.json"
     docker run --rm --user "$(id -u):$(id -g)" --network none -e HOME=/tmp -v "$UI:/ui" -w /ui \
         "$NODE_IMAGE" npm run check
     docker run --rm --user "$(id -u):$(id -g)" --network none -e HOME=/tmp -v "$UI:/ui" -w /ui \

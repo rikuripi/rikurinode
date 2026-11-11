@@ -1,6 +1,7 @@
 <!-- The secure page, served only over TLS (/ and /setup). It confirms the
-     connection and says how to check it: the browser's own certificate
-     viewer against the node's claim screen. It never shows the fingerprint
+     connection and says how to check it: the node's CA (Rikuri Node CA) as
+     the browser's own certificate viewer, or the phone's settings, show it,
+     against the node's claim screen, which shows the CA's fingerprint. It never shows the fingerprint
      itself: a page in the middle could show the node's real, public one.
      The node's state comes from GET /api/setup; anything else is "unknown".
      Record: docs/build-records/2026-11-11-5c3a-ui-pipeline.md -->
@@ -27,6 +28,10 @@
           <li><span class="n" aria-hidden="true">2</span><span>{t('secure.check2')}</span></li>
           <li><span class="n" aria-hidden="true">3</span><span>{t('secure.check3')}</span></li>
         </ol>
+        <ul class="phones">
+          <li>{t('secure.check_iphone')}</li>
+          <li>{t('secure.check_android')}</li>
+        </ul>
         <p class="why">{t('secure.why')}</p>
       </section>
     </main>
@@ -63,7 +68,8 @@
   .lead { margin: 0; color: var(--text-soft); max-width: 600px; }
   .card { background: var(--surface); border-radius: var(--radius-card); padding: 24px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 16px; }
   ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px; }
-  li { display: flex; gap: 12px; }
+  ol li { display: flex; gap: 12px; }
+  .phones { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; color: var(--text-soft); }
   .n {
     flex: none; width: 30px; height: 30px; border-radius: var(--radius-badge);
     background: var(--glow); color: var(--yellow-ink); font-family: var(--font-display); font-weight: 600;
