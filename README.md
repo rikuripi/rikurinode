@@ -24,7 +24,12 @@ user, open to the LAN on 80 and 443 and answering as `rikurisetup.local` over
 mDNS on its physical interfaces only (never on a container bridge), with a certificate that names that name and the node's current address,
 and a claim screen on the node's second
 console (Ctrl+Alt+F2) that shows its address, its CA fingerprint and, on
-Enter, a claim code; the setup page that takes the code is still to come.
+Enter, a claim code. A browser on the same network opens the node's first
+setup pages ([ui/](ui/), Svelte, built in CI and compiled into the control
+plane): in the clear, a page that installs the node's certificate on that
+device; then, over HTTPS trusting only that certificate, a page that shows the
+connection is private and asks the owner to compare the browser's fingerprint
+with the claim screen's. The page that takes the claim code is still to come.
 Nothing here is ready to run on a node. The
 [platform and architecture plan](docs/architecture/platform-plan.md) says how
 the node will be built, and which decisions are still the owner's; its
@@ -50,7 +55,11 @@ and [rustup](https://rustup.rs): `rust-toolchain.toml` names the Rust
 version (1.98.1, with rustfmt and clippy), and rustup installs it on first
 use. Install the three tools from their release pages;
 `.github/workflows/ci.yml` shows the exact archives and their SHA-256
-checksums. AI sessions need Claude Code 2.1.295 or later: older versions
+checksums. The setup pages build and render in Docker, from images pinned
+by digest (`scripts/quality/ui.sh`); outside CI it refuses to start containers
+unless `RIKURI_UI_LOCAL=1` says that machine's Docker is not a live node's, so
+on the live node's machine the gate stops at that step and CI's run is the
+reference. AI sessions need Claude Code 2.1.295 or later: older versions
 ignore the setting that stops a tool call when the guard times out or fails.
 
 ```sh
@@ -69,7 +78,11 @@ CA, both made at first start under `RIKURI_STATE_DIR` (default
 `/var/lib/rikuri/control-plane`, a 0700 folder of 0600 files: the keys, the
 hashes of the claim code and the owner's password, the sessions). A plain
 listener (`RIKURI_HTTP_LISTEN`, off unless set) serves only the CA
-certificate at `/ca.crt` and a redirect to HTTPS. `RIKURI_NAMES` lists the
+certificate at `/ca.crt`, the certificate page at `/` with its files, and
+a redirect to HTTPS for everything else; over HTTPS the secure page answers at
+`/` and `/setup`. The pages are embedded in the binary at build time from
+`ui/dist` (`scripts/quality/ui.sh build`, in pinned Node and Playwright images
+only, never on the machine itself; `RIKURI_UI_DIR` names another `ui/`). `RIKURI_NAMES` lists the
 names a request may use for the node (`localhost` always may); any other
 `Host` is refused. The server certificate names them, the loopback addresses
 and the node's LAN address; the daemon looks at that address again every

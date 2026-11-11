@@ -8,15 +8,19 @@ the node from the stick, with no network. The installed node updates from
 `ghcr.io/rikuripi/rikurinode` under that release's fixed name.
 **Everything on the N150's internal disk is lost.**
 
-Stage 1 changes 5b, 5c.1 and 5c.2. The setup page does not exist yet (5c.3), so the
-node's screen keeps a login prompt nobody can use, and a second screen, the
-claim screen, shows the node's address, its certificate fingerprint and a
-claim code: that is the expected result. Workflow:
+Stage 1 changes 5b, 5c.1, 5c.2 and 5c.3a. The node's screen keeps a login
+prompt nobody can use; a second screen, the claim screen, shows the node's
+address, its certificate fingerprint and a claim code; and a browser on the
+same network opens the node's first setup pages: one that installs the node's
+certificate, then a private page where you check that fingerprint. Claiming
+the node with the code comes with a later update (5c.3b): that is the expected
+result. Workflow:
 `.github/workflows/publish.yml`, job **Build the USB installer from the signed
 digest, with no credential**; records:
 `docs/build-records/2026-10-29-install-media.md`,
 `docs/build-records/2026-11-06-5c1-control-plane-on-node.md`,
-`docs/build-records/2026-11-10-5c2-names-and-mdns.md`.
+`docs/build-records/2026-11-10-5c2-names-and-mdns.md`,
+`docs/build-records/2026-11-11-5c3a-ui-pipeline.md`.
 
 ## What you need
 
@@ -87,19 +91,26 @@ Use Fedora Media Writer (Fedora's own tool, free, from `fedoraproject.org/workst
 8. The N150 now starts from its own disk. After a minute or so the screen shows **Fedora Linux 45 (IoT Edition)** and a login prompt. No one signs in there: the node is set up from a browser, on the setup page that comes with a later update.
 9. Hold **Ctrl** and **Alt** and press **F2**. The claim screen appears:
    - **Address**: the node's address on your network, such as `http://192.168.1.20`. If it says **none yet**, connect the N150 to your router with a network cable; press Enter to look again.
-   - The node also answers by name: on a phone or computer on the same network, `http://rikurisetup.local` reaches it as well as the address does. Some networks and some phones do not find `.local` names; the address always works. If the router later gives the node another address, the screen shows it when you press Enter, and the node follows it by itself within a minute. Until the setup page exists, the browser moves on to `https://` and warns that the connection is not private: that is expected; close it.
-   - **Certificate fingerprint**: two lines of letters and numbers. When the setup page exists, your browser shows the same fingerprint for the node; compare them before you type anything there.
-   - **Press Enter to show a claim code.** Enter shows a code such as `K7QM-4XD9-TR`. Whoever types it on the setup page first becomes the node's owner, so show it only to yourself. It lasts 24 hours and works once; Enter again replaces it, and the old one stops working. Until the setup page exists, nothing uses the code.
-   - Ctrl+Alt+F1 returns to the login prompt. Power the N150 off with a short press of its power button.
+   - The node also answers by name: on a phone or computer on the same network, `http://rikurisetup.local` reaches it as well as the address does. Some networks and some phones do not find `.local` names; the address always works. If the router later gives the node another address, the screen shows it when you press Enter, and the node follows it by itself within a minute.
+   - **Certificate fingerprint**: two lines of letters and numbers. In step 11 your browser shows the node's fingerprint; it must be the same.
+   - **Press Enter to show a claim code.** Enter shows a code such as `K7QM-4XD9-TR`. Whoever types it on the setup page first becomes the node's owner, so show it only to yourself. It lasts 24 hours and works once; Enter again replaces it, and the old one stops working. Until the claim page comes (5c.3b), nothing uses the code.
+   - Ctrl+Alt+F1 returns to the login prompt. Leave the N150 on for the next steps.
+10. On a phone or computer on the same network, open the address the claim screen shows (or `http://rikurisetup.local`). The page **Let's make this connection private** opens. Pick your device if it did not guess it, tap **Download the certificate**, and follow the three steps the page lists for that device; they install **Rikuri Node CA** on that device only. Then tap **Continue securely**.
+    - If the browser warns that the connection is not private, the certificate is not installed yet, or not trusted: go back and finish the three steps. Do not click past the warning.
+11. The page **The connection is private** opens, with a padlock beside the address. Check the fingerprint in the **browser**, not on the page: click or tap the padlock, then the certificate, and find its SHA-256 fingerprint. Compare it with the claim screen's (Ctrl+Alt+F2 at the node). They must match exactly.
+    - If they do not match, stop: unplug the node's network cable and report it. Something on your network may be pretending to be the node.
+    - The page's **Your node** box says **Waiting to be claimed** and lists the node's names. Claiming comes with a later update; nothing more happens here yet.
+    - Power the N150 off with a short press of its power button.
 
 Report: whether it started from the stick, what the disk line said, whether
 it powered off by itself and started to the login prompt, and what the claim
 screen showed after Ctrl+Alt+F2 (an address, the fingerprint, and a code after
-Enter), and whether a phone or computer on the same network reached
-`http://rikurisetup.local` (reached means the browser's warning about a
-connection that is not private; "cannot find" or "server not found" means it
-did not). Photos of the screen are enough; a photo of a code is harmless only
-because the setup page does not exist yet.
+Enter), whether a phone or computer on the same network reached
+`http://rikurisetup.local` ("cannot find" or "server not found" means it did
+not), which device you installed the certificate on and whether its steps
+worked as the page said, and whether the browser's fingerprint matched the
+claim screen's. Photos of the screens are enough; a photo of a code is
+harmless only because nothing can claim the node yet.
 
 ## When it stops
 
