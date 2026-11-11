@@ -172,3 +172,16 @@ The owner (2026-11-11), after "Next" for 5c.3:
   - The fix: `src/env.d.ts` references `vite/client`. Read from the published `vite@8.3.5/client.d.ts`: `declare module '*.css' {}`.
   - Also checked before this last repair: the font files `fonts.css` names (`fredoka-latin-600-normal.woff2`, `inter-latin-400-normal.woff2`, `inter-latin-600-normal.woff2`) are in the published `@fontsource` 5.3.0 packages.
   - No test code changed.
+- **CI run 3** (head `03ff963`):
+  - **Pass:**
+    - `Full gate (Ubuntu)`, all 11 steps, including the UI's build and render tests and the Rust tests (run 43090784124);
+    - `Rust mutants (changed lines)` (43090784655);
+    - the guard and quality-tool tests, py3.9 and py3.12;
+    - the advisory audit;
+    - building and checking the OS image;
+    - the USB installer drill.
+  - **Fail:** `Boot the image in a VM and run the rollback drill` (run 43090784113, job 130768257277).
+    - Every control plane check passed, verbatim. Among them are this change's three: `PASS the certificate screen over HTTP: GET http://127.0.0.1:8080/: certificate page: 200, policy, nosniff, scripts from /assets/ only`, `PASS the secure page over HTTPS with only the node's CA: GET https://localhost:8443/setup: secure page: 200, policy, nosniff, scripts from /assets/ only`, and `PASS the secure page never over HTTP: GET http://127.0.0.1:8080/setup: 308 to https://127.0.0.1/setup`.
+    - Then `variants built in the VM: broken, a, b`, and `FAIL drill: timed out after 600s waiting for the broken update to roll back`. That is case 1, a deliberately broken update that greenboot must roll back. Nothing in this change touches the update, greenboot or the variants.
+  - Not yet known: whether case 1's timeout also explains the two failed push-to-`main` image runs (43060782808 and 42932353260). GitHub's API answered 502 when read.
+- **Status: NEEDS_OWNER_DECISION.** Both repair cycles and both review rounds are used. Whether to re-run the failed drill job (no code change, CI run 4 of 8) or to open its own task for case 1 is the owner's call.
