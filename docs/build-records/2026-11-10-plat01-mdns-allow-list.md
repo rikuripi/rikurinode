@@ -52,3 +52,22 @@
 5. **Limits:** one task; two repair cycles; two review rounds; CI at most 6 runs on the PR.
 
 ## Evidence log
+- **The experiment** (2026-11-10, rikuri-drill: Fedora IoT 44 aarch64, systemd-resolved 259.10, Parallels' shared network; evidence in `docs/build-records/evidence/2026-11-10-plat01-mdns-allow-list/`; trailing blanks stripped). With a resolved drop-in `MulticastDNS=yes` and a container on podman's bridge:
+  - `01-experiment.out`, B: `resolvectl mdns podman0 no` and `veth0 no` take effect at once (`Link 5 (podman0): no`, `Link 6 (veth0): no`).
+  - C: the container stopped and run again: netavark removes and recreates `podman0`, and the new links (new link numbers 7 and 8) come back `yes`. A setting must be made again for each new link.
+  - D: a resolved restart **keeps** the per-link settings.
+  - E: a unit started by a udev rule's `SYSTEMD_WANTS` for each new link found it known to resolved at its first try (`podman0 1`, `veth0 1`) and turned it off.
+  - `02-queries.out`: an mDNS question for `rikuri-drill.local` asked from inside the container, on the bridge. With `podman0` off (F, H): `answers: 0`. With it on, the control (G): `answer from 10.88.0.1: A ['10.88.0.1']`, twice. The first run's in-container questions (A, B and E in `01`) asked nothing, because `podman exec` without `-i` gave python an empty script; F to H are their rerun.
+  - `03-mac-query.out`: from this Mac, with the bridge off, `rikuri-drill.local` still answered `10.37.129.3`, the NIC's address.
+  - `04-undo.out`, `05-after.out`: the drop-in, the units, the rule and the container removed; `05` identical to `00-before.out` (`diff` empty, once the empty `/run/udev/rules.d` the experiment made was removed too).
+  - **Answer: keep.** resolved's per-link setting does what PLAT-01 asks, and udev's per-link start reaches each new link in time. A run at resolved's start covers the links of the boot, and any that came before resolved.
+- **Red** (`d83db2e`, rikuri-drill, `safe-run.sh`): `image/tests` `Ran 473 tests`, `FAILED (failures=2, errors=24)`. Every one is in the new tests: `test_mdns_links` cannot load a program not yet there; the `MdnsLinks` checker tests; the drill's `MdnsLinksReads` and `MdnsLinksSteps`; and Verdict's list. `.claude/hooks` `OK`; `scripts/quality/tests` only the 7 known errors.
+- **A test change after red, with its reason** (in `04e4c7d`): in `MdnsLinks.test_overrides_are_findings`, the path `run/systemd/system/rikuri-mdns-links@.service.d/x.conf` became `usr/local/lib/systemd/system/…`, and `usr/local/lib/udev/rules.d/90-rikuri-mdns-links.rules` was added. `/run` is a tmpfs an image cannot ship, and the checker's unit model (`SUBID_UNIT_DIRS`, probed in systemd 259 for the subid unit) leaves it out on purpose. The test now asks for a folder the image can ship; one more override path is checked. Nothing loosened.
+- **Green** (`04e4c7d`, rikuri-drill, `safe-run.sh`): `image/tests` `Ran 496 tests` `OK`; `.claude/hooks` `Ran 91 tests` `OK`; `scripts/quality/tests` only the 7 known errors.
+- **The register's tripwire: a block-list fails.** Three weakenings of the program, each applied to a copy in rikuri-drill, running `test_mdns_links`:
+  - M1, the allow-list replaced by a block-list of names (`veth`, `podman`, `docker`, `br-`): `FAILED (failures=5)`;
+  - M2, the empty-list refusal removed: `FAILED (failures=2)`;
+  - M3, the read-back removed: `FAILED (failures=4)`.
+- **What the port leaves out, against the register's rule:**
+  - "restores its config": there is no config file to restore. A link outside the list still answering fails the unit, so it shows in `systemctl --failed` and the journal, and the next start of resolved or of the link tries again.
+  - "if the name resolves to anything but the LAN address": the node cannot see a LAN client's answer. The read-back checks resolved's per-link state instead, and the N150 report is the real view. Recorded in the register's Port line.

@@ -113,7 +113,7 @@ No Important finding open. I-1, I-2 and I-3 and nit 2 pass. Two nits for the bac
 - One verifier pass with no Important finding: **Pass** on round 2, after repair 1.
 - A phone or laptop on the N150's LAN reaching `http://rikurisetup.local`: **Not yet proven**. It is the owner's report in the install runbook, step 9.
 
-**Open for the owner:** PLAT-01 (above). The register's rule asks for an allow-list and a tripwire; this design answers on every link and has neither. The choice is to clarify the rule text, or a follow-up task for the allow-list and the tripwire.
+**Open for the owner:** PLAT-01 (above). The register's rule asks for an allow-list and a tripwire; this design answers on every link and has neither. The choice is to clarify the rule text, or a follow-up task for the allow-list and the tripwire. **Answered 2026-11-10** (owner: "Next, for PLAT-01: can add list as follow-up task"): the allow-list is its own task, `docs/build-records/2026-11-10-plat01-mdns-allow-list.md`.
 
 **Backlog, not started:**
 - round 1's nits 3 to 5;
