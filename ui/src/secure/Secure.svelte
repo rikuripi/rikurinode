@@ -4,15 +4,29 @@
      against the node's claim screen, which shows the CA's fingerprint. It never shows the fingerprint
      itself: a page in the middle could show the node's real, public one.
      The node's state comes from GET /api/setup; anything else is "unknown".
-     Record: docs/build-records/2026-11-11-5c3a-ui-pipeline.md -->
+     Record: docs/build-records/2026-11-11-5c3a-ui-pipeline.md; the way on,
+     docs/build-records/2026-11-11-5c3b-claim-and-sign-in.md -->
 <script lang="ts">
   import type { SetupReport } from '../generated/SetupReport';
   import Header from '../lib/Header.svelte';
+  import { readSession } from '../lib/api';
   import { t } from '../lib/i18n';
   import { readSetup } from '../lib/setup';
 
-  let report: SetupReport | null | undefined = $state(undefined);
-  readSetup().then((r) => (report = r));
+  let report = $state<SetupReport | null | undefined>(undefined);
+  // 5c.3b: the way on. Unclaimed: the claim. Claimed: the node when this
+  // browser is signed in, else sign-in. Unknown: no way on is guessed.
+  let way = $state<'claim' | 'signin' | 'home' | undefined>(undefined);
+  readSetup().then(async (r) => {
+    report = r;
+    if (r === null) return;
+    if (!r.claimed) way = 'claim';
+    else {
+      const session = await readSession();
+      if (session.kind === 'ok') way = 'home';
+      else if (session.kind === 'refused' && session.status === 401) way = 'signin';
+    }
+  });
 </script>
 
 <div class="page">
@@ -53,7 +67,14 @@
           </dd>
         </dl>
       {/if}
-      <p class="next">{t('secure.next')}</p>
+      {#if way === 'claim'}
+        <p class="next">{t('secure.next')}</p>
+        <a class="action primary" href="/claim">{t('secure.claim_link')}</a>
+      {:else if way === 'home'}
+        <a class="action strong" href="/home">{t('secure.home_link')}</a>
+      {:else if way === 'signin'}
+        <a class="action strong" href="/signin">{t('secure.signin_link')}</a>
+      {/if}
     </aside>
   </div>
 </div>

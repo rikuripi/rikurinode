@@ -414,7 +414,11 @@ class Verdict(unittest.TestCase):
             "mDNS on the node's interface", "mDNS listens on 5353, LLMNR does not",
             "mDNS only on the node's interface, with a container's bridge up",
             "the certificate screen over HTTP", "the secure page over HTTPS with only the node's CA",
-            "the secure page never over HTTP"})
+            "the secure page never over HTTP",
+            # 5c.3b, added after the red commit (Build Record, "Test changes after red"):
+            "the owner's pages over HTTPS with only the node's CA",
+            "a wrong claim code is refused and the node stays unclaimed",
+            "the owner's pages never over HTTP"})
 
     def test_all_passed_and_no_error_is_zero(self):
         self.assertEqual(d.verdict(self.ALL, None), 0)
@@ -1429,6 +1433,181 @@ class SetupPagesSteps(unittest.TestCase):
         drill, results = self.results(plain={"/ca.crt": http(404, b"")})
         self.assertFalse(results["the secure page over HTTPS with only the node's CA"])
         self.assertEqual([r for r in drill.requests if r[0] == "tls"], [])
+
+
+
+# ---- 5c.3b: the owner's pages ----------------------------------------------
+
+REDIRECT = ("HTTP/1.1 308 Permanent Redirect\r\nlocation: https://127.0.0.1%s\r\ncontent-length: 0\r\n\r\n")
+UNCLAIMED_SETUP = http(200, json.dumps({"claimed": False, "claim": "armed", "ca_fingerprint_sha256": "AA",
+                                        "names": ["localhost"]}).encode())
+CLAIMED_SETUP = http(200, json.dumps({"claimed": True, "claim": "done", "ca_fingerprint_sha256": "AA",
+                                      "names": ["localhost"]}).encode())
+CLAIM_REFUSED = http(401, b'{"error":"claim refused"}', reason="Unauthorized")
+
+
+class OwnerPagesDrill(d.Drill):
+    """A Drill whose forwarded ports answer as the node's listeners would."""
+
+    def __init__(self, artifacts, **over):
+        super().__init__("localhost/rikuri-os:test", artifacts, artifacts)
+        self.log = lambda message: None
+        self.plain = {"/ca.crt": http(200, PEM_CERT.encode())}
+        for path in ("/claim", "/signin"):
+            self.plain[path] = (REDIRECT % path).encode()
+        self.plain.update(over.pop("plain", {}))
+        self.secure = {"/claim": page("secure"), "/signin": page("secure"), "/api/setup": UNCLAIMED_SETUP}
+        self.secure.update(over.pop("secure", {}))
+        self.claim = over.pop("claim", CLAIM_REFUSED)
+        self.requests = []
+        assert not over, over
+
+    def vm(self, command, check=True, timeout=300, stdin=None):
+        raise AssertionError("the owner's pages' checks run no VM command: %r" % command)
+
+    def fetch_plain(self, path):
+        self.requests.append(("plain", "GET", path, None, None))
+        answer = self.plain[path]
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    def _trusted(self, cafile, name):
+        assert name == d.SERVER_NAME, name
+        if not cafile:
+            raise ssl_module().SSLCertVerificationError(1, "verify failed")
+        with open(cafile, encoding="ascii") as f:
+            assert f.read() == PEM_CERT
+
+    def fetch_tls(self, path, cafile, name=d.SERVER_NAME):
+        self.requests.append(("tls", "GET", path, cafile, None))
+        self._trusted(cafile, name)
+        answer = self.secure[path]
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    def post_tls(self, path, body, cafile, name=d.SERVER_NAME):
+        self.requests.append(("tls", "POST", path, cafile, body))
+        self._trusted(cafile, name)
+        assert path == "/api/claim", path
+        if isinstance(self.claim, Exception):
+            raise self.claim
+        return self.claim
+
+
+class OwnerPagesSteps(unittest.TestCase):
+    CASES = ("the owner's pages over HTTPS with only the node's CA",
+             "a wrong claim code is refused and the node stays unclaimed",
+             "the owner's pages never over HTTP")
+
+    def setUp(self):
+        self.artifacts = tempfile.mkdtemp(prefix="drill-artifacts-")
+        self.addCleanup(shutil.rmtree, self.artifacts)
+
+    def results(self, **over):
+        drill = OwnerPagesDrill(self.artifacts, **over)
+        drill.owner_pages()
+        return drill, {name: ok for name, ok, _ in drill.results}
+
+    def test_every_case_is_expected(self):
+        for case in self.CASES:
+            self.assertIn(case, d.EXPECTED)
+
+    def test_a_good_node_passes_every_case_and_keeps_the_evidence(self):
+        drill, results = self.results()
+        self.assertEqual(results, dict.fromkeys(self.CASES, True))
+        posts = [r for r in drill.requests if r[1] == "POST"]
+        self.assertEqual(len(posts), 1, "one wrong claim, never more")
+        self.assertTrue(posts[0][3], "the claim is sent trusting only the node's CA")
+        sent = json.loads(posts[0][4])
+        self.assertEqual(sent["code"], d.WRONG_CODE)
+        self.assertGreaterEqual(len(sent["password"]), 12)
+        evidence = os.path.join(self.artifacts, "02c-owner-pages.out")
+        self.assertTrue(os.path.isfile(evidence))
+        with open(evidence, encoding="utf-8") as f:
+            text = f.read()
+        self.assertNotIn(sent["password"], text, "the evidence never holds the password it sent")
+
+    def test_the_wrong_code_cannot_be_a_real_one(self):
+        # A real code draws from claim::ALPHABET, which has no 0, 1, I, L or O.
+        self.assertRegex(d.WRONG_CODE.replace("-", ""), r"[01ILO]")
+
+    def test_each_failure_fails_its_own_case(self):
+        for case, over in (
+                ("the owner's pages over HTTPS with only the node's CA", {"secure": {"/claim": page("certificate")}}),
+                ("the owner's pages over HTTPS with only the node's CA", {"secure": {"/signin": page("secure", status=404)}}),
+                ("the owner's pages over HTTPS with only the node's CA",
+                 {"secure": {"/claim": ssl_module().SSLCertVerificationError(1, "verify failed")}}),
+                ("a wrong claim code is refused and the node stays unclaimed",
+                 {"claim": http(201, b'{"csrf_token":"x"}', reason="Created")}),
+                ("a wrong claim code is refused and the node stays unclaimed",
+                 {"claim": http(403, b'{"error":"origin is not this node"}', reason="Forbidden")}),
+                ("a wrong claim code is refused and the node stays unclaimed", {"secure": {"/api/setup": CLAIMED_SETUP}}),
+                ("a wrong claim code is refused and the node stays unclaimed", {"claim": ConnectionResetError(104, "reset")}),
+                ("the owner's pages never over HTTP", {"plain": {"/claim": page("secure")}}),
+                ("the owner's pages never over HTTP",
+                 {"plain": {"/signin": (REDIRECT % "/signin").replace("https://", "http://").encode()}}),
+                ("the owner's pages never over HTTP", {"plain": {"/claim": ConnectionResetError(104, "reset")}})):
+            with self.subTest(case=case, over=over):
+                _, results = self.results(**over)
+                self.assertFalse(results[case], case)
+                self.assertEqual([c for c in self.CASES if not results[c]], [case])
+
+    def test_no_ca_certificate_sends_nothing_over_tls(self):
+        drill, results = self.results(plain={"/ca.crt": http(404, b"")})
+        self.assertFalse(results["the owner's pages over HTTPS with only the node's CA"])
+        self.assertFalse(results["a wrong claim code is refused and the node stays unclaimed"])
+        self.assertEqual([r for r in drill.requests if r[0] == "tls"], [])
+
+
+class OwnerPagesPost(unittest.TestCase):
+    """The drill's own POST: to the node's TLS port as the node's name, with
+    an Origin the node accepts, JSON, and only the CA it was given."""
+
+    def test_the_request_it_writes(self):
+        sent = {}
+
+        class Conn:
+            def __init__(self):
+                self.out = b""
+
+            def sendall(self, data):
+                self.out += data
+
+            def recv(self, n):
+                return b""
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                sent["raw"] = self.out
+                return False
+
+        class Context:
+            def wrap_socket(self, raw, server_hostname):
+                sent["sni"] = server_hostname
+                return Conn()
+
+        real_ctx, real_conn = d.ssl.create_default_context, d.socket.create_connection
+        d.ssl.create_default_context = lambda cafile=None: (sent.__setitem__("cafile", cafile), Context())[1]
+        d.socket.create_connection = lambda addr, timeout: (sent.__setitem__("addr", addr), Conn())[1]
+        try:
+            d.Drill("i", "/w", "/a").post_tls("/api/claim", b'{"code":"x"}', "/w/ca.crt")
+        finally:
+            d.ssl.create_default_context, d.socket.create_connection = real_ctx, real_conn
+        self.assertEqual(sent["cafile"], "/w/ca.crt")
+        self.assertEqual(sent["addr"], ("127.0.0.1", d.HTTPS_PORT))
+        self.assertEqual(sent["sni"], d.SERVER_NAME)
+        head, _, body = sent["raw"].partition(b"\r\n\r\n")
+        lines = head.split(b"\r\n")
+        self.assertEqual(lines[0], b"POST /api/claim HTTP/1.1")
+        self.assertIn(b"Host: localhost", lines)
+        self.assertIn(b"Origin: https://localhost", lines)
+        self.assertIn(b"Content-Type: application/json", lines)
+        self.assertIn(b"Content-Length: 12", lines)
+        self.assertEqual(body, b'{"code":"x"}')
 
 
 if __name__ == "__main__":

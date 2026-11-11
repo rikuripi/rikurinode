@@ -29,7 +29,9 @@ setup pages ([ui/](ui/), Svelte, built in CI and compiled into the control
 plane): in the clear, a page that installs the node's certificate on that
 device; then, over HTTPS trusting only that certificate, a page that shows the
 connection is private and asks the owner to compare the browser's fingerprint
-with the claim screen's. The page that takes the claim code is still to come.
+with the claim screen's, then leads on: to the claim, where the owner types the
+code and chooses a password; to sign-in; and to a page that says the node is
+theirs, with sign-out. The rest of setup is still to come.
 Nothing here is ready to run on a node. The
 [platform and architecture plan](docs/architecture/platform-plan.md) says how
 the node will be built, and which decisions are still the owner's; its

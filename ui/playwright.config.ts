@@ -21,9 +21,9 @@ export default defineConfig({
   },
   projects: [
     { name: 'text', testMatch: 'text-keys.spec.ts' },
-    { name: 'phone', testMatch: 'render.spec.ts', use: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } } },
-    { name: 'phone-webkit', testMatch: 'render.spec.ts', use: { ...devices['iPhone 13'], viewport: { width: 390, height: 844 } } },
-    { name: 'tablet', testMatch: 'render.spec.ts', use: { browserName: 'chromium', viewport: { width: 768, height: 1024 } } },
-    { name: 'desktop', testMatch: 'render.spec.ts', use: { browserName: 'chromium', viewport: { width: 1280, height: 860 } } },
+    { name: 'phone', testMatch: /(render|owner)\.spec\.ts$/, use: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } } },
+    { name: 'phone-webkit', testMatch: /(render|owner)\.spec\.ts$/, use: { ...devices['iPhone 13'], viewport: { width: 390, height: 844 } } },
+    { name: 'tablet', testMatch: /(render|owner)\.spec\.ts$/, use: { browserName: 'chromium', viewport: { width: 768, height: 1024 } } },
+    { name: 'desktop', testMatch: /(render|owner)\.spec\.ts$/, use: { browserName: 'chromium', viewport: { width: 1280, height: 860 } } },
   ],
 });

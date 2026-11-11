@@ -52,6 +52,7 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import socket
 import ssl
 import subprocess
@@ -447,6 +448,10 @@ def parse_http(raw: bytes):
 PAGE_CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; "
             "connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'")
 SETUP_REDIRECT = "https://127.0.0.1/setup"   # the plain listener's answer to /setup, as fetch_plain asks
+# 5c.3b: the owner's pages, and a claim code no node can show: a real code
+# draws only from claim::ALPHABET, which has no 0, 1, I, L or O.
+OWNER_PAGES = ("/claim", "/signin")
+WRONG_CODE = "0000-0000-00"
 
 
 def http_header(raw: bytes, name: str):
@@ -557,7 +562,10 @@ EXPECTED = frozenset({"first boot", "the containers range at the first boot", "c
                       "mDNS only on the node's interface, with a container's bridge up",
                       "no claim code in the journal",
                       "the certificate screen over HTTP", "the secure page over HTTPS with only the node's CA",
-                      "the secure page never over HTTP"})
+                      "the secure page never over HTTP",
+                      "the owner's pages over HTTPS with only the node's CA",
+                      "a wrong claim code is refused and the node stays unclaimed",
+                      "the owner's pages never over HTTP"})
 
 
 def verdict(results, error) -> int:
@@ -708,6 +716,19 @@ class Drill:
                              % (path.encode(), name.encode()))
                 return _read_all(conn)
 
+    def post_tls(self, path: str, body: bytes, cafile, name: str = SERVER_NAME):
+        """One HTTPS POST of a JSON `body` to the VM's 443, as `name`, with
+        the Origin a browser on the node's page sends, trusting only `cafile`."""
+        context = ssl.create_default_context(cafile=cafile)
+        raw = socket.create_connection(("127.0.0.1", HTTPS_PORT), timeout=10)
+        # wrap_socket takes the socket over (it detaches `raw`, and closes it
+        # if the handshake fails), so only the TLS socket needs closing.
+        with context.wrap_socket(raw, server_hostname=name) as conn:
+            conn.sendall(b"POST %s HTTP/1.1\r\nHost: %s\r\nOrigin: https://%s\r\n"
+                         b"Content-Type: application/json\r\nContent-Length: %d\r\nConnection: close\r\n\r\n"
+                         % (path.encode(), name.encode(), name.encode(), len(body)) + body)
+            return _read_all(conn)
+
     def refused_as(self, cafile, name: str):
         """Whether HTTPS as `name`, trusting only the node's CA, is refused for
         its certificate (not merely unanswered), and what happened."""
@@ -775,6 +796,86 @@ class Drill:
                    "GET http://127.0.0.1:%d/setup: %s (wanted 308 to %s)" % (HTTP_PORT, detail, SETUP_REDIRECT))
         lines.append("GET /setup (plain): %s" % detail)
         self.keep("02b-setup-pages.out", "\n".join(lines))
+
+    def owner_pages(self) -> None:
+        """5c.3b, from outside the VM: the claim and sign-in pages over HTTPS
+        trusting only the node's CA, and in the clear only a redirect to it; one
+        claim with a code no node can show, refused, and the node still
+        unclaimed after it. The password it sends is random and never kept."""
+        lines = []
+        cafile = None
+        try:
+            status, body = parse_http(self.fetch_plain("/ca.crt"))
+            if status == 200:
+                pem = body.decode("ascii")
+                pem_fingerprint(pem)   # refuses what is not a certificate
+                cafile = os.path.join(self.workdir, "node-ca-owner.crt")
+                with open(cafile, "w", encoding="ascii") as f:
+                    f.write(pem)
+        except (OSError, ValueError) as e:
+            status = "no answer (%s)" % e
+        no_ca = "no CA certificate to trust (/ca.crt: %s)" % status
+
+        details = []
+        ok = cafile is not None
+        for path in OWNER_PAGES if cafile else ():
+            try:
+                good, detail = page_ok(self.fetch_tls(path, cafile), "secure")
+            except OSError as e:     # a refused certificate among them
+                good, detail = False, "no answer (%s)" % e
+            ok = ok and good
+            details.append("%s: %s" % (path, detail))
+        detail = "; ".join(details) if cafile else no_ca
+        self.check("the owner's pages over HTTPS with only the node's CA", ok,
+                   "GET https://localhost:%d%s: %s" % (HTTPS_PORT, "|".join(OWNER_PAGES), detail))
+        lines.append("GET %s (TLS): %s" % (" ".join(OWNER_PAGES), detail))
+
+        if cafile:
+            password = secrets.token_urlsafe(24)
+            request = json.dumps({"code": WRONG_CODE, "password": password}).encode()
+            try:
+                status, body = parse_http(self.post_tls("/api/claim", request, cafile))
+                try:
+                    reply = json.loads(body)
+                except ValueError:
+                    reply = None
+                refused = status == 401 and reply == {"error": "claim refused"}
+                answer = "%s %s" % (status, body[:120].decode("utf-8", "replace"))
+                status, body = parse_http(self.fetch_tls("/api/setup", cafile))
+                try:
+                    claimed = json.loads(body).get("claimed") if status == 200 else None
+                except (ValueError, AttributeError):
+                    claimed = None
+                ok = refused and claimed is False
+                detail = "POST /api/claim with %s: %s %s; then /api/setup claimed: %s" % (
+                    WRONG_CODE, "refused" if refused else "not refused as wanted", answer, claimed)
+            except OSError as e:
+                ok, detail = False, "no answer (%s)" % e
+            del password, request
+        else:
+            ok, detail = False, no_ca
+        self.check("a wrong claim code is refused and the node stays unclaimed", ok, detail)
+        lines.append(detail)
+
+        details = []
+        ok = True
+        for path in OWNER_PAGES:
+            want = "https://127.0.0.1" + path
+            try:
+                raw = self.fetch_plain(path)
+                status, _ = parse_http(raw)
+                location = http_header(raw, "location")
+                good = status == 308 and location == want
+                details.append("%s: %s to %s" % (path, status, location))
+            except OSError as e:
+                good = False
+                details.append("%s: no answer (%s)" % (path, e))
+            ok = ok and good
+        detail = "; ".join(details)
+        self.check("the owner's pages never over HTTP", ok,
+                   "GET http://127.0.0.1:%d: %s (wanted 308 to https://127.0.0.1 and the same path)" % (HTTP_PORT, detail))
+        lines.append("GET %s (plain): %s" % (" ".join(OWNER_PAGES), detail))
+        self.keep("02c-owner-pages.out", "\n".join(lines))
 
     def control_plane(self) -> None:
         """5c.1, at the first boot: the service runs as its own user; from outside
@@ -1135,6 +1236,7 @@ def main(argv=None) -> int:
         drill.first_boot()
         drill.control_plane()
         drill.setup_pages()
+        drill.owner_pages()
         drill.load_variants()
         for case in (drill.case1, drill.case2b, drill.case3):
             case()

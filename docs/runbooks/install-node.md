@@ -88,12 +88,12 @@ Use Fedora Media Writer (Fedora's own tool, free, from `fedoraproject.org/workst
 7. Take the USB stick out, then press the N150's power button.
    - If you power it on with the stick still in, many machines start from it again and the installer appears again, as if nothing happened. The node is installed: press Enter at the installer's question (nothing is erased), then Enter again to power off; take the stick out, and power on.
    - If the firmware says it has no boot device, set its boot order to the internal disk you picked (on the N150 it was listed by its maker, ORICO), and change nothing else there.
-8. The N150 now starts from its own disk. After a minute or so the screen shows **Fedora Linux 45 (IoT Edition)** and a login prompt. No one signs in there: the node is set up from a browser, on the setup page that comes with a later update.
+8. The N150 now starts from its own disk. After a minute or so the screen shows **Fedora Linux 45 (IoT Edition)** and a login prompt. No one signs in there: the node is set up from a browser, from step 10 on.
 9. Hold **Ctrl** and **Alt** and press **F2**. The claim screen appears:
    - **Address**: the node's address on your network, such as `http://192.168.1.20`. If it says **none yet**, connect the N150 to your router with a network cable; press Enter to look again.
    - The node also answers by name: on a phone or computer on the same network, `http://rikurisetup.local` reaches it as well as the address does. Some networks and some phones do not find `.local` names; the address always works. If the router later gives the node another address, the screen shows it when you press Enter, and the node follows it by itself within a minute.
    - **Certificate fingerprint**: two lines of letters and numbers. In step 11 your browser shows the node's fingerprint; it must be the same.
-   - **Press Enter to show a claim code.** Enter shows a code such as `K7QM-4XD9-TR`. Whoever types it on the setup page first becomes the node's owner, so show it only to yourself. It lasts 24 hours and works once; Enter again replaces it, and the old one stops working. Until the claim page comes (5c.3b), nothing uses the code.
+   - **Press Enter to show a claim code.** Enter shows a code such as `K7QM-4XD9-TR`. Whoever types it on the setup page first becomes the node's owner, so show it only to yourself. It lasts 24 hours and works once; Enter again replaces it, and the old one stops working. Once the node is claimed, Enter shows no code.
    - Ctrl+Alt+F1 returns to the login prompt. Leave the N150 on for the next steps.
 10. On a phone or computer on the same network, open the address the claim screen shows (or `http://rikurisetup.local`). The page **Let's make this connection private** opens. Pick your device if it did not guess it, tap **Download the certificate**, and follow the three steps the page lists for that device; they install **Rikuri Node CA** on that device only. Then tap **Continue securely**.
     - If the browser warns that the connection is not private, the certificate is not installed yet, or not trusted: go back and finish the three steps. Do not click past the warning.
@@ -104,8 +104,15 @@ Use Fedora Media Writer (Fedora's own tool, free, from `fedoraproject.org/workst
     - **On Android:** Settings, search for **Trusted credentials**, its **User** tab, **Rikuri Node CA**, and its **SHA-256**.
     - Compare it with the claim screen's. They must match exactly.
     - If they do not match, stop: unplug the node's network cable and report it. Something on your network may be pretending to be the node.
-    - The page's **Your node** box says **Waiting to be claimed** and lists the node's names. Claiming comes with a later update; nothing more happens here yet.
-    - Power the N150 off with a short press of its power button.
+    - The page's **Your node** box says **Waiting to be claimed** and lists the node's names.
+12. Only when the fingerprints match, tap **Claim this node**. The page **Claim your node** opens.
+    - **Claim code**: at the node, Ctrl+Alt+F2 and Enter, and type the code it shows. Capitals or not, with or without the dashes, all work.
+    - **New password**, then **The same password again**: at least 12 characters (the line under the field ticks when it has enough). A few unrelated words, like `harbor violet tractor maple`, are long and easy to remember. **Show passwords** shows what you typed.
+    - Write the password down or keep it in a password manager. Nothing can reset it yet: if it is lost, the node cannot be claimed again until a later update brings a reset at the node.
+    - Tap **Claim this node**. **This node is yours** opens, and says until when this device stays signed in.
+    - If it says the code is not the one on the node's screen, check it against the screen (a code lasts 24 hours; Enter at the node shows a new one) and type it again. After several wrong tries it asks you to wait a number of seconds; the button returns when they are over.
+    - If it says the node already has an owner, someone has claimed it. If that was not you, stop: unplug the node's network cable and report it.
+13. Tap **Sign out**: the page **Sign in to your node** opens. Type the password and tap **Sign in**: **This node is yours** opens again. Sign out again, then power the N150 off with a short press of its power button.
 
 Report: whether it started from the stick, what the disk line said, whether
 it powered off by itself and started to the login prompt, and what the claim
@@ -113,9 +120,11 @@ screen showed after Ctrl+Alt+F2 (an address, the fingerprint, and a code after
 Enter), whether a phone or computer on the same network reached
 `http://rikurisetup.local` ("cannot find" or "server not found" means it did
 not), which device you installed the certificate on and whether its steps
-worked as the page said, and whether the browser's fingerprint matched the
-claim screen's. Photos of the screens are enough; a photo of a code is
-harmless only because nothing can claim the node yet.
+worked as the page said, whether the browser's fingerprint matched the
+claim screen's, and whether claiming, signing out and signing in worked as
+steps 12 and 13 say. Photos of the screens are enough; never photograph or
+send the password. A photo of a code is harmless once the node is claimed, as
+that code no longer works.
 
 ## When it stops
 
