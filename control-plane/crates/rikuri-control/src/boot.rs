@@ -5,6 +5,7 @@
 //! application state.
 
 use std::fmt;
+use std::net::IpAddr;
 
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
@@ -82,7 +83,9 @@ impl From<ClaimError> for BootError {
     }
 }
 
-pub fn boot(config: &Config, started: Started) -> Result<Booted, BootError> {
+/// `lan` is the node's LAN address now, if it has one: the server
+/// certificate names it.
+pub fn boot(config: &Config, started: Started, lan: Option<IpAddr>) -> Result<Booted, BootError> {
     let dir = StateDir::open(&config.state_dir)?;
     let now = status::unix_now().unwrap_or(0);
     let node = match dir.read_json::<NodeFile>(NODE_FILE)? {
@@ -96,7 +99,7 @@ pub fn boot(config: &Config, started: Started) -> Result<Booted, BootError> {
             node
         }
     };
-    let identity = tls::load_or_create(&dir, &config.names, OffsetDateTime::now_utc())?;
+    let identity = tls::load_or_create(&dir, &config.names, lan, OffsetDateTime::now_utc())?;
     let armed = if !owner::exists(&dir) && !dir.exists(claim::FILE) {
         Some(claim::arm(&dir, now)?)
     } else {
@@ -140,7 +143,7 @@ mod tests {
     #[test]
     fn the_first_start_makes_the_instance_the_identity_and_arms_a_claim() {
         let scratch = Scratch::new();
-        let booted = boot(&config(&scratch), Started::now()).unwrap();
+        let booted = boot(&config(&scratch), Started::now(), None).unwrap();
         assert_eq!(booted.node.instance_id.len(), 64);
         assert!(booted.identity.ca_created);
         assert!(
@@ -154,8 +157,8 @@ mod tests {
     #[test]
     fn a_later_start_keeps_the_instance_and_arms_nothing() {
         let scratch = Scratch::new();
-        let first = boot(&config(&scratch), Started::now()).unwrap();
-        let second = boot(&config(&scratch), Started::now()).unwrap();
+        let first = boot(&config(&scratch), Started::now(), None).unwrap();
+        let second = boot(&config(&scratch), Started::now(), None).unwrap();
         assert_eq!(first.node.instance_id, second.node.instance_id);
         assert!(!second.identity.ca_created);
         assert!(
@@ -167,11 +170,11 @@ mod tests {
     #[test]
     fn a_claimed_node_arms_nothing_even_without_a_claim_file() {
         let scratch = Scratch::new();
-        boot(&config(&scratch), Started::now()).unwrap();
+        boot(&config(&scratch), Started::now(), None).unwrap();
         let dir = StateDir::open(&scratch.0).unwrap();
         claim::finish(&dir).unwrap();
         owner::set_password(&dir, "a password of twelve", 1).unwrap();
-        let booted = boot(&config(&scratch), Started::now()).unwrap();
+        let booted = boot(&config(&scratch), Started::now(), None).unwrap();
         assert!(booted.armed.is_none());
     }
 }

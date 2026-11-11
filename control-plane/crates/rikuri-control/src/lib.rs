@@ -10,6 +10,7 @@
 //! Records: docs/build-records/2026-10-12-b0-1-control-plane-workspace.md,
 //! docs/build-records/2026-10-19-b0-2-sign-in.md.
 
+pub mod address;
 pub mod boot;
 pub mod claim;
 pub mod config;

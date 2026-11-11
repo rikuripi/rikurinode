@@ -1,0 +1,6 @@
+DATE: ---Tue 10 Nov 2026---
+15:25:18.819  ...STARTING...
+Timestamp     A/R  Flags         IF  Hostname                               Address                                      TTL
+15:25:18.820  Add  40000003      24  rikuri-drill.local.                    FE80:0000:0000:0000:0D85:CCB0:3291:D9C8%bridge101 120
+15:25:18.820  Add  40000003      24  rikuri-drill.local.                    FDB2:2C26:F4E4:0001:593A:ED8B:026B:0D18%<0>  120
+15:25:18.820  Add  40000002      24  rikuri-drill.local.                    10.37.129.3                                  120

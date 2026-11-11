@@ -17,7 +17,7 @@ use rikuri_control::config::Config;
 use rikuri_control::state::StateDir;
 use rikuri_control::status::{self, Started};
 use rikuri_control::{
-    api_router, boot, claim, console, owner, plain_router, serve_plain, serve_tls,
+    address, api_router, boot, claim, console, owner, plain_router, serve_plain, serve_tls,
 };
 use tokio::net::TcpListener;
 use tokio::signal::unix::{SignalKind, signal};
@@ -87,12 +87,13 @@ fn run() -> Result<(), Box<dyn Error>> {
     runtime.block_on(async {
         let mut term = signal(SignalKind::terminate())?;
         let mut int = signal(SignalKind::interrupt())?;
-        let booted = boot::boot(&config, Started::now())?;
+        let booted = boot::boot(&config, Started::now(), console::lan_address())?;
         info!(
             instance = %booted.node.instance_id,
             ca_fingerprint_sha256 = %booted.identity.ca_fingerprint,
             ca_created = booted.identity.ca_created,
             server_certificate_issued = booted.identity.server_issued,
+            server_certificate_names = ?booted.identity.server_meta.names,
             "node identity: compare the fingerprint with the one the browser shows"
         );
         if booted.armed.is_some() {
@@ -127,6 +128,15 @@ fn run() -> Result<(), Box<dyn Error>> {
             let _ = rx.changed().await;
         };
 
+        // The certificate follows the node's address (5c.2).
+        tokio::spawn(address::follow(
+            StateDir::open(&config.state_dir)?,
+            config.names.clone(),
+            booted.identity.current.clone(),
+            console::lan_address,
+            address::EVERY,
+            wait(stopped.clone()),
+        ));
         let api = serve_tls(https, booted.identity.config.clone(), api_router(booted.app.clone()), wait(stopped.clone()));
         match plain {
             Some(listener) => {

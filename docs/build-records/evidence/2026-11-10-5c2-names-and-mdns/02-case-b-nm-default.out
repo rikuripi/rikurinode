@@ -1,0 +1,17 @@
++ printf '[connection]\nconnection.mdns=2\n'
++ sudo tee /etc/NetworkManager/conf.d/90-exp5c2-mdns.conf
+[connection]
+connection.mdns=2
++ sudo systemctl reload NetworkManager
++ sudo nmcli device reapply enp0s5
+Connection successfully reapplied to device 'enp0s5'.
++ sleep 3
++ resolvectl mdns
+Global: yes
+Link 2 (enp0s5): yes
+Link 3 (podman0): yes
+Link 4 (veth0): yes
++ ip -br addr show podman0
+podman0          UP             10.88.0.1/16 fe80::3c7b:73ff:fe6f:28af/64
++ ip -br addr show enp0s5
+enp0s5           UP             10.37.129.3/24 fdb2:2c26:f4e4:1:593a:ed8b:26b:d18/64 fe80::d85:ccb0:3291:d9c8/64

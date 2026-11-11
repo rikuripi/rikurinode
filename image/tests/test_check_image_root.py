@@ -51,6 +51,9 @@ FIREWALL_POLICY = "usr/lib/firewalld/policies/rikuri-node.xml"
 CP_REQUIRED = "usr/lib/greenboot/check/required.d/50-rikuri-control-plane"
 # systemd-resolved answers LLMNR on 5355 by default; the node turns it off (owner, 2026-11-06).
 NO_LLMNR = "usr/lib/systemd/resolved.conf.d/90-rikuri-no-llmnr.conf"
+# mDNS on, in its own file; the node's name (docs/build-records/2026-11-10-5c2-names-and-mdns.md).
+MDNS = "usr/lib/systemd/resolved.conf.d/90-rikuri-mdns.conf"
+HOSTNAME = "etc/hostname"
 # A built x86-64 program's first bytes: ELF, 64-bit, little-endian.
 ELF64 = b"\x7fELF\x02\x01\x01" + b"\x00" * 57
 
@@ -164,6 +167,9 @@ class Root:
                 self.link(rel, "/dev/null")
         if os.path.exists(os.path.join(HERE, "..", "rootfs", NO_LLMNR)):
             self.write_bytes(NO_LLMNR, shipped_file(NO_LLMNR))
+        for rel in (MDNS, HOSTNAME):
+            if os.path.exists(os.path.join(HERE, "..", "rootfs", rel)):
+                self.write_bytes(rel, shipped_file(rel))
         self.write("etc/ssh/sshd_config", "PermitRootLogin no\n")
 
     def _fresh(self, rel):
@@ -233,7 +239,7 @@ class CheckImageRoot(unittest.TestCase):
             self.assertEqual(cir.main([os.path.join(self.root.path, "nope"), "--fedora", "44"]), 2)
         self.assertIn("FAIL usr/lib/os-release: VERSION_ID is '44', expected '45'", out.getvalue())
         # F3: the scan says what it read, so an empty scan is visible in the CI log.
-        self.assertIn("scan etc: 4 file(s) read", out.getvalue())
+        self.assertIn("scan etc: 5 file(s) read", out.getvalue())
 
     # --- the release ---------------------------------------------------------
     def test_wrong_release(self):
@@ -869,7 +875,7 @@ class CheckImageRoot(unittest.TestCase):
         found, notes = self.root.check_with_notes()
         self.assertEqual(found, [])
         self.assertEqual([n.split(":")[0] for n in notes], ["scan " + t for t in cir.SECRET_DIRS])
-        self.assertIn("scan etc: 4 file(s) read", notes)
+        self.assertIn("scan etc: 5 file(s) read", notes)
         self.assertIn("scan var: skipped (absent)", notes)
 
     def test_etc_without_a_regular_file_is_a_finding(self):
@@ -1285,7 +1291,8 @@ class ControlPlane(unittest.TestCase):
         self.assertEqual(keys["StateDirectory"], "rikuri/control-plane")
         self.assertEqual(keys["StateDirectoryMode"], "0700")
         self.assertEqual(keys["Environment"], "RIKURI_LISTEN=0.0.0.0:443 RIKURI_HTTP_LISTEN=0.0.0.0:80 "
-                                              "RIKURI_STATE_DIR=/var/lib/rikuri/control-plane")
+                                              "RIKURI_STATE_DIR=/var/lib/rikuri/control-plane "
+                                              "RIKURI_NAMES=rikurisetup.local")
         for key, value in (("NoNewPrivileges", "yes"), ("ProtectSystem", "strict"), ("ProtectHome", "yes"),
                            ("PrivateTmp", "yes"), ("PrivateDevices", "yes"), ("UMask", "0077"),
                            ("RestrictAddressFamilies", "AF_INET AF_INET6 AF_UNIX"),
@@ -1305,6 +1312,8 @@ class ControlPlane(unittest.TestCase):
                 ("ProtectSystem=strict", "ProtectSystem=full", "a weaker protection"),
                 ("Type=exec\n", "Type=exec\nExecStartPre=/bin/true\n", "a key the unit does not have"),
                 ("RIKURI_LISTEN=0.0.0.0:443", "RIKURI_LISTEN=0.0.0.0:8443", "another port"),
+                (" RIKURI_NAMES=rikurisetup.local", "", "no name: the certificate would not name rikurisetup.local"),
+                ("RIKURI_NAMES=rikurisetup.local", "RIKURI_NAMES=rikurisetup.local,evil.example", "another name"),
                 ("WantedBy=multi-user.target", "WantedBy=default.target", "another target")):
             with self.subTest(why=why):
                 self.assertIn(old, good)
@@ -1416,24 +1425,66 @@ class ControlPlane(unittest.TestCase):
                 self.root.remove(rel)
         self.assertEqual(self.found(), [])
 
-    # --- the firewall: 80 and 443 to the node, nothing else ------------------
+    # --- mDNS: the node's name on the LAN ------------------------------------
+    def test_mdns_is_turned_on_in_its_own_file(self):
+        self.assertEqual(cir.MDNS_LINES, ["[Resolve]", "MulticastDNS=yes"])
+        lines = [l for l in shipped_file(MDNS).decode("utf-8").splitlines()
+                 if l.strip() and not l.startswith("#")]
+        self.assertEqual(lines, ["[Resolve]", "MulticastDNS=yes"])
+        self.assertNotEqual(MDNS, NO_LLMNR)
+
+    def test_mdns_off_or_changed_is_a_finding(self):
+        good = shipped_file(MDNS).decode("utf-8")
+        for old, new, why in (("MulticastDNS=yes", "MulticastDNS=no", "off"),
+                              ("MulticastDNS=yes", "MulticastDNS=resolve", "resolving only"),
+                              ("MulticastDNS=yes", "MulticastDNS=yes\nLLMNR=yes", "another setting"),
+                              ("[Resolve]", "[Other]", "another section")):
+            with self.subTest(why=why):
+                self.root.write(MDNS, good.replace(old, new, 1))
+                self.assertFinds(MDNS + ": not exactly")
+        self.root.remove(MDNS)
+        self.assertFinds(MDNS + ": missing")
+        self.root.write(MDNS, good)
+        for rel in ("etc/systemd/resolved.conf.d/90-rikuri-mdns.conf",
+                    "run/systemd/resolved.conf.d/90-rikuri-mdns.conf"):
+            with self.subTest(rel=rel):
+                self.root.write(rel, "[Resolve]\nMulticastDNS=no\n")
+                self.assertFinds(rel + ": overrides")
+                self.root.remove(rel)
+        self.assertEqual(self.found(), [])
+
+    def test_the_node_is_named_rikurisetup(self):
+        self.assertEqual(cir.HOSTNAME_LINES, ["rikurisetup"])
+        self.assertEqual(shipped_file(HOSTNAME), b"rikurisetup\n")
+        for text, why in (("", "empty"), ("localhost\n", "another name"), ("rikurisetup.local\n", "the mDNS name"),
+                          ("rikurisetup\nother\n", "a second line")):
+            with self.subTest(why=why):
+                self.root.write(HOSTNAME, text)
+                self.assertFinds(HOSTNAME + ": not exactly")
+        self.root.remove(HOSTNAME)
+        self.assertFinds(HOSTNAME + ": missing")
+
+    # --- the firewall: 80, 443 and mDNS to the node, nothing else --------------
     def test_the_firewall_policy_opens_http_and_https_to_the_node_only(self):
         self.assertEqual(cir.FIREWALL_POLICY_LINES, [
             '<?xml version="1.0" encoding="utf-8"?>',
             '<policy target="CONTINUE" priority="-100">',
             "  <short>Rikuri Node</short>",
             "  <description>The control plane: the CA certificate and a redirect on 80, "
-            "the API on 443.</description>",
+            "the API on 443; the node's name over mDNS on 5353.</description>",
             '  <ingress-zone name="ANY"/>',
             '  <egress-zone name="HOST"/>',
             '  <service name="http"/>',
             '  <service name="https"/>',
+            '  <service name="mdns"/>',
             "</policy>"])
 
     def test_any_other_policy_is_a_finding(self):
         good = shipped_file(FIREWALL_POLICY).decode("utf-8")
         for old, new, why in (('<service name="https"/>', '<service name="https"/>\n  <service name="ssh"/>',
                                "another service"),
+                              ('  <service name="mdns"/>\n', "", "no mDNS"),
+                              ('<service name="mdns"/>', '<service name="llmnr"/>', "LLMNR instead"),
                               ('<egress-zone name="HOST"/>', '<egress-zone name="ANY"/>', "forwarding too"),
                               ('target="CONTINUE"', 'target="ACCEPT"', "everything accepted")):
             with self.subTest(why=why):

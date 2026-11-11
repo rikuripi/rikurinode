@@ -166,7 +166,7 @@ _AS_ITS_USER = {"User": "rikuri-control", "Group": "rikuri-control",
 CP_KEYS = {"[Unit]": {"Description": None, "After": "network.target"},
            "[Service]": {"Type": "exec", **_AS_ITS_USER, "ExecStart": "/" + CP_BIN,
                          "Environment": "RIKURI_LISTEN=0.0.0.0:443 RIKURI_HTTP_LISTEN=0.0.0.0:80 "
-                                        "RIKURI_STATE_DIR=/var/lib/rikuri/control-plane",
+                                        "RIKURI_STATE_DIR=/var/lib/rikuri/control-plane RIKURI_NAMES=rikurisetup.local",
                          "AmbientCapabilities": "CAP_NET_BIND_SERVICE",
                          "CapabilityBoundingSet": "CAP_NET_BIND_SERVICE", "PrivateDevices": "yes",
                          **_HARDENING, "Restart": "on-failure", "RestartSec": "5"},
@@ -189,11 +189,13 @@ FIREWALL_POLICY_LINES = [
     '<?xml version="1.0" encoding="utf-8"?>',
     '<policy target="CONTINUE" priority="-100">',
     "  <short>Rikuri Node</short>",
-    "  <description>The control plane: the CA certificate and a redirect on 80, the API on 443.</description>",
+    "  <description>The control plane: the CA certificate and a redirect on 80, the API on 443; "
+    "the node's name over mDNS on 5353.</description>",
     '  <ingress-zone name="ANY"/>',
     '  <egress-zone name="HOST"/>',
     '  <service name="http"/>',
     '  <service name="https"/>',
+    '  <service name="mdns"/>',
     "</policy>"]
 FIREWALL_POLICY_OVERRIDES = ("etc/firewalld/policies/rikuri-node.xml",)
 # systemd-resolved answers LLMNR on 5355 by default; the node turns it off (owner, 2026-11-06).
@@ -201,6 +203,16 @@ NO_LLMNR = "usr/lib/systemd/resolved.conf.d/90-rikuri-no-llmnr.conf"
 NO_LLMNR_LINES = ["[Resolve]", "LLMNR=no"]
 NO_LLMNR_OVERRIDES = ("etc/systemd/resolved.conf.d/90-rikuri-no-llmnr.conf",
                       "run/systemd/resolved.conf.d/90-rikuri-no-llmnr.conf")
+# mDNS on, in its own file: resolved answers the node's name on each link with
+# that link's addresses (docs/build-records/2026-11-10-5c2-names-and-mdns.md).
+MDNS = "usr/lib/systemd/resolved.conf.d/90-rikuri-mdns.conf"
+MDNS_LINES = ["[Resolve]", "MulticastDNS=yes"]
+MDNS_OVERRIDES = ("etc/systemd/resolved.conf.d/90-rikuri-mdns.conf",
+                  "run/systemd/resolved.conf.d/90-rikuri-mdns.conf")
+# The name until naming (5c.4) gives the node its own. In /etc, so an update's
+# three-way merge keeps a name the node has since been given.
+HOSTNAME = "etc/hostname"
+HOSTNAME_LINES = ["rikurisetup"]
 CP_REQUIRED = "usr/lib/greenboot/check/required.d/50-rikuri-control-plane"
 # The one form of a line read alike by greenboot and this check (the docstring).
 PRINTABLE_LINE = re.compile(rb"^[\x20-\x7e]*$")
@@ -711,6 +723,14 @@ def check_control_plane(root: str) -> list:
         problem = _override_problem(root, rel, "overrides turning LLMNR off on every node")
         if problem:
             found.append("%s: %s" % (rel, problem))
+    found += _exact_lines(root, MDNS, MDNS_LINES, lambda line: line.startswith("#"),
+                          "nothing would answer rikurisetup.local on the LAN")
+    for rel in MDNS_OVERRIDES:
+        problem = _override_problem(root, rel, "overrides turning mDNS on on every node")
+        if problem:
+            found.append("%s: %s" % (rel, problem))
+    found += _exact_lines(root, HOSTNAME, HOSTNAME_LINES, lambda line: line.startswith("#"),
+                          "mDNS would answer another name than the certificate's rikurisetup.local")
     problem = _executable_problem(root, CP_REQUIRED, "a broken control plane would pass greenboot")
     if problem:
         found.append(problem)

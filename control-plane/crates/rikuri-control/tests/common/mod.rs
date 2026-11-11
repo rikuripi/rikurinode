@@ -64,7 +64,7 @@ pub fn boot_only(scratch: &Scratch) -> Booted {
         None,
         &["rikuri01.local"],
     );
-    boot::boot(&config, Started::now()).unwrap()
+    boot::boot(&config, Started::now(), None).unwrap()
 }
 
 pub struct Node {
@@ -88,7 +88,7 @@ impl Node {
         let https = https_listener.local_addr().unwrap();
         let plain = plain_listener.local_addr().unwrap();
         let config = config(&scratch, https, Some(plain), &["rikuri01.local"]);
-        let booted = boot::boot(&config, Started::now()).unwrap();
+        let booted = boot::boot(&config, Started::now(), None).unwrap();
         let (stop, stopped) = tokio::sync::watch::channel(false);
         let wait = |mut rx: tokio::sync::watch::Receiver<bool>| async move {
             let _ = rx.changed().await;
@@ -286,6 +286,30 @@ impl Req {
         bytes.extend_from_slice(body.as_bytes());
         bytes
     }
+}
+
+/// A TLS handshake with the node's API as `name` (a DNS name or an IP
+/// address), trusting only the node's CA: the certificate it served, or why
+/// the handshake failed.
+pub async fn handshake_as(node: &Node, name: &str) -> Result<Vec<u8>, String> {
+    let mut roots = RootCertStore::empty();
+    roots.add(CertificateDer::from(node.ca_der())).unwrap();
+    let config = ClientConfig::builder()
+        .with_root_certificates(roots)
+        .with_no_client_auth();
+    let connector = TlsConnector::from(Arc::new(config));
+    let tcp = TcpStream::connect(node.https).await.unwrap();
+    let name = ServerName::try_from(name.to_owned()).map_err(|e| e.to_string())?;
+    let tls = connector
+        .connect(name, tcp)
+        .await
+        .map_err(|e| e.to_string())?;
+    let (_, session) = tls.get_ref();
+    Ok(session
+        .peer_certificates()
+        .and_then(|certs| certs.first())
+        .map(|c| c.to_vec())
+        .unwrap_or_default())
 }
 
 /// Sends `req` over TLS to the node's API. `Err` is a failed handshake, as a

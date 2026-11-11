@@ -1,0 +1,49 @@
++ hostnamectl --static
+
++ hostnamectl --transient
+rikuri-drill
++ cat /etc/hostname
+
++ ls /etc/systemd/resolved.conf.d /etc/NetworkManager/conf.d /usr/lib/NetworkManager/conf.d
+ls: cannot access '/etc/systemd/resolved.conf.d': No such file or directory
+/etc/NetworkManager/conf.d:
+
+/usr/lib/NetworkManager/conf.d:
+22-wifi-mac-addr.conf
++ nmcli -t -f NAME,DEVICE,TYPE connection show --active
+Wired connection 1:enp0s5:802-3-ethernet
+lo:lo:loopback
+++ nmcli -t -f NAME connection show --active
+++ head -1
++ nmcli -g connection.mdns,connection.llmnr connection show 'Wired connection 1'
+-1
+-1
++ resolvectl mdns
+Global: no
+Link 2 (enp0s5): no
++ resolvectl llmnr
+Global: resolve
+Link 2 (enp0s5): resolve
++ sudo firewall-cmd --get-default-zone
+public
++ sudo firewall-cmd --list-services
+dhcpv6-client mdns ssh
++ sudo podman images --format '{{.Repository}}:{{.Tag}}'
++ head
+localhost/rikuri-os:gbp
+localhost/rikuri-os:gbw2
+localhost/rikuri-os:gbw
+localhost/rikuri-os:ft6
+localhost/rikuri-os:ft5
+localhost/rikuri-os:ft4
+localhost/rikuri-os:ft3
+localhost/rikuri-os:ft2
+localhost/rikuri-os:ft1
+localhost/rikuri-os:ft
++ sudo podman network ls
+NETWORK ID    NAME        DRIVER
+2f259bab93aa  podman      bridge
++ ss -ulnp
++ grep -E ':5353|:5355'
+UNCONN 0      0            0.0.0.0:5355      0.0.0.0:*
+UNCONN 0      0               [::]:5355         [::]:*
