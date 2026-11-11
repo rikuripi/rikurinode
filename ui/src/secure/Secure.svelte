@@ -13,15 +13,19 @@
   import { t } from '../lib/i18n';
   import { readSetup } from '../lib/setup';
 
-  let report: SetupReport | null | undefined = $state(undefined);
+  let report = $state<SetupReport | null | undefined>(undefined);
   // 5c.3b: the way on. Unclaimed: the claim. Claimed: the node when this
   // browser is signed in, else sign-in. Unknown: no way on is guessed.
-  let way: 'claim' | 'signin' | 'home' | undefined = $state(undefined);
+  let way = $state<'claim' | 'signin' | 'home' | undefined>(undefined);
   readSetup().then(async (r) => {
     report = r;
     if (r === null) return;
     if (!r.claimed) way = 'claim';
-    else way = (await readSession()).kind === 'ok' ? 'home' : 'signin';
+    else {
+      const session = await readSession();
+      if (session.kind === 'ok') way = 'home';
+      else if (session.kind === 'refused' && session.status === 401) way = 'signin';
+    }
   });
 </script>
 
@@ -63,8 +67,8 @@
           </dd>
         </dl>
       {/if}
-      <p class="next">{t('secure.next')}</p>
       {#if way === 'claim'}
+        <p class="next">{t('secure.next')}</p>
         <a class="action primary" href="/claim">{t('secure.claim_link')}</a>
       {:else if way === 'home'}
         <a class="action strong" href="/home">{t('secure.home_link')}</a>

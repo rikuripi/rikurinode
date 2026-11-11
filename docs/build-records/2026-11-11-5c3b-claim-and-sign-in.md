@@ -68,7 +68,7 @@ The owner (2026-11-11), after "Next":
 ### Red (`eba96ce`)
 
 - Rust, on the Mac, `scripts/cargo.sh clippy --locked --all-targets`: the library's tests do not compile (5 errors: the ts-rs derives and `ErrorReply` they name do not exist yet). That is the red; CI runs the tests.
-- UI: `ui/tests/owner.spec.ts` names pages, links and text keys that do not exist yet; red in CI only (no Node on the Mac or rikuri-drill).
+- UI: `ui/tests/owner.spec.ts` names pages, links and text keys that do not exist yet, so it fails by reading. Its red was **not observed**: no CI run exists for `eba96ce` (the branch was first pushed at `dea7dcb`), and the Mac and rikuri-drill have no Node. The Rust red above was seen on the Mac by clippy, not in CI. (Corrected in repair 1, verifier N5.)
 - Python, rikuri-drill, `scripts/quality/safe-run.sh python3 -m unittest discover`:
   - `image/tests`: Ran 510, `FAILED (failures=1, errors=14)`, every one in `OwnerPagesSteps` and `OwnerPagesPost` (no `owner_pages`, `post_tls` or `WRONG_CODE`);
   - `scripts/quality/tests`: Ran 200, the 7 known errors of a copy without `.git` (`WholeRepository`, `test_this_checkout_reads_its_origin`);
@@ -89,3 +89,29 @@ The owner (2026-11-11), after "Next":
 - Python, rikuri-drill, through `safe-run.sh`: `image/tests` Ran 510, OK; `scripts/quality/tests` Ran 200, only the 7 known errors above; `.claude/hooks` Ran 91, OK.
 - Rust, the Mac: `scripts/cargo.sh fmt --check` clean; `clippy --locked --all-targets -- -D warnings` clean.
 - Rust tests, the render and owner tests, the gate and the VM drills: Not yet proven; CI.
+
+### CI run 1 (`dea7dcb`), and the verifier's first pass: FAIL
+
+- `Full gate (Ubuntu)`: **Fail**, https://github.com/rikuripi/rikurinode/actions/runs/43106448504/job/130810920577:
+  ```
+  /ui/src/secure/Home.svelte:27:66
+  Error: Property 'expires_unix' does not exist on type 'never'. (ts)
+  svelte-check found 1 error and 0 warnings in 1 file
+  ```
+  `Rust mutants (changed lines)` failed in the same check, before any mutant ran. The tool tests (py3.9, py3.12) and the OS image build passed.
+- Verifier, first pass at `dea7dcb`: FAIL.
+  - **I1**: the svelte-check error above.
+  - **I2**: owner.spec lacks the 413 and 400 cases, and sign-in's offline, 5xx and non-API cases, that "Done when" names; sign-out lacks offline.
+  - Nits: N1 (the claim words on a claimed node); N2 (no fit or CSP check on the owner pages); N3 (named fields and no method: a missed `preventDefault` would put the password in a GET URL); N4 (sign-out's 401 said "went wrong"; an unreadable session led to sign-in, a guess); N5 (the record's red wording); and the countdown not stopped with its page.
+
+### Repair 1 of 2
+
+- **I1:** `$state<T>(undefined)` in place of `let x: T = $state(undefined)`. The annotated form lets TypeScript narrow the variable to `undefined` from its initializer, which makes the property `never` inside `$derived`. The same form is used on every page.
+- **I2, test changes after red:** `owner.spec.ts` gains the claim's 413 and 400 cases; sign-in's 500, offline, 502 non-JSON, 413 and 400 cases; and sign-out's offline case. Each is a case "Done when" names and the red commit missed. They add to the tests and loosen none.
+- **N2, a test added:** each owner page fits the screen, with every control (inputs included) at least 44 px, under the node's CSP with no violation or console error.
+- **N4, tests added before the fix:** a sign-out answered 401 goes to sign-in, and an unreadable session leads nowhere. Both fail on `dea7dcb` by reading; they were not run before the fix (CI runs only on the pushed head).
+- **The fix:**
+  - N1: `secure.next` is shown only on an unclaimed node.
+  - N3: the fields lose `name`, and the forms say `method="post"`, so a native submission sends no secret and never in a URL.
+  - N4: sign-out's 401 goes to sign-in, and an unreadable session leads nowhere.
+  - The countdown stops when its page goes.

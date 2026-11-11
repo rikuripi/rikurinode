@@ -11,7 +11,7 @@
   import { readSetup } from '../lib/setup';
   import { Wait } from '../lib/wait.svelte';
 
-  let report: SetupReport | null | undefined = $state(undefined);
+  let report = $state<SetupReport | null | undefined>(undefined);
   readSetup().then((r) => (report = r));
 
   let password = $state('');
@@ -19,6 +19,7 @@
   let busy = $state(false);
   let said = $state('');
   const wait = new Wait();
+  $effect(() => () => wait.stop());
 
   const ready = $derived(password !== '' && !busy && !wait.active);
   const message = $derived(wait.active ? waitText(wait.seconds) : said);
@@ -59,10 +60,10 @@
       <p class="alert">{t('signin.unclaimed')}</p>
       <a class="action primary" href="/claim">{t('secure.claim_link')}</a>
     {:else}
-      <form class="card" onsubmit={submit} novalidate>
+      <form class="card" method="post" onsubmit={submit} novalidate>
         <div class="field">
           <label for="password">{t('signin.password')}</label>
-          <input id="password" name="password" type={show ? 'text' : 'password'} bind:value={password}
+          <input id="password" type={show ? 'text' : 'password'} bind:value={password}
                  autocomplete="current-password" />
         </div>
         <button type="button" class="quietaction" aria-pressed={show} onclick={() => (show = !show)}>

@@ -17,7 +17,7 @@
 
   // undefined while asking; null when the node's state is unknown, and the
   // form is offered: the node itself refuses a claim it will not take.
-  let report: SetupReport | null | undefined = $state(undefined);
+  let report = $state<SetupReport | null | undefined>(undefined);
   readSetup().then((r) => (report = r));
 
   let code = $state('');
@@ -28,6 +28,7 @@
   let said = $state('');
   let already = $state(false);
   const wait = new Wait();
+  $effect(() => () => wait.stop());
 
   // Characters as the node counts them (Rust's chars(): Unicode scalar values).
   const met = $derived([...password].length >= MIN_CHARS);
@@ -86,22 +87,22 @@
       <a class="action strong" href="/signin">{t('secure.signin_link')}</a>
     {:else}
       <p class="lead">{t('claim.lead')}</p>
-      <form class="card" onsubmit={submit} novalidate>
+      <form class="card" method="post" onsubmit={submit} novalidate>
         <div class="field">
           <label for="code">{t('claim.code')}</label>
-          <input id="code" name="code" bind:value={code} autocomplete="one-time-code" autocapitalize="characters"
+          <input id="code" bind:value={code} autocomplete="one-time-code" autocapitalize="characters"
                  spellcheck="false" aria-describedby="code-hint" />
           <p class="hint" id="code-hint">{t('claim.code_hint')}</p>
         </div>
         <div class="field">
           <label for="password">{t('claim.password')}</label>
-          <input id="password" name="password" type={show ? 'text' : 'password'} bind:value={password}
+          <input id="password" type={show ? 'text' : 'password'} bind:value={password}
                  autocomplete="new-password" aria-describedby="rule" />
           <p class="hint rule" id="rule" data-met={String(met)}>{t('claim.rule')}</p>
         </div>
         <div class="field">
           <label for="confirm">{t('claim.confirm')}</label>
-          <input id="confirm" name="confirm" type={show ? 'text' : 'password'} bind:value={confirm}
+          <input id="confirm" type={show ? 'text' : 'password'} bind:value={confirm}
                  autocomplete="new-password" />
           {#if mismatch}<p class="hint warn">{t('claim.mismatch')}</p>{/if}
         </div>

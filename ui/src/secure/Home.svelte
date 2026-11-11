@@ -10,7 +10,7 @@
   import { shared } from '../lib/says';
 
   // undefined while asking; null when the session's state is unknown.
-  let session: SessionInfo | null | undefined = $state(undefined);
+  let session = $state<SessionInfo | null | undefined>(undefined);
   let busy = $state(false);
   let said = $state('');
 
@@ -33,7 +33,7 @@
     said = t('form.working');
     const outcome = await signOut(session.csrf_token);
     busy = false;
-    if (outcome.kind === 'ok') {
+    if (outcome.kind === 'ok' || (outcome.kind === 'refused' && outcome.status === 401)) {
       session = undefined;
       location.assign('/signin');
       return;
