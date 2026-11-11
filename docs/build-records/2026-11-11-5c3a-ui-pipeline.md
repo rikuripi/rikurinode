@@ -31,9 +31,10 @@ The owner (2026-11-11), after "Next" for 5c.3:
    - **The certificate screen:**
      - served over plain HTTP at `/`;
      - `/ca.crt` offered, with a short guide for each of Windows, macOS, iPhone/iPad, Android and Linux;
-     - the fingerprint to compare with the node's claim screen (Ctrl+Alt+F2), with the reason given: the HTTP page itself could be altered on the network;
+     - no trust decision rests on this page, since anyone on the network can alter a plain-HTTP page; it explains, offers the download, and sends the reader on;
      - then a link to the same host over HTTPS.
      - Over HTTPS, `/` shows that the connection is secure and the node's setup state, read from `GET /api/setup` through the typed contract. Claiming is 5c.3b.
+     - **The fingerprint check is made against the browser, never against a page** (a design note from step 1, 2026-11-11). The secure page tells the reader to open the browser's own certificate viewer (the padlock, then the certificate, then its SHA-256) and compare it with the node's claim screen (Ctrl+Alt+F2). Neither page shows the fingerprint to compare. Someone in the middle who served their own certificate could serve a page showing the node's real fingerprint, which is public. Only the browser knows which certificate it is talking to.
    - **`control-plane/`:**
      - the built UI embedded in the binary, served from a fixed table of files: no path from a request reaches the disk;
      - security headers: a CSP with `script-src 'self'`, no inline script and no outside origin, plus `nosniff`, `frame-ancestors 'none'` and a referrer policy;
@@ -77,3 +78,4 @@ The owner (2026-11-11), after "Next" for 5c.3:
 5. **Limits:** one task; two repair cycles; two review rounds; CI at most 8 runs on the PR (a new toolchain's first runs).
 
 ## Evidence log
+- **Step 1, the mockup** (2026-11-11): a private canvas, https://claude.ai/artifact/MJbUCTx3K3i7KGra4Wft4s. Three styles: A Meadow (soft green, Nunito), B Sunrise (warm cream and coral, Fredoka and Inter), C Dusk (dark indigo and lavender, Quicksand and Inter). Each shows the certificate screen at phone width and the secure page at desktop width. Awaiting the owner's pick.
