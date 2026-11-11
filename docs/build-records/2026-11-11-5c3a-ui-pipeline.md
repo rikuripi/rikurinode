@@ -87,3 +87,8 @@ The owner (2026-11-11), after "Next" for 5c.3:
   - the step chip and the numbered badges are the yellow `#FFC93C`;
   - the large shaded panels ("Installed it?" and "Your node") are a light tint of that yellow, `#FFE7A3`, so body text on them keeps its contrast;
   - coral now remains only in link text.
+- **The owner** (2026-11-11): "Ok, a bit too dark, lighter orange and yellow." In version 11 of the canvas:
+  - the buttons and the chosen device are a lighter orange, `#FFAD4D`, with dark text (about 8:1);
+  - the yellow accents and the glow are a lighter yellow, `#FFDD70`;
+  - the large panels are a paler tint of it, `#FFF0C2`;
+  - the logo's disc stays Bitcoin orange `#F7931A`, so that the white ₿ stays legible on it.
