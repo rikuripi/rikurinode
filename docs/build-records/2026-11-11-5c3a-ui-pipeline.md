@@ -92,3 +92,23 @@ The owner (2026-11-11), after "Next" for 5c.3:
   - the yellow accents and the glow are a lighter yellow, `#FFDD70`;
   - the large panels are a paler tint of it, `#FFF0C2`;
   - the logo's disc stays Bitcoin orange `#F7931A`, so that the white ₿ stays legible on it.
+- **Step 2, the supply chain (AGENTS.md §2's inspection, 2026-11-11).** The packages were read from the npm registry, Docker Hub, Microsoft's container registry, crates.io and GitHub. No package was downloaded or run on the Mac. `npm install --package-lock-only --ignore-scripts --before=2026-10-28` (Node 22.20.0, already on the Mac) resolved the tree into `ui/package-lock.json` as of two weeks ago and wrote no `node_modules`; `--before` holds every transitive version to the same two-week cooldown as the direct ones.
+  - **Direct packages, every version exact** (`ui/package.json`). There is no `.npmrc`, because the repository's hygiene check treats it as a secret file (npm keeps tokens there), so every install passes its flags explicitly: `npm ci --ignore-scripts --engine-strict --no-audit --no-fund`:
+
+    | Package | Version | Published | Licence | npm provenance | Ships to the node? |
+    |---|---|---|---|---|---|
+    | `svelte` | 5.57.3 | 2026-10-26 | MIT | yes | its runtime, compiled into the output |
+    | `vite` | 8.3.5 | 2026-10-21 | MIT | yes | no (build) |
+    | `@sveltejs/vite-plugin-svelte` | 7.3.1 | 2026-09-23 | MIT | yes | no (build) |
+    | `svelte-check` | 4.7.7 | 2026-10-16 | MIT | yes | no (type check) |
+    | `typescript` | 6.0.3 | 2026-04-16 | Apache-2.0 | no | no (type check) |
+    | `@playwright/test` | 1.64.1 | 2026-10-14 | Apache-2.0 | yes | no (render tests) |
+    | `@fontsource/fredoka` | 5.3.0 | 2026-07-19 | OFL-1.1 | yes | its font files, with the OFL's text |
+    | `@fontsource/inter` | 5.3.0 | 2026-07-19 | OFL-1.1 | yes | its font files, with the OFL's text |
+
+    TypeScript is 6, not 7: `svelte-check` 4.7.7's peer range is `^5.0.0 || ^6.0.0`.
+  - **The whole lockfile:** 76 entries. Every one is `resolved` from `registry.npmjs.org` and has a `sha512` integrity. Licences: MIT, ISC, BSD-3-Clause, Apache-2.0, OFL-1.1 and MPL-2.0. The MPL-2.0 ones are `lightningcss` and its platform builds, a build-time CSS tool whose code never ships. One package has an install script: `fsevents` 2.3.3, macOS-only and optional; scripts are off. 27 entries are optional per-platform native builds of `rolldown` 1.2.15 (MIT, provenance) and `lightningcss` 1.33.0 (MPL-2.0, no provenance). Only `linux-x64-gnu` and `linux-arm64-gnu` are installed in CI and the image build. These native binaries are the largest trust in this tree: they run at build time with the build's rights, and they can change the output. That is why the build runs only in CI and the image's build stage, with no secret, and why the binary's embedded files are the build's output.
+  - **Node:** `docker.io/library/node:22.23.4-trixie-slim@sha256:be1e2a3dc2c4fd68cdfadad2a696a280e0d2749098bee509230174d72fb768c6`, the image's UI build stage. Node 22.23.4 was released 2026-10-21 (nodejs/node's release). It is trixie like the Rust stage.
+  - **Render tests' browsers:** `@playwright/test` would download browsers from Microsoft's CDN at install time, an unpinned fetch. Instead, the tests run in `mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f`, whose browsers are already inside: the same release as the package, pinned by digest.
+  - **ts-rs** 12.0.1 (2026-01-31, MIT, Aleph-Alpha/ts-rs, MSRV 1.78) with `ts-rs-macros` 12.0.1. With its default feature `serde-compat` only, it needs `thiserror`, `syn`, `quote` and `proc-macro2`, already in the lockfile, so it adds two crates. It is a dev-dependency, and the derive sits under `cfg_attr(test, …)`, so the shipped binary's tree does not change; the evidence is `cargo tree -e normal` before and after.
+  - **What ships, and its licences:** the Svelte runtime (MIT) and the two font families (OFL-1.1). Their notices are served with the UI. Nothing else in the tree reaches the node.
