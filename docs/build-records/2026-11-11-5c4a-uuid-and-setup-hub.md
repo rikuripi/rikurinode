@@ -22,7 +22,7 @@ The owner (2026-11-11), after "Next":
 1. **Outcome:** once signed in, the owner sees the node's own ID and a list of what setup remains. The list says what is done, what is next and what comes with a later update, and it marks a step done only when the node's real state shows it.
 2. **Scope:**
    - **The UUID** (`control-plane/`, a new `node.rs`):
-     - a random version-4 UUID from the OS's generator (`random.rs`), written once to `node.json` in the state folder (`state.rs`: 0600, whole-file writes);
+     - a random version-4 UUID from the OS's generator (`random.rs`), written once to its own file, `node-uuid.json`, in the state folder (`state.rs`: 0600, whole-file writes). *Clarified 2026-11-11, before any code: the contract first said `node.json`, which already holds B0.2's `instance_id`, the sessions' issuer (`boot.rs`). The UUID stays apart from it, so the claim never rewrites the file the sessions depend on, and the internal issuer is never shown;*
      - created when the node is claimed; a claimed node without one (a crash between the claim and the write) gets it on its next read;
      - never rewritten. An update never changes it, because the state folder is under `/var`. A file that cannot be read or is not a UUID is an error that is reported, never silently replaced: identity is never regenerated quietly.
    - **`GET /api/hub`** (a session required; `401` without one, as `GET /api/session`):
@@ -67,3 +67,16 @@ The owner (2026-11-11), after "Next":
 5. **Limits:** one task; two repair cycles; two review rounds; CI at most 8 runs on the PR, one of them the red commit's.
 
 ## Evidence log
+
+### Red (the commit after the contract)
+
+- **What it holds:**
+  - Rust: `node_id.rs` and `hub.rs` with stubs that compile and answer wrongly (an empty UUID, no steps, `unknown` for every name); `Config.hostname_file`, the plumbing the tests need (always `/proc/sys/kernel/hostname` on a node, set by no variable); `tests/hub_route.rs`; the types test with the four hub types; and their expected TypeScript in `ui/src/generated/`. The exported types carry plain `//` comments, not `///`, so ts-rs emits no JSDoc into the TypeScript.
+  - UI: the SetupHub tests in `owner.spec.ts`. The stub helper answers `GET /api/hub` with a good hub unless a test says otherwise, because `/home` now reads it.
+  - The drill: `SetupHubSteps` with its stand-in, and the two case names in the Verdict test's pinned list.
+- **Rust, on the Mac:** `scripts/cargo.sh clippy --locked --all-targets -- -D warnings` exits 0, and `fmt --check` exits 0. The red is in the tests' assertions; CI runs them.
+- **Python, rikuri-drill, through `safe-run.sh`:**
+  - `image/tests`: Ran 514, `FAILED (failures=2, errors=12)`, every one in `SetupHubSteps` (no `setup_hub`) and `Verdict.test_every_check_names_a_step`;
+  - `scripts/quality/tests`: Ran 200, only the 7 known errors of a copy without `.git`;
+  - `.claude/hooks`: Ran 91, OK.
+- **Rust and the UI in CI:** this commit is pushed on its own, so that CI's run of it shows the red (see "CI run 1").

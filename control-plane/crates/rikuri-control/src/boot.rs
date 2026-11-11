@@ -137,6 +137,7 @@ mod tests {
             http: None,
             names: Names::new(["rikuri01.local"]).unwrap(),
             state_dir: scratch.0.clone(),
+            hostname_file: scratch.0.join("hostname-for-the-test"),
         }
     }
 

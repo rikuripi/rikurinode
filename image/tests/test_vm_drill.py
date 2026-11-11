@@ -418,7 +418,10 @@ class Verdict(unittest.TestCase):
             # 5c.3b, added after the red commit (Build Record, "Test changes after red"):
             "the owner's pages over HTTPS with only the node's CA",
             "a wrong claim code is refused and the node stays unclaimed",
-            "the owner's pages never over HTTP"})
+            "the owner's pages never over HTTP",
+            # 5c.4a:
+            "the SetupHub over HTTPS only, with only the node's CA",
+            "the hub refuses a browser without a session"})
 
     def test_all_passed_and_no_error_is_zero(self):
         self.assertEqual(d.verdict(self.ALL, None), 0)
@@ -1608,6 +1611,77 @@ class OwnerPagesPost(unittest.TestCase):
         self.assertIn(b"Content-Type: application/json", lines)
         self.assertIn(b"Content-Length: 12", lines)
         self.assertEqual(body, b'{"code":"x"}')
+
+
+
+# ---- 5c.4a: the SetupHub -----------------------------------------------------
+
+HUB_REFUSED = http(401, b'{"error":"sign-in required"}', reason="Unauthorized")
+
+
+class SetupHubDrill(OwnerPagesDrill):
+    """The owner's pages' stand-in, with /home and /api/hub as the node answers them."""
+
+    def __init__(self, artifacts, **over):
+        plain = {"/home": (REDIRECT % "/home").encode()}
+        plain.update(over.pop("plain", {}))
+        secure = {"/home": page("secure"), "/api/hub": HUB_REFUSED}
+        secure.update(over.pop("secure", {}))
+        super().__init__(artifacts, plain=plain, secure=secure, **over)
+
+
+class SetupHubSteps(unittest.TestCase):
+    CASES = ("the SetupHub over HTTPS only, with only the node's CA",
+             "the hub refuses a browser without a session")
+
+    def setUp(self):
+        self.artifacts = tempfile.mkdtemp(prefix="drill-artifacts-")
+        self.addCleanup(shutil.rmtree, self.artifacts)
+
+    def results(self, **over):
+        drill = SetupHubDrill(self.artifacts, **over)
+        drill.setup_hub()
+        return drill, {name: ok for name, ok, _ in drill.results}
+
+    def test_every_case_is_expected(self):
+        for case in self.CASES:
+            self.assertIn(case, d.EXPECTED)
+
+    def test_a_good_node_passes_every_case_and_keeps_the_evidence(self):
+        drill, results = self.results()
+        self.assertEqual(results, dict.fromkeys(self.CASES, True))
+        tls = [r for r in drill.requests if r[0] == "tls"]
+        self.assertEqual(sorted(r[2] for r in tls), ["/api/hub", "/home"])
+        self.assertTrue(all(r[3] for r in tls), "read trusting only the node's CA")
+        self.assertEqual([r for r in drill.requests if r[1] == "POST"], [], "the hub's checks change nothing")
+        self.assertIn(("plain", "GET", "/home", None, None), drill.requests)
+        self.assertTrue(os.path.isfile(os.path.join(self.artifacts, "02d-setup-hub.out")))
+
+    def test_each_failure_fails_its_own_case(self):
+        for case, over in (
+                ("the SetupHub over HTTPS only, with only the node's CA", {"secure": {"/home": page("certificate")}}),
+                ("the SetupHub over HTTPS only, with only the node's CA", {"secure": {"/home": page("secure", status=404)}}),
+                ("the SetupHub over HTTPS only, with only the node's CA",
+                 {"secure": {"/home": ssl_module().SSLCertVerificationError(1, "verify failed")}}),
+                ("the SetupHub over HTTPS only, with only the node's CA", {"plain": {"/home": page("secure")}}),
+                ("the SetupHub over HTTPS only, with only the node's CA",
+                 {"plain": {"/home": (REDIRECT % "/home").replace("https://", "http://").encode()}}),
+                ("the SetupHub over HTTPS only, with only the node's CA", {"plain": {"/home": ConnectionResetError(104, "reset")}}),
+                ("the hub refuses a browser without a session",
+                 {"secure": {"/api/hub": http(200, b'{"node_id":"x","steps":[]}', reason="OK")}}),
+                ("the hub refuses a browser without a session", {"secure": {"/api/hub": http(404, b"", reason="Not Found")}}),
+                ("the hub refuses a browser without a session",
+                 {"secure": {"/api/hub": http(401, b'{"error":"something else"}', reason="Unauthorized")}}),
+                ("the hub refuses a browser without a session", {"secure": {"/api/hub": ConnectionResetError(104, "reset")}})):
+            with self.subTest(case=case, over=over):
+                _, results = self.results(**over)
+                self.assertFalse(results[case], case)
+                self.assertEqual([c for c in self.CASES if not results[c]], [case])
+
+    def test_no_ca_certificate_reads_nothing_over_tls(self):
+        drill, results = self.results(plain={"/ca.crt": http(404, b"")})
+        self.assertEqual(results, dict.fromkeys(self.CASES, False))
+        self.assertEqual([r for r in drill.requests if r[0] == "tls"], [])
 
 
 if __name__ == "__main__":

@@ -706,6 +706,23 @@ mod tests {
                 SessionInfo::export_to_string(&cfg).unwrap(),
             ),
             ("ErrorReply.ts", ErrorReply::export_to_string(&cfg).unwrap()),
+            // 5c.4a: the SetupHub.
+            (
+                "SetupStep.ts",
+                crate::hub::SetupStep::export_to_string(&cfg).unwrap(),
+            ),
+            (
+                "StepState.ts",
+                crate::hub::StepState::export_to_string(&cfg).unwrap(),
+            ),
+            (
+                "HubStep.ts",
+                crate::hub::HubStep::export_to_string(&cfg).unwrap(),
+            ),
+            (
+                "HubReport.ts",
+                crate::hub::HubReport::export_to_string(&cfg).unwrap(),
+            ),
         ] {
             let committed = std::fs::read_to_string(dir.join(file)).unwrap_or_default();
             assert_eq!(

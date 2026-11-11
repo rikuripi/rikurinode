@@ -6,6 +6,7 @@ use std::fmt;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
+use crate::hub;
 use crate::listen::{self, ListenError};
 use crate::names::{self, NameError, Names};
 use crate::state;
@@ -21,6 +22,10 @@ pub struct Config {
     pub names: Names,
     /// The state folder (`RIKURI_STATE_DIR`).
     pub state_dir: PathBuf,
+    /// Where the running kernel's hostname is read (5c.4a): always
+    /// [`hub::HOSTNAME_FILE`] on a node, from no variable; the tests point
+    /// it at a file of their own.
+    pub hostname_file: PathBuf,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -72,6 +77,7 @@ impl Config {
             http,
             names,
             state_dir,
+            hostname_file: PathBuf::from(hub::HOSTNAME_FILE),
         })
     }
 }
@@ -94,6 +100,11 @@ mod tests {
         assert_eq!(config.http, None);
         assert_eq!(config.names.iter().collect::<Vec<_>>(), ["localhost"]);
         assert_eq!(config.state_dir, PathBuf::from(state::DEFAULT));
+        // 5c.4a: the running kernel's name, and no variable can move it.
+        assert_eq!(
+            config.hostname_file,
+            PathBuf::from("/proc/sys/kernel/hostname")
+        );
     }
 
     #[test]
