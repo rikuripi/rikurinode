@@ -64,3 +64,28 @@ The owner (2026-11-11), after "Next":
 5. **Limits:** one task; two repair cycles; two review rounds; CI at most 8 runs on the PR.
 
 ## Evidence log
+
+### Red (`eba96ce`)
+
+- Rust, on the Mac, `scripts/cargo.sh clippy --locked --all-targets`: the library's tests do not compile (5 errors: the ts-rs derives and `ErrorReply` they name do not exist yet). That is the red; CI runs the tests.
+- UI: `ui/tests/owner.spec.ts` names pages, links and text keys that do not exist yet; red in CI only (no Node on the Mac or rikuri-drill).
+- Python, rikuri-drill, `scripts/quality/safe-run.sh python3 -m unittest discover`:
+  - `image/tests`: Ran 510, `FAILED (failures=1, errors=14)`, every one in `OwnerPagesSteps` and `OwnerPagesPost` (no `owner_pages`, `post_tls` or `WRONG_CODE`);
+  - `scripts/quality/tests`: Ran 200, the 7 known errors of a copy without `.git` (`WholeRepository`, `test_this_checkout_reads_its_origin`);
+  - `.claude/hooks`: Ran 91, OK.
+
+### The fix (uncommitted at this entry)
+
+- `http.rs`: `ErrorReply`, the refusal's typed body (JSON unchanged: `retry_after_seconds` only on a 429); ts-rs derives, test-only, on the claim and sign-in requests (secrets typed `string`), `SessionOpened` and `SessionInfo`. `ui.rs`: `/claim`, `/signin` and `/home` serve the secure page, over TLS only.
+- `ui/`: `lib/api.ts` (every answer one outcome; anything not the API's shape is "unknown"), `lib/wait.svelte.ts` (the 429 countdown), `lib/says.ts`; `secure/Claim.svelte`, `SignIn.svelte`, `Home.svelte`; `Secure.svelte` leads on by the node's state (unknown: no way on is guessed); `main.ts` picks the page by path.
+- `image/drill/vm_drill.py`: `owner_pages()`, run after `setup_pages()`: `/claim` and `/signin` over HTTPS with only the node's CA and a 308 in the clear; one `POST /api/claim` with `WRONG_CODE` (`0000-0000-00`, outside `claim::ALPHABET`) and a random password that is never kept, refused 401, and `/api/setup` still unclaimed. `post_tls` sends the `Origin` the node accepts.
+
+### Test changes after red
+
+- `image/tests/test_vm_drill.py`, `Verdict.test_every_check_names_a_step`: the three new case names added to the pinned set of checks. The red commit added each case's own tests but missed this list, which pins `EXPECTED` exactly; adding them is the same expectation, not a loosening (no case is removed or relaxed).
+
+### Green so far
+
+- Python, rikuri-drill, through `safe-run.sh`: `image/tests` Ran 510, OK; `scripts/quality/tests` Ran 200, only the 7 known errors above; `.claude/hooks` Ran 91, OK.
+- Rust, the Mac: `scripts/cargo.sh fmt --check` clean; `clippy --locked --all-targets -- -D warnings` clean.
+- Rust tests, the render and owner tests, the gate and the VM drills: Not yet proven; CI.
