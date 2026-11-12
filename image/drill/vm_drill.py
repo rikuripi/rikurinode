@@ -77,6 +77,12 @@ NEVER_APPLIED = "was never applied"
 DNS_SKIPPED = "Skipping disabled script: 01_repository_dns_check.sh"
 PLATFORMS_SKIPPED = "Skipping disabled script: 01_update_platforms_check.sh"
 ROLLED_BACK = "Boot counter exhausted and next-deployment-id is set - initiating rollback"
+BROKEN = "localhost/rikuri-os:broken"
+# The journal of the boot that shut down: finalize's stop, ostree's own error,
+# and when the EFI partition's automount on /boot went (the race, in
+# docs/build-records/2026-11-11-case1-finalize-race.md).
+FINALIZE_JOURNAL = "-b -1 -u ostree-finalize-staged.service -u boot.automount"
+OSTREE_ERROR = re.compile(r"\bostree\[\d+\]: (error: .*)$", re.M)
 TRIGGER_STOPPED = re.compile(r"Stopped [^\n]*Greenboot Rollback trigger")
 SUBID_LINE = "containers:2147483647:2147483648"
 SUBID_FILES = ("/etc/subuid", "/etc/subgid")
@@ -216,6 +222,27 @@ def rollback(text: str):
 def staged(text: str):
     """(image reference, digest) of the staged deployment, or None."""
     return _deployment(text, "staged")
+
+
+def case1_outcome(text: str, installed_digest: str):
+    """Case 1 after its switch to the broken image: "rolled back" (greenboot
+    did, and the installed image is booted), "never applied" (the installed
+    image is booted with nothing staged and no rollback: the update was
+    dropped at shutdown), or None while there is still something to wait for."""
+    now = booted(text)
+    if not now or now[1] != installed_digest:
+        return None
+    back = rollback(text)
+    if back and back[0] == BROKEN:
+        return "rolled back"
+    if back is None and staged(text) is None:
+        return "never applied"
+    return None
+
+
+def finalize_error(journal: str) -> str:
+    """ostree's own error lines in a journal, or "" when it has none."""
+    return "; ".join(OSTREE_ERROR.findall(journal))
 
 
 def spec_image(text: str):
@@ -598,6 +625,7 @@ class Drill:
         self.screen_pause = 2   # seconds between reads of tty2, while the screen draws
         self.address_pause = 5  # seconds between tries as the guest's address, while the daemon looks again
         self.mdns_pause = 2     # seconds between reads of resolved's mDNS, while udev's unit runs
+        self.case1_poll = 10    # seconds between reads of bootc's status, while case 1's boots run
 
     # --- plumbing ------------------------------------------------------------
     def log(self, message: str) -> None:
@@ -1134,12 +1162,21 @@ class Drill:
     def case1(self) -> None:
         self.switch("broken")
         old = self.reboot()
-        # Four boots of the broken image, then greenboot's rollback and a boot of the installed image.
-        wait_until(lambda: (lambda s: booted(s) and booted(s)[1] == self.installed[1]
-                            and (rollback(s) or ("", ""))[0] == "localhost/rikuri-os:broken")(self.status_quiet()),
-                   timeout=600, interval=10, what="the broken update to roll back")
+        # Four boots of the broken image, then greenboot's rollback and a boot
+        # of the installed image; or, when finalize fails at the shutdown, the
+        # installed image at once with the update dropped.
+        outcome = wait_until(lambda: case1_outcome(self.status_quiet(), self.installed[1]),
+                             timeout=600, interval=self.case1_poll, what="the broken update to roll back")
         self.wait_up(old_boot=old)
         everything = self.journal("--grep 'greenboot|rikuri-unapplied-update|bootc'")
+        if outcome == "never applied":
+            finalize = self.journal(FINALIZE_JOURNAL)
+            self.keep("02-case1.out", "\n".join([self.journal("--list-boots"), everything, finalize, self.status()]))
+            self.check("case 1, a failing update", False,
+                       "never applied: the update was dropped at shutdown, not rolled back; "
+                       "'never applied' logged: %s; ostree-finalize-staged: %s"
+                       % (NEVER_APPLIED in everything, finalize_error(finalize) or "no error line kept"))
+            return
         self.keep("02-case1.out", self.journal("--list-boots") + "\n" + everything + "\n" + self.status())
         marker = (self.vm("cat %s" % MARKER, check=False) or "").strip()
         self.check("case 1, a failing update", ROLLED_BACK in everything and marker == "vm-drill marker",
