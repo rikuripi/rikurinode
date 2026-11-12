@@ -91,3 +91,11 @@ Upstream knows it (read 2026-11-11, data only):
 - Whether anything on a node expects to reach the EFI partition through `/boot`: bootupd's bootloader updates, or firmware updates. Before ostree 2026.3, bootc systems had no such automount either.
 - Upstream's preferred `/efi` route, and removing the mask once a Fedora ostree has #3690.
 - The Pi 5's boot layout under this mask.
+
+### CI on `109a98c` (the final code), and the three drill runs
+
+- `Full gate (Ubuntu)`: **Pass**, run 43153384121. The image build (with `check_image_root` on the real image), and the USB installer drill: **Pass**, run 43153384111.
+- **Drill run 1 of 3** (run 43153384111, attempt 1, job 130968600248): **Pass**.
+  - `PASS the EFI partition's automount on /boot is masked: boot.automount: LoadState=masked; ActiveState=inactive; /boot: ext4`
+  - `PASS case 1, a failing update: rolled back: True; marker intact: True`, 98 s after the variants were built.
+  - Every other check passed. On this branch and #87's, the three runs before the mask all dropped the update.
