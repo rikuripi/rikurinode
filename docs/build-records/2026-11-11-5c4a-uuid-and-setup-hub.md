@@ -142,3 +142,19 @@ The owner (2026-11-11), after "Next":
   - `Full gate (Ubuntu)`: Fail at step 3, job 130872312822: `image/tests` Ran 514, `failures=4, errors=13`, all in `SetupHubSteps` and the Verdict pin (the drill had no third hub check yet).
   - `Rust mutants (changed lines)`: Fail in its baseline, run 43124290938: `test result: FAILED. 145 passed; 2 failed`, namely `config::tests::the_defaults_are_loopback_https_no_plain_listener_localhost_and_var_lib` and `hub::tests::the_name_is_done_only_when_the_kernel_has_another_name`.
   - The UI's new cases were not reached (the gate stopped at step 3): red by reading only.
+
+### CI run 5 (`a0f360b`, the repair's fix), and the verifier's follow-up: PASS
+
+- `Full gate (Ubuntu)`: Pass, run 43126288238.
+- `Rust mutants (changed lines)`: Pass, run 43126288241: `42 mutants tested in 4m: 34 caught, 8 unviable`, none missed.
+- The image build and the USB installer drill: Pass, run 43126288251.
+- The rollback drill, job 130880073262: **Fail**. This change's three checks passed on the real image:
+  - `PASS the SetupHub over HTTPS only, with only the node's CA`
+  - `PASS the hub refuses a browser without a session: GET /api/hub without a session: 401 {"error":"sign-in required"}`
+  - `PASS the control plane reads the node's name in its sandbox: /etc/hostname as rikuri-control in the service's mount namespace: 'rikurisetup'`
+
+  Then `variants built in the VM: broken, a, b` and `FAIL drill: timed out after 600s waiting for the broken update to roll back`: case 1.
+- **Case 1's record so far:** it failed in 5c.3a's run 3 (passed on re-run), here in run 2, and here in run 5. It passed here in run 4 (`70b1ae3`, every check but the sandbox read). Run 3's drill was cancelled by the next push. That is 3 failures in 5 completed runs: a recurring fault in case 1, not a one-off. The verifier found nothing in this change that touches the update, greenboot, the variants or boot; the new checks are read-only and run before the cases.
+- **Verifier, follow-up at `a0f360b`: PASS.** I-1, I-2 and I-3 are resolved; the nit fixes are correct; the test changes are justified and none is a loosening.
+  - Its minor notes: (1) the sandbox check enters the mount namespace and the user's IDs, but not the service's SELinux domain, seccomp filter or capabilities; (2) this record's "whether case 1's timeout recurs is not yet known" is now answered above; (3) the test name `the_name_is_done_only_when_the_kernel_has_another_name` no longer fits; (4) the contract's "a crash between the claim and the write" is really "a node claimed before 5c.4a, or a lost file"; (5) README's "real state" is, for the name, the static name.
+- **Status: NEEDS_OWNER_DECISION.** "Both VM drills pass on the PR" is Fail, because of case 1, which is not this change's. One repair cycle and both review rounds are used.
