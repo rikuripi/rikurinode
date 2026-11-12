@@ -1702,3 +1702,143 @@ class SetupHubSteps(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# Case 1's timeout (docs/build-records/2026-11-11-case1-finalize-race.md): at
+# the shutdown after the switch, ostree-finalize-staged can fail, the broken
+# update is dropped, and the node stays on the installed image ("never
+# applied"). Case 1 says so at once, with ostree's own error, instead of
+# waiting 600 s for a rollback that cannot come.
+BROKEN = ("localhost/rikuri-os:broken", "sha256:" + "b" * 64)
+INSTALLED = ("localhost/rikuri-os:ci", DIGEST)
+FINALIZE_FAILED = (
+    "[  182.526087] rikurisetup systemd[1]: Stopping ostree-finalize-staged.service - OSTree Finalize Staged Deployment...\n"
+    "[  182.580138] rikurisetup ostree[2417]: error: Remounting /boot read-write: Invalid argument\n"
+    "[  182.588553] rikurisetup systemd[1]: ostree-finalize-staged.service: Control process exited, code=exited, "
+    "status=1/FAILURE\n")
+UNAPPLIED = ("[    8.182602] rikurisetup greenboot-unapplied-update[731]: rikuri-unapplied-update: update %s "
+             "was never applied: the default deployment %s\n" % (BROKEN[1], DIGEST))
+ROLLED = "[    7.556321] rikurisetup greenboot[779]:  INFO  greenboot > %s\n" % d.ROLLED_BACK
+
+
+def bootc_status(booted, rollback=None, staged=None):
+    def entry(deployment):
+        return None if deployment is None else {
+            "image": {"image": {"image": deployment[0], "transport": "containers-storage"},
+                      "imageDigest": deployment[1]}}
+    return json.dumps({"status": {"booted": entry(booted), "rollback": entry(rollback), "staged": entry(staged)}})
+
+
+class Case1Outcome(unittest.TestCase):
+    def test_rolled_back_never_applied_or_still_waiting(self):
+        for status, outcome in (
+                (bootc_status(INSTALLED, rollback=BROKEN), "rolled back"),
+                (bootc_status(INSTALLED), "never applied"),
+                # The boot before the reboot: the update is still staged.
+                (bootc_status(INSTALLED, staged=BROKEN), None),
+                # One of the broken image's boots.
+                (bootc_status(BROKEN, rollback=INSTALLED), None),
+                (bootc_status(BROKEN), None),
+                # Some other rollback: not what case 1 made; keep waiting.
+                (bootc_status(INSTALLED, rollback=("localhost/rikuri-os:a", "sha256:" + "c" * 64)), None),
+                (bootc_status(("localhost/rikuri-os:ci", "sha256:" + "d" * 64)), None),
+                ("", None), ("{}", None)):
+            with self.subTest(status=status):
+                self.assertEqual(d.case1_outcome(status, DIGEST), outcome)
+
+
+class FinalizeError(unittest.TestCase):
+    def test_ostree_s_own_error_lines(self):
+        self.assertEqual(d.finalize_error(FINALIZE_FAILED),
+                         "error: Remounting /boot read-write: Invalid argument")
+        two = FINALIZE_FAILED + "[  182.6] h ostree[2417]: error: Unlocking sysroot: Bad file descriptor\n"
+        self.assertEqual(d.finalize_error(two), "error: Remounting /boot read-write: Invalid argument; "
+                                                "error: Unlocking sysroot: Bad file descriptor")
+
+    def test_nothing_from_ostree_is_empty(self):
+        for journal in ("", "-- No entries --\n", FINALIZE_FAILED.splitlines()[0] + "\n",
+                        "[  1.0] h ostree-prepare-root[437]: error: not finalize\n"):
+            with self.subTest(journal=journal):
+                self.assertEqual(d.finalize_error(journal), "")
+
+
+class Case1Drill(d.Drill):
+    """Case 1 with bootc's status, the journal and the marker as stand-ins.
+    The status reads run out: a drill that keeps waiting fails the test."""
+
+    def __init__(self, artifacts, statuses, journals):
+        super().__init__("localhost/rikuri-os:test", artifacts, artifacts)
+        self.installed = INSTALLED
+        self.statuses, self.journals = list(statuses), journals
+        self.reads, self.switched, self.waited = 0, [], []
+        self.case1_poll = 0
+        self.log = lambda message: None
+
+    def switch(self, name):
+        self.switched.append(name)
+
+    def reboot(self):
+        return "boot-before"
+
+    def wait_up(self, old_boot=None, timeout=600):
+        self.waited.append(old_boot)
+        return "boot-after"
+
+    def status_quiet(self):
+        if self.reads >= len(self.statuses):
+            raise AssertionError("case 1 kept waiting after %d status reads" % self.reads)
+        self.reads += 1
+        return self.statuses[self.reads - 1]
+
+    def status(self):
+        return self.statuses[-1]
+
+    def journal(self, args):
+        return self.journals.get(args, "")
+
+    def vm(self, command, check=True, timeout=300, stdin=None):
+        assert command == "cat %s" % d.MARKER, command
+        return "vm-drill marker\n"
+
+
+class Case1Steps(unittest.TestCase):
+    GREP = "--grep 'greenboot|rikuri-unapplied-update|bootc'"
+
+    def setUp(self):
+        self.artifacts = tempfile.mkdtemp(prefix="drill-artifacts-")
+        self.addCleanup(shutil.rmtree, self.artifacts)
+
+    def run_case1(self, statuses, journals):
+        drill = Case1Drill(self.artifacts, statuses, journals)
+        drill.case1()
+        self.assertEqual(drill.switched, ["broken"])
+        self.assertEqual(drill.waited, ["boot-before"])
+        [(case, ok, detail)] = drill.results
+        self.assertEqual(case, "case 1, a failing update")
+        with open(os.path.join(self.artifacts, "02-case1.out"), encoding="utf-8") as f:
+            return drill, ok, detail, f.read()
+
+    def test_a_rollback_passes_as_before(self):
+        drill, ok, detail, _ = self.run_case1(
+            [bootc_status(INSTALLED, staged=BROKEN), bootc_status(BROKEN), bootc_status(INSTALLED, rollback=BROKEN)],
+            {self.GREP: ROLLED})
+        self.assertTrue(ok, detail)
+        self.assertEqual(detail, "rolled back: True; marker intact: True")
+
+    def test_an_update_dropped_at_shutdown_fails_at_once_with_ostree_s_error(self):
+        drill, ok, detail, kept = self.run_case1(
+            [bootc_status(INSTALLED, staged=BROKEN), bootc_status(INSTALLED)],
+            {self.GREP: UNAPPLIED, d.FINALIZE_JOURNAL: FINALIZE_FAILED})
+        self.assertFalse(ok)
+        self.assertEqual(drill.reads, 2, "no waiting once the update is gone")
+        self.assertEqual(detail, "never applied: the update was dropped at shutdown, not rolled back; "
+                                 "'never applied' logged: True; ostree-finalize-staged: "
+                                 "error: Remounting /boot read-write: Invalid argument")
+        self.assertIn(FINALIZE_FAILED, kept, "the shutdown's own journal is kept")
+
+    def test_a_dropped_update_without_ostree_s_line_says_so(self):
+        _, ok, detail, _ = self.run_case1(
+            [bootc_status(INSTALLED)], {self.GREP: ""})
+        self.assertFalse(ok)
+        self.assertEqual(detail, "never applied: the update was dropped at shutdown, not rolled back; "
+                                 "'never applied' logged: False; ostree-finalize-staged: no error line kept")
