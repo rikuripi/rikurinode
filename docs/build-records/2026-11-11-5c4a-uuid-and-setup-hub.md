@@ -5,8 +5,8 @@
 | **Date** | 2026-11-11 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/5c4a-uuid-hub`, from `main` at `b46875b`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `4cefe34` contract, `67f3c87` red, `a4f8d1e` and `3e8cd5d` fix, `70b1ae3` repair-1 tests, `8d13c27` repair-1 fix, then the record; the merge commit at close-out |
-| **Status** | Ready for the owner's merge (DONE once merged) |
+| **Commits** | `4cefe34` contract, `67f3c87` red, `a4f8d1e` and `3e8cd5d` fix, `70b1ae3` repair-1 tests, `8d13c27` repair-1 fix, `d23a064`… the record; merged as `bedef99` (PR #85, head `a0f360b`); this close-out's record commits follow |
+| **Status** | DONE |
 | **Change type** | feature |
 
 ## Why
@@ -164,3 +164,8 @@ The owner (2026-11-11), after "Next":
 - Run 43126288251, attempt 2, no code change: **Pass**, every job. The rollback drill (job 130887321258) passed this change's checks again, and case 1: `PASS case 1, a failing update: rolled back: True; marker intact: True`; cases 2b, 3, 4 and 5 also passed.
 - So "Both VM drills pass on the PR" is Pass, on a re-run. Case 1 is flaky: 3 timeouts in 6 completed runs, none of them caused by this change. Fixing it is its own task, next, by the owner's choice.
 - **Status: ready for the owner's merge.** One repair cycle of two and both review rounds used. Still not proven: the hub on a real phone and laptop against the N150 after a claim.
+
+### Close-out
+
+- The owner merged PR #85 on 2026-11-12 as `bedef99`, at head `a0f360b`, with every required check green (CI run 5 plus the drill's re-run). The record's last entries came after the merge, so they land through this close-out PR.
+- **Status: DONE.** Not yet proven: the hub on a real phone and laptop against the N150 after a claim. Next, by the owner's choice: case 1's timeout, as its own task.
