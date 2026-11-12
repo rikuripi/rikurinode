@@ -60,7 +60,7 @@ pub struct Inner {
     pub ca_pem: String,
     pub ca_fingerprint: String,
     pub https_port: u16,
-    /// Where the running kernel's hostname is read (5c.4a; `Config`).
+    /// Where the node's name is read (5c.4a; `Config`).
     pub hostname_file: PathBuf,
     /// Held for the whole of a claim attempt, so claims are judged one at a
     /// time and the limiter's count is exact.
@@ -641,8 +641,9 @@ async fn hub_handler(
 ) -> Result<Json<hub::HubReport>, Refusal> {
     authenticate(&app, &headers)?;
     let dir = &app.0.dir;
-    // A claimed node always has one; a crash between the claim's two writes
-    // is made good here. A file that is not a UUID stays an error.
+    // A node claimed with 5c.4a has one already. One claimed before it, or
+    // whose file was lost, gets it here, and `ensure` logs that it made one.
+    // A file that is not a UUID stays an error.
     let node_id = node_id::ensure(dir, now_unix()).map_err(internal)?;
     let hostname = std::fs::read_to_string(&app.0.hostname_file);
     if let Err(e) = &hostname {

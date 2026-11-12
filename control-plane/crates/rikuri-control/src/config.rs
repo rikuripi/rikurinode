@@ -22,9 +22,8 @@ pub struct Config {
     pub names: Names,
     /// The state folder (`RIKURI_STATE_DIR`).
     pub state_dir: PathBuf,
-    /// Where the running kernel's hostname is read (5c.4a): always
-    /// [`hub::HOSTNAME_FILE`] on a node, from no variable; the tests point
-    /// it at a file of their own.
+    /// Where the node's name is read (5c.4a): always [`hub::HOSTNAME_FILE`]
+    /// on a node, from no variable; the tests point it at a file of their own.
     pub hostname_file: PathBuf,
 }
 

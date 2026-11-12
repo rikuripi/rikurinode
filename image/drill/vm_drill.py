@@ -451,6 +451,12 @@ SETUP_REDIRECT = "https://127.0.0.1/setup"   # the plain listener's answer to /s
 # 5c.3b: the owner's pages, and a claim code no node can show: a real code
 # draws only from claim::ALPHABET, which has no 0, 1, I, L or O.
 OWNER_PAGES = ("/claim", "/signin")
+# 5c.4a, repair 1: the node's name as the hub reads it, as the service's user
+# inside the service's own mount namespace (its sandbox: ProtectSystem=strict,
+# ProcSubset=pid). A file the service cannot see there would fail this.
+NAME_IN_SANDBOX = ('pid="$(systemctl show -p MainPID --value rikuri-control-plane.service)" && '
+                   'nsenter --target "$pid" --mount --setuid "$(id -u %s)" --setgid "$(id -g %s)" '
+                   'cat /etc/hostname' % (CP_USER, CP_USER))
 WRONG_CODE = "0000-0000-00"
 
 
@@ -567,7 +573,8 @@ EXPECTED = frozenset({"first boot", "the containers range at the first boot", "c
                       "a wrong claim code is refused and the node stays unclaimed",
                       "the owner's pages never over HTTP",
                       "the SetupHub over HTTPS only, with only the node's CA",
-                      "the hub refuses a browser without a session"})
+                      "the hub refuses a browser without a session",
+                      "the control plane reads the node's name in its sandbox"})
 
 
 def verdict(results, error) -> int:
@@ -877,11 +884,13 @@ class Drill:
         self.keep("02c-owner-pages.out", "\n".join(lines))
 
     def setup_hub(self) -> None:
-        """5c.4a, from outside the VM, changing nothing: /home is the secure
-        page over HTTPS trusting only the node's CA, and in the clear only a
-        redirect to it; GET /api/hub without a session is refused as the API
-        refuses one. What the hub lists needs a claim, which the drill cannot
-        make (it would have to press Enter on tty2): the tests cover that."""
+        """5c.4a, changing nothing: /home is the secure page over HTTPS
+        trusting only the node's CA, and in the clear only a redirect to it
+        (the page's shell, served since 5c.3b); GET /api/hub without a session
+        is refused as the API refuses one; and, in the VM, the service can read
+        the name the hub reports inside its sandbox. What the hub lists needs
+        a claim, which the drill cannot make (it would have to press Enter on
+        tty2): the tests cover that."""
         lines = []
         cafile, status = self.node_cafile("node-ca-hub.crt")
         no_ca = "no CA certificate to trust (/ca.crt: %s)" % status
@@ -916,6 +925,14 @@ class Drill:
         else:
             ok, detail = False, no_ca
         self.check("the hub refuses a browser without a session", ok, detail)
+        lines.append(detail)
+
+        name = self.vm(NAME_IN_SANDBOX, check=False)
+        first = next((line.strip() for line in (name or "").splitlines()
+                      if line.strip() and not line.strip().startswith("#")), None)
+        detail = "/etc/hostname as %s in the service's mount namespace: %s" % (
+            CP_USER, repr(first) if name is not None else "not read")
+        self.check("the control plane reads the node's name in its sandbox", first == "rikurisetup", detail)
         lines.append(detail)
         self.keep("02d-setup-hub.out", "\n".join(lines))
 

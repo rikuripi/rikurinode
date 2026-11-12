@@ -1,6 +1,6 @@
 //! The SetupHub (5c.4a): what setup still needs, each step read from the
-//! node's real state at the time of the request, never from a stored flag
-//! (AGENTS.md, "Runtime truth over declared truth"). Nothing here is kept, so
+//! node's state at the time of the request, never from a flag of our own.
+//! Nothing here is kept, so
 //! a refresh or a crash resumes by itself; stored wizard state comes with the
 //! first step that takes input.
 //!
@@ -11,9 +11,13 @@ use std::io;
 
 use serde::Serialize;
 
-/// Where the running kernel says its hostname: the name the node has now,
-/// not the one a file says it should have.
-pub const HOSTNAME_FILE: &str = "/proc/sys/kernel/hostname";
+/// The node's static hostname, as systemd-hostnamed keeps it and 5c.4b's
+/// rename will write it. Repair 1 (verifier I-1; the owner, "/etc/hostname"):
+/// not the kernel's `/proc/sys/kernel/hostname`, which the service's sandbox
+/// hides (`ProcSubset=pid`) and whose name it freezes at its start
+/// (`ProtectHostname=yes`). Reading the live name from hostnamed may come
+/// with 5c.4b.
+pub const HOSTNAME_FILE: &str = "/etc/hostname";
 /// The name the image gives a node until its owner names it (5c.2).
 pub const SETUP_HOSTNAME: &str = "rikurisetup";
 
@@ -72,11 +76,20 @@ pub struct HubReport {
 }
 
 /// The name step, from a read of [`HOSTNAME_FILE`].
+/// The name is the file's first line that is neither blank nor a comment
+/// (hostname(5)); a file without one is `unknown`, never done.
 pub fn name_state(hostname: &io::Result<String>) -> StepState {
-    match hostname.as_deref().map(str::trim) {
-        Ok("") | Err(_) => StepState::Unknown,
-        Ok(SETUP_HOSTNAME) => StepState::Next,
-        Ok(_) => StepState::Done,
+    let Ok(text) = hostname else {
+        return StepState::Unknown;
+    };
+    match text
+        .lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty() && !line.starts_with('#'))
+    {
+        None => StepState::Unknown,
+        Some(SETUP_HOSTNAME) => StepState::Next,
+        Some(_) => StepState::Done,
     }
 }
 

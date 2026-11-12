@@ -13,6 +13,7 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
+use tracing::info;
 
 use crate::random::{self, RandomError};
 use crate::state::{StateDir, StateError};
@@ -53,8 +54,10 @@ impl std::error::Error for NodeIdError {}
 /// RFC 9562's version-4 form of 16 random bytes: version 4, variant 10,
 /// lowercase, `8-4-4-4-12`.
 pub fn format_v4(mut bytes: [u8; 16]) -> String {
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    // Added, not or-ed: with the mask's bits cleared, `|` and `^` agree, and
+    // a mutant no test can tell apart (repair 1, verifier I-2).
+    bytes[6] = 0x40 + (bytes[6] & 0x0f);
+    bytes[8] = 0x80 + (bytes[8] & 0x3f);
     let hex = random::hex(&bytes);
     format!(
         "{}-{}-{}-{}-{}",
@@ -105,6 +108,7 @@ pub fn ensure(dir: &StateDir, now_unix: u64) -> Result<String, NodeIdError> {
         created_unix: now_unix,
     };
     dir.write_json(FILE, &file).map_err(NodeIdError::State)?;
+    info!(%uuid, "the node's UUID was made");
     Ok(uuid)
 }
 

@@ -21,7 +21,7 @@ The owner (2026-11-11), after "Next":
 
 1. **Outcome:** once signed in, the owner sees the node's own ID and a list of what setup remains. The list says what is done, what is next and what comes with a later update, and it marks a step done only when the node's real state shows it.
 2. **Scope:**
-   - **The UUID** (`control-plane/`, a new `node.rs`):
+   - **The UUID** (`control-plane/`, a new `node.rs`, built as `node_id.rs`):
      - a random version-4 UUID from the OS's generator (`random.rs`), written once to its own file, `node-uuid.json`, in the state folder (`state.rs`: 0600, whole-file writes). *Clarified 2026-11-11, before any code: the contract first said `node.json`, which already holds B0.2's `instance_id`, the sessions' issuer (`boot.rs`). The UUID stays apart from it, so the claim never rewrites the file the sessions depend on, and the internal issuer is never shown;*
      - created when the node is claimed; a claimed node without one (a crash between the claim and the write) gets it on its next read;
      - never rewritten. An update never changes it, because the state folder is under `/var`. A file that cannot be read or is not a UUID is an error that is reported, never silently replaced: identity is never regenerated quietly.
@@ -31,7 +31,7 @@ The owner (2026-11-11), after "Next":
      - each state is one of `done`, `next`, `later` or `unknown`, from the node's real state at the time of the request:
        - `connection` is done: the answer comes over the node's TLS;
        - `owner` is done if the owner file exists;
-       - `name` is read from the running kernel (`/proc/sys/kernel/hostname`): `rikurisetup` is `next`, any other name is `done`, and a failed read is `unknown`;
+       - `name` is read from the running kernel (`/proc/sys/kernel/hostname`): `rikurisetup` is `next`, any other name is `done`, and a failed read is `unknown`. *Changed by the owner, 2026-11-11, in repair 1 ("/etc/hostname (Recommended)"): the service's sandbox hides that file and freezes the kernel's name, so the name is read from `/etc/hostname`, the static hostname systemd-hostnamed keeps; see "Repair 1 of 2";*
        - `bitcoin`, `lightning` and `backup` are `later`;
      - no wizard state is stored. No step in 5c.4a takes input, and every state is read again on each request, so a refresh or a crash resumes by itself;
      - ts-rs types, test-only as before, for the reply.
@@ -129,3 +129,12 @@ The owner (2026-11-11), after "Next":
   - rikuri-drill, `image/tests`: Ran 514, `FAILED (failures=4, errors=13)`, every one in `SetupHubSteps` and the Verdict pin.
   - On the Mac, `clippy --all-targets` exits 0: the Rust red is in the assertions (`config.rs`, `hub.rs`).
   - The UI's red cannot be seen in CI while the drill's tests fail at the gate's step 3; it is red by reading.
+- **Run 3's drills** were cancelled by the next push (the image workflow cancels a branch's older run). Before they stopped, the rollback drill passed both hub checks on the real image: `PASS the SetupHub over HTTPS only, with only the node's CA` and `PASS the hub refuses a browser without a session: GET /api/hub without a session: 401 {"error":"sign-in required"}`. Whether case 1's timeout recurs is not yet known.
+- **The fix:**
+  - `hub.rs`: `HOSTNAME_FILE` is `/etc/hostname`, and the name is the first line that is neither blank nor a comment.
+  - `node_id.rs`: the version and variant bits are added, not or-ed (I-2), and making a UUID is logged (`info!`, nit 1).
+  - `vm_drill.py`: the third hub check, `NAME_IN_SANDBOX`, run through `nsenter` into the service's mount namespace as its user. `setup_hub`'s docstring now says the `/home` check proves the page's shell, served since 5c.3b (nit 3).
+  - `api.ts`, `parseHub`: a v4 UUID, and every step once, in the node's order (nit 2).
+  - The contract's name bullet and its `node.rs` (nit 5) carry dated notes.
+  - Nit 4 stands as recorded: the "a step listed twice" case was added after the UI's red run and was never seen red.
+- **Green before the push:** rikuri-drill, `image/tests` Ran 514 OK; hooks 91 OK; quality only its 7 known errors. On the Mac, `clippy --all-targets -D warnings` and `fmt --check` are clean.

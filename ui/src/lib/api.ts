@@ -47,21 +47,25 @@ export function parseSession(value: unknown): SessionInfo | SessionOpened | null
 const STEPS: readonly SetupStep[] = ['connection', 'owner', 'name', 'bitcoin', 'lightning', 'backup'];
 const STATES: readonly StepState[] = ['done', 'next', 'later', 'unknown'];
 
-/** A hub exactly as the node writes it, or null: a step or state this page
- *  does not know, a step twice, or no node ID makes the whole reply unreadable. */
+// node_id.rs's form: version 4, variant 10, lowercase, 8-4-4-4-12.
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+/** A hub exactly as the node writes it, or null: a node ID that is not its
+ *  UUID, or anything but every step once, in the node's order, with a state
+ *  this page knows, makes the whole reply unreadable (repair 1, nit 2). */
 export function parseHub(value: unknown): HubReport | null {
   const v = record(value);
-  if (!v || typeof v['node_id'] !== 'string' || v['node_id'] === '' || !Array.isArray(v['steps'])) return null;
+  const id = v?.['node_id'];
+  const list = v?.['steps'];
+  if (typeof id !== 'string' || !UUID_V4.test(id) || !Array.isArray(list) || list.length !== STEPS.length) return null;
   const steps: HubStep[] = [];
-  for (const item of v['steps']) {
+  for (const [i, item] of list.entries()) {
     const s = record(item);
-    const step = s?.['step'];
     const state = s?.['state'];
-    if (!(STEPS as readonly unknown[]).includes(step) || !(STATES as readonly unknown[]).includes(state)) return null;
-    if (steps.some((seen) => seen.step === step)) return null; // a step twice is not the node's list
-    steps.push({ step: step as SetupStep, state: state as StepState });
+    if (s?.['step'] !== STEPS[i] || !(STATES as readonly unknown[]).includes(state)) return null;
+    steps.push({ step: STEPS[i]!, state: state as StepState });
   }
-  return { node_id: v['node_id'], steps };
+  return { node_id: id, steps };
 }
 
 async function body(reply: Response): Promise<unknown> {
