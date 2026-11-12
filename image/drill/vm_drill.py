@@ -84,6 +84,10 @@ BROKEN = "localhost/rikuri-os:broken"
 FINALIZE_JOURNAL = "-b -1 -u ostree-finalize-staged.service -u boot.automount"
 # ostree itself: not rpm-ostree, not ostree-prepare-root.
 OSTREE_ERROR = re.compile(r"(?<![\w-])ostree\[\d+\]: (error: .*)$", re.M)
+# The image masks the EFI partition's automount on /boot, so that ostree's /boot
+# is the only one (docs/build-records/2026-11-11-boot-automount-mask.md).
+SHOW_BOOT_AUTOMOUNT = "systemctl show -p LoadState -p ActiveState boot.automount"
+BOOT_FSTYPES = "findmnt -n -o FSTYPE /boot"
 TRIGGER_STOPPED = re.compile(r"Stopped [^\n]*Greenboot Rollback trigger")
 SUBID_LINE = "containers:2147483647:2147483648"
 SUBID_FILES = ("/etc/subuid", "/etc/subgid")
@@ -239,6 +243,16 @@ def case1_outcome(text: str, installed_digest: str):
     if back is None and staged(text) is None:
         return "never applied"
     return None
+
+
+def boot_automount_masked(show, fstypes) -> bool:
+    """boot.automount is masked and not running, and /boot is one ext4 mount:
+    ostree's bind of /sysroot/boot, with no autofs and no EFI partition there."""
+    if show is None or fstypes is None:
+        return False
+    props = dict(line.split("=", 1) for line in show.splitlines() if "=" in line)
+    return (props.get("LoadState") == "masked" and props.get("ActiveState") == "inactive"
+            and fstypes.split() == ["ext4"])
 
 
 def finalize_error(journal: str) -> str:
@@ -602,7 +616,8 @@ EXPECTED = frozenset({"first boot", "the containers range at the first boot", "c
                       "the owner's pages never over HTTP",
                       "the SetupHub over HTTPS only, with only the node's CA",
                       "the hub refuses a browser without a session",
-                      "the control plane reads the node's name in its sandbox"})
+                      "the control plane reads the node's name in its sandbox",
+                      "the EFI partition's automount on /boot is masked"})
 
 
 def verdict(results, error) -> int:
@@ -722,6 +737,18 @@ class Drill:
                    "booted %s; %s" % (self.installed, "; ".join("%s: %s" % kv for kv in checks.items())))
         self.vm("echo 'vm-drill marker' > %s && sync" % MARKER)
         self.subid_first_boot()
+
+    def boot_automount(self) -> None:
+        """The image's mask holds on the running node: systemd loads
+        boot.automount as masked and never starts it, and /boot is ostree's
+        alone, so no automount can go before ostree finalizes an update."""
+        show = self.vm(SHOW_BOOT_AUTOMOUNT, check=False)
+        fstypes = self.vm(BOOT_FSTYPES, check=False)
+        self.keep("01d-boot-automount.out", "\n".join([show or "(no answer)", fstypes or "(no answer)"]))
+        props = dict(line.split("=", 1) for line in (show or "").splitlines() if "=" in line)
+        self.check("the EFI partition's automount on /boot is masked", boot_automount_masked(show, fstypes),
+                   "boot.automount: LoadState=%s; ActiveState=%s; /boot: %s"
+                   % (props.get("LoadState"), props.get("ActiveState"), ", ".join((fstypes or "").split())))
 
     def subid_first_boot(self) -> None:
         """A fresh install gets the range at its first boot: the unit added it to
@@ -1331,6 +1358,7 @@ def main(argv=None) -> int:
     try:
         drill.install()
         drill.first_boot()
+        drill.boot_automount()
         drill.control_plane()
         drill.setup_pages()
         drill.owner_pages()

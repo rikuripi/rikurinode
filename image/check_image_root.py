@@ -93,6 +93,17 @@ UNAPPLIED_EXEC = "ExecStartPre=-/" + UNAPPLIED_CHECK
 # Record: docs/build-records/2026-10-22-greenboot-218.md
 TRIGGER_DROPIN = "usr/lib/systemd/system/greenboot-set-rollback-trigger.service.d/50-rikuri-run-at-shutdown.conf"
 TRIGGER_LINES = ("Conflicts=final.target", "Before=final.target")
+# bootc #2402: since ostree 2026.3, systemd-gpt-auto-generator's boot.automount
+# for the EFI partition sits in front of ostree's /boot; when it goes first at a
+# shutdown, ostree cannot finalize and the staged update is dropped. Masked in
+# /usr/lib (above the generator's late folder, and gone with an image rollback);
+# nothing in a folder above it may override the mask. Remove both once a
+# Fedora ostree finalizes without the /boot path (ostree #3690).
+# Record: docs/build-records/2026-11-11-boot-automount-mask.md
+BOOT_AUTOMOUNT = "usr/lib/systemd/system/boot.automount"
+BOOT_AUTOMOUNT_OVERRIDES = ("etc/systemd/system.control/boot.automount", "etc/systemd/system/boot.automount",
+                            "etc/systemd/system.attached/boot.automount",
+                            "usr/local/lib/systemd/system/boot.automount")
 # Podman's containers range for UserNS=auto, kept at every boot
 # (docs/build-records/2026-10-23-containers-subid.md).
 SUBID_CHECK = "usr/libexec/rikuri/containers-subid"
@@ -949,9 +960,23 @@ def check_signature_policy(root: str) -> list:
     return found
 
 
+def check_boot_automount(root: str) -> list:
+    found = []
+    full = os.path.join(root, BOOT_AUTOMOUNT)
+    if (_lstat_in(root, os.path.dirname(BOOT_AUTOMOUNT)) is None or not os.path.islink(full)
+            or os.readlink(full) != "/dev/null"):
+        found.append("%s: not masked (a link to /dev/null): the EFI partition's automount on /boot can "
+                     "drop a staged update at shutdown (bootc #2402)" % BOOT_AUTOMOUNT)
+    for rel in BOOT_AUTOMOUNT_OVERRIDES:
+        if os.path.lexists(os.path.join(root, rel)):
+            found.append("%s: would override the image's mask of boot.automount" % rel)
+    return found
+
+
 def check_root(root: str, release: str, note=lambda line: None) -> list:
     return (check_os_release(root, release) + check_greenboot(root) + check_unapplied_update(root)
-            + check_trigger_at_shutdown(root) + check_containers_subid(root) + check_containers_user(root)
+            + check_trigger_at_shutdown(root) + check_boot_automount(root)
+            + check_containers_subid(root) + check_containers_user(root)
             + check_subid_wanted(root) + check_control_plane(root) + check_mdns_links(root)
             + check_quadlet_health(root) + check_signature_policy(root) + check_no_private_keys(root, note))
 
