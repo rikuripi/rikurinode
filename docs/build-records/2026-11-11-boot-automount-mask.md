@@ -99,3 +99,4 @@ Upstream knows it (read 2026-11-11, data only):
   - `PASS the EFI partition's automount on /boot is masked: boot.automount: LoadState=masked; ActiveState=inactive; /boot: ext4`
   - `PASS case 1, a failing update: rolled back: True; marker intact: True`, 98 s after the variants were built.
   - Every other check passed. On this branch and #87's, the three runs before the mask all dropped the update.
+- **Drill run 2 of 3** (run 43153384111, attempt 2, job 130972358796): **Pass**. `boot.automount: LoadState=masked; ActiveState=inactive; /boot: ext4`; case 1 `rolled back: True; marker intact: True`, 92 s after the variants were built.
