@@ -5,8 +5,8 @@
 | **Date** | 2026-11-11 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/5c4a-uuid-hub`, from `main` at `b46875b`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `4cefe34` contract, `67f3c87` red, `a4f8d1e` and `3e8cd5d` fix, `70b1ae3` repair-1 tests, `8d13c27` repair-1 fix, then the record; the merge commit at close-out |
+| **Status** | Ready for the owner's merge (DONE once merged) |
 | **Change type** | feature |
 
 ## Why
@@ -158,3 +158,9 @@ The owner (2026-11-11), after "Next":
 - **Verifier, follow-up at `a0f360b`: PASS.** I-1, I-2 and I-3 are resolved; the nit fixes are correct; the test changes are justified and none is a loosening.
   - Its minor notes: (1) the sandbox check enters the mount namespace and the user's IDs, but not the service's SELinux domain, seccomp filter or capabilities; (2) this record's "whether case 1's timeout recurs is not yet known" is now answered above; (3) the test name `the_name_is_done_only_when_the_kernel_has_another_name` no longer fits; (4) the contract's "a crash between the claim and the write" is really "a node claimed before 5c.4a, or a lost file"; (5) README's "real state" is, for the name, the static name.
 - **Status: NEEDS_OWNER_DECISION.** "Both VM drills pass on the PR" is Fail, because of case 1, which is not this change's. One repair cycle and both review rounds are used.
+
+### The rollback drill's re-run (the owner's choice, "Re-run, then fix case 1")
+
+- Run 43126288251, attempt 2, no code change: **Pass**, every job. The rollback drill (job 130887321258) passed this change's checks again, and case 1: `PASS case 1, a failing update: rolled back: True; marker intact: True`; cases 2b, 3, 4 and 5 also passed.
+- So "Both VM drills pass on the PR" is Pass, on a re-run. Case 1 is flaky: 3 timeouts in 6 completed runs, none of them caused by this change. Fixing it is its own task, next, by the owner's choice.
+- **Status: ready for the owner's merge.** One repair cycle of two and both review rounds used. Still not proven: the hub on a real phone and laptop against the N150 after a claim.
