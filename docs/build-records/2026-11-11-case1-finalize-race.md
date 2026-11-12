@@ -48,7 +48,7 @@ All from this repository's CI artifacts (`drill-evidence`), read in the scratchp
   | 43126288251 attempt 2, pass | 1963 | 1899 to 1957 | none: finalized |
 
 - **Ruled out.** greenboot's "/boot is already read-only" at its trigger (it says the same in passing runs). The 600 s limit (case 1 passes in about 80 s when finalize works). The `--userns=auto` hypothesis (2026-10-24 record: 0 of 3).
-- **Cause, as far as the evidence goes:** a shutdown ordering race between ostree-finalize-staged and the ESP automount on `/boot`. Nothing orders the two, and when the automount goes first, ostree's remount of `/boot` fails with EINVAL. Five runs show the correlation; no run has tested a fix. The N150 installs with the same `bootc install to-disk` layout and the same generator, so a node can drop an update the same way: safely, and logged, but not applied.
+- **Cause, as far as the evidence goes:** a shutdown ordering race between ostree-finalize-staged and the ESP automount on `/boot`. Nothing seen in these runs orders the two (`ostree-finalize-staged-hold.service`, "Hold /boot Open", runs in every one, passing and failing, and does not prevent it; the next task must account for it), and when the automount goes first, ostree's remount of `/boot` fails with EINVAL. Five runs show the correlation; no run has tested a fix. The N150 installs with the same `bootc install to-disk` layout and the same generator, so a node can drop an update the same way: safely, and logged, but not applied.
 - **Next task (not started):** fix the race in the image, for example by ordering ostree-finalize-staged against `boot.automount`, or by keeping the generator off `/boot`, proved by the drill.
 
 ## Plan
@@ -69,3 +69,15 @@ All from this repository's CI artifacts (`drill-evidence`), read in the scratchp
 - `image/drill/vm_drill.py`: `BROKEN`, `FINALIZE_JOURNAL`, `OSTREE_ERROR`; `case1_outcome()` and `finalize_error()`; `case1_poll` (10 s, as before); case 1 waits for either outcome, and on "never applied" keeps the boot-that-shut-down's journal of finalize and the automount in `02-case1.out`, records case 1 Fail with ostree's error, and returns, so cases 2b, 3, 4 and 5 still run.
 - On `rikuri-drill`, through `safe-run.sh`: every `image/tests` test, `Ran 520 tests`, `OK`; the six new ones by name, `OK`.
 - No test changed after red.
+
+### The verifier's first pass, at `fc64269`: no Important finding; Not yet proven (the PR's drill was still running)
+
+- It checked `case1_outcome` against every state case 1 passes through, the pass rule (unchanged), the "never applied" path (always a Fail; the later cases start from the state case 2b expects), the regex against the real journal line, the red-then-fix commits, the scope, and the diagnosis table against the five artifacts (it matches). `Full gate (Ubuntu)` Pass on `fc64269`, run 43144786947.
+- Hand mutations: 26, 21 caught. The 5 survivors were in what is kept and shown, not in a pass or fail: the regex's `\b`, its `$`, any ostree line rather than `error: …`, `-b 0` for `-b -1`, and `-u boot.automount` dropped.
+- **Nits, fixed:**
+  1. The survivors. The test now pins `FINALIZE_JOURNAL` and checks case 1 reads it; the fixture has an ostree line that is not an error; `finalize_error` is tested against `rpm-ostree[…]: error:` and a plain ostree line. **Reason for these test changes after red:** they add cases that the first fix already met; none loosens an assertion. On `rikuri-drill`, all five former survivors (and the regex with `\b` instead of the lookbehind, and with none) now fail the tests.
+  2. The new tests sat after `if __name__ == "__main__"`; the block is the file's end again (test layout only).
+  3. The regex now excludes `rpm-ostree` and `ostree-…` by a lookbehind, not `\b`.
+  4. The diagnosis now names `ostree-finalize-staged-hold.service`.
+  5. Case 1's wait says "to roll back or be dropped".
+- After the nits, on `rikuri-drill` through `safe-run.sh`: `image/tests`, `OK`.
