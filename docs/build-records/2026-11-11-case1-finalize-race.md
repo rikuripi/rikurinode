@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/case1-finalize-evidence`, from `main` at `65c8e99`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | `85823de` contract, `086f96e` red, `0824991` fix, `fc64269` record, `00d53bc` and `e4e3d3e` the verifier's nits, `6944e86`, `723eb4c` and this close the record |
-| **Status** | DONE, pending the owner's merge |
+| **Status** | DONE |
 | **Change type** | fix (the drill's diagnosis of a real fault; the fault itself is the next task) |
 
 ## Why
@@ -116,3 +116,7 @@ All from this repository's CI artifacts (`drill-evidence`), read in the scratchp
 - **The rollback drill stays red** on most runs until the race is fixed: about one in three, or every run that hits it. This is the drill reporting a real fault. It is not a required check, so whether to merge with it red is the owner's decision.
 - **CI used:** four gate runs and three image workflow runs. The drill on `fc64269` was superseded by the push of the nits.
 - **Next (not started):** fix the race in the image, with the drill as the proof.
+
+### Merged
+
+- PR #87's commits, at head `a2613c7`, were merged on 2026-11-12 with PR #88, as `544f1bf`. The race this record diagnosed is fixed there: the EFI partition's automount is masked, and case 1 passed in 3 drill runs of 3 (`docs/build-records/2026-11-11-boot-automount-mask.md`).
