@@ -1887,6 +1887,9 @@ class BootAutomountDrill(d.Drill):
 
     def vm(self, command, check=True, timeout=300, stdin=None):
         assert command in self.answers, command
+        # Verifier nit 2: an answer it cannot read is a Fail of this check,
+        # never a drill error that skips the rest.
+        assert check is False, command
         self.commands.append(command)
         return self.answers[command]
 

@@ -1688,6 +1688,17 @@ class BootAutomount(unittest.TestCase):
         hit, found = self.finds(BOOT_AUTOMOUNT + ": not masked (a link to /dev/null)")
         self.assertTrue(hit, found)
 
+    def test_an_override_is_never_read_through_a_link(self):
+        # Verifier nit 3: as every read here, a link on the way ends it; the
+        # check never follows one out of the image.
+        outside = tempfile.mkdtemp(prefix="outside-units-")
+        self.addCleanup(shutil.rmtree, outside)
+        with open(os.path.join(outside, "boot.automount"), "w", encoding="utf-8") as f:
+            f.write("[Automount]\nWhere=/boot\n")
+        os.makedirs(os.path.join(self.root.path, "etc/systemd"), exist_ok=True)
+        os.symlink(outside, os.path.join(self.root.path, "etc/systemd/system"))
+        self.assertEqual([f for f in self.root.check() if "boot.automount" in f], [])
+
     def test_anything_that_would_override_the_mask_is_a_finding(self):
         for rel in BOOT_AUTOMOUNT_OVERRIDES:
             for why, make in (("a unit", lambda: self.root.write(rel, "[Automount]\nWhere=/boot\n")),
