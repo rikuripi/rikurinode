@@ -57,7 +57,8 @@ Upstream knows it (read 2026-11-11, data only):
   - the expected checks without the new one.
 
   "The masked root has no finding" passes, as it should with no check.
-- CI: (to record when the run finishes).
+- CI: `Full gate (Ubuntu)` **Fail**, as wanted, on `b7dcc1c`: [run 43150462244](https://github.com/rikuripi/rikurinode/actions/runs/43150462244) (job 130958137855). The image tests report `FAILED` in the same 33 new tests as above; nothing else fails.
+- The same commit's rollback drill (no mask yet), job 130958936180: case 1 `never applied`, with `Remounting /boot read-write: Invalid argument`. This is the third drill run in a row to hit the race; it is the "before".
 
 ### Fix
 
