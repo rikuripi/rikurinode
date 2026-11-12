@@ -81,3 +81,18 @@ All from this repository's CI artifacts (`drill-evidence`), read in the scratchp
   4. The diagnosis now names `ostree-finalize-staged-hold.service`.
   5. Case 1's wait says "to roll back or be dropped".
 - After the nits, on `rikuri-drill` through `safe-run.sh`: `image/tests`, `OK`.
+
+### CI on `6944e86` (the nits): the race, seen and reported at once
+
+- `Full gate (Ubuntu)`: **Pass**, run 43145532078. The image build and the USB installer drill: **Pass**, run 43145532277.
+- The rollback drill, job 130943349431: **Fail**, as this change means it to when the race happens. The race happened on this run, and case 1 said so 38 s after the variants were built (03:11:29 to 03:12:07 UTC), not after 600 s:
+  `FAIL case 1, a failing update: never applied: the update was dropped at shutdown, not rolled back; 'never applied' logged: True; ostree-finalize-staged: error: Remounting /boot read-write: Invalid argument`
+  Then every other check passed, including cases 2b, 3, 4 and 5, which the old case 1 never let a failing run reach.
+- **The live "never applied" path: Pass** (no longer Not yet proven).
+- `02-case1.out` (artifact 13912255990) keeps the order in one journal, for the fifth failing run of five:
+  - `175.499 boot.automount: Got automount request for /boot, triggered by 2241 (tokio-rt-worker)`
+  - `185.674 Unset automount boot.automount - EFI System Partition Automount.`
+  - `185.917 Stopping ostree-finalize-staged.service`
+  - `185.960 ostree[2410]: error: Remounting /boot read-write: Invalid argument`
+  - The first line is a clue for the next task, not a finding: some Rust (tokio) process touched `/boot` during the update and mounted the EFI partition there. Which one is not known from this evidence.
+- So the PR's rollback drill is red for a real fault, which the next task fixes. `image.yml` is not a required check (AGENTS.md, "Verification by maturity"); whether to merge with it red is the owner's decision.
