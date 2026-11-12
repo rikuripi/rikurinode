@@ -46,3 +46,22 @@ Upstream knows it (read 2026-11-11, data only):
 3. The gate and the image build on the PR; three drill runs; the verifier; this record.
 
 ## Evidence log
+
+### Red (`b7dcc1c`, the tests alone)
+
+- On `rikuri-drill`, through `safe-run.sh`: `Ran 532 tests`, `FAILED (failures=16, errors=17)`. Every failure is in the new tests, and fails for the expected reason:
+  - no mask in `rootfs`;
+  - no finding for a missing, wrong or overridden mask;
+  - `no attribute 'boot_automount_masked'` and `'SHOW_BOOT_AUTOMOUNT'`;
+  - `main` without the step;
+  - the expected checks without the new one.
+
+  "The masked root has no finding" passes, as it should with no check.
+- CI: (to record when the run finishes).
+
+### Fix
+
+- `image/rootfs/usr/lib/systemd/system/boot.automount` → `/dev/null`.
+- `image/check_image_root.py`: `BOOT_AUTOMOUNT`, `BOOT_AUTOMOUNT_OVERRIDES`, and `check_boot_automount()`, in `check_root`.
+- `image/drill/vm_drill.py`: `SHOW_BOOT_AUTOMOUNT`, `BOOT_FSTYPES`, `boot_automount_masked()`, and `Drill.boot_automount()`, run right after the first boot. It keeps `01d-boot-automount.out` and is in `EXPECTED`.
+- On `rikuri-drill`, through `safe-run.sh`: `Ran 532 tests`, `OK`. No test changed after red.
