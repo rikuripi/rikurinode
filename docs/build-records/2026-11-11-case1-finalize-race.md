@@ -5,8 +5,8 @@
 | **Date** | 2026-11-11 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/case1-finalize-evidence`, from `main` at `65c8e99`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `85823de` contract, `086f96e` red, `0824991` fix, `fc64269` record, `00d53bc` and `e4e3d3e` the verifier's nits, `6944e86`, `723eb4c` and this close the record |
+| **Status** | DONE, pending the owner's merge |
 | **Change type** | fix (the drill's diagnosis of a real fault; the fault itself is the next task) |
 
 ## Why
@@ -75,7 +75,7 @@ All from this repository's CI artifacts (`drill-evidence`), read in the scratchp
 - It checked `case1_outcome` against every state case 1 passes through, the pass rule (unchanged), the "never applied" path (always a Fail; the later cases start from the state case 2b expects), the regex against the real journal line, the red-then-fix commits, the scope, and the diagnosis table against the five artifacts (it matches). `Full gate (Ubuntu)` Pass on `fc64269`, run 43144786947.
 - Hand mutations: 26, 21 caught. The 5 survivors were in what is kept and shown, not in a pass or fail: the regex's `\b`, its `$`, any ostree line rather than `error: …`, `-b 0` for `-b -1`, and `-u boot.automount` dropped.
 - **Nits, fixed:**
-  1. The survivors. The test now pins `FINALIZE_JOURNAL` and checks case 1 reads it; the fixture has an ostree line that is not an error; `finalize_error` is tested against `rpm-ostree[…]: error:` and a plain ostree line. **Reason for these test changes after red:** they add cases that the first fix already met; none loosens an assertion. On `rikuri-drill`, all five former survivors (and the regex with `\b` instead of the lookbehind, and with none) now fail the tests.
+  1. The survivors. The test now pins `FINALIZE_JOURNAL` and checks case 1 reads it; the fixture has an ostree line that is not an error; `finalize_error` is tested against `rpm-ostree[…]: error:` and a plain ostree line. **Reason for these test changes after red:** they add cases that the first fix already met; none loosens an assertion. On `rikuri-drill`, four of the five former survivors (and the regex with `\b` instead of the lookbehind, and with none) now fail the tests; the fifth, the regex without `$`, is equivalent (`.*` stops at the line's end) and no test can tell it apart.
   2. The new tests sat after `if __name__ == "__main__"`; the block is the file's end again (test layout only).
   3. The regex now excludes `rpm-ostree` and `ostree-…` by a lookbehind, not `\b`.
   4. The diagnosis now names `ostree-finalize-staged-hold.service`.
@@ -89,10 +89,30 @@ All from this repository's CI artifacts (`drill-evidence`), read in the scratchp
   `FAIL case 1, a failing update: never applied: the update was dropped at shutdown, not rolled back; 'never applied' logged: True; ostree-finalize-staged: error: Remounting /boot read-write: Invalid argument`
   Then every other check passed, including cases 2b, 3, 4 and 5, which the old case 1 never let a failing run reach.
 - **The live "never applied" path: Pass** (no longer Not yet proven).
-- `02-case1.out` (artifact 13912255990) keeps the order in one journal, for the fifth failing run of five:
+- `02-case1.out` (artifact 13912255990) keeps the order in one journal. This is the fifth failing run seen, after the four in the diagnosis table, and the same order again:
   - `175.499 boot.automount: Got automount request for /boot, triggered by 2241 (tokio-rt-worker)`
   - `185.674 Unset automount boot.automount - EFI System Partition Automount.`
   - `185.917 Stopping ostree-finalize-staged.service`
   - `185.960 ostree[2410]: error: Remounting /boot read-write: Invalid argument`
   - The first line is a clue for the next task, not a finding: some Rust (tokio) process touched `/boot` during the update and mounted the EFI partition there. Which one is not known from this evidence.
 - So the PR's rollback drill is red for a real fault, which the next task fixes. `image.yml` is not a required check (AGENTS.md, "Verification by maturity"); whether to merge with it red is the owner's decision.
+
+### The verifier's follow-up, at `723eb4c`: PASS
+
+- The five nit fixes hold, and none loosens a test. Running the test file directly gives `Ran 134 tests … OK`.
+- Mutations rerun on `rikuri-drill`, with no bytecode reused: 30 mutants, 29 caught. The one survivor is the equivalent `$`.
+- The PR's drill (job 130943349431) behaved as specified: a Fail within one boot, with "never applied" and ostree's error, and every later case ran. This record's entry for that run states only what the log and `02-case1.out` show.
+- Its two nits were in this record's wording, and are fixed above.
+
+## Close-out
+
+- **Done when:** every item is met.
+  - The cause is recorded, with five failing runs.
+  - The tests went red first, then green, with a reason recorded for the later test changes.
+  - `Full gate (Ubuntu)` passes on `6944e86`.
+  - On the PR, case 1 failed within one boot with "never applied" and ostree's error.
+  - The verifier passed: the first pass found no Important issue, and the follow-up passed.
+- One repair cycle of two was used (the nits), and both review rounds.
+- **The rollback drill stays red** on most runs until the race is fixed: about one in three, or every run that hits it. This is the drill reporting a real fault. It is not a required check, so whether to merge with it red is the owner's decision.
+- **CI used:** four gate runs and three image workflow runs. The drill on `fc64269` was superseded by the push of the nits.
+- **Next (not started):** fix the race in the image, with the drill as the proof.
