@@ -100,3 +100,7 @@ Upstream knows it (read 2026-11-11, data only):
   - `PASS case 1, a failing update: rolled back: True; marker intact: True`, 98 s after the variants were built.
   - Every other check passed. On this branch and #87's, the three runs before the mask all dropped the update.
 - **Drill run 2 of 3** (run 43153384111, attempt 2, job 130972358796): **Pass**. `boot.automount: LoadState=masked; ActiveState=inactive; /boot: ext4`; case 1 `rolled back: True; marker intact: True`, 92 s after the variants were built.
+- **Drill run 3 of 3** (run 43153384111, attempt 3, job 130976468455): **Pass**. `boot.automount: LoadState=masked; ActiveState=inactive; /boot: ext4`; case 1 `rolled back: True; marker intact: True`, 99 s after the variants were built.
+- **Result: 3 of 3 with the mask, all on `109a98c`.**
+  - The three runs just before it, on this branch and #87's, all dropped the update. Across every run seen, the race hit 6 of 9 without the mask.
+  - Case 1 took 92 to 99 s, as in the passing runs without the mask: a normal update is unchanged.
