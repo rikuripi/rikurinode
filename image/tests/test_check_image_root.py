@@ -25,6 +25,11 @@ UNAPPLIED_CHECK = "usr/libexec/rikuri/greenboot-unapplied-update"
 UNAPPLIED_DROPIN = "usr/lib/systemd/system/greenboot-healthcheck.service.d/50-rikuri-unapplied-update.conf"
 # greenboot-rs #218 (docs/build-records/2026-10-22-greenboot-218.md).
 TRIGGER_DROPIN = "usr/lib/systemd/system/greenboot-set-rollback-trigger.service.d/50-rikuri-run-at-shutdown.conf"
+# The EFI partition's automount on /boot, masked (docs/build-records/2026-11-11-boot-automount-mask.md).
+BOOT_AUTOMOUNT = "usr/lib/systemd/system/boot.automount"
+BOOT_AUTOMOUNT_OVERRIDES = ("etc/systemd/system.control/boot.automount", "etc/systemd/system/boot.automount",
+                            "etc/systemd/system.attached/boot.automount",
+                            "usr/local/lib/systemd/system/boot.automount")
 # The containers range for UserNS=auto (docs/build-records/2026-10-23-containers-subid.md).
 SUBID_CHECK = "usr/libexec/rikuri/containers-subid"
 SUBID_UNIT = "usr/lib/systemd/system/rikuri-containers-subid.service"
@@ -152,6 +157,8 @@ class Root:
         self.write_bytes(UNAPPLIED_DROPIN, shipped_file(UNAPPLIED_DROPIN))
         if os.path.exists(os.path.join(HERE, "..", "rootfs", TRIGGER_DROPIN)):
             self.write_bytes(TRIGGER_DROPIN, shipped_file(TRIGGER_DROPIN))
+        if os.path.lexists(os.path.join(HERE, "..", "rootfs", BOOT_AUTOMOUNT)):
+            self.link(BOOT_AUTOMOUNT, os.readlink(os.path.join(HERE, "..", "rootfs", BOOT_AUTOMOUNT)))
         if os.path.exists(os.path.join(HERE, "..", "rootfs", SUBID_UNIT)):
             self.write_bytes(SUBID_CHECK, shipped_file(SUBID_CHECK), mode=0o755)
             self.write_bytes(SUBID_UNIT, shipped_file(SUBID_UNIT))
@@ -1633,6 +1640,75 @@ class MdnsLinks(unittest.TestCase):
                 if rel.endswith("/x.conf"):
                     os.rmdir(os.path.join(self.root.path, shown))
         self.assertEqual(self.found(), [])
+
+
+class BootAutomount(unittest.TestCase):
+    """systemd-gpt-auto-generator's boot.automount for the EFI partition sits in
+    front of ostree's /boot and, when it goes first at a shutdown, ostree's
+    finalize fails and the staged update is dropped (bootc #2402). The image
+    masks it, in /usr/lib, and nothing in the image may override the mask."""
+
+    def setUp(self):
+        self.root = Root()
+        self.addCleanup(self.root.cleanup)
+        self.root.link(BOOT_AUTOMOUNT, "/dev/null")
+
+    def finds(self, fragment):
+        found = self.root.check()
+        return any(fragment in f for f in found), found
+
+    def test_the_image_ships_the_mask(self):
+        shipped = os.path.join(HERE, "..", "rootfs", BOOT_AUTOMOUNT)
+        self.assertTrue(os.path.islink(shipped), shipped)
+        self.assertEqual(os.readlink(shipped), "/dev/null")
+
+    def test_the_masked_root_has_no_boot_automount_finding(self):
+        self.assertEqual([f for f in self.root.check() if "boot.automount" in f], [])
+
+    def test_no_mask_is_a_finding(self):
+        for why, make in (("missing", lambda: self.root.remove(BOOT_AUTOMOUNT)),
+                          ("a regular file", lambda: self.root.write(BOOT_AUTOMOUNT, "[Automount]\nWhere=/boot\n")),
+                          ("a link elsewhere", lambda: self.root.link(BOOT_AUTOMOUNT, "/usr/lib/other.automount")),
+                          ("a relative link", lambda: self.root.link(BOOT_AUTOMOUNT, "../../../../dev/null"))):
+            with self.subTest(why=why):
+                self.root.link(BOOT_AUTOMOUNT, "/dev/null")
+                make()
+                hit, found = self.finds(BOOT_AUTOMOUNT + ": not masked (a link to /dev/null)")
+                self.assertTrue(hit, found)
+
+    def test_a_link_on_the_way_does_not_count(self):
+        self.root.remove(BOOT_AUTOMOUNT)
+        elsewhere = tempfile.mkdtemp(prefix="units-")
+        self.addCleanup(shutil.rmtree, elsewhere)
+        os.symlink("/dev/null", os.path.join(elsewhere, "boot.automount"))
+        units = os.path.join(self.root.path, "usr/lib/systemd/system")
+        moved = units + ".real"
+        os.rename(units, moved)
+        os.symlink(elsewhere, units)
+        hit, found = self.finds(BOOT_AUTOMOUNT + ": not masked (a link to /dev/null)")
+        self.assertTrue(hit, found)
+
+    def test_an_override_is_never_read_through_a_link(self):
+        # Verifier nit 3: as every read here, a link on the way ends it; the
+        # check never follows one out of the image.
+        outside = tempfile.mkdtemp(prefix="outside-units-")
+        self.addCleanup(shutil.rmtree, outside)
+        with open(os.path.join(outside, "boot.automount"), "w", encoding="utf-8") as f:
+            f.write("[Automount]\nWhere=/boot\n")
+        os.makedirs(os.path.join(self.root.path, "etc/systemd"), exist_ok=True)
+        os.symlink(outside, os.path.join(self.root.path, "etc/systemd/system"))
+        self.assertEqual([f for f in self.root.check() if "boot.automount" in f], [])
+
+    def test_anything_that_would_override_the_mask_is_a_finding(self):
+        for rel in BOOT_AUTOMOUNT_OVERRIDES:
+            for why, make in (("a unit", lambda: self.root.write(rel, "[Automount]\nWhere=/boot\n")),
+                              ("a link", lambda: self.root.link(rel, "/usr/lib/systemd/system/boot.automount"))):
+                with self.subTest(rel=rel, why=why):
+                    make()
+                    hit, found = self.finds(rel + ": would override the image's mask of boot.automount")
+                    self.root.remove(rel)
+                    self.assertTrue(hit, found)
+
 
 if __name__ == "__main__":
     unittest.main()

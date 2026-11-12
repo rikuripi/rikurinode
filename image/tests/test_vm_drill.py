@@ -423,7 +423,9 @@ class Verdict(unittest.TestCase):
             "the SetupHub over HTTPS only, with only the node's CA",
             "the hub refuses a browser without a session",
             # 5c.4a, repair 1 (verifier I-1):
-            "the control plane reads the node's name in its sandbox"})
+            "the control plane reads the node's name in its sandbox",
+            # docs/build-records/2026-11-11-boot-automount-mask.md:
+            "the EFI partition's automount on /boot is masked"})
 
     def test_all_passed_and_no_error_is_zero(self):
         self.assertEqual(d.verdict(self.ALL, None), 0)
@@ -1698,6 +1700,244 @@ class SetupHubSteps(unittest.TestCase):
         drill, results = self.results(plain={"/ca.crt": http(404, b"")})
         self.assertEqual(results, dict.fromkeys(self.CASES[:2], False) | {self.CASES[2]: True})
         self.assertEqual([r for r in drill.requests if r[0] == "tls"], [])
+
+
+
+# Case 1's timeout (docs/build-records/2026-11-11-case1-finalize-race.md): at
+# the shutdown after the switch, ostree-finalize-staged can fail, the broken
+# update is dropped, and the node stays on the installed image ("never
+# applied"). Case 1 says so at once, with ostree's own error, instead of
+# waiting 600 s for a rollback that cannot come.
+BROKEN = ("localhost/rikuri-os:broken", "sha256:" + "b" * 64)
+INSTALLED = ("localhost/rikuri-os:ci", DIGEST)
+FINALIZE_FAILED = (
+    "[  182.526087] rikurisetup systemd[1]: Stopping ostree-finalize-staged.service - OSTree Finalize Staged Deployment...\n"
+    "[  182.579001] rikurisetup ostree[2417]: Finalizing staged deployment\n"
+    "[  182.580138] rikurisetup ostree[2417]: error: Remounting /boot read-write: Invalid argument\n"
+    "[  182.588553] rikurisetup systemd[1]: ostree-finalize-staged.service: Control process exited, code=exited, "
+    "status=1/FAILURE\n")
+UNAPPLIED = ("[    8.182602] rikurisetup greenboot-unapplied-update[731]: rikuri-unapplied-update: update %s "
+             "was never applied: the default deployment %s\n" % (BROKEN[1], DIGEST))
+ROLLED = "[    7.556321] rikurisetup greenboot[779]:  INFO  greenboot > %s\n" % d.ROLLED_BACK
+
+
+def bootc_status(booted, rollback=None, staged=None):
+    def entry(deployment):
+        return None if deployment is None else {
+            "image": {"image": {"image": deployment[0], "transport": "containers-storage"},
+                      "imageDigest": deployment[1]}}
+    return json.dumps({"status": {"booted": entry(booted), "rollback": entry(rollback), "staged": entry(staged)}})
+
+
+class Case1Outcome(unittest.TestCase):
+    def test_rolled_back_never_applied_or_still_waiting(self):
+        for status, outcome in (
+                (bootc_status(INSTALLED, rollback=BROKEN), "rolled back"),
+                (bootc_status(INSTALLED), "never applied"),
+                # The boot before the reboot: the update is still staged.
+                (bootc_status(INSTALLED, staged=BROKEN), None),
+                # One of the broken image's boots.
+                (bootc_status(BROKEN, rollback=INSTALLED), None),
+                (bootc_status(BROKEN), None),
+                # Some other rollback: not what case 1 made; keep waiting.
+                (bootc_status(INSTALLED, rollback=("localhost/rikuri-os:a", "sha256:" + "c" * 64)), None),
+                (bootc_status(("localhost/rikuri-os:ci", "sha256:" + "d" * 64)), None),
+                ("", None), ("{}", None)):
+            with self.subTest(status=status):
+                self.assertEqual(d.case1_outcome(status, DIGEST), outcome)
+
+
+class FinalizeError(unittest.TestCase):
+    def test_ostree_s_own_error_lines(self):
+        self.assertEqual(d.finalize_error(FINALIZE_FAILED),
+                         "error: Remounting /boot read-write: Invalid argument")
+        two = FINALIZE_FAILED + "[  182.6] h ostree[2417]: error: Unlocking sysroot: Bad file descriptor\n"
+        self.assertEqual(d.finalize_error(two), "error: Remounting /boot read-write: Invalid argument; "
+                                                "error: Unlocking sysroot: Bad file descriptor")
+
+    def test_nothing_from_ostree_is_empty(self):
+        for journal in ("", "-- No entries --\n", FINALIZE_FAILED.splitlines()[0] + "\n",
+                        "[  1.0] h ostree-prepare-root[437]: error: not finalize\n",
+                        "[  8.1] h rpm-ostree[757]: error: not finalize\n",
+                        "[  182.5] h ostree[2417]: Finalizing staged deployment\n"):
+            with self.subTest(journal=journal):
+                self.assertEqual(d.finalize_error(journal), "")
+
+
+class Case1Drill(d.Drill):
+    """Case 1 with bootc's status, the journal and the marker as stand-ins.
+    The status reads run out: a drill that keeps waiting fails the test."""
+
+    def __init__(self, artifacts, statuses, journals):
+        super().__init__("localhost/rikuri-os:test", artifacts, artifacts)
+        self.installed = INSTALLED
+        self.statuses, self.journals = list(statuses), journals
+        self.reads, self.switched, self.waited, self.journal_calls = 0, [], [], []
+        self.case1_poll = 0
+        self.log = lambda message: None
+
+    def switch(self, name):
+        self.switched.append(name)
+
+    def reboot(self):
+        return "boot-before"
+
+    def wait_up(self, old_boot=None, timeout=600):
+        self.waited.append(old_boot)
+        return "boot-after"
+
+    def status_quiet(self):
+        if self.reads >= len(self.statuses):
+            raise AssertionError("case 1 kept waiting after %d status reads" % self.reads)
+        self.reads += 1
+        return self.statuses[self.reads - 1]
+
+    def status(self):
+        return self.statuses[-1]
+
+    def journal(self, args):
+        self.journal_calls.append(args)
+        return self.journals.get(args, "")
+
+    def vm(self, command, check=True, timeout=300, stdin=None):
+        assert command == "cat %s" % d.MARKER, command
+        return "vm-drill marker\n"
+
+
+class Case1Steps(unittest.TestCase):
+    GREP = "--grep 'greenboot|rikuri-unapplied-update|bootc'"
+
+    def setUp(self):
+        self.artifacts = tempfile.mkdtemp(prefix="drill-artifacts-")
+        self.addCleanup(shutil.rmtree, self.artifacts)
+
+    def run_case1(self, statuses, journals):
+        drill = Case1Drill(self.artifacts, statuses, journals)
+        drill.case1()
+        self.assertEqual(drill.switched, ["broken"])
+        self.assertEqual(drill.waited, ["boot-before"])
+        [(case, ok, detail)] = drill.results
+        self.assertEqual(case, "case 1, a failing update")
+        with open(os.path.join(self.artifacts, "02-case1.out"), encoding="utf-8") as f:
+            return drill, ok, detail, f.read()
+
+    def test_a_rollback_passes_as_before(self):
+        drill, ok, detail, _ = self.run_case1(
+            [bootc_status(INSTALLED, staged=BROKEN), bootc_status(BROKEN), bootc_status(INSTALLED, rollback=BROKEN)],
+            {self.GREP: ROLLED})
+        self.assertTrue(ok, detail)
+        self.assertEqual(detail, "rolled back: True; marker intact: True")
+
+    def test_an_update_dropped_at_shutdown_fails_at_once_with_ostree_s_error(self):
+        drill, ok, detail, kept = self.run_case1(
+            [bootc_status(INSTALLED, staged=BROKEN), bootc_status(INSTALLED)],
+            {self.GREP: UNAPPLIED, d.FINALIZE_JOURNAL: FINALIZE_FAILED})
+        self.assertFalse(ok)
+        self.assertEqual(drill.reads, 2, "no waiting once the update is gone")
+        self.assertEqual(detail, "never applied: the update was dropped at shutdown, not rolled back; "
+                                 "'never applied' logged: True; ostree-finalize-staged: "
+                                 "error: Remounting /boot read-write: Invalid argument")
+        self.assertIn(FINALIZE_FAILED, kept, "the shutdown's own journal is kept")
+        # Verifier nit 1: the boot that shut down, finalize's unit and the automount's.
+        self.assertEqual(d.FINALIZE_JOURNAL, "-b -1 -u ostree-finalize-staged.service -u boot.automount")
+        self.assertIn(d.FINALIZE_JOURNAL, drill.journal_calls)
+
+    def test_a_dropped_update_without_ostree_s_line_says_so(self):
+        _, ok, detail, _ = self.run_case1(
+            [bootc_status(INSTALLED)], {self.GREP: ""})
+        self.assertFalse(ok)
+        self.assertEqual(detail, "never applied: the update was dropped at shutdown, not rolled back; "
+                                 "'never applied' logged: False; ostree-finalize-staged: no error line kept")
+
+
+# The EFI partition's automount on /boot, masked by the image
+# (docs/build-records/2026-11-11-boot-automount-mask.md): on the running node,
+# systemd loads it as masked and never starts it, and /boot is ostree's bind of
+# /sysroot/boot alone (ext4), with no autofs and no EFI partition (vfat) there.
+MASKED = "LoadState=masked\nActiveState=inactive\n"
+
+
+class BootAutomountReads(unittest.TestCase):
+    def test_masked_inactive_and_ostree_s_boot_alone(self):
+        self.assertTrue(d.boot_automount_masked(MASKED, "ext4\n"))
+        self.assertTrue(d.boot_automount_masked("ActiveState=inactive\nLoadState=masked\n", "ext4\n"))
+
+    def test_anything_else_fails(self):
+        for show, fstypes, why in (
+                ("LoadState=loaded\nActiveState=active\n", "autofs\next4\n", "as on the failing runs"),
+                ("LoadState=loaded\nActiveState=inactive\n", "ext4\n", "not masked"),
+                ("LoadState=masked\nActiveState=active\n", "ext4\n", "masked but running"),
+                ("LoadState=not-found\nActiveState=inactive\n", "ext4\n", "no unit at all is not a mask"),
+                (MASKED, "autofs\next4\n", "an autofs on /boot"),
+                (MASKED, "ext4\nvfat\n", "the EFI partition on /boot"),
+                (MASKED, "", "nothing on /boot"),
+                (MASKED, "ext4\next4\n", "two mounts on /boot"),
+                ("", "ext4\n", "no answer"), (None, "ext4\n", "the command failed"), (MASKED, None, "findmnt failed"),
+                ("LoadState=masked\n", "ext4\n", "no ActiveState")):
+            with self.subTest(why=why):
+                self.assertFalse(d.boot_automount_masked(show, fstypes))
+
+
+class BootAutomountDrill(d.Drill):
+    def __init__(self, artifacts, show, fstypes):
+        super().__init__("localhost/rikuri-os:test", artifacts, artifacts)
+        self.answers = {d.SHOW_BOOT_AUTOMOUNT: show, d.BOOT_FSTYPES: fstypes}
+        self.commands = []
+        self.log = lambda message: None
+
+    def vm(self, command, check=True, timeout=300, stdin=None):
+        assert command in self.answers, command
+        # Verifier nit 2: an answer it cannot read is a Fail of this check,
+        # never a drill error that skips the rest.
+        assert check is False, command
+        self.commands.append(command)
+        return self.answers[command]
+
+
+class BootAutomountSteps(unittest.TestCase):
+    CASE = "the EFI partition's automount on /boot is masked"
+
+    def setUp(self):
+        self.artifacts = tempfile.mkdtemp(prefix="drill-artifacts-")
+        self.addCleanup(shutil.rmtree, self.artifacts)
+
+    def result(self, show, fstypes):
+        drill = BootAutomountDrill(self.artifacts, show, fstypes)
+        drill.boot_automount()
+        [(case, ok, detail)] = drill.results
+        self.assertEqual(case, self.CASE)
+        self.assertIn(case, d.EXPECTED)
+        self.assertEqual(sorted(drill.commands), sorted([d.SHOW_BOOT_AUTOMOUNT, d.BOOT_FSTYPES]))
+        with open(os.path.join(self.artifacts, "01d-boot-automount.out"), encoding="utf-8") as f:
+            kept = f.read()
+        return ok, detail, kept
+
+    def test_the_commands(self):
+        self.assertEqual(d.SHOW_BOOT_AUTOMOUNT, "systemctl show -p LoadState -p ActiveState boot.automount")
+        self.assertEqual(d.BOOT_FSTYPES, "findmnt -n -o FSTYPE /boot")
+
+    def test_a_masked_node_passes_and_keeps_what_it_read(self):
+        ok, detail, kept = self.result(MASKED, "ext4\n")
+        self.assertTrue(ok, detail)
+        self.assertEqual(detail, "boot.automount: LoadState=masked; ActiveState=inactive; /boot: ext4")
+        self.assertIn("LoadState=masked", kept)
+        self.assertIn("ext4", kept)
+
+    def test_the_failing_runs_state_fails(self):
+        ok, detail, _ = self.result("LoadState=loaded\nActiveState=active\n", "autofs\next4\n")
+        self.assertFalse(ok)
+        self.assertEqual(detail, "boot.automount: LoadState=loaded; ActiveState=active; /boot: autofs, ext4")
+
+    def test_no_answer_fails(self):
+        ok, _, _ = self.result(None, None)
+        self.assertFalse(ok)
+
+    def test_main_runs_it_after_the_first_boot(self):
+        import inspect
+        source = inspect.getsource(d.main)
+        self.assertIn("drill.boot_automount()", source)
+        self.assertLess(source.index("drill.first_boot()"), source.index("drill.boot_automount()"))
+        self.assertLess(source.index("drill.boot_automount()"), source.index("drill.load_variants()"))
 
 
 if __name__ == "__main__":
