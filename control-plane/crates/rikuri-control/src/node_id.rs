@@ -148,6 +148,25 @@ mod tests {
         }
     }
 
+    // Repair 1 (verifier I-3): the journal's only record of why the hub
+    // refused is this text, through `internal()`.
+    #[test]
+    fn each_error_says_what_went_wrong() {
+        assert_eq!(
+            NodeIdError::Malformed.to_string(),
+            "node-uuid.json does not hold a version-4 UUID"
+        );
+        let scratch = Scratch::new();
+        let dir = StateDir::open(&scratch.0).unwrap();
+        dir.write(FILE, b"{not json").unwrap();
+        let state = load(&dir).unwrap_err().to_string();
+        assert!(state.contains(FILE), "{state}");
+        assert_eq!(
+            NodeIdError::Random(RandomError).to_string(),
+            RandomError.to_string()
+        );
+    }
+
     #[test]
     fn it_is_made_once_and_kept() {
         let scratch = Scratch::new();

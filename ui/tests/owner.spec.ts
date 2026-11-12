@@ -489,6 +489,11 @@ test.describe('the SetupHub', () => {
     ['a step the page does not know', { status: 200, body: { node_id: NODE_ID, steps: [{ step: 'tor', state: 'done' }] } }],
     ['no node ID', { status: 200, body: { node_id: '', steps: HUB.steps } }],
     ['a step listed twice', { status: 200, body: { node_id: NODE_ID, steps: [...HUB.steps, HUB.steps[0]] } }],
+    // Repair 1 (verifier nit 2): only the node's whole list, in its order, is the hub.
+    ['no steps', { status: 200, body: { node_id: NODE_ID, steps: [] } }],
+    ['some steps missing', { status: 200, body: { node_id: NODE_ID, steps: HUB.steps.slice(0, 3) } }],
+    ['the steps out of order', { status: 200, body: { node_id: NODE_ID, steps: [...HUB.steps].reverse() } }],
+    ['a node ID that is not a UUID', { status: 200, body: { node_id: 'x', steps: HUB.steps } }],
   ] as const) {
     test(`the hub unread when ${why}: said, never a guess, and sign-out stays`, async ({ page }) => {
       await api(page, { 'GET /api/session': { status: 200, body: INFO }, 'GET /api/hub': answer as Answer });

@@ -100,3 +100,32 @@ The owner (2026-11-11), after "Next":
   - `FAIL the hub refuses a browser without a session: GET /api/hub without a session: 404`: the drill's red on the real image (no route yet);
   - and, **not this change's**: `FAIL drill: timed out after 600s waiting for the broken update to roll back`. This is case 1, the same timeout as 5c.3a's run 3, which passed on a re-run and was recorded as a one-off. It has now happened twice. Nothing here touches the update, greenboot or the variants. Recorded for the owner; if it recurs in the next run, the decision is theirs.
 - The USB installer drill and the image build passed.
+
+### CI run 3 (`3e8cd5d`, fix part 2), and the verifier's first pass: FAIL
+
+- `Full gate (Ubuntu)`: **Pass**, run 43123211807. That covers the UI's tests and every Rust test, `tests/hub_route.rs` included.
+- `Rust mutants (changed lines)`: **Fail**, run 43123211701: `39 mutants tested in 4m: 3 missed, 28 caught, 8 unviable`. The 3 missed, all in `node_id.rs`:
+  - `MISSED …node_id.rs:43:9: replace <impl fmt::Display for NodeIdError>::fmt -> fmt::Result with Ok(Default::default())`
+  - `MISSED …node_id.rs:56:34: replace | with ^ in format_v4`
+  - `MISSED …node_id.rs:57:34: replace | with ^ in format_v4`
+- The image build passed. The two drills had not finished when the verifier read them.
+- **Verifier, first pass at `3e8cd5d`: FAIL.**
+  - **I-1:** on the real node, the name step can never be read. The service unit sets `ProcSubset=pid`, which hides `/proc/sys`, and `ProtectHostname=yes`, which gives the service its own copy of the kernel's name, frozen at its start. Both are pinned by `image/check_image_root.py`. So `/proc/sys/kernel/hostname` gives ENOENT, and the hub would say "Couldn't be read" on every real claim. The tests pointed `hostname_file` at an ordinary file and could not see it. The design read the wrong source; it was never a false "Done".
+  - **I-2:** two equivalent mutants. `(b & mask) | bit` and `(b & mask) ^ bit` agree, because the mask has cleared that bit, so no test can tell them apart.
+  - **I-3:** the `Display` of `NodeIdError`, the journal's only record of why the hub answers 500, has no test.
+  - Nits: (1) the hub makes a UUID without a log line; (2) `parseHub` accepts an empty, partial or reordered list and any non-empty node ID; (3) the drill's `/home` check passed already at red, so it proves the page shell, not the hub; (4) the "a step listed twice" UI case was never seen red; (5) the contract says `node.rs`, the code `node_id.rs`.
+  - On case 1's timeout in run 2, it found nothing in this change that could affect it.
+- **The owner, on I-1** (2026-11-11): "/etc/hostname (Recommended)". The name step reads the static hostname file, which systemd-hostnamed keeps and 5c.4b's rename will write. The sandbox is not changed. Reading the live name from hostnamed can come with 5c.4b.
+
+### Repair 1 of 2
+
+- **Tests, committed before the fix** (each a change after red; the reasons):
+  - `config.rs`: the default `hostname_file` is `/etc/hostname`, by the owner's choice above. Changed, not loosened: the source changed.
+  - `hub.rs`: comment lines in `/etc/hostname` (hostname(5)) are skipped, and a file of only comments is `unknown`. Added.
+  - `node_id.rs`, `each_error_says_what_went_wrong`: I-3. It passes on the code as it is; its job is to kill the `Display` mutant. Added.
+  - `owner.spec.ts`: no steps, some missing, out of order, a node ID that is not a UUID (nit 2). Added.
+  - `test_vm_drill.py`: a third hub case, "the control plane reads the node's name in its sandbox". It reads `/etc/hostname` as the service's user, inside the service's mount namespace, on the real image. The no-CA case now expects that check to pass, because it needs no CA. The Verdict test pins the new name. Added.
+- **Red:**
+  - rikuri-drill, `image/tests`: Ran 514, `FAILED (failures=4, errors=13)`, every one in `SetupHubSteps` and the Verdict pin.
+  - On the Mac, `clippy --all-targets` exits 0: the Rust red is in the assertions (`config.rs`, `hub.rs`).
+  - The UI's red cannot be seen in CI while the drill's tests fail at the gate's step 3; it is red by reading.

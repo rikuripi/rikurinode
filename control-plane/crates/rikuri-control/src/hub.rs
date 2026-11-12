@@ -125,6 +125,17 @@ mod tests {
         for blank in ["", "\n", "  \n"] {
             assert_eq!(name_state(&read(blank)), StepState::Unknown, "{blank:?}");
         }
+        // Repair 1: /etc/hostname may hold comments (hostname(5)); the name is
+        // its first line that is not one.
+        assert_eq!(
+            name_state(&read("# set by the image\nrikurisetup\n")),
+            StepState::Next
+        );
+        assert_eq!(
+            name_state(&read("\n# named\n\nrikuri01\n")),
+            StepState::Done
+        );
+        assert_eq!(name_state(&read("# only a comment\n")), StepState::Unknown);
     }
 
     #[test]

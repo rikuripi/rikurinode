@@ -100,11 +100,11 @@ mod tests {
         assert_eq!(config.http, None);
         assert_eq!(config.names.iter().collect::<Vec<_>>(), ["localhost"]);
         assert_eq!(config.state_dir, PathBuf::from(state::DEFAULT));
-        // 5c.4a: the running kernel's name, and no variable can move it.
-        assert_eq!(
-            config.hostname_file,
-            PathBuf::from("/proc/sys/kernel/hostname")
-        );
+        // 5c.4a: the node's static hostname, and no variable can move it.
+        // Repair 1 (verifier I-1; the owner, "/etc/hostname"): the service's
+        // sandbox hides /proc/sys (ProcSubset=pid) and freezes its own copy
+        // of the kernel's name (ProtectHostname=yes).
+        assert_eq!(config.hostname_file, PathBuf::from("/etc/hostname"));
     }
 
     #[test]

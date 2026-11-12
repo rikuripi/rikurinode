@@ -421,7 +421,9 @@ class Verdict(unittest.TestCase):
             "the owner's pages never over HTTP",
             # 5c.4a:
             "the SetupHub over HTTPS only, with only the node's CA",
-            "the hub refuses a browser without a session"})
+            "the hub refuses a browser without a session",
+            # 5c.4a, repair 1 (verifier I-1):
+            "the control plane reads the node's name in its sandbox"})
 
     def test_all_passed_and_no_error_is_zero(self):
         self.assertEqual(d.verdict(self.ALL, None), 0)
@@ -1620,19 +1622,28 @@ HUB_REFUSED = http(401, b'{"error":"sign-in required"}', reason="Unauthorized")
 
 
 class SetupHubDrill(OwnerPagesDrill):
-    """The owner's pages' stand-in, with /home and /api/hub as the node answers them."""
+    """The owner's pages' stand-in, with /home and /api/hub as the node answers
+    them, and (repair 1) the one VM command the hub's checks run."""
 
     def __init__(self, artifacts, **over):
+        self.name_read = over.pop("name_read", "rikurisetup\n")
         plain = {"/home": (REDIRECT % "/home").encode()}
         plain.update(over.pop("plain", {}))
         secure = {"/home": page("secure"), "/api/hub": HUB_REFUSED}
         secure.update(over.pop("secure", {}))
         super().__init__(artifacts, plain=plain, secure=secure, **over)
+        self.vm_commands = []
+
+    def vm(self, command, check=True, timeout=300, stdin=None):
+        assert command == d.NAME_IN_SANDBOX, command
+        self.vm_commands.append(command)
+        return self.name_read
 
 
 class SetupHubSteps(unittest.TestCase):
     CASES = ("the SetupHub over HTTPS only, with only the node's CA",
-             "the hub refuses a browser without a session")
+             "the hub refuses a browser without a session",
+             "the control plane reads the node's name in its sandbox")
 
     def setUp(self):
         self.artifacts = tempfile.mkdtemp(prefix="drill-artifacts-")
@@ -1656,6 +1667,7 @@ class SetupHubSteps(unittest.TestCase):
         self.assertEqual([r for r in drill.requests if r[1] == "POST"], [], "the hub's checks change nothing")
         self.assertIn(("plain", "GET", "/home", None, None), drill.requests)
         self.assertTrue(os.path.isfile(os.path.join(self.artifacts, "02d-setup-hub.out")))
+        self.assertEqual(drill.vm_commands, [d.NAME_IN_SANDBOX])
 
     def test_each_failure_fails_its_own_case(self):
         for case, over in (
@@ -1672,7 +1684,11 @@ class SetupHubSteps(unittest.TestCase):
                 ("the hub refuses a browser without a session", {"secure": {"/api/hub": http(404, b"", reason="Not Found")}}),
                 ("the hub refuses a browser without a session",
                  {"secure": {"/api/hub": http(401, b'{"error":"something else"}', reason="Unauthorized")}}),
-                ("the hub refuses a browser without a session", {"secure": {"/api/hub": ConnectionResetError(104, "reset")}})):
+                ("the hub refuses a browser without a session", {"secure": {"/api/hub": ConnectionResetError(104, "reset")}}),
+                # Repair 1 (verifier I-1): the service's sandbox hid the name it was asked to read.
+                ("the control plane reads the node's name in its sandbox", {"name_read": None}),
+                ("the control plane reads the node's name in its sandbox", {"name_read": ""}),
+                ("the control plane reads the node's name in its sandbox", {"name_read": "rikuri01\n"})):
             with self.subTest(case=case, over=over):
                 _, results = self.results(**over)
                 self.assertFalse(results[case], case)
@@ -1680,7 +1696,7 @@ class SetupHubSteps(unittest.TestCase):
 
     def test_no_ca_certificate_reads_nothing_over_tls(self):
         drill, results = self.results(plain={"/ca.crt": http(404, b"")})
-        self.assertEqual(results, dict.fromkeys(self.CASES, False))
+        self.assertEqual(results, dict.fromkeys(self.CASES[:2], False) | {self.CASES[2]: True})
         self.assertEqual([r for r in drill.requests if r[0] == "tls"], [])
 
 
