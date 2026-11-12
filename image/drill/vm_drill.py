@@ -82,7 +82,8 @@ BROKEN = "localhost/rikuri-os:broken"
 # and when the EFI partition's automount on /boot went (the race, in
 # docs/build-records/2026-11-11-case1-finalize-race.md).
 FINALIZE_JOURNAL = "-b -1 -u ostree-finalize-staged.service -u boot.automount"
-OSTREE_ERROR = re.compile(r"\bostree\[\d+\]: (error: .*)$", re.M)
+# ostree itself: not rpm-ostree, not ostree-prepare-root.
+OSTREE_ERROR = re.compile(r"(?<![\w-])ostree\[\d+\]: (error: .*)$", re.M)
 TRIGGER_STOPPED = re.compile(r"Stopped [^\n]*Greenboot Rollback trigger")
 SUBID_LINE = "containers:2147483647:2147483648"
 SUBID_FILES = ("/etc/subuid", "/etc/subgid")
@@ -1166,7 +1167,7 @@ class Drill:
         # of the installed image; or, when finalize fails at the shutdown, the
         # installed image at once with the update dropped.
         outcome = wait_until(lambda: case1_outcome(self.status_quiet(), self.installed[1]),
-                             timeout=600, interval=self.case1_poll, what="the broken update to roll back")
+                             timeout=600, interval=self.case1_poll, what="the broken update to roll back or be dropped")
         self.wait_up(old_boot=old)
         everything = self.journal("--grep 'greenboot|rikuri-unapplied-update|bootc'")
         if outcome == "never applied":
