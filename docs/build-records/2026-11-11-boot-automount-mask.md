@@ -5,8 +5,8 @@
 | **Date** | 2026-11-11 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/boot-automount-mask`, from `stage1/case1-finalize-evidence` at `a2613c7` (PR #87, not yet merged: its case 1 is this fix's proof); worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `99b0df5` contract, `b7dcc1c` red, `463118c` fix, `88ba639` and `7612e9d` record, `1f34c6d` and `cd5d0f4` the verifier's nits, `109a98c` to `b5477b8` and this close the record |
+| **Status** | DONE, pending the owner's merge (after PR #87) |
 | **Change type** | fix |
 
 ## Why
@@ -104,3 +104,26 @@ Upstream knows it (read 2026-11-11, data only):
 - **Result: 3 of 3 with the mask, all on `109a98c`.**
   - The three runs just before it, on this branch and #87's, all dropped the update. Without the mask, 7 failing runs are on record: the 4 in the diagnosis table, #87's 2, and this PR's red commit. (Corrected: an earlier line said "6 of 9", which no count supports; the passing runs without the mask were never all counted.)
   - Case 1 took 92 to 99 s, as in the passing runs without the mask: a normal update is unchanged.
+
+### The verifier's follow-up, at `b5477b8`: PASS
+
+- The four nit fixes hold. The test changes only add cases. `image/tests` on `rikuri-drill`: `Ran 533 tests … OK`. Mutations: 36 of 36 caught, the first pass's survivor included. An override shipped as a link is still found.
+- All three drill runs pass, with 0 `FAIL` lines and no `Remounting /boot` in any of them. The record's claims match the logs. (Case 1's second time is 92.6 s, given here as 92.)
+- One remaining nit goes to the backlog. If the image's `etc/systemd/system` (or `system.control`, `system.attached`) were itself a link, an override behind it would give no finding. A stricter check would report the linked folder itself. The drill's runtime check covers the node.
+- It disclosed one `git fetch` of this branch. That changed only a remote-tracking ref, not the worktree or any branch. It is recorded here because its brief said no git writes.
+
+## Close-out
+
+- **Done when:** every item is met.
+  - The tests went red first (CI run 43150462244), then green, with a reason recorded for the later test changes.
+  - `Full gate (Ubuntu)` passes on `109a98c`.
+  - `check_image_root` on the real image gives 0 findings.
+  - The drill's mask check and case 1 pass in 3 of 3 runs.
+  - The verifier passed: the first pass found no Important issue, and the follow-up passed.
+- One repair cycle of two was used (the nits), and both review rounds.
+- **CI used:** five gate runs; four image workflow runs plus two re-runs of the drill job. The run on `88ba639` was cancelled by the nits' push.
+- **Merge order:** PR #87 first. This branch contains its commits.
+- **Still not proven:**
+  - the mask on the N150 and the Pi 5;
+  - whether anything there expects the EFI partition at `/boot` (see "Not yet known").
+- **Next (not started):** remove the mask once a Fedora ostree finalizes without the `/boot` path (ostree #3690), proved by the drill without it.
