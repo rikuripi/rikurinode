@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/boot-automount-mask`, from `stage1/case1-finalize-evidence` at `a2613c7` (PR #87, not yet merged: its case 1 is this fix's proof); worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | `99b0df5` contract, `b7dcc1c` red, `463118c` fix, `88ba639` and `7612e9d` record, `1f34c6d` and `cd5d0f4` the verifier's nits, `109a98c` to `b5477b8` and this close the record |
-| **Status** | DONE, pending the owner's merge (after PR #87) |
+| **Status** | DONE |
 | **Change type** | fix |
 
 ## Why
@@ -122,7 +122,7 @@ Upstream knows it (read 2026-11-11, data only):
   - The verifier passed: the first pass found no Important issue, and the follow-up passed.
 - One repair cycle of two was used (the nits), and both review rounds.
 - **CI used:** five gate runs; four image workflow runs plus two re-runs of the drill job. The run on `88ba639` was cancelled by the nits' push.
-- **Merge order:** PR #87 first. This branch contains its commits.
+- **Merged:** the owner merged PR #88 on 2026-11-12 at 04:26 UTC as `544f1bf`, at head `109a98c`, with #87's commits in it. Drill attempts 2 and 3 finished after the merge; they ran on `109a98c`, the merged code. This record's entries from drill run 1 on landed through the close-out PR.
 - **Still not proven:**
   - the mask on the N150 and the Pi 5;
   - whether anything there expects the EFI partition at `/boot` (see "Not yet known").
