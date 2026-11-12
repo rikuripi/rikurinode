@@ -58,3 +58,14 @@ All from this repository's CI artifacts (`drill-evidence`), read in the scratchp
 3. The gate on the PR; the VM drills; the verifier; this record.
 
 ## Evidence log
+
+### Red (`086f96e`, the tests alone)
+
+- On `rikuri-drill`, through `safe-run.sh`: every new test but "a rollback passes as before" errors or fails (`no attribute 'case1_outcome'`, `'finalize_error'`, `'FINALIZE_JOURNAL'`; the old case 1 kept reading bootc's status after the update was gone).
+- CI: `Full gate (Ubuntu)` **Fail**, as wanted, [run 43144551290](https://github.com/rikuripi/rikurinode/actions/runs/43144551290) (job 130939192780): `FAILED (failures=1, errors=15)`, all in `Case1Outcome`, `FinalizeError` and `Case1Steps`. "A rollback passes as before" passes on the old code, as it should: that path does not change.
+
+### Fix
+
+- `image/drill/vm_drill.py`: `BROKEN`, `FINALIZE_JOURNAL`, `OSTREE_ERROR`; `case1_outcome()` and `finalize_error()`; `case1_poll` (10 s, as before); case 1 waits for either outcome, and on "never applied" keeps the boot-that-shut-down's journal of finalize and the automount in `02-case1.out`, records case 1 Fail with ostree's error, and returns, so cases 2b, 3, 4 and 5 still run.
+- On `rikuri-drill`, through `safe-run.sh`: every `image/tests` test, `Ran 520 tests`, `OK`; the six new ones by name, `OK`.
+- No test changed after red.
