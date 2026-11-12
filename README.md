@@ -31,7 +31,9 @@ device; then, over HTTPS trusting only that certificate, a page that shows the
 connection is private and asks the owner to compare the browser's fingerprint
 with the claim screen's, then leads on: to the claim, where the owner types the
 code and chooses a password; to sign-in; and to a page that says the node is
-theirs, with sign-out. The rest of setup is still to come.
+theirs: the SetupHub, with the node's UUID, given at the claim, and each step
+of setup read from the node's real state (done, next, or with a later update),
+and sign-out. Naming the node comes next; the rest of setup is still to come.
 Nothing here is ready to run on a node. The
 [platform and architecture plan](docs/architecture/platform-plan.md) says how
 the node will be built, and which decisions are still the owner's; its

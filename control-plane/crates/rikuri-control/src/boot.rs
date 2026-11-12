@@ -116,6 +116,7 @@ pub fn boot(config: &Config, started: Started, lan: Option<IpAddr>) -> Result<Bo
         identity.ca_fingerprint.clone(),
         config.https.port(),
         claim_wrong_tries,
+        config.hostname_file.clone(),
     );
     Ok(Booted {
         app,
@@ -137,6 +138,7 @@ mod tests {
             http: None,
             names: Names::new(["rikuri01.local"]).unwrap(),
             state_dir: scratch.0.clone(),
+            hostname_file: scratch.0.join("hostname-for-the-test"),
         }
     }
 

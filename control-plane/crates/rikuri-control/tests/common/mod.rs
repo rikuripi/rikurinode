@@ -39,6 +39,7 @@ impl Scratch {
 impl Drop for Scratch {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.0);
+        let _ = std::fs::remove_file(self.0.with_extension("hostname"));
     }
 }
 
@@ -53,7 +54,14 @@ pub fn config(
         http: plain,
         names: Names::new(names).unwrap(),
         state_dir: scratch.0.clone(),
+        hostname_file: hostname_file(scratch),
     }
+}
+
+/// 5c.4a: the test node's hostname, as the kernel would say it; beside the
+/// state folder, which the scratch's drop removes with it.
+pub fn hostname_file(scratch: &Scratch) -> PathBuf {
+    scratch.0.with_extension("hostname")
 }
 
 /// Boots over `scratch` without listening: for router-level tests.

@@ -5,6 +5,7 @@
 import { expect, test, type Page, type Request } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import type { ErrorReply } from '../src/generated/ErrorReply';
+import type { HubReport } from '../src/generated/HubReport';
 import type { SessionInfo } from '../src/generated/SessionInfo';
 import type { SessionOpened } from '../src/generated/SessionOpened';
 import type { SetupReport } from '../src/generated/SetupReport';
@@ -24,13 +25,28 @@ const UNCLAIMED: SetupReport = { claimed: false, claim: 'armed', ca_fingerprint_
 const CLAIMED: SetupReport = { claimed: true, claim: 'done', ca_fingerprint_sha256: FP, names: ['rikurisetup.local'] };
 const OPENED: SessionOpened = { csrf_token: CSRF, issued_unix: 1_800_000_000, expires_unix: 1_802_592_000 };
 const INFO: SessionInfo = OPENED;
+const NODE_ID = '12345678-9abc-4ef0-8fed-cba987654321';
+// 5c.4a: the hub of a node just claimed, not yet named.
+const HUB: HubReport = {
+  node_id: NODE_ID,
+  steps: [
+    { step: 'connection', state: 'done' },
+    { step: 'owner', state: 'done' },
+    { step: 'name', state: 'next' },
+    { step: 'bitcoin', state: 'later' },
+    { step: 'lightning', state: 'later' },
+    { step: 'backup', state: 'later' },
+  ],
+};
 
 type Answer = { status: number; body?: unknown; headers?: Record<string, string> } | 'offline';
 
-/** Stubs the API: each key is "METHOD /path"; every request is kept. */
+/** Stubs the API: each key is "METHOD /path"; every request is kept.
+ *  5c.4a: /home reads the hub, so it answers HUB unless a test says otherwise. */
 async function api(page: Page, answers: Record<string, Answer | Answer[]>): Promise<Request[]> {
   const seen: Request[] = [];
-  const queues = new Map(Object.entries(answers).map(([k, v]) => [k, Array.isArray(v) ? [...v] : [v]]));
+  const all: Record<string, Answer | Answer[]> = { 'GET /api/hub': { status: 200, body: HUB }, ...answers };
+  const queues = new Map(Object.entries(all).map(([k, v]) => [k, Array.isArray(v) ? [...v] : [v]]));
   await page.route('**/api/**', async (route) => {
     const req = route.request();
     seen.push(req);
@@ -408,3 +424,84 @@ for (const [path, answers, ready] of [
     expect(errors).toEqual([]);
   });
 }
+
+// 5c.4a: /home is the SetupHub. Each step is said in words, its state too
+// (never by colour alone), and only the node's own answer marks one done.
+// Record: docs/build-records/2026-11-11-5c4a-uuid-and-setup-hub.md
+test.describe('the SetupHub', () => {
+  const STEPS = ['connection', 'owner', 'name', 'bitcoin', 'lightning', 'backup'] as const;
+
+  test('lists every step in order, with its state in words, and the node\'s ID', async ({ page }) => {
+    const errors = watchErrors(page);
+    await api(page, { 'GET /api/session': { status: 200, body: INFO } });
+    await page.goto('/home');
+    await expect(page.getByRole('heading', { name: t('hub.title') })).toBeVisible();
+    const items = page.getByRole('list', { name: t('hub.title') }).getByRole('listitem');
+    await expect(items).toHaveCount(STEPS.length);
+    for (const [i, step] of STEPS.entries()) {
+      const item = items.nth(i);
+      const want = HUB.steps[i]!.state;
+      await expect(item).toHaveAttribute('data-step', step);
+      await expect(item).toHaveAttribute('data-state', want);
+      await expect(item).toContainText(t(`hub.step.${step}`));
+      await expect(item).toContainText(t(`hub.state.${want}`));
+    }
+    await expect(items.nth(2)).toContainText(t('hub.name_next'));
+    await expect(page.getByText(t('hub.node_id'))).toBeVisible();
+    await expect(page.getByText(NODE_ID)).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test('a step the node could not read says so, and is never shown as done', async ({ page }) => {
+    const hub: HubReport = { ...HUB, steps: HUB.steps.map((s) => (s.step === 'name' ? { ...s, state: 'unknown' } : s)) };
+    await api(page, { 'GET /api/session': { status: 200, body: INFO }, 'GET /api/hub': { status: 200, body: hub } });
+    await page.goto('/home');
+    const name = page.locator('li[data-step="name"]');
+    await expect(name).toHaveAttribute('data-state', 'unknown');
+    await expect(name).toContainText(t('hub.state.unknown'));
+    await expect(name).not.toContainText(t('hub.state.done'));
+  });
+
+  test('a named node: the name is done', async ({ page }) => {
+    const hub: HubReport = { ...HUB, steps: HUB.steps.map((s) => (s.step === 'name' ? { ...s, state: 'done' } : s)) };
+    await api(page, { 'GET /api/session': { status: 200, body: INFO }, 'GET /api/hub': { status: 200, body: hub } });
+    await page.goto('/home');
+    const name = page.locator('li[data-step="name"]');
+    await expect(name).toHaveAttribute('data-state', 'done');
+    await expect(name).toContainText(t('hub.state.done'));
+    await expect(name).not.toContainText(t('hub.name_next'));
+  });
+
+  test('signed out when the hub is read: to sign-in', async ({ page }) => {
+    await api(page, {
+      'GET /api/session': { status: 200, body: INFO },
+      'GET /api/hub': { status: 401, body: refused('sign-in required') },
+      'GET /api/setup': { status: 200, body: CLAIMED },
+    });
+    await page.goto('/home');
+    await expect(page).toHaveURL(/\/signin$/);
+  });
+
+  for (const [why, answer] of [
+    ['the node fails', { status: 500, body: refused('internal error') }],
+    ['no answer', 'offline'],
+    ['an answer that is not the hub', { status: 200, body: { node_id: NODE_ID, steps: [{ step: 'name', state: 'finished' }] } }],
+    ['a step the page does not know', { status: 200, body: { node_id: NODE_ID, steps: [{ step: 'tor', state: 'done' }] } }],
+    ['no node ID', { status: 200, body: { node_id: '', steps: HUB.steps } }],
+    ['a step listed twice', { status: 200, body: { node_id: NODE_ID, steps: [...HUB.steps, HUB.steps[0]] } }],
+    // Repair 1 (verifier nit 2): only the node's whole list, in its order, is the hub.
+    ['no steps', { status: 200, body: { node_id: NODE_ID, steps: [] } }],
+    ['some steps missing', { status: 200, body: { node_id: NODE_ID, steps: HUB.steps.slice(0, 3) } }],
+    ['the steps out of order', { status: 200, body: { node_id: NODE_ID, steps: [...HUB.steps].reverse() } }],
+    ['a node ID that is not a UUID', { status: 200, body: { node_id: 'x', steps: HUB.steps } }],
+  ] as const) {
+    test(`the hub unread when ${why}: said, never a guess, and sign-out stays`, async ({ page }) => {
+      await api(page, { 'GET /api/session': { status: 200, body: INFO }, 'GET /api/hub': answer as Answer });
+      await page.goto('/home');
+      await expect(page.getByText(t('hub.unreadable'))).toBeVisible();
+      await expect(page.locator('li[data-step]')).toHaveCount(0);
+      await expect(page.getByText(t('hub.state.done'), { exact: true })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: t('home.signout') })).toBeVisible();
+    });
+  }
+});

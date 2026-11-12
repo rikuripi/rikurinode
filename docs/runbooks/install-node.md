@@ -109,10 +109,14 @@ Use Fedora Media Writer (Fedora's own tool, free, from `fedoraproject.org/workst
     - **Claim code**: at the node, Ctrl+Alt+F2 and Enter, and type the code it shows. Capitals or not, with or without the dashes, all work.
     - **New password**, then **The same password again**: at least 12 characters (the line under the field ticks when it has enough). A few unrelated words, like `harbor violet tractor maple`, are long and easy to remember. **Show passwords** shows what you typed.
     - Write the password down or keep it in a password manager. Nothing can reset it yet: if it is lost, the node cannot be claimed again until a later update brings a reset at the node.
-    - Tap **Claim this node**. **This node is yours** opens, and says until when this device stays signed in.
+    - Tap **Claim this node**. **This node is yours** opens. Under **What setup still needs** it shows the node's **Node ID** (letters, numbers and dashes, the node's own for its whole life) and each step of setup:
+      - **A private connection** and **An owner and a password**: **Done**;
+      - **A name for the node**: **Next**. Naming the node comes with the next update;
+      - **Bitcoin**, **Lightning** and **Backups**: **Comes with a later update**.
+      - A step that says **Couldn’t be read** is not done: report it. Below the list, the page says until when this device stays signed in.
     - If it says the code is not the one on the node's screen, check it against the screen (a code lasts 24 hours; Enter at the node shows a new one) and type it again. After several wrong tries it asks you to wait a number of seconds; the button returns when they are over.
     - If it says the node already has an owner, someone has claimed it. If that was not you, stop: unplug the node's network cable and report it.
-13. Tap **Sign out**: the page **Sign in to your node** opens. Type the password and tap **Sign in**: **This node is yours** opens again. Sign out again, then power the N150 off with a short press of its power button.
+13. Tap **Sign out**: the page **Sign in to your node** opens. Type the password and tap **Sign in**: **This node is yours** opens again, with the same **Node ID**. Sign out again, then power the N150 off with a short press of its power button.
 
 Report: whether it started from the stick, what the disk line said, whether
 it powered off by itself and started to the login prompt, and what the claim
@@ -122,7 +126,7 @@ Enter), whether a phone or computer on the same network reached
 not), which device you installed the certificate on and whether its steps
 worked as the page said, whether the browser's fingerprint matched the
 claim screen's, and whether claiming, signing out and signing in worked as
-steps 12 and 13 say. Photos of the screens are enough; never photograph or
+steps 12 and 13 say, and what **What setup still needs** listed. Photos of the screens are enough; never photograph or
 send the password. A photo of a code is harmless once the node is claimed, as
 that code no longer works.
 

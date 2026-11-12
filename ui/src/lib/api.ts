@@ -5,6 +5,10 @@
 // Record: docs/build-records/2026-11-11-5c3b-claim-and-sign-in.md
 import type { ClaimRequest } from '../generated/ClaimRequest';
 import type { ErrorReply } from '../generated/ErrorReply';
+import type { HubReport } from '../generated/HubReport';
+import type { HubStep } from '../generated/HubStep';
+import type { SetupStep } from '../generated/SetupStep';
+import type { StepState } from '../generated/StepState';
 import type { SessionInfo } from '../generated/SessionInfo';
 import type { SessionOpened } from '../generated/SessionOpened';
 import type { SignInRequest } from '../generated/SignInRequest';
@@ -37,6 +41,31 @@ export function parseSession(value: unknown): SessionInfo | SessionOpened | null
   if (typeof csrf_token !== 'string' || csrf_token === '') return null;
   if (!Number.isInteger(issued_unix) || !Number.isInteger(expires_unix)) return null;
   return { csrf_token, issued_unix: issued_unix as number, expires_unix: expires_unix as number };
+}
+
+// 5c.4a: the hub's closed sets, as the Rust enums write them (hub.rs).
+const STEPS: readonly SetupStep[] = ['connection', 'owner', 'name', 'bitcoin', 'lightning', 'backup'];
+const STATES: readonly StepState[] = ['done', 'next', 'later', 'unknown'];
+
+// node_id.rs's form: version 4, variant 10, lowercase, 8-4-4-4-12.
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+/** A hub exactly as the node writes it, or null: a node ID that is not its
+ *  UUID, or anything but every step once, in the node's order, with a state
+ *  this page knows, makes the whole reply unreadable (repair 1, nit 2). */
+export function parseHub(value: unknown): HubReport | null {
+  const v = record(value);
+  const id = v?.['node_id'];
+  const list = v?.['steps'];
+  if (typeof id !== 'string' || !UUID_V4.test(id) || !Array.isArray(list) || list.length !== STEPS.length) return null;
+  const steps: HubStep[] = [];
+  for (const [i, item] of list.entries()) {
+    const s = record(item);
+    const state = s?.['state'];
+    if (s?.['step'] !== STEPS[i] || !(STATES as readonly unknown[]).includes(state)) return null;
+    steps.push({ step: STEPS[i]!, state: state as StepState });
+  }
+  return { node_id: id, steps };
 }
 
 async function body(reply: Response): Promise<unknown> {
@@ -97,6 +126,11 @@ export function signIn(request: SignInRequest): Promise<Outcome<SessionOpened>> 
 /** The session behind this browser's cookie: ok, refused 401 (signed out), or another outcome. */
 export function readSession(): Promise<Outcome<SessionInfo>> {
   return call('GET', '/api/session', 200, parseSession);
+}
+
+/** What setup still needs: ok, refused 401 (signed out), or another outcome. */
+export function readHub(): Promise<Outcome<HubReport>> {
+  return call('GET', '/api/hub', 200, parseHub);
 }
 
 export function signOut(csrf: string): Promise<Outcome<true>> {
