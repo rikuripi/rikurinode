@@ -138,3 +138,7 @@ The owner (2026-11-11), after "Next":
   - The contract's name bullet and its `node.rs` (nit 5) carry dated notes.
   - Nit 4 stands as recorded: the "a step listed twice" case was added after the UI's red run and was never seen red.
 - **Green before the push:** rikuri-drill, `image/tests` Ran 514 OK; hooks 91 OK; quality only its 7 known errors. On the Mac, `clippy --all-targets -D warnings` and `fmt --check` are clean.
+- **CI run 4 (`70b1ae3`, the repair's tests alone): red, as wanted.**
+  - `Full gate (Ubuntu)`: Fail at step 3, job 130872312822: `image/tests` Ran 514, `failures=4, errors=13`, all in `SetupHubSteps` and the Verdict pin (the drill had no third hub check yet).
+  - `Rust mutants (changed lines)`: Fail in its baseline, run 43124290938: `test result: FAILED. 145 passed; 2 failed`, namely `config::tests::the_defaults_are_loopback_https_no_plain_listener_localhost_and_var_lib` and `hub::tests::the_name_is_done_only_when_the_kernel_has_another_name`.
+  - The UI's new cases were not reached (the gate stopped at step 3): red by reading only.
