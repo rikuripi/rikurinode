@@ -1700,9 +1700,6 @@ class SetupHubSteps(unittest.TestCase):
         self.assertEqual([r for r in drill.requests if r[0] == "tls"], [])
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 # Case 1's timeout (docs/build-records/2026-11-11-case1-finalize-race.md): at
 # the shutdown after the switch, ostree-finalize-staged can fail, the broken
@@ -1713,6 +1710,7 @@ BROKEN = ("localhost/rikuri-os:broken", "sha256:" + "b" * 64)
 INSTALLED = ("localhost/rikuri-os:ci", DIGEST)
 FINALIZE_FAILED = (
     "[  182.526087] rikurisetup systemd[1]: Stopping ostree-finalize-staged.service - OSTree Finalize Staged Deployment...\n"
+    "[  182.579001] rikurisetup ostree[2417]: Finalizing staged deployment\n"
     "[  182.580138] rikurisetup ostree[2417]: error: Remounting /boot read-write: Invalid argument\n"
     "[  182.588553] rikurisetup systemd[1]: ostree-finalize-staged.service: Control process exited, code=exited, "
     "status=1/FAILURE\n")
@@ -1757,7 +1755,9 @@ class FinalizeError(unittest.TestCase):
 
     def test_nothing_from_ostree_is_empty(self):
         for journal in ("", "-- No entries --\n", FINALIZE_FAILED.splitlines()[0] + "\n",
-                        "[  1.0] h ostree-prepare-root[437]: error: not finalize\n"):
+                        "[  1.0] h ostree-prepare-root[437]: error: not finalize\n",
+                        "[  8.1] h rpm-ostree[757]: error: not finalize\n",
+                        "[  182.5] h ostree[2417]: Finalizing staged deployment\n"):
             with self.subTest(journal=journal):
                 self.assertEqual(d.finalize_error(journal), "")
 
@@ -1770,7 +1770,7 @@ class Case1Drill(d.Drill):
         super().__init__("localhost/rikuri-os:test", artifacts, artifacts)
         self.installed = INSTALLED
         self.statuses, self.journals = list(statuses), journals
-        self.reads, self.switched, self.waited = 0, [], []
+        self.reads, self.switched, self.waited, self.journal_calls = 0, [], [], []
         self.case1_poll = 0
         self.log = lambda message: None
 
@@ -1794,6 +1794,7 @@ class Case1Drill(d.Drill):
         return self.statuses[-1]
 
     def journal(self, args):
+        self.journal_calls.append(args)
         return self.journals.get(args, "")
 
     def vm(self, command, check=True, timeout=300, stdin=None):
@@ -1835,6 +1836,9 @@ class Case1Steps(unittest.TestCase):
                                  "'never applied' logged: True; ostree-finalize-staged: "
                                  "error: Remounting /boot read-write: Invalid argument")
         self.assertIn(FINALIZE_FAILED, kept, "the shutdown's own journal is kept")
+        # Verifier nit 1: the boot that shut down, finalize's unit and the automount's.
+        self.assertEqual(d.FINALIZE_JOURNAL, "-b -1 -u ostree-finalize-staged.service -u boot.automount")
+        self.assertIn(d.FINALIZE_JOURNAL, drill.journal_calls)
 
     def test_a_dropped_update_without_ostree_s_line_says_so(self):
         _, ok, detail, _ = self.run_case1(
@@ -1842,3 +1846,7 @@ class Case1Steps(unittest.TestCase):
         self.assertFalse(ok)
         self.assertEqual(detail, "never applied: the update was dropped at shutdown, not rolled back; "
                                  "'never applied' logged: False; ostree-finalize-staged: no error line kept")
+
+
+if __name__ == "__main__":
+    unittest.main()
