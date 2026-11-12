@@ -423,7 +423,9 @@ class Verdict(unittest.TestCase):
             "the SetupHub over HTTPS only, with only the node's CA",
             "the hub refuses a browser without a session",
             # 5c.4a, repair 1 (verifier I-1):
-            "the control plane reads the node's name in its sandbox"})
+            "the control plane reads the node's name in its sandbox",
+            # docs/build-records/2026-11-11-boot-automount-mask.md:
+            "the EFI partition's automount on /boot is masked"})
 
     def test_all_passed_and_no_error_is_zero(self):
         self.assertEqual(d.verdict(self.ALL, None), 0)
@@ -1846,6 +1848,93 @@ class Case1Steps(unittest.TestCase):
         self.assertFalse(ok)
         self.assertEqual(detail, "never applied: the update was dropped at shutdown, not rolled back; "
                                  "'never applied' logged: False; ostree-finalize-staged: no error line kept")
+
+
+# The EFI partition's automount on /boot, masked by the image
+# (docs/build-records/2026-11-11-boot-automount-mask.md): on the running node,
+# systemd loads it as masked and never starts it, and /boot is ostree's bind of
+# /sysroot/boot alone (ext4), with no autofs and no EFI partition (vfat) there.
+MASKED = "LoadState=masked\nActiveState=inactive\n"
+
+
+class BootAutomountReads(unittest.TestCase):
+    def test_masked_inactive_and_ostree_s_boot_alone(self):
+        self.assertTrue(d.boot_automount_masked(MASKED, "ext4\n"))
+        self.assertTrue(d.boot_automount_masked("ActiveState=inactive\nLoadState=masked\n", "ext4\n"))
+
+    def test_anything_else_fails(self):
+        for show, fstypes, why in (
+                ("LoadState=loaded\nActiveState=active\n", "autofs\next4\n", "as on the failing runs"),
+                ("LoadState=loaded\nActiveState=inactive\n", "ext4\n", "not masked"),
+                ("LoadState=masked\nActiveState=active\n", "ext4\n", "masked but running"),
+                ("LoadState=not-found\nActiveState=inactive\n", "ext4\n", "no unit at all is not a mask"),
+                (MASKED, "autofs\next4\n", "an autofs on /boot"),
+                (MASKED, "ext4\nvfat\n", "the EFI partition on /boot"),
+                (MASKED, "", "nothing on /boot"),
+                (MASKED, "ext4\next4\n", "two mounts on /boot"),
+                ("", "ext4\n", "no answer"), (None, "ext4\n", "the command failed"), (MASKED, None, "findmnt failed"),
+                ("LoadState=masked\n", "ext4\n", "no ActiveState")):
+            with self.subTest(why=why):
+                self.assertFalse(d.boot_automount_masked(show, fstypes))
+
+
+class BootAutomountDrill(d.Drill):
+    def __init__(self, artifacts, show, fstypes):
+        super().__init__("localhost/rikuri-os:test", artifacts, artifacts)
+        self.answers = {d.SHOW_BOOT_AUTOMOUNT: show, d.BOOT_FSTYPES: fstypes}
+        self.commands = []
+        self.log = lambda message: None
+
+    def vm(self, command, check=True, timeout=300, stdin=None):
+        assert command in self.answers, command
+        self.commands.append(command)
+        return self.answers[command]
+
+
+class BootAutomountSteps(unittest.TestCase):
+    CASE = "the EFI partition's automount on /boot is masked"
+
+    def setUp(self):
+        self.artifacts = tempfile.mkdtemp(prefix="drill-artifacts-")
+        self.addCleanup(shutil.rmtree, self.artifacts)
+
+    def result(self, show, fstypes):
+        drill = BootAutomountDrill(self.artifacts, show, fstypes)
+        drill.boot_automount()
+        [(case, ok, detail)] = drill.results
+        self.assertEqual(case, self.CASE)
+        self.assertIn(case, d.EXPECTED)
+        self.assertEqual(sorted(drill.commands), sorted([d.SHOW_BOOT_AUTOMOUNT, d.BOOT_FSTYPES]))
+        with open(os.path.join(self.artifacts, "01d-boot-automount.out"), encoding="utf-8") as f:
+            kept = f.read()
+        return ok, detail, kept
+
+    def test_the_commands(self):
+        self.assertEqual(d.SHOW_BOOT_AUTOMOUNT, "systemctl show -p LoadState -p ActiveState boot.automount")
+        self.assertEqual(d.BOOT_FSTYPES, "findmnt -n -o FSTYPE /boot")
+
+    def test_a_masked_node_passes_and_keeps_what_it_read(self):
+        ok, detail, kept = self.result(MASKED, "ext4\n")
+        self.assertTrue(ok, detail)
+        self.assertEqual(detail, "boot.automount: LoadState=masked; ActiveState=inactive; /boot: ext4")
+        self.assertIn("LoadState=masked", kept)
+        self.assertIn("ext4", kept)
+
+    def test_the_failing_runs_state_fails(self):
+        ok, detail, _ = self.result("LoadState=loaded\nActiveState=active\n", "autofs\next4\n")
+        self.assertFalse(ok)
+        self.assertEqual(detail, "boot.automount: LoadState=loaded; ActiveState=active; /boot: autofs, ext4")
+
+    def test_no_answer_fails(self):
+        ok, _, _ = self.result(None, None)
+        self.assertFalse(ok)
+
+    def test_main_runs_it_after_the_first_boot(self):
+        import inspect
+        source = inspect.getsource(d.main)
+        self.assertIn("drill.boot_automount()", source)
+        self.assertLess(source.index("drill.first_boot()"), source.index("drill.boot_automount()"))
+        self.assertLess(source.index("drill.boot_automount()"), source.index("drill.load_variants()"))
 
 
 if __name__ == "__main__":
