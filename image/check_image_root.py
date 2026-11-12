@@ -967,8 +967,12 @@ def check_boot_automount(root: str) -> list:
             or os.readlink(full) != "/dev/null"):
         found.append("%s: not masked (a link to /dev/null): the EFI partition's automount on /boot can "
                      "drop a staged update at shutdown (bootc #2402)" % BOOT_AUTOMOUNT)
+    # As every read here: a link on the way ends it (in the image, usr/local is a
+    # link into var, which is the node's own state). A generator the image ships
+    # could still write an earlier boot.automount; the drill checks the running node.
     for rel in BOOT_AUTOMOUNT_OVERRIDES:
-        if os.path.lexists(os.path.join(root, rel)):
+        if (_lstat_in(root, os.path.dirname(rel)) is not None
+                and os.path.lexists(os.path.join(root, rel))):
             found.append("%s: would override the image's mask of boot.automount" % rel)
     return found
 

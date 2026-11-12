@@ -247,7 +247,9 @@ def case1_outcome(text: str, installed_digest: str):
 
 def boot_automount_masked(show, fstypes) -> bool:
     """boot.automount is masked and not running, and /boot is one ext4 mount:
-    ostree's bind of /sysroot/boot, with no autofs and no EFI partition there."""
+    ostree's bind of /sysroot/boot, with no autofs and no EFI partition there.
+    ext4 because the drill installs with --filesystem ext4 (install_argv); a
+    node's own filesystem may differ."""
     if show is None or fstypes is None:
         return False
     props = dict(line.split("=", 1) for line in show.splitlines() if "=" in line)
