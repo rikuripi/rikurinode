@@ -16,7 +16,12 @@
 Upstream knows it (read 2026-11-11, data only):
 
 - [bootc #2402](https://github.com/bootc-dev/bootc/issues/2402), open, milestone 1.18: two generators claim `/boot`. ostree's generator adds a bind mount of `/sysroot/boot`; systemd-gpt-auto-generator adds an ESP `boot.automount` with a 120 s idle timeout, which tears down ostree's mount when it goes. Bisected to ostree 2026.3, after which gpt-auto no longer skips partition discovery on composefs. [bootc #2622](https://github.com/bootc-dev/bootc/issues/2622) is our symptom, closed as its duplicate.
-- The fix, [ostree #3690](https://github.com/ostreedev/ostree/pull/3690) (finalize through the boot file descriptor, not the `/boot` path), is open with changes requested. An earlier ostree patch that masked `boot.automount` from ostree's own generator was declined, because ostree should not disable part of gpt-auto behind the system's back. That concerns ostree doing it for everyone. An image choosing it for itself is a different decision, and the owner's.
+- The fix, [ostree #3690](https://github.com/ostreedev/ostree/pull/3690) (finalize through the boot file descriptor, not the `/boot` path), is open with changes requested.
+- [ostree #3664](https://github.com/ostreedev/ostree/pull/3664), which masks `boot.automount` from ostree's own generator, is also open with changes requested (corrected after the verifier's nit 1: not "declined").
+  - Its maintainer objects to ostree disabling part of gpt-auto "behind its back", and would rather gpt-auto use `/efi`.
+  - On [ostree #3689](https://github.com/ostreedev/ostree/pull/3689) he adds two concerns: some projects may rely on reaching the EFI partition through `/boot`, and he is unsure that having both units, one masked, works cleanly.
+  - #3664's own test, on Fedora 44 with ostree 2026.4, booted the staged deployment with the automount masked.
+  - Those objections are about ostree doing this for every system. An image choosing it for itself is a different decision, and the owner's. The concern about reaching the EFI partition through `/boot` is listed under "Not yet known" below.
 
 ## Task Contract
 
@@ -66,3 +71,23 @@ Upstream knows it (read 2026-11-11, data only):
 - `image/check_image_root.py`: `BOOT_AUTOMOUNT`, `BOOT_AUTOMOUNT_OVERRIDES`, and `check_boot_automount()`, in `check_root`.
 - `image/drill/vm_drill.py`: `SHOW_BOOT_AUTOMOUNT`, `BOOT_FSTYPES`, `boot_automount_masked()`, and `Drill.boot_automount()`, run right after the first boot. It keeps `01d-boot-automount.out` and is in `EXPECTED`.
 - On `rikuri-drill`, through `safe-run.sh`: `Ran 532 tests`, `OK`. No test changed after red.
+
+### The verifier's first pass, at `88ba639`: no Important finding; Not yet proven (the drill runs had not finished)
+
+- It confirmed from systemd v259's own code that gpt-auto writes `boot.automount` (and its EFI `boot.mount`) only to the generator's late folder. On `rikuri-drill`, `systemd-analyze unit-paths` puts `/usr/lib/systemd/system` before it, so the mask wins. ostree's `boot.mount` comes from `/run/systemd/generator`, which is earlier, and stays the one in force.
+- `Full gate (Ubuntu)` passed on `88ba639`, run 43152186877. The image build's `check_image_root` on the real image passed, run 43152186930: `0 finding(s)`.
+- 31 hand mutations, 30 caught; the one survivor is nit 2.
+- **Nits, fixed:**
+  1. The upstream wording above.
+  2. The surviving mutant, `check=True` on the drill's reads. The stand-in now asserts `check=False`, so an answer it cannot read fails this check instead of raising a drill error.
+  3. The override paths were read with `os.path.lexists`, which follows a link on the way. They now use the module's rule, as every other read does: a link on the way ends the read, and the entry itself may be a link. A test shows the check never follows a link out of the image. The verifier's other point under this nit, a generator the image might ship, is left to the drill's runtime check, as the code's comment says.
+  4. A comment: `/boot` is ext4 because the drill installs with `--filesystem ext4`.
+- **Reason for the test changes after red:** they add cases (the `check=False` assertion, the no-link-followed test) that the fix must meet. None loosens an assertion.
+- On `rikuri-drill`, through `safe-run.sh`: `Ran 533 tests`, `OK`. With the nits' own mutants (`check=True` on either read, the no-link-on-the-way test dropped): `FAILED` each time.
+- My first go at nit 3 used `_lstat_in` for the whole path. That treats a link as the last part as absent, so overrides shipped as links slipped through (4 failures, seen before any commit). It was corrected before committing.
+
+### Not yet known (backlog, not this task)
+
+- Whether anything on a node expects to reach the EFI partition through `/boot`: bootupd's bootloader updates, or firmware updates. Before ostree 2026.3, bootc systems had no such automount either.
+- Upstream's preferred `/efi` route, and removing the mask once a Fedora ostree has #3690.
+- The Pi 5's boot layout under this mask.
