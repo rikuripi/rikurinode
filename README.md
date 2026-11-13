@@ -86,9 +86,14 @@ certificate at `/ca.crt`, the certificate page at `/` with its files, and
 a redirect to HTTPS for everything else; over HTTPS the secure page answers at
 `/` and `/setup`. The pages are embedded in the binary at build time from
 `ui/dist` (`scripts/quality/ui.sh build`, in pinned Node and Playwright images
-only, never on the machine itself; `RIKURI_UI_DIR` names another `ui/`). `RIKURI_NAMES` lists the
-names a request may use for the node (`localhost` always may); any other
-`Host` is refused. The server certificate names them, the loopback addresses
+only, never on the machine itself; `RIKURI_UI_DIR` names another `ui/`). The node's
+name is its static hostname, `<name>.local`, read from `/etc/hostname` at start,
+on each of the daemon's 60 s looks and after a rename; `RIKURI_NAMES` adds
+other names (`localhost` always may be used); any other `Host` is refused. A
+signed-in owner renames the node with `PUT /api/node/name`: the daemon asks
+systemd-hostnamed over the system bus, which a polkit rule allows for its
+user alone, and the new name replaces the old one at once (5c.4b-1). The
+server certificate names them, the loopback addresses
 and the node's LAN address; the daemon looks at that address again every
 60 s and, when it changes, reissues the certificate from the same CA and
 serves it to new connections without a restart. At its first start the daemon logs a claim code; the first

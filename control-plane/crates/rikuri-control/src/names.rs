@@ -124,12 +124,9 @@ pub struct LiveNames {
 
 impl LiveNames {
     pub fn load(configured: Names, file: PathBuf) -> Self {
-        let current = compose(&configured, &file);
-        if current == configured {
-            warn!(
-                file = %file.display(),
-                "the hostname file names no node name: the node answers by address and its configured names only"
-            );
+        let (current, named) = compose(&configured, &file);
+        if !named {
+            warn_unnamed(&file);
         }
         Self {
             configured,
@@ -162,9 +159,14 @@ impl LiveNames {
 
     /// Reads the hostname file again; the names now in force.
     pub fn reload(&self) -> Names {
-        let fresh = compose(&self.configured, &self.file);
+        let (fresh, named) = compose(&self.configured, &self.file);
         let mut current = self.current.write().unwrap_or_else(PoisonError::into_inner);
         if *current != fresh {
+            // Repair 2 (verifier, nit 5): a file that stops naming the node
+            // drops its name; say so as loudly as at the start.
+            if !named {
+                warn_unnamed(&self.file);
+            }
             info!(
                 names = ?fresh.iter().collect::<Vec<_>>(),
                 "the node's names changed"
@@ -175,11 +177,22 @@ impl LiveNames {
     }
 }
 
-fn compose(configured: &Names, file: &Path) -> Names {
-    std::fs::read_to_string(file)
+/// The names in force, and whether the file named the node.
+fn compose(configured: &Names, file: &Path) -> (Names, bool) {
+    match std::fs::read_to_string(file)
         .ok()
         .and_then(|text| hostname::name_in(&text))
-        .map_or_else(|| configured.clone(), |name| configured.with(&name))
+    {
+        Some(name) => (configured.with(&name), true),
+        None => (configured.clone(), false),
+    }
+}
+
+fn warn_unnamed(file: &Path) {
+    warn!(
+        file = %file.display(),
+        "the hostname file names no node name: the node answers by address and its configured names only"
+    );
 }
 
 enum Host {

@@ -807,6 +807,33 @@ mod tests {
         assert!(refused(&wrong), "an error name that is a u32");
     }
 
+    /// Repair 2 (verifier, Important 3): an error name sent as a u32 must
+    /// reach its own refusal, not fail on later bytes by accident.
+    #[test]
+    fn an_error_name_that_is_a_u32_is_refused() {
+        let u32_name = cat(&[
+            b"l\x03\x01\x01",
+            &le(0),
+            &le(9),
+            &le(8),
+            b"\x04\x01u\x00",
+            &le(5),
+        ]);
+        assert_eq!(u32_name.len(), 24);
+        assert!(matches!(
+            parse_message(&u32_name),
+            Err(BusError::Protocol("an error name of the wrong type"))
+        ));
+    }
+
+    /// Repair 2 (verifier, nit 1): the limits' values, not only their names.
+    #[test]
+    fn the_limits_are_what_the_design_says() {
+        assert_eq!(MAX_MESSAGE, 65_536);
+        assert_eq!(MAX_READ, 262_144);
+        assert_eq!(BUS_TIMEOUT, Duration::from_secs(10));
+    }
+
     #[test]
     fn a_message_over_the_limit_is_refused_before_it_is_read() {
         let mut huge = a_return();
