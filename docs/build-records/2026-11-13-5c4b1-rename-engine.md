@@ -143,10 +143,23 @@ The contract first left "a real claim in the drill" out, so the route on a node 
     - the stand-in gains `cert_keeps_old`, a certificate holding both names (Important 5);
     - its `/api/setup` now lists the names its Host check uses, as the daemon's does, not the certificate's. Without this second change, the new case failed through the names list, and the certificate check was still not the deciding one: dropping `old` survived (`Ran 155 tests … OK`, rikuri-drill). With it, that mutant fails `cert_keeps_old`, and every earlier case gives the same results.
   - No assertion was loosened.
-- **Code (nit 5):** `LiveNames` warns whenever the file names no node name, at the start and on a reload that loses it. The start warning's old condition, `names == configured`, is gone with it.
+- **Code (nit 5), later dropped:** `LiveNames` warned whenever the file named no node name, at the start and on a reload that lost it. See "CI on `628b573`" below.
 - **Docs (nit 2):** README.md says the name comes from `/etc/hostname` and names `PUT /api/node/name`.
 - **Not changed, recorded:**
   - nit 1's other survivors, which only tighten a limit or change log text;
   - nit 3: `own_uid` fails closed, and the drill proves it works on the node; `AUTH EXTERNAL` with an empty response is the alternative, noted for later;
   - nit 4: mDNS answering the new name is **inferred** from the kernel's name, not observed. 5c.4b-2's mDNS check of a name is where it can be seen.
 - On rikuri-drill, through `safe-run.sh`: `image/tests`, `Ran 549 tests`, `OK`. Important 5's mutant now fails (`FAILED (failures=1)`, in `cert_keeps_old`). On the Mac: clippy and fmt exit 0. The Rust kills are for CI's mutants job and the follow-up pass.
+
+### CI on `628b573` (repair 2, PR #91): mutants Fail on nit 5 only; nit 5 dropped
+
+- PR #90 was merged at `568bd1c` before repair 2 was pushed, so repair 2 went to draft PR #91.
+- `Full gate (Ubuntu)`: **Pass**, [run 43504349040](https://github.com/rikuripi/rikurinode/actions/runs/43504349040). The image build, the USB installer drill and the rollback drill: **Pass**, [run 43504349146](https://github.com/rikuripi/rikurinode/actions/runs/43504349146).
+- `Rust mutants (changed lines)`: **Fail**, [run 43504348895](https://github.com/rikuripi/rikurinode/actions/runs/43504348895), `7 mutants tested in 76s: 3 missed, 4 unviable`. All three missed mutants are nit 5's warning:
+  - `names.rs:128:12: delete ! in LiveNames::load`;
+  - `names.rs:167:16: delete ! in LiveNames::reload`;
+  - `names.rs:192:5: replace warn_unnamed with ()`.
+
+  No test in the repository can see log output, so no test could catch them.
+- Both repair cycles were used, so this went to the owner. The owner chose "Drop nit 5": `names.rs` is back to `main`'s text (as merged in #90), and nothing else changes. This removes a change that was outside the verifier's Important findings; it is not a third repair.
+- Backlog, not started: a warning when a reload loses the node's name, with a test that captures logs.
