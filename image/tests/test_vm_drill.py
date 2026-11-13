@@ -425,7 +425,11 @@ class Verdict(unittest.TestCase):
             # 5c.4a, repair 1 (verifier I-1):
             "the control plane reads the node's name in its sandbox",
             # docs/build-records/2026-11-11-boot-automount-mask.md:
-            "the EFI partition's automount on /boot is masked"})
+            "the EFI partition's automount on /boot is masked",
+            # 5c.4b-1:
+            "the owner renames the node, and no other user can",
+            "the new name only, at once and with no restart",
+            "the new name only, after a restart"})
 
     def test_all_passed_and_no_error_is_zero(self):
         self.assertEqual(d.verdict(self.ALL, None), 0)
@@ -1938,6 +1942,264 @@ class BootAutomountSteps(unittest.TestCase):
         self.assertIn("drill.boot_automount()", source)
         self.assertLess(source.index("drill.first_boot()"), source.index("drill.boot_automount()"))
         self.assertLess(source.index("drill.boot_automount()"), source.index("drill.load_variants()"))
+
+
+
+# 5c.4b-1 (docs/build-records/2026-11-13-5c4b1-rename-engine.md): the drill
+# claims the node with a code armed at the console and renames it through the
+# API; polkit refuses anyone else; the new name, and only it, is served at
+# once and after a restart.
+ARMED = "K7QM-4XD9-TR"
+REARMED = "claim code: %s\nenter it on the setup page within 24 hours; twenty wrong tries retire it\n" % ARMED
+REFUSED_BY_POLKIT = "Call failed: Interactive authentication required.\nexit=1\n"
+SESSION = "c" * 64
+CSRF = "d" * 64
+
+
+class RenameReads(unittest.TestCase):
+    def test_the_commands(self):
+        self.assertEqual(d.RENAMED, "rikuri01")
+        self.assertEqual(d.RENAMED_NAME, "rikuri01.local")
+        self.assertTrue(d.RENAME_AS_OTHER.startswith("setpriv --reuid=nobody --regid=nobody --clear-groups busctl "))
+        for part in ("--allow-interactive-authorization=no", " call org.freedesktop.hostname1 /org/freedesktop/hostname1 "
+                     "org.freedesktop.hostname1 SetStaticHostname sb rikuri99 false", '2>&1; echo "exit=$?"'):
+            self.assertIn(part, d.RENAME_AS_OTHER)
+        self.assertEqual(d.REARM_AS_CP, "setpriv --reuid=rikuri-control --regid=rikuri-control --clear-groups "
+                                        "env RIKURI_STATE_DIR=/var/lib/rikuri/control-plane "
+                                        "/usr/bin/rikuri-control-plane rearm-claim")
+        self.assertEqual(d.STATIC_NAME, "cat /etc/hostname")
+        self.assertEqual(d.RESTART_CP, "systemctl restart rikuri-control-plane.service")
+
+    def test_exit_status_is_the_last_exit_line(self):
+        self.assertEqual(d.exit_status("x\nexit=1\n"), 1)
+        self.assertEqual(d.exit_status("exit=0\nexit=127\n"), 127)
+        self.assertIsNone(d.exit_status("exit=\n"))
+        self.assertIsNone(d.exit_status(None))
+        self.assertIsNone(d.exit_status("no exit=1 here"))
+
+    def test_polkit_refused_needs_a_failure_and_its_words(self):
+        self.assertTrue(d.polkit_refused(REFUSED_BY_POLKIT))
+        self.assertTrue(d.polkit_refused("Call failed: Access denied\nexit=1\n"))
+        for out in ("Call failed: Interactive authentication required.\nexit=0\n",
+                    "sh: busctl: command not found\nexit=127\n", "Call failed: Access denied\n", "", None):
+            self.assertFalse(d.polkit_refused(out), out)
+
+    def test_armed_code_reads_rearm_claims_line_only(self):
+        self.assertEqual(d.armed_code(REARMED), ARMED)
+        for out in ("", None, "claim code: K7QM-4XD9\n", "rearm-claim: the node is claimed\n",
+                    "the claim code: K7QM-4XD9-TR\n", "claim code: k7qm-4xd9-tr\n"):
+            self.assertIsNone(d.armed_code(out), out)
+
+    def test_first_name(self):
+        self.assertEqual(d.first_name("# x\n\n rikuri01 \nother\n"), "rikuri01")
+        self.assertIsNone(d.first_name("# only\n"))
+        self.assertIsNone(d.first_name(None))
+
+    def test_session_cookie(self):
+        self.assertEqual(d.session_cookie("rikuri_session=%s; HttpOnly; Secure" % SESSION), SESSION)
+        for header in (None, "", "rikuri_session=%s" % SESSION, "theme=%s; x" % SESSION,
+                       "rikuri_session=%s; x" % ("z" * 64)):
+            self.assertIsNone(d.session_cookie(header), header)
+
+    def test_renamed_ok_wants_the_new_name_only(self):
+        good = {"claimed": True, "claim": "done", "ca_fingerprint_sha256": "AA",
+                "names": ["localhost", "rikuri01.local"]}
+        self.assertTrue(d.renamed_ok(json.dumps(good).encode(), "AA"))
+        for over in ({"claimed": False}, {"ca_fingerprint_sha256": "BB"},
+                     {"names": ["localhost", "rikuri01.local", "rikurisetup.local"]},
+                     {"names": ["localhost", "rikurisetup.local"]}, {"names": ["rikuri01.local"]}):
+            self.assertFalse(d.renamed_ok(json.dumps(dict(good, **over)).encode(), "AA"), over)
+        self.assertFalse(d.renamed_ok(b"not json", "AA"))
+        self.assertFalse(d.renamed_ok(b"[]", "AA"))
+
+
+class RenameDrill(d.Drill):
+    """A node as the rename sees it: its static and kernel names, its owner,
+    its service's process, and HTTPS answering for the names in force, in its
+    certificate (`cert`) and in its Host check (`hosts`), as the daemon would."""
+
+    def __init__(self, artifacts, **over):
+        super().__init__("localhost/rikuri-os:test", artifacts, artifacts)
+        self.log = lambda message: None
+        self.rename_pause = 0
+        self.static = self.kernel = "rikurisetup"
+        self.cert = {"rikurisetup.local"}
+        self.hosts = {"rikurisetup.local"}
+        self.claimed = False
+        self.pid = 1234
+        self.other_out = over.pop("other_out", REFUSED_BY_POLKIT)
+        self.other_renames = over.pop("other_renames", False)
+        self.rearm_out = over.pop("rearm_out", REARMED)
+        self.claim_status = over.pop("claim_status", 201)
+        self.rename_status = over.pop("rename_status", 200)
+        self.rename_reply = over.pop("rename_reply", None)
+        self.hostnamed_writes = over.pop("hostnamed_writes", True)
+        self.kernel_follows = over.pop("kernel_follows", True)
+        self.cert_follows = over.pop("cert_follows", True)
+        self.hosts_follow = over.pop("hosts_follow", True)
+        self.restarts_itself = over.pop("restarts_itself", False)
+        self.restart_reads_file = over.pop("restart_reads_file", True)
+        self.restart_works = over.pop("restart_works", True)
+        self.ca = over.pop("ca", http(200, PEM_CERT.encode()))
+        assert not over, over
+        self.vm_commands, self.requests, self.passwords = [], [], []
+
+    def vm(self, command, check=True, timeout=300, stdin=None):
+        self.vm_commands.append(command)
+        if command == d.SHOW_CP_RUN:
+            return "MainPID=%d\nNRestarts=0\n" % self.pid
+        if command == d.RENAME_AS_OTHER:
+            if self.other_renames:
+                self.static = self.kernel = "rikuri99"
+            return self.other_out
+        if command == d.STATIC_NAME:
+            return "# hostname(5)\n%s\n" % self.static
+        if command == d.HOSTNAME_CMD:
+            return self.kernel + "\n"
+        if command == d.REARM_AS_CP:
+            return self.rearm_out
+        if command == d.RESTART_CP:
+            self.pid = self.pid + 1 if self.restart_works else 0
+            # A daemon that does not read the name at its start serves the
+            # image's configured name again (the RIKURI_NAMES it had).
+            name = self.static if self.restart_reads_file else "rikurisetup"
+            self.cert, self.hosts = {name + ".local"}, {name + ".local"}
+            return ""
+        raise AssertionError("not a rename command: %r" % command)
+
+    def fetch_plain(self, path):
+        assert path == "/ca.crt", path
+        self.requests.append(("plain", "GET", path))
+        return self.ca
+
+    def fetch_tls(self, path, cafile, name=d.SERVER_NAME, host=None):
+        self.requests.append(("tls", "GET", path, name, host))
+        assert path == "/api/setup", path
+        with open(cafile, encoding="ascii") as f:
+            assert f.read() == PEM_CERT
+        if name not in self.cert:
+            raise ssl_module().SSLCertVerificationError(1, "verify failed: %s" % name)
+        if (host or name) not in self.hosts:
+            return http(421, b'{"error":"host is not this node"}', reason="Misdirected Request")
+        report = {"claimed": self.claimed, "claim": "done" if self.claimed else "armed",
+                  "ca_fingerprint_sha256": PEM_FP, "names": sorted({"localhost"} | self.cert)}
+        return http(200, json.dumps(report).encode())
+
+    def send_tls(self, method, path, body, cafile, headers=()):
+        headers = dict(headers)
+        self.requests.append(("tls", method, path, headers))
+        with open(cafile, encoding="ascii") as f:
+            assert f.read() == PEM_CERT
+        request = json.loads(body)
+        if (method, path) == ("POST", "/api/claim"):
+            assert request["code"] == ARMED, request
+            self.passwords.append(request["password"])
+            if self.claim_status != 201:
+                return http(self.claim_status, b'{"error":"claim refused"}', reason="Unauthorized")
+            self.claimed = True
+            reply = json.dumps({"csrf_token": CSRF, "issued_unix": 1, "expires_unix": 2}).encode()
+            return (b"HTTP/1.1 201 Created\r\nset-cookie: rikuri_session=%s; HttpOnly; Secure; SameSite=Strict; "
+                    b"Path=/\r\ncontent-length: %d\r\n\r\n" % (SESSION.encode(), len(reply))) + reply
+        assert (method, path) == ("PUT", "/api/node/name"), (method, path)
+        if headers.get("Cookie") != "rikuri_session=" + SESSION or headers.get("X-CSRF-Token") != CSRF:
+            return http(403, b'{"error":"csrf token missing or wrong"}', reason="Forbidden")
+        if self.rename_status != 200:
+            return http(self.rename_status, b'{"error":"the node could not be renamed"}', reason="Unavailable")
+        name = request["name"]
+        if self.hostnamed_writes:
+            self.static = name
+        if self.kernel_follows:
+            self.kernel = name
+        if self.cert_follows:
+            self.cert = {name + ".local"}
+        self.hosts = {name + ".local"} | (set() if self.hosts_follow else self.hosts)
+        if self.restarts_itself:
+            self.pid += 1
+        reply = self.rename_reply or {"name": name, "host": name + ".local"}
+        return http(200, json.dumps(reply).encode())
+
+
+class RenameSteps(unittest.TestCase):
+    CASES = ("the owner renames the node, and no other user can",
+             "the new name only, at once and with no restart",
+             "the new name only, after a restart")
+
+    def setUp(self):
+        self.artifacts = tempfile.mkdtemp(prefix="drill-artifacts-")
+        self.addCleanup(shutil.rmtree, self.artifacts)
+
+    def results(self, **over):
+        drill = RenameDrill(self.artifacts, **over)
+        drill.rename()
+        return drill, {name: ok for name, ok, _ in drill.results}
+
+    def test_every_case_is_expected(self):
+        for case in self.CASES:
+            self.assertIn(case, d.EXPECTED)
+
+    def test_main_renames_last(self):
+        import inspect
+        body = inspect.getsource(d.main)
+        self.assertLess(body.index("drill.case5()"), body.index("drill.rename()"))
+        self.assertLess(body.index("drill.rename()"), body.index("except"))
+
+    def test_a_good_node_passes_every_case_and_keeps_no_secret(self):
+        drill, results = self.results()
+        self.assertEqual(results, dict.fromkeys(self.CASES, True))
+        self.assertEqual(drill.vm_commands[:6], [d.SHOW_CP_RUN, d.RENAME_AS_OTHER, d.STATIC_NAME, d.REARM_AS_CP,
+                                                 d.STATIC_NAME, d.HOSTNAME_CMD])
+        self.assertIn(d.RESTART_CP, drill.vm_commands)
+        writes = [r for r in drill.requests if r[1] in ("POST", "PUT")]
+        self.assertEqual([r[1:3] for r in writes], [("POST", "/api/claim"), ("PUT", "/api/node/name")])
+        self.assertEqual(writes[1][3], {"Cookie": "rikuri_session=" + SESSION, "X-CSRF-Token": CSRF})
+        reads = [r for r in drill.requests if r[1] == "GET" and r[0] == "tls"]
+        self.assertIn(("tls", "GET", "/api/setup", "rikuri01.local", "rikurisetup.local"), reads)
+        self.assertIn(("tls", "GET", "/api/setup", "rikurisetup.local", None), reads)
+        with open(os.path.join(self.artifacts, "05-rename.out"), encoding="utf-8") as f:
+            evidence = f.read()
+        details = " ".join(detail for _, _, detail in drill.results)
+        for secret in [ARMED, SESSION, CSRF] + drill.passwords:
+            self.assertNotIn(secret, evidence)
+            self.assertNotIn(secret, details)
+        self.assertEqual(len(drill.passwords), 1)
+        self.assertGreaterEqual(len(drill.passwords[0]), 24)
+
+    def test_each_failure_fails_its_own_case(self):
+        for case, over in (
+                (self.CASES[0], {"other_out": "Call failed: Interactive authentication required.\nexit=0\n"}),
+                (self.CASES[0], {"other_out": "sh: busctl: command not found\nexit=127\n"}),
+                (self.CASES[0], {"other_out": "\n"}),
+                (self.CASES[0], {"other_renames": True}),
+                (self.CASES[0], {"kernel_follows": False}),
+                (self.CASES[0], {"rename_reply": {"name": "rikuri01"}}),
+                (self.CASES[0], {"rename_reply": {"name": "rikuri01", "host": "rikurisetup.local"}}),
+                (self.CASES[1], {"cert_follows": False}),
+                (self.CASES[1], {"hosts_follow": False}),
+                (self.CASES[1], {"restarts_itself": True}),
+                (self.CASES[2], {"restart_reads_file": False}),
+                (self.CASES[2], {"restart_works": False})):
+            with self.subTest(case=case, over=over):
+                _, results = self.results(**over)
+                self.assertEqual([c for c in self.CASES if not results[c]], [case])
+
+    def test_no_claim_no_rename_fails_every_case(self):
+        for over in ({"rearm_out": ""}, {"rearm_out": "rearm-claim: the node is claimed\n"},
+                     {"claim_status": 401}, {"rename_status": 503}, {"rename_status": 403}):
+            with self.subTest(over=over):
+                drill, results = self.results(**over)
+                self.assertEqual(results, dict.fromkeys(self.CASES, False))
+                if "rearm_out" in over:
+                    self.assertEqual([r for r in drill.requests if r[1] in ("POST", "PUT")], [])
+
+    def test_a_rename_hostnamed_did_not_keep_is_lost_at_the_restart(self):
+        _, results = self.results(hostnamed_writes=False)
+        self.assertEqual(results, {self.CASES[0]: False, self.CASES[1]: True, self.CASES[2]: False})
+
+    def test_no_ca_certificate_reads_nothing_over_tls(self):
+        drill, results = self.results(ca=http(404, b""))
+        self.assertEqual(results, dict.fromkeys(self.CASES, False))
+        self.assertEqual([r for r in drill.requests if r[0] == "tls"], [])
+        self.assertNotIn(d.REARM_AS_CP, drill.vm_commands)
 
 
 if __name__ == "__main__":

@@ -6,7 +6,8 @@
 //!
 //! Environment: `RIKURI_LISTEN` (HTTPS, default `127.0.0.1:8443`),
 //! `RIKURI_HTTP_LISTEN` (plain, off unless set), `RIKURI_NAMES` (the node's
-//! names, comma-separated; `localhost` is always one), `RIKURI_STATE_DIR`
+//! extra names, comma-separated; `localhost` is always one, and the node's own
+//! `<hostname>.local` is read from `/etc/hostname`), `RIKURI_STATE_DIR`
 //! (default `/var/lib/rikuri/control-plane`).
 
 use std::error::Error;
@@ -128,11 +129,10 @@ fn run() -> Result<(), Box<dyn Error>> {
             let _ = rx.changed().await;
         };
 
-        // The certificate follows the node's address (5c.2).
+        // The certificate follows the node's address (5c.2) and its name
+        // (5c.4b-1).
         tokio::spawn(address::follow(
-            StateDir::open(&config.state_dir)?,
-            config.names.clone(),
-            booted.identity.current.clone(),
+            booted.follower.clone(),
             console::lan_address,
             address::EVERY,
             wait(stopped.clone()),

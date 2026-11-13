@@ -6,6 +6,7 @@ use std::fmt;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
+use crate::hostname;
 use crate::hub;
 use crate::listen::{self, ListenError};
 use crate::names::{self, NameError, Names};
@@ -25,6 +26,10 @@ pub struct Config {
     /// Where the node's name is read (5c.4a): always [`hub::HOSTNAME_FILE`]
     /// on a node, from no variable; the tests point it at a file of their own.
     pub hostname_file: PathBuf,
+    /// The system bus, where hostnamed is asked to rename the node (5c.4b-1):
+    /// always [`hostname::BUS_SOCKET`] on a node, from no variable; the tests
+    /// point it at a stand-in of their own.
+    pub bus_socket: PathBuf,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -77,6 +82,7 @@ impl Config {
             names,
             state_dir,
             hostname_file: PathBuf::from(hub::HOSTNAME_FILE),
+            bus_socket: PathBuf::from(hostname::BUS_SOCKET),
         })
     }
 }
@@ -104,6 +110,11 @@ mod tests {
         // sandbox hides /proc/sys (ProcSubset=pid) and freezes its own copy
         // of the kernel's name (ProtectHostname=yes).
         assert_eq!(config.hostname_file, PathBuf::from("/etc/hostname"));
+        // 5c.4b-1: the system bus, and no variable can move it either.
+        assert_eq!(
+            config.bus_socket,
+            PathBuf::from("/run/dbus/system_bus_socket")
+        );
     }
 
     #[test]

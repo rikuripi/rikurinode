@@ -6,13 +6,16 @@
 
 use std::fmt;
 use std::net::IpAddr;
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
+use crate::address::Follower;
 use crate::claim::{self, ClaimError, Code};
 use crate::config::Config;
 use crate::http::App;
+use crate::names::LiveNames;
 use crate::owner;
 use crate::random::{self, RandomError};
 use crate::session::Store;
@@ -36,6 +39,9 @@ pub struct Booted {
     /// unclaimed node, and only then.
     pub armed: Option<Code>,
     pub node: NodeFile,
+    /// The certificate's names and address, followed (5c.2, 5c.4b-1): the
+    /// daemon's ticks and the rename route share it.
+    pub follower: Arc<Follower>,
 }
 
 #[derive(Debug)]
@@ -99,7 +105,17 @@ pub fn boot(config: &Config, started: Started, lan: Option<IpAddr>) -> Result<Bo
             node
         }
     };
-    let identity = tls::load_or_create(&dir, &config.names, lan, OffsetDateTime::now_utc())?;
+    let names = Arc::new(LiveNames::load(
+        config.names.clone(),
+        config.hostname_file.clone(),
+    ));
+    let identity = tls::load_or_create(&dir, &names.get(), lan, OffsetDateTime::now_utc())?;
+    let follower = Arc::new(Follower::new(
+        dir.clone(),
+        names,
+        identity.current.clone(),
+        lan,
+    ));
     let armed = if !owner::exists(&dir) && !dir.exists(claim::FILE) {
         Some(claim::arm(&dir, now)?)
     } else {
@@ -110,19 +126,21 @@ pub fn boot(config: &Config, started: Started, lan: Option<IpAddr>) -> Result<Bo
     let app = App::new(
         started,
         dir,
-        config.names.clone(),
+        follower.clone(),
         sessions,
         identity.ca_pem.clone(),
         identity.ca_fingerprint.clone(),
         config.https.port(),
         claim_wrong_tries,
         config.hostname_file.clone(),
+        config.bus_socket.clone(),
     );
     Ok(Booted {
         app,
         identity,
         armed,
         node,
+        follower,
     })
 }
 
@@ -139,6 +157,7 @@ mod tests {
             names: Names::new(["rikuri01.local"]).unwrap(),
             state_dir: scratch.0.clone(),
             hostname_file: scratch.0.join("hostname-for-the-test"),
+            bus_socket: scratch.0.join("bus-for-the-test"),
         }
     }
 

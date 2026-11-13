@@ -13,8 +13,6 @@ use std::time::Duration;
 
 use common::{Node, handshake_as};
 use rikuri_control::address;
-use rikuri_control::names::Names;
-use rikuri_control::state::StateDir;
 
 const FIRST: IpAddr = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 7));
 const SECOND: IpAddr = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 8));
@@ -49,9 +47,7 @@ async fn a_new_address_is_served_without_a_restart_and_the_old_one_leaves() {
     };
     let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
     let follower = tokio::spawn(address::follow(
-        StateDir::open(&node.scratch.0).unwrap(),
-        Names::new(["rikuri01.local"]).unwrap(),
-        node.booted.identity.current.clone(),
+        node.booted.follower.clone(),
         probe,
         Duration::from_millis(10),
         async {
@@ -84,9 +80,7 @@ async fn the_same_address_issues_nothing_new() {
     let node = Node::start().await;
     let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
     let follower = tokio::spawn(address::follow(
-        StateDir::open(&node.scratch.0).unwrap(),
-        Names::new(["rikuri01.local"]).unwrap(),
-        node.booted.identity.current.clone(),
+        node.booted.follower.clone(),
         || Some(FIRST),
         Duration::from_millis(10),
         async {

@@ -7,10 +7,20 @@
 //! the review's §3.7). An IP literal is an allowed `Host`: the setup page is
 //! reached by address where `.local` does not resolve (plan §8, stage 1), and
 //! rebinding needs a name.
+//!
+//! 5c.4b-1: the names in force are [`LiveNames`]: the configured ones and the
+//! node's own `<name>.local`, read again from its hostname file, so a rename
+//! changes the checks and the certificate together, with no restart.
 
 use std::collections::BTreeSet;
 use std::fmt;
 use std::net::{Ipv4Addr, Ipv6Addr};
+use std::path::{Path, PathBuf};
+use std::sync::{PoisonError, RwLock};
+
+use tracing::{info, warn};
+
+use crate::hostname::NodeName;
 
 /// The environment variable with the node's names, comma-separated.
 pub const ENV: &str = "RIKURI_NAMES";
@@ -90,6 +100,84 @@ impl Names {
         };
         !host.is_empty() && !host.contains('/') && self.host_allowed(host)
     }
+}
+
+impl Names {
+    /// These names and `name`'s `.local` one.
+    pub fn with(&self, name: &NodeName) -> Names {
+        let mut names = self.names.clone();
+        names.insert(name.local());
+        Names { names }
+    }
+}
+
+/// The names in force (5c.4b-1): the configured ones, and the node's own
+/// `<name>.local` from its hostname file (the static name hostnamed keeps),
+/// read again on each [`reload`](Self::reload). A file that cannot be read,
+/// or names no node name, leaves the configured names alone: the node still
+/// answers by address.
+pub struct LiveNames {
+    configured: Names,
+    file: PathBuf,
+    current: RwLock<Names>,
+}
+
+impl LiveNames {
+    pub fn load(configured: Names, file: PathBuf) -> Self {
+        let current = compose(&configured, &file);
+        if current == configured {
+            warn!(
+                file = %file.display(),
+                "the hostname file names no node name: the node answers by address and its configured names only"
+            );
+        }
+        Self {
+            configured,
+            file,
+            current: RwLock::new(current),
+        }
+    }
+
+    /// The names now in force.
+    pub fn get(&self) -> Names {
+        self.current
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
+    }
+
+    pub fn host_allowed(&self, host: &str) -> bool {
+        self.current
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .host_allowed(host)
+    }
+
+    pub fn origin_allowed(&self, origin: &str) -> bool {
+        self.current
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .origin_allowed(origin)
+    }
+
+    /// Reads the hostname file again; the names now in force.
+    pub fn reload(&self) -> Names {
+        let fresh = compose(&self.configured, &self.file);
+        let mut current = self.current.write().unwrap_or_else(PoisonError::into_inner);
+        if *current != fresh {
+            info!(
+                names = ?fresh.iter().collect::<Vec<_>>(),
+                "the node's names changed"
+            );
+            *current = fresh.clone();
+        }
+        fresh
+    }
+}
+
+// RED STUB: the hostname file is never read.
+fn compose(configured: &Names, _file: &Path) -> Names {
+    configured.clone()
 }
 
 enum Host {
@@ -281,6 +369,72 @@ mod tests {
             "https://user@localhost",
         ] {
             assert!(!n.origin_allowed(origin), "{origin:?}");
+        }
+    }
+
+    fn file(name: &str, text: Option<&str>) -> PathBuf {
+        let path = std::env::temp_dir().join(format!(
+            "rikuri-names-{}-{name}.hostname",
+            std::process::id()
+        ));
+        match text {
+            Some(text) => std::fs::write(&path, text).unwrap(),
+            None => {
+                let _ = std::fs::remove_file(&path);
+            }
+        }
+        path
+    }
+
+    fn list(names: &Names) -> Vec<&str> {
+        names.iter().collect()
+    }
+
+    #[test]
+    fn the_node_answers_as_its_hostnames_local_name_beside_the_configured_ones() {
+        let path = file("load", Some("# hostname(5)\nRikuriSetup\n"));
+        let live = LiveNames::load(Names::new(["extra.local"]).unwrap(), path.clone());
+        assert_eq!(
+            list(&live.get()),
+            ["extra.local", "localhost", "rikurisetup.local"]
+        );
+        assert!(live.host_allowed("rikurisetup.local:443"));
+        assert!(live.origin_allowed("https://rikurisetup.local"));
+        assert!(!live.host_allowed("rikuri02.local"));
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn a_reload_follows_the_file_and_the_old_name_leaves() {
+        let path = file("reload", Some("rikurisetup\n"));
+        let live = LiveNames::load(Names::new::<[&str; 0], &str>([]).unwrap(), path.clone());
+        std::fs::write(&path, "rikuri02\n").unwrap();
+        assert!(
+            live.host_allowed("rikurisetup.local"),
+            "not before a reload"
+        );
+        assert_eq!(list(&live.reload()), ["localhost", "rikuri02.local"]);
+        assert_eq!(list(&live.get()), ["localhost", "rikuri02.local"]);
+        assert!(!live.host_allowed("rikurisetup.local"));
+        assert!(!live.origin_allowed("https://rikurisetup.local"));
+        assert!(live.origin_allowed("https://rikuri02.local"));
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn no_file_or_no_node_name_leaves_the_configured_names() {
+        let configured = Names::new(["extra.local"]).unwrap();
+        for (case, text) in [
+            ("missing", None),
+            ("blank", Some("\n# nothing\n")),
+            ("dotted", Some("rikuri.example.org\n")),
+            ("odd", Some("not a name\n")),
+        ] {
+            let path = file(case, text);
+            let live = LiveNames::load(configured.clone(), path.clone());
+            assert_eq!(live.get(), configured, "{case}");
+            assert_eq!(live.reload(), configured, "{case}");
+            let _ = std::fs::remove_file(path);
         }
     }
 }

@@ -1,0 +1,345 @@
+//! 5c.4b-1: renaming the node, through the real entry points: the D-Bus
+//! client against a stand-in bus on a real Unix socket, `PUT /api/node/name`
+//! over TLS on a real loopback socket, and the follower's look. After a
+//! rename the node answers to the new name only, in its certificate and in
+//! its `Host` and `Origin` checks, at once and after a restart.
+//! Record: docs/build-records/2026-11-13-5c4b1-rename-engine.md
+
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
+mod common;
+
+use std::time::Duration;
+
+use common::bus::{Answer, Bus, Seen};
+use common::{
+    Node, PASSWORD, Reply, Req, Scratch, bus_socket, claim, handshake_as, hostname_file, ok,
+};
+use rikuri_control::address;
+use rikuri_control::hostname::{self, BusError, NodeName};
+use serde_json::json;
+
+const ACCESS_DENIED: &str = "org.freedesktop.DBus.Error.AccessDenied";
+const INTERACTIVE: &str = "org.freedesktop.DBus.Error.InteractiveAuthorizationRequired";
+const INVALID_ARGS: &str = "org.freedesktop.DBus.Error.InvalidArgs";
+
+fn name(s: &str) -> NodeName {
+    NodeName::parse(s).unwrap()
+}
+
+// ---- the client ---------------------------------------------------------------
+
+/// One rename to `rikuri02` as uid 1000 through a stand-in answering
+/// `answer`: the result, what the bus saw, and the hostname file after.
+async fn through(answer: Answer, limit: Duration) -> (Result<(), BusError>, Seen, Option<String>) {
+    let scratch = Scratch::new();
+    let bus = Bus::start(bus_socket(&scratch), hostname_file(&scratch), answer);
+    let result = hostname::set_static_hostname(&bus.path, 1000, &name("rikuri02"), limit).await;
+    let file = std::fs::read_to_string(hostname_file(&scratch)).ok();
+    (result, bus.seen(), file)
+}
+
+const LIMIT: Duration = Duration::from_secs(5);
+
+#[tokio::test]
+async fn a_rename_authenticates_says_hello_and_makes_the_one_call() {
+    let (result, seen, file) = through(Answer::Renamed, LIMIT).await;
+    result.unwrap();
+    assert_eq!(seen.auth, [hostname::auth_line(1000)]);
+    assert_eq!(
+        seen.messages,
+        [
+            hostname::hello(hostname::HELLO_SERIAL),
+            hostname::set_static_hostname_call(&name("rikuri02"), hostname::CALL_SERIAL)
+        ]
+    );
+    assert_eq!(seen.names, ["rikuri02"]);
+    assert_eq!(file.as_deref(), Some("rikuri02\n"));
+}
+
+#[tokio::test]
+async fn a_refusal_is_denied_and_another_error_refused() {
+    for (error, denied) in [
+        (ACCESS_DENIED, true),
+        (INTERACTIVE, true),
+        (INVALID_ARGS, false),
+    ] {
+        let (result, _, file) = through(Answer::Error(error), LIMIT).await;
+        match result {
+            Err(BusError::Denied(name)) if denied => assert_eq!(name, error),
+            Err(BusError::Refused(name)) if !denied => assert_eq!(name, error),
+            other => panic!("{error}: {other:?}"),
+        }
+        assert_eq!(file, None, "nothing written");
+    }
+}
+
+#[tokio::test]
+async fn anything_but_an_answer_is_an_error() {
+    let (result, seen, _) = through(Answer::Rejected, LIMIT).await;
+    assert!(
+        matches!(result, Err(BusError::Auth(ref line)) if line == "REJECTED EXTERNAL"),
+        "{result:?}"
+    );
+    assert!(
+        seen.messages.is_empty(),
+        "nothing sent after a refused authentication"
+    );
+    for answer in [Answer::Hangs, Answer::Huge, Answer::CallBeforeHello] {
+        let (result, _, _) = through(answer.clone(), LIMIT).await;
+        assert!(
+            matches!(result, Err(BusError::Protocol(_))),
+            "{answer:?}: {result:?}"
+        );
+    }
+    let started = std::time::Instant::now();
+    let (result, _, _) = through(Answer::Silent, Duration::from_millis(200)).await;
+    assert!(matches!(result, Err(BusError::TimedOut)), "{result:?}");
+    assert!(
+        started.elapsed() < Duration::from_secs(3),
+        "the limit holds"
+    );
+    let scratch = Scratch::new();
+    let result =
+        hostname::set_static_hostname(&bus_socket(&scratch), 1000, &name("rikuri02"), LIMIT).await;
+    assert!(
+        matches!(result, Err(BusError::Unreachable(_))),
+        "{result:?}"
+    );
+}
+
+// ---- the route ----------------------------------------------------------------
+
+/// A node whose hostname file names `hostname`, as hostnamed would keep it.
+async fn named(hostname: &str) -> Node {
+    let scratch = Scratch::new();
+    std::fs::write(hostname_file(&scratch), format!("{hostname}\n")).unwrap();
+    Node::start_over(scratch).await
+}
+
+/// Claims the node: the session's cookie and its CSRF token.
+async fn owner(node: &Node) -> (String, String) {
+    let claimed = claim(node, PASSWORD).await;
+    assert_eq!(claimed.status, 201, "{}", claimed.body);
+    let csrf = claimed.json()["csrf_token"].as_str().unwrap().to_owned();
+    (claimed.session_cookie(), csrf)
+}
+
+async fn rename(node: &Node, session: &(String, String), to: &str) -> Reply {
+    ok(
+        node,
+        Req::put("/api/node/name", json!({ "name": to }))
+            .cookie(&session.0)
+            .csrf(&session.1),
+    )
+    .await
+}
+
+/// `GET /api/setup` with `Host: host`.
+async fn setup_as_host(node: &Node, host: &str) -> Reply {
+    ok(node, Req::get("/api/setup").header("Host", host)).await
+}
+
+fn on_file(node: &Node) -> String {
+    std::fs::read_to_string(hostname_file(&node.scratch)).unwrap()
+}
+
+#[tokio::test]
+async fn the_owner_renames_the_node_and_the_old_name_leaves_at_once() {
+    let node = named("rikurisetup").await;
+    let bus = Bus::start(
+        bus_socket(&node.scratch),
+        hostname_file(&node.scratch),
+        Answer::Renamed,
+    );
+    handshake_as(&node, "rikurisetup.local").await.unwrap();
+    assert!(handshake_as(&node, "rikuri02.local").await.is_err());
+    let session = owner(&node).await;
+
+    let renamed = rename(&node, &session, "Rikuri02").await;
+    assert_eq!(renamed.status, 200, "{}", renamed.body);
+    assert_eq!(
+        renamed.json(),
+        json!({ "name": "rikuri02", "host": "rikuri02.local" })
+    );
+    assert_eq!(bus.seen().names, ["rikuri02"]);
+    assert_eq!(on_file(&node), "rikuri02\n");
+
+    // The certificate, with no look by the follower in between.
+    handshake_as(&node, "rikuri02.local").await.unwrap();
+    assert!(
+        handshake_as(&node, "rikurisetup.local").await.is_err(),
+        "the old name left the certificate"
+    );
+    // The Host check.
+    assert_eq!(setup_as_host(&node, "rikurisetup.local").await.status, 421);
+    let setup = setup_as_host(&node, "rikuri02.local").await;
+    assert_eq!(setup.status, 200, "{}", setup.body);
+    let names = setup.json()["names"].clone();
+    assert!(
+        names.as_array().unwrap().contains(&json!("rikuri02.local")),
+        "{names}"
+    );
+    assert!(
+        !names
+            .as_array()
+            .unwrap()
+            .contains(&json!("rikurisetup.local")),
+        "{names}"
+    );
+    // The Origin check.
+    let old_origin = ok(
+        &node,
+        Req::put("/api/node/name", json!({ "name": "rikuri03" }))
+            .cookie(&session.0)
+            .csrf(&session.1)
+            .header("Origin", "https://rikurisetup.local"),
+    )
+    .await;
+    assert_eq!(old_origin.status, 403, "{}", old_origin.body);
+    assert_eq!(bus.seen().names, ["rikuri02"], "refused before the bus");
+
+    // A restart reads the name from the file.
+    let node = node.restart().await;
+    handshake_as(&node, "rikuri02.local").await.unwrap();
+    assert!(handshake_as(&node, "rikurisetup.local").await.is_err());
+    assert_eq!(setup_as_host(&node, "rikurisetup.local").await.status, 421);
+    assert_eq!(setup_as_host(&node, "rikuri02.local").await.status, 200);
+    drop(bus);
+    node.stop().await;
+}
+
+#[tokio::test]
+async fn a_rename_needs_a_session_and_its_csrf_token() {
+    let node = named("rikurisetup").await;
+    let bus = Bus::start(
+        bus_socket(&node.scratch),
+        hostname_file(&node.scratch),
+        Answer::Renamed,
+    );
+    let anonymous = ok(
+        &node,
+        Req::put("/api/node/name", json!({ "name": "rikuri02" })),
+    )
+    .await;
+    assert_eq!(anonymous.status, 401, "{}", anonymous.body);
+    let session = owner(&node).await;
+    let forged = ok(
+        &node,
+        Req::put("/api/node/name", json!({ "name": "rikuri02" }))
+            .cookie(&"0".repeat(64))
+            .csrf(&session.1),
+    )
+    .await;
+    assert_eq!(forged.status, 401, "{}", forged.body);
+    for csrf in [None, Some("nope")] {
+        let mut req = Req::put("/api/node/name", json!({ "name": "rikuri02" })).cookie(&session.0);
+        if let Some(csrf) = csrf {
+            req = req.csrf(csrf);
+        }
+        let reply = ok(&node, req).await;
+        assert_eq!(reply.status, 403, "{csrf:?}: {}", reply.body);
+    }
+    let elsewhere = ok(
+        &node,
+        Req::put("/api/node/name", json!({ "name": "rikuri02" }))
+            .cookie(&session.0)
+            .csrf(&session.1)
+            .header("Origin", "https://evil.example"),
+    )
+    .await;
+    assert_eq!(elsewhere.status, 403, "{}", elsewhere.body);
+    assert!(bus.seen().auth.is_empty(), "the bus was never asked");
+    assert_eq!(on_file(&node), "rikurisetup\n");
+    node.stop().await;
+}
+
+#[tokio::test]
+async fn a_name_that_is_not_one_is_refused_before_the_bus_is_asked() {
+    let node = named("rikurisetup").await;
+    let bus = Bus::start(
+        bus_socket(&node.scratch),
+        hostname_file(&node.scratch),
+        Answer::Renamed,
+    );
+    let session = owner(&node).await;
+    for bad in [
+        "",
+        "rikuri.local",
+        "-rikuri",
+        "localhost",
+        "a b",
+        "rikuri02\n",
+    ] {
+        let reply = rename(&node, &session, bad).await;
+        assert_eq!(reply.status, 400, "{bad:?}: {}", reply.body);
+        assert_eq!(reply.json(), json!({ "error": "not a name for the node" }));
+    }
+    assert!(bus.seen().auth.is_empty());
+    assert_eq!(on_file(&node), "rikurisetup\n");
+    node.stop().await;
+}
+
+#[tokio::test]
+async fn a_rename_that_fails_changes_nothing() {
+    for answer in [
+        Some(Answer::Error(ACCESS_DENIED)),
+        Some(Answer::Error(INVALID_ARGS)),
+        Some(Answer::ReturnOnly),
+        None,
+    ] {
+        let node = named("rikurisetup").await;
+        let bus = answer
+            .clone()
+            .map(|a| Bus::start(bus_socket(&node.scratch), hostname_file(&node.scratch), a));
+        let session = owner(&node).await;
+        let reply = rename(&node, &session, "rikuri02").await;
+        assert_eq!(reply.status, 503, "{answer:?}: {}", reply.body);
+        assert_eq!(
+            reply.json(),
+            json!({ "error": "the node could not be renamed" })
+        );
+        assert_eq!(on_file(&node), "rikurisetup\n", "{answer:?}");
+        handshake_as(&node, "rikurisetup.local").await.unwrap();
+        assert!(
+            handshake_as(&node, "rikuri02.local").await.is_err(),
+            "{answer:?}"
+        );
+        assert_eq!(setup_as_host(&node, "rikurisetup.local").await.status, 200);
+        assert_eq!(setup_as_host(&node, "rikuri02.local").await.status, 421);
+        drop(bus);
+        node.stop().await;
+    }
+}
+
+// ---- the follower -------------------------------------------------------------
+
+#[tokio::test]
+async fn a_rename_made_elsewhere_is_taken_on_the_next_look() {
+    let node = named("rikurisetup").await;
+    let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
+    let follower = tokio::spawn(address::follow(
+        node.booted.follower.clone(),
+        || None,
+        Duration::from_millis(10),
+        async {
+            let _ = stopped.await;
+        },
+    ));
+    std::fs::write(hostname_file(&node.scratch), "rikuri03\n").unwrap();
+    let mut reached = false;
+    for _ in 0..200 {
+        if handshake_as(&node, "rikuri03.local").await.is_ok() {
+            reached = true;
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    assert!(reached, "never served as rikuri03.local");
+    assert!(handshake_as(&node, "rikurisetup.local").await.is_err());
+    assert_eq!(setup_as_host(&node, "rikurisetup.local").await.status, 421);
+    assert_eq!(setup_as_host(&node, "rikuri03.local").await.status, 200);
+    stop.send(()).unwrap();
+    follower.await.unwrap();
+    node.stop().await;
+}
