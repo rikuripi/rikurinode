@@ -5,8 +5,8 @@
 | **Date** | 2026-11-13 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/5c4b1-rename-engine`, from `main` at `a59755d`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `dd66328` and `283bc43` contract, `0e7adec` red, `d0072f9` fix, `7e02605` record, `568bd1c` repair 1, `628b573` repair 2, `18c21c6` nit 5 dropped, and this close-out |
+| **Status** | DONE |
 | **Change type** | feature |
 
 ## Intent: the owner's words
@@ -163,3 +163,44 @@ The contract first left "a real claim in the drill" out, so the route on a node 
   No test in the repository can see log output, so no test could catch them.
 - Both repair cycles were used, so this went to the owner. The owner chose "Drop nit 5": `names.rs` is back to `main`'s text (as merged in #90), and nothing else changes. This removes a change that was outside the verifier's Important findings; it is not a third repair.
 - Backlog, not started: a warning when a reload loses the node's name, with a test that captures logs.
+
+### CI on `18c21c6` (nit 5 dropped): Pass
+
+- `Full gate (Ubuntu)`: **Pass**, [run 43509784804](https://github.com/rikuripi/rikurinode/actions/runs/43509784804). The log shows the four new Rust tests `ok`.
+- The image build, the USB installer drill and the rollback drill: **Pass**, [run 43509784874](https://github.com/rikuripi/rikurinode/actions/runs/43509784874).
+- `Rust mutants (changed lines)`: **Pass**, [run 43509784821](https://github.com/rikuripi/rikurinode/actions/runs/43509784821), but with `No mutants to filter`: the diff touched no non-test Rust code. **It proves no kill.**
+
+### The verifier's follow-up, at `18c21c6`: PASS
+
+- No Important finding is open. The pass checked only repair 2's corrections and the drop of nit 5.
+- **Important 1 to 4 (Rust): their kills are established by reading the code, not by a run.** Rust tests do not run on the Mac, and CI's mutants job had nothing to mutate.
+  - Important 1 and 2: every mutant of `read += n` or `read > MAX_READ` either never cuts the flood off (a timeout, failing the test's kind and its 10 s bound) or underflows and panics. The `==` mutant's kill rests on how Linux splits Unix-socket reads, so it is reasoned, not observed.
+  - Important 3: the arm deleted, the 24-byte message parses as `Ok`.
+  - Important 4: the arm deleted, the error falls through and the call times out.
+- **Important 5 (Python): Pass by trace,** with the evidence of this record's run on rikuri-drill (repair 2 above). rikuri-drill could not be reached for this pass, so the kill was not re-run.
+- Nit 1's values, the README (nit 2), the reasons for each test change, and `names.rs` being identical to `main`: Pass.
+- PR #91 was merged (`f014252`, 2026-11-13 21:40 UTC) while this pass was running; the pass reviewed code already on `main`. It found nothing to change.
+
+## Close-out
+
+- **Done when:**
+  - Red then green: Pass. The red was seen in CI, the fix is in its own commit, and every later test change has a recorded reason.
+  - `Full gate (Ubuntu)`: green on `568bd1c` and `18c21c6`.
+  - The live drill: Pass, in runs 43488038824 and 43493692877.
+    - polkit refused `nobody`;
+    - `PUT /api/node/name` renamed the node: `/etc/hostname` and the kernel's name became the new name;
+    - only the new name answered, with the same process and after a restart.
+  - The verifier: Pass after a first-pass FAIL on test adequacy and the follow-up above.
+  - **Not yet proven:**
+    - mDNS answering the new name is inferred from the kernel's name, not observed (5c.4b-2);
+    - the Rust kills of Important 1 to 4 are by reading only.
+- **Used:** both repair cycles and both review rounds. Nit 5 was dropped on the owner's choice rather than repaired.
+- **Merged:**
+  - PR #90 at `568bd1c`, as `30ae17a`;
+  - PR #91 at `18c21c6`, as `f014252`.
+
+  This close-out comes after both.
+- **Backlog, not started:**
+  - `.github/workflows/mutants.yml` accepts cargo-mutants' exit 3 (timeouts), which can hide missed mutants: its own control task;
+  - a warning, with a test that captures logs, when a reload loses the node's name.
+- **Next (not started):** 5c.4b-2: the page, the suggested free rikuriNN name, the mDNS check of a name, and the runbook.
