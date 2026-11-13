@@ -2210,8 +2210,8 @@ class RenameSteps(unittest.TestCase):
                 (self.CASES[0], {"other_out": "Call failed: Interactive authentication required.\nexit=0\n"}),
                 (self.CASES[0], {"other_out": "sh: busctl: command not found\nexit=127\n"}),
                 (self.CASES[0], {"other_out": "\n"}),
-                (self.CASES[0], {"other_renames": True}),
-                (self.CASES[0], {"kernel_follows": False}),
+                # 5c.4b-2, after red: resolved's mDNS follows the kernel's name.
+                ((self.CASES[0], self.CASES[5]), {"kernel_follows": False}),
                 (self.CASES[0], {"rename_reply": {"name": "rikuri01"}}),
                 (self.CASES[0], {"rename_reply": {"name": "rikuri01", "host": "rikurisetup.local"}}),
                 (self.CASES[1], {"cert_follows": False}),
@@ -2230,14 +2230,27 @@ class RenameSteps(unittest.TestCase):
                 (self.CASES[5], {"mdns_follows": False})):
             with self.subTest(case=case, over=over):
                 _, results = self.results(**over)
-                self.assertEqual([c for c in self.CASES if not results[c]], [case])
+                want = list(case) if isinstance(case, tuple) else [case]
+                self.assertEqual([c for c in self.CASES if not results[c]], want)
+
+    def test_a_rename_by_another_user_leaves_only_the_suggestion(self):
+        # 5c.4b-2, after red: a node another user renamed is named, so the
+        # node refuses the owner's rename too; only the suggestion, asked
+        # first, still passes.
+        _, results = self.results(other_renames=True)
+        self.assertEqual([c for c in self.CASES if results[c]], [self.CASES[3]])
 
     def test_no_claim_no_rename_fails_every_case(self):
         for over in ({"rearm_out": ""}, {"rearm_out": "rearm-claim: the node is claimed\n"},
                      {"claim_status": 401}, {"rename_status": 503}, {"rename_status": 403}):
             with self.subTest(over=over):
                 drill, results = self.results(**over)
-                self.assertEqual(results, dict.fromkeys(self.CASES, False))
+                # 5c.4b-2, after red: the suggestion is asked before the
+                # rename, so a rename that fails leaves it standing.
+                want = dict.fromkeys(self.CASES, False)
+                if "rename_status" in over:
+                    want[self.CASES[3]] = True
+                self.assertEqual(results, want)
                 if "rearm_out" in over:
                     self.assertEqual([r for r in drill.requests if r[1] in ("POST", "PUT")], [])
 

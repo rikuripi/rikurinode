@@ -521,19 +521,40 @@ REARM_AS_CP = (_AS_USER % (CP_USER, CP_USER)
 RESTART_CP = "systemctl restart rikuri-control-plane.service"
 # After its restart the service answers within seconds; 12 tries 5 s apart.
 RENAME_TRIES = 12
-# 5c.4b-2 (docs/build-records/2026-11-13-5c4b2-naming-page.md). Red: stubs.
-LOOKUP_UNUSED = "red: the stub asks nothing"
-MDNS_QUERY = "red: the stub queries nothing"
+# 5c.4b-2 (docs/build-records/2026-11-13-5c4b2-naming-page.md): the daemon's
+# own lookup, made by another user for a name no node has, so the evidence
+# shows the error resolved gives for a name nothing answers (and that no
+# polkit rule stands in the way). Kept, never judged: the suggestion is.
+LOOKUP_UNUSED = (_AS_USER % ("nobody", "nobody")
+                 + "busctl call org.freedesktop.resolve1 /org/freedesktop/resolve1 "
+                 "org.freedesktop.resolve1.Manager ResolveHostname isit 0 rikuri98.local 0 6168"
+                 " 2>&1; echo \"exit=$?\"")
+# resolved's mDNS zone answering the new name, from the node itself. No
+# other device is on the drill's network, so this is the node's own answer.
+MDNS_QUERY = ("resolvectl query -p mdns --synthesize=no --cache=no " + RENAMED_NAME
+              + " 2>&1; echo \"exit=$?\"")
+ALREADY_NAMED = "the node already has a name"
 
 
 def mdns_answers(out) -> bool:
-    """Red: the stub reads nothing."""
+    """`resolvectl query` for the new name: exit 0, and a line that is its
+    answer (`rikuri01.local: <address>`), not an error."""
+    if exit_status(out) != 0:
+        return False
+    for line in (out or "").splitlines():
+        name, sep, rest = line.partition(": ")
+        if name == RENAMED_NAME and sep and "fail" not in rest and "timed out" not in rest:
+            return True
     return False
 
 
 def again_refused(status, body: bytes) -> bool:
-    """Red: the stub reads nothing."""
-    return False
+    """A second rename refused as the node words it: 409, the node's error."""
+    try:
+        reply = json.loads(body)
+    except ValueError:
+        return False
+    return status == 409 and reply == {"error": ALREADY_NAMED}
 
 
 
@@ -702,7 +723,11 @@ EXPECTED = frozenset({"first boot", "the containers range at the first boot", "c
                       "the EFI partition's automount on /boot is masked",
                       "the owner renames the node, and no other user can",
                       "the new name only, at once and with no restart",
-                      "the new name only, after a restart"})
+                      "the new name only, after a restart",
+                      # 5c.4b-2:
+                      "the node suggests the first free name",
+                      "a named node is not renamed again",
+                      "resolved's mDNS answers the new name"})
 
 
 def verdict(results, error) -> int:
@@ -1275,8 +1300,11 @@ class Drill:
         other = self.vm(RENAME_AS_OTHER, check=False)
         kept = first_name(self.vm(STATIC_NAME, check=False))
         renamed, detail = False, "no CA certificate to trust (/ca.crt: %s)" % status
+        suggested, suggested_detail = False, detail
+        again, again_detail = False, detail
         if cafile:
-            renamed, detail = self.rename_as_owner(cafile)
+            (renamed, detail, suggested, suggested_detail,
+             again, again_detail) = self.rename_as_owner(cafile)
         static = first_name(self.vm(STATIC_NAME, check=False))
         kernel = (self.vm(HOSTNAME_CMD, check=False) or "").strip()
         ok = polkit_refused(other) and kept == NODE_HOSTNAME and renamed and static == RENAMED and kernel == RENAMED
@@ -1284,6 +1312,20 @@ class Drill:
             exit_status(other), " ".join((other or "").split())[:160], kept, detail, static, kernel)
         self.check("the owner renames the node, and no other user can", ok, detail)
         lines.append(detail)
+
+        unused = self.vm(LOOKUP_UNUSED, check=False)
+        suggested_detail += "; resolved, for a name nothing answers (as nobody): %r" % " ".join(
+            (unused or "").split())[:200]
+        self.check("the node suggests the first free name", suggested, suggested_detail)
+        lines.append(suggested_detail)
+        static_after = first_name(self.vm(STATIC_NAME, check=False))
+        again_detail += "; then /etc/hostname %r" % static_after
+        self.check("a named node is not renamed again", again and static_after == RENAMED, again_detail)
+        lines.append(again_detail)
+        answer = self.vm(MDNS_QUERY, check=False)
+        mdns_detail = "resolvectl query %s: %r" % (RENAMED_NAME, " ".join((answer or "").split())[:200])
+        self.check("resolved's mDNS answers the new name", mdns_answers(answer), mdns_detail)
+        lines.append(mdns_detail)
 
         served, detail = self.named_only(cafile, fingerprint)
         run_after = self.vm(SHOW_CP_RUN, check=False) or ""
@@ -1307,12 +1349,16 @@ class Drill:
         self.keep("05-rename.out", "\n".join(lines) + "\n")
 
     def rename_as_owner(self, cafile):
-        """Claims the node with a code armed at the console, then renames it
-        through the API: (whether both answered as they should, what
-        happened). Neither the code nor the password is in what it returns."""
+        """Claims the node with a code armed at the console, asks it for a
+        name (5c.4b-2), renames it through the API, and asks again: (whether
+        the rename answered as it should, what happened; whether the
+        suggestion was rikuri01, what it was; whether the second rename was
+        refused, what happened). Neither the code nor the password is in what
+        it returns."""
+        none = (False, "not claimed")
         code = armed_code(self.vm(REARM_AS_CP, check=False))
         if code is None:
-            return False, "no claim code armed at the console"
+            return (False, "no claim code armed at the console") + none + none
         password = secrets.token_urlsafe(24)
         try:
             raw = self.send_tls("POST", "/api/claim", json.dumps({"code": code, "password": password}).encode(),
@@ -1322,18 +1368,39 @@ class Drill:
             reply = json.loads(body) if status == 201 else {}
             csrf = reply.get("csrf_token") if isinstance(reply, dict) else None
         except (OSError, ValueError) as e:
-            return False, "the claim: no answer (%s)" % e
+            return (False, "the claim: no answer (%s)" % e) + none + none
         if status != 201 or not cookie or not isinstance(csrf, str):
-            return False, "the claim: %s, a session %s" % (status, "opened" if cookie else "not opened")
+            return (False, "the claim: %s, a session %s" % (status, "opened" if cookie else "not opened")) + none + none
+        session = ("Cookie", "rikuri_session=" + cookie)
         try:
-            status, body = parse_http(self.send_tls(
-                "PUT", "/api/node/name", json.dumps({"name": RENAMED}).encode(), cafile,
-                headers=(("Cookie", "rikuri_session=" + cookie), ("X-CSRF-Token", csrf))))
+            status, body = parse_http(self.send_tls("GET", "/api/node/name/suggestion", b"", cafile,
+                                                    headers=(session,)))
+            suggested = status == 200 and json.loads(body) == {"name": RENAMED}
+            suggested_detail = "GET /api/node/name/suggestion: %s %s" % (
+                status, body[:120].decode("utf-8", "replace"))
+        except (OSError, ValueError) as e:
+            suggested, suggested_detail = False, "GET /api/node/name/suggestion: no answer (%s)" % e
+
+        def put(name):
+            return parse_http(self.send_tls("PUT", "/api/node/name", json.dumps({"name": name}).encode(), cafile,
+                                            headers=(session, ("X-CSRF-Token", csrf))))
+        try:
+            status, body = put(RENAMED)
             reply = json.loads(body)
         except (OSError, ValueError) as e:
-            return False, "claimed; the rename: no answer (%s)" % e
+            return (False, "claimed; the rename: no answer (%s)" % e, suggested, suggested_detail) + none
         ok = status == 200 and reply == {"name": RENAMED, "host": RENAMED_NAME}
-        return ok, "claimed; PUT /api/node/name: %s %s" % (status, body[:120].decode("utf-8", "replace"))
+        detail = "claimed; PUT /api/node/name: %s %s" % (status, body[:120].decode("utf-8", "replace"))
+        # The same name again: a node that let it through would change
+        # nothing, so no later check is spoiled by it.
+        try:
+            status, body = put(RENAMED)
+            again = again_refused(status, body)
+            again_detail = "PUT /api/node/name again (%s): %s %s" % (RENAMED,
+                       status, body[:120].decode("utf-8", "replace"))
+        except OSError as e:
+            again, again_detail = False, "PUT /api/node/name again: no answer (%s)" % e
+        return ok, detail, suggested, suggested_detail, again, again_detail
 
     def named_only(self, cafile, fingerprint):
         """Whether HTTPS answers as the new name only, and what happened:

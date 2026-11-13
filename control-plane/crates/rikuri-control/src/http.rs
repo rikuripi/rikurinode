@@ -669,7 +669,8 @@ struct Renamed {
     host: String,
 }
 
-/// 5c.4b-2: the first free `rikuriNN`, or none.
+// 5c.4b-2: the first free `rikuriNN`, or none. (A plain comment: ts-rs
+// copies a doc comment into the generated type.)
 #[derive(Serialize)]
 #[cfg_attr(test, derive(ts_rs::TS))]
 struct NameSuggestion {
@@ -683,7 +684,28 @@ async fn suggestion(
     headers: HeaderMap,
 ) -> Result<Json<NameSuggestion>, Refusal> {
     authenticate(&app, &headers)?;
-    Ok(Json(NameSuggestion { name: None })) // red: the stub suggests nothing
+    let uid = hostname::own_uid().map_err(internal)?;
+    let socket = app.0.bus_socket.clone();
+    let found = hostname::suggest(
+        |name| {
+            let socket = socket.clone();
+            async move { hostname::name_answers(&socket, uid, &name, hostname::BUS_TIMEOUT).await }
+        },
+        hostname::SUGGEST_LIMIT,
+    )
+    .await;
+    match found {
+        Ok(name) => Ok(Json(NameSuggestion {
+            name: name.map(|n| n.as_str().to_owned()),
+        })),
+        Err(why) => {
+            error!(why = %why, "resolved could not say which names are free");
+            Err(refuse(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "the node could not check which names are free",
+            ))
+        }
+    }
 }
 
 /// Renames the node: hostnamed sets the static name (polkit lets only this
@@ -701,7 +723,38 @@ async fn rename(
     let name = NodeName::parse(&body.name)
         .map_err(|_| refuse(StatusCode::BAD_REQUEST, "not a name for the node"))?;
     let _one = app.0.rename_lock.lock().await;
+    // 5c.4b-2: during setup only. A node its owner has named keeps its name.
+    match std::fs::read_to_string(&app.0.hostname_file) {
+        Ok(text) if hostname::first_line(&text) == Some(hub::SETUP_HOSTNAME) => {}
+        Ok(_) => {
+            return Err(refuse(StatusCode::CONFLICT, "the node already has a name"));
+        }
+        Err(e) => {
+            error!(error = %e, "the hostname could not be read: no rename");
+            return Err(refuse(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "the node could not be renamed",
+            ));
+        }
+    }
     let uid = hostname::own_uid().map_err(internal)?;
+    // 5c.4b-2: never a name something on the network answers.
+    match hostname::name_answers(&app.0.bus_socket, uid, &name, hostname::BUS_TIMEOUT).await {
+        hostname::Lookup::Free => {}
+        hostname::Lookup::Taken => {
+            return Err(refuse(
+                StatusCode::CONFLICT,
+                "that name is already in use on this network",
+            ));
+        }
+        hostname::Lookup::Unknown(why) => {
+            error!(why = %why, name = %name, "resolved could not say whether the name is free: no rename");
+            return Err(refuse(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "the node could not be renamed",
+            ));
+        }
+    }
     if let Err(e) =
         hostname::set_static_hostname(&app.0.bus_socket, uid, &name, hostname::BUS_TIMEOUT).await
     {

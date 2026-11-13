@@ -15,6 +15,11 @@
 //! error, never as a prompt. Little-endian only: hostnamed and the bus run on
 //! the node itself (x86-64 and arm64).
 //! Record: docs/build-records/2026-11-13-5c4b1-rename-engine.md
+//!
+//! 5c.4b-2: one more fixed call, to systemd-resolved, `ResolveHostname` over
+//! mDNS only: whether something on the network answers a name. It needs no
+//! polkit rule and no socket of the control plane's own on the network.
+//! Record: docs/build-records/2026-11-13-5c4b2-naming-page.md
 
 use std::fmt;
 use std::io;
@@ -227,7 +232,7 @@ pub const NO_SYNTHESIZE: u64 = 1 << 11;
 pub const NO_CACHE: u64 = 1 << 12;
 pub const LOOKUP_FLAGS: u64 = MDNS_IPV4 | MDNS_IPV6 | NO_SYNTHESIZE | NO_CACHE;
 /// How long a suggestion may take in all: a page waits for it.
-pub const SUGGEST_LIMIT: Duration = Duration::from_secs(1); // red: the design says 30 s
+pub const SUGGEST_LIMIT: Duration = Duration::from_secs(30);
 
 /// The errors from resolved that mean "nothing answers that name". Any other
 /// error, or none in time, is [`Lookup::Unknown`], never free.
@@ -247,35 +252,65 @@ pub enum Lookup {
     Unknown(String),
 }
 
-/// `ResolveHostname(0, "<name>.local", AF_UNSPEC, LOOKUP_FLAGS)`.
-pub fn resolve_hostname_call(_name: &NodeName, _serial: u32) -> Vec<u8> {
-    Vec::new() // red: the stub sends nothing
+/// `ResolveHostname(0, "<name>.local", AF_UNSPEC, LOOKUP_FLAGS)`: any
+/// interface, either address family.
+pub fn resolve_hostname_call(name: &NodeName, serial: u32) -> Vec<u8> {
+    let mut body = Wire::default();
+    body.u32(0);
+    body.string(&name.local());
+    body.u32(0);
+    body.u64(LOOKUP_FLAGS);
+    method_call(
+        serial,
+        "/org/freedesktop/resolve1",
+        "org.freedesktop.resolve1",
+        "org.freedesktop.resolve1.Manager",
+        "ResolveHostname",
+        Some(("isit", body.0)),
+    )
 }
 
-/// A lookup's outcome from the bus's answer.
-pub fn lookup(_answer: Result<(), BusError>) -> Lookup {
-    Lookup::Unknown("red: the stub reads nothing".to_owned())
+/// A lookup's outcome from the bus's answer: a return is an answer, only
+/// resolved's own "not found" is free, and anything else is unknown.
+pub fn lookup(answer: Result<(), BusError>) -> Lookup {
+    match answer {
+        Ok(()) => Lookup::Taken,
+        Err(BusError::Refused(name)) if FREE.contains(&name.as_str()) => Lookup::Free,
+        Err(e) => Lookup::Unknown(e.to_string()),
+    }
 }
 
 /// Asks resolved, through the bus at `socket`, whether `name.local` answers.
-pub async fn name_answers(_socket: &Path, _uid: u32, _name: &NodeName, _limit: Duration) -> Lookup {
-    Lookup::Unknown("red: the stub asks nothing".to_owned())
+pub async fn name_answers(socket: &Path, uid: u32, name: &NodeName, limit: Duration) -> Lookup {
+    lookup(call(socket, uid, resolve_hostname_call(name, CALL_SERIAL), limit).await)
 }
 
 /// The names the suggestion tries, in order.
 pub fn candidates() -> impl Iterator<Item = NodeName> {
-    std::iter::empty() // red
+    (1..=99).filter_map(|n| NodeName::parse(&format!("rikuri{n:02}")).ok())
 }
 
 /// The first of [`candidates`] that `look` finds free, one at a time, all
 /// within `limit`: `Ok(None)` when every one is taken or the limit runs out;
 /// `Err` as soon as one is [`Lookup::Unknown`], never a guess.
-pub async fn suggest<F, Fut>(_look: F, _limit: Duration) -> Result<Option<NodeName>, String>
+pub async fn suggest<F, Fut>(mut look: F, limit: Duration) -> Result<Option<NodeName>, String>
 where
     F: FnMut(NodeName) -> Fut,
     Fut: std::future::Future<Output = Lookup>,
 {
-    Err("red: the stub suggests nothing".to_owned())
+    let first_free = async {
+        for name in candidates() {
+            match look(name.clone()).await {
+                Lookup::Free => return Ok(Some(name)),
+                Lookup::Taken => {}
+                Lookup::Unknown(why) => return Err(format!("{}: {why}", name.local())),
+            }
+        }
+        Ok(None)
+    };
+    tokio::time::timeout(limit, first_free)
+        .await
+        .unwrap_or(Ok(None))
 }
 
 /// A method call, little-endian, expecting a reply, with no flags: the
@@ -328,6 +363,10 @@ impl Wire {
     }
     fn u32(&mut self, v: u32) {
         self.align(4);
+        self.0.extend_from_slice(&v.to_le_bytes());
+    }
+    fn u64(&mut self, v: u64) {
+        self.align(8);
         self.0.extend_from_slice(&v.to_le_bytes());
     }
     fn string(&mut self, s: &str) {
@@ -488,12 +527,23 @@ pub async fn set_static_hostname(
     name: &NodeName,
     limit: Duration,
 ) -> Result<(), BusError> {
-    tokio::time::timeout(limit, exchange(socket, uid, name))
+    call(
+        socket,
+        uid,
+        set_static_hostname_call(name, CALL_SERIAL),
+        limit,
+    )
+    .await
+}
+
+/// One fixed call, made as [`CALL_SERIAL`] after `Hello`, within `limit`.
+async fn call(socket: &Path, uid: u32, call: Vec<u8>, limit: Duration) -> Result<(), BusError> {
+    tokio::time::timeout(limit, exchange(socket, uid, call))
         .await
         .map_err(|_| BusError::TimedOut)?
 }
 
-async fn exchange(socket: &Path, uid: u32, name: &NodeName) -> Result<(), BusError> {
+async fn exchange(socket: &Path, uid: u32, call: Vec<u8>) -> Result<(), BusError> {
     let mut bus = UnixStream::connect(socket)
         .await
         .map_err(BusError::Unreachable)?;
@@ -504,7 +554,7 @@ async fn exchange(socket: &Path, uid: u32, name: &NodeName) -> Result<(), BusErr
     }
     let mut out = b"BEGIN\r\n".to_vec();
     out.extend_from_slice(&hello(HELLO_SERIAL));
-    out.extend_from_slice(&set_static_hostname_call(name, CALL_SERIAL));
+    out.extend_from_slice(&call);
     bus.write_all(&out).await.map_err(BusError::Io)?;
 
     let mut buf = Vec::new();

@@ -4,6 +4,7 @@
      5c.4a: it is the SetupHub. It shows the node's ID and every step of
      setup from GET /api/hub, each state said in words, never by colour alone.
      A reply that is not exactly the hub shows no step at all: never a guess.
+     5c.4b-2: while the name is next, the step links to /name.
      Records: docs/build-records/2026-11-11-5c3b-claim-and-sign-in.md,
      docs/build-records/2026-11-11-5c4a-uuid-and-setup-hub.md -->
 <script lang="ts">
@@ -79,7 +80,10 @@
                 <span class="what">
                   <span class="name">{t(`hub.step.${step}`)}</span>
                   <span class="state">{t(`hub.state.${state}`)}</span>
-                  {#if step === 'name' && state === 'next'}<span class="hint">{t('hub.name_next')}</span>{/if}
+                  {#if step === 'name' && state === 'next'}
+                    <span class="hint">{t('hub.name_next')}</span>
+                    <a class="action primary" href="/name">{t('hub.name_link')}</a>
+                  {/if}
                 </span>
               </li>
             {/each}

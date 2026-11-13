@@ -111,12 +111,20 @@ Use Fedora Media Writer (Fedora's own tool, free, from `fedoraproject.org/workst
     - Write the password down or keep it in a password manager. Nothing can reset it yet: if it is lost, the node cannot be claimed again until a later update brings a reset at the node.
     - Tap **Claim this node**. **This node is yours** opens. Under **What setup still needs** it shows the node's **Node ID** (letters, numbers and dashes, the node's own for its whole life) and each step of setup:
       - **A private connection** and **An owner and a password**: **Done**;
-      - **A name for the node**: **Next**. Naming the node comes with the next update;
+      - **A name for the node**: **Next**, with **Choose its name** (step 13);
       - **Bitcoin**, **Lightning** and **Backups**: **Comes with a later update**.
       - A step that says **Couldn’t be read** is not done: report it. Below the list, the page says until when this device stays signed in.
     - If it says the code is not the one on the node's screen, check it against the screen (a code lasts 24 hours; Enter at the node shows a new one) and type it again. After several wrong tries it asks you to wait a number of seconds; the button returns when they are over.
     - If it says the node already has an owner, someone has claimed it. If that was not you, stop: unplug the node's network cable and report it.
-13. Tap **Sign out**: the page **Sign in to your node** opens. Type the password and tap **Sign in**: **This node is yours** opens again, with the same **Node ID**. Sign out again, then power the N150 off with a short press of its power button.
+13. Tap **Choose its name**. The page **Name your node** opens, with a name already filled in: the first of `rikuri01`, `rikuri02`, … that nothing on your network answers to. Phones and computers will reach the node as that name followed by `.local`.
+    - Keep it, or type your own: letters, digits and hyphens, at most 63, not starting or ending with a hyphen. Capitals become small letters.
+    - Tap **Name the node**. The page says **Your node is now called rikuri01.local** (or your name), and opens `https://rikuri01.local/signin` by itself; **Go to the node now** does the same at once.
+    - Sign in there with your password. The node no longer answers `rikurisetup.local`, and this device was signed in to that old name, so signing in again is expected. The certificate stays trusted: **Rikuri Node CA** signs the new one too.
+    - **What setup still needs** now says **A name for the node**: **Done**. The node keeps this name: changing it later comes with a later update.
+    - If the page says something on your network already answers to that name, choose another.
+    - If the page says every name from rikuri01 to rikuri99 is in use, or that the node couldn't check which names are free, type a name of your own; if renaming then fails, wait a minute and try again.
+    - If the new address does not open ("cannot find" or "server not found"), wait a minute and reload: some phones take a moment to learn a new `.local` name. The node's address on the claim screen (Ctrl+Alt+F2) always works, as `https://<address>/signin`.
+14. Tap **Sign out**: the page **Sign in to your node** opens. Type the password and tap **Sign in**: **This node is yours** opens again, with the same **Node ID**. Sign out again, then power the N150 off with a short press of its power button.
 
 Report: whether it started from the stick, what the disk line said, whether
 it powered off by itself and started to the login prompt, and what the claim
@@ -126,7 +134,8 @@ Enter), whether a phone or computer on the same network reached
 not), which device you installed the certificate on and whether its steps
 worked as the page said, whether the browser's fingerprint matched the
 claim screen's, and whether claiming, signing out and signing in worked as
-steps 12 and 13 say, and what **What setup still needs** listed. Photos of the screens are enough; never photograph or
+steps 12 and 14 say, what **What setup still needs** listed, which name
+step 13 suggested, and whether the node opened at its new name. Photos of the screens are enough; never photograph or
 send the password. A photo of a code is harmless once the node is claimed, as
 that code no longer works.
 

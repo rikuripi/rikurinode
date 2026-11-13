@@ -7,6 +7,8 @@ import type { ClaimRequest } from '../generated/ClaimRequest';
 import type { ErrorReply } from '../generated/ErrorReply';
 import type { HubReport } from '../generated/HubReport';
 import type { HubStep } from '../generated/HubStep';
+import type { NameSuggestion } from '../generated/NameSuggestion';
+import type { Renamed } from '../generated/Renamed';
 import type { SetupStep } from '../generated/SetupStep';
 import type { StepState } from '../generated/StepState';
 import type { SessionInfo } from '../generated/SessionInfo';
@@ -135,4 +137,41 @@ export function readHub(): Promise<Outcome<HubReport>> {
 
 export function signOut(csrf: string): Promise<Outcome<true>> {
   return call('DELETE', '/api/session', 204, () => true, { headers: { [CSRF_HEADER]: csrf } });
+}
+
+// 5c.4b-2: the node's name, by hostname.rs's rules: one label of lower-case
+// letters, digits and inner hyphens, at most 63, and not `localhost`.
+const LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
+/** The name the node would take for `typed`, in lower case, or null. */
+export function nodeName(typed: string): string | null {
+  const name = typed.toLowerCase();
+  return LABEL.test(name) && name !== 'localhost' ? name : null;
+}
+
+/** A suggestion exactly as the node writes it: a name by the rules, or null. */
+export function parseSuggestion(value: unknown): NameSuggestion | null {
+  const v = record(value);
+  if (!v || !('name' in v)) return null;
+  const name = v['name'];
+  if (name === null) return { name: null };
+  return typeof name === 'string' && nodeName(name) === name ? { name } : null;
+}
+
+/** The node's answer to a rename: its new name, and the host that is `<name>.local`. */
+export function parseRenamed(value: unknown): Renamed | null {
+  const v = record(value);
+  const name = v?.['name'];
+  const host = v?.['host'];
+  if (typeof name !== 'string' || nodeName(name) !== name || host !== `${name}.local`) return null;
+  return { name, host };
+}
+
+/** The first free rikuriNN, or none: ok, refused 401 (signed out), or another outcome. */
+export function readSuggestion(): Promise<Outcome<NameSuggestion>> {
+  return call('GET', '/api/node/name/suggestion', 200, parseSuggestion);
+}
+
+export function renameNode(csrf: string, name: string): Promise<Outcome<Renamed>> {
+  return call('PUT', '/api/node/name', 200, parseRenamed, { json: { name }, headers: { [CSRF_HEADER]: csrf } });
 }
