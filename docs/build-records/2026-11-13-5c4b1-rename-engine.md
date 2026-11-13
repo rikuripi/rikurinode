@@ -31,22 +31,22 @@
      - a polkit rule under `usr/share/polkit-1/rules.d/` that allows `org.freedesktop.hostname1.set-static-hostname` for the user `rikuri-control` only, and says nothing about anyone else;
      - `rikuri-control-plane.service` no longer sets `RIKURI_NAMES=rikurisetup.local` (the name comes from `/etc/hostname`), plus any key the bus needs, each pinned;
      - `image/check_image_root.py` and its tests: the rule's exact content and the unit's keys.
-   - `image/drill/vm_drill.py` and its tests, a new last step:
-     - polkit allows `rikuri-control` to set the static name and refuses another unprivileged user (through `busctl` in the guest, as each user);
-     - after the rename, within one follower tick and with no restart, the node serves HTTPS as the new name with only its CA, refuses `Host: rikurisetup.local`, and resolved answers the new name;
+   - `image/drill/vm_drill.py` and its tests, a new last step (amended 2026-11-13, below):
+     - polkit refuses the rename to another unprivileged user (`nobody`, through `busctl`, never interactive), and the name stays;
+     - the drill claims the node with a code armed at the console (`rearm-claim`, run as the service's user; the code is kept in memory, never in the evidence) and renames it through `PUT /api/node/name`: the daemon's own D-Bus client, polkit's rule and hostnamed together. `/etc/hostname` and the kernel's name (which resolved's mDNS answers, as 5c.2's check reads it) are then the new name;
+     - with the same service process, the node serves HTTPS as the new name with only its CA and lists only it, and refuses `rikurisetup.local` by its certificate and by its `Host` check;
      - after a restart of the control plane, the same.
    - the specs or ADR text this changes, if any, and this record.
 
    **Not included:**
    - the page, the suggested free name and the mDNS check of a name, the hub's name step turning Done in the browser, and the runbook (5c.4b-2);
-   - a real claim in the drill;
    - any other privileged action (D13's root helper);
    - lifting the ban on spawning processes;
    - any change to the CA.
 3. **Done when:**
    - red tests, committed and seen failing in CI, then passing after the fix: the name's rules; the D-Bus client's bytes on the wire and its handling of a return, an error, a refusal, a short or odd reply and a timeout; the route's refusals (no session, no CSRF, a bad name, hostnamed refusing) and its success (the names swapped, the certificate re-issued, the old name refused); names from `/etc/hostname` at start and on a tick; the image check of the rule and the unit; the drill step against a stand-in VM;
    - `Full gate (Ubuntu)` green on the PR;
-   - the VM drills on the PR: the new step passes, with every earlier check as before. The route itself, called by a signed-in browser on a node, is Not yet proven here (no claim in the drill); 5c.4b-2 proves it end to end;
+   - the VM drills on the PR: the new step passes, with every earlier check as before;
    - one verifier pass with hand mutations of the new checks, and the follow-up if needed.
 4. **Authority:** the owner's choices above. Edit the files in Scope.
    - Tests: Rust and UI tests run only in CI; on the Mac only `scripts/cargo.sh` check, clippy and fmt. Python tests run on `rikuri-drill` through `scripts/quality/safe-run.sh` (host key pinned, as before).
@@ -54,6 +54,10 @@
    - No change to CI workflows, the gate, the guard, `deny.toml`'s bans or `clippy.toml`.
    - Verifier: required.
 5. **Limits:** this task only; at most two repair cycles and two review rounds. No budget configured: CI minutes used are reported.
+
+### Amendment, 2026-11-13, before the red commit
+
+The contract first left "a real claim in the drill" out, so the route on a node would have been Not yet proven, and the drill would have shown polkit's rule only through `busctl`. The survey then found that `rearm-claim` prints a fresh code at the console. So the drill can claim the node itself, and call the route as the owner's browser will. This proves the daemon's own D-Bus client against the real bus, inside the service's real sandbox and SELinux context, which `busctl` from an SSH shell would not. The amendment adds no authority and no file outside Scope. It only moves a check from Not yet proven to the drill. The owner is told in the report.
 
 ## Design notes (before any edit)
 
