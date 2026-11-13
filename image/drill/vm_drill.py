@@ -521,6 +521,20 @@ REARM_AS_CP = (_AS_USER % (CP_USER, CP_USER)
 RESTART_CP = "systemctl restart rikuri-control-plane.service"
 # After its restart the service answers within seconds; 12 tries 5 s apart.
 RENAME_TRIES = 12
+# 5c.4b-2 (docs/build-records/2026-11-13-5c4b2-naming-page.md). Red: stubs.
+LOOKUP_UNUSED = "red: the stub asks nothing"
+MDNS_QUERY = "red: the stub queries nothing"
+
+
+def mdns_answers(out) -> bool:
+    """Red: the stub reads nothing."""
+    return False
+
+
+def again_refused(status, body: bytes) -> bool:
+    """Red: the stub reads nothing."""
+    return False
+
 
 
 def http_header(raw: bytes, name: str):

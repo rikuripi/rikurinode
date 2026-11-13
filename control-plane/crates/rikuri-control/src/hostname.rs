@@ -215,6 +215,69 @@ pub fn set_static_hostname_call(name: &NodeName, serial: u32) -> Vec<u8> {
     )
 }
 
+// ---- is a name in use? (5c.4b-2) -------------------------------------------
+
+/// systemd-resolved's flags (org.freedesktop.resolve1(5)): ask mDNS only,
+/// over IPv4 and IPv6, never a synthesized answer and never the cache, so
+/// the answer is the network's now. The node's own zone still answers its
+/// own name: a node never suggests the name it has.
+pub const MDNS_IPV4: u64 = 1 << 3;
+pub const MDNS_IPV6: u64 = 1 << 4;
+pub const NO_SYNTHESIZE: u64 = 1 << 11;
+pub const NO_CACHE: u64 = 1 << 12;
+pub const LOOKUP_FLAGS: u64 = MDNS_IPV4 | MDNS_IPV6 | NO_SYNTHESIZE | NO_CACHE;
+/// How long a suggestion may take in all: a page waits for it.
+pub const SUGGEST_LIMIT: Duration = Duration::from_secs(1); // red: the design says 30 s
+
+/// The errors from resolved that mean "nothing answers that name". Any other
+/// error, or none in time, is [`Lookup::Unknown`], never free.
+pub const FREE: [&str; 2] = [
+    "org.freedesktop.resolve1.DnsError.NXDOMAIN",
+    "org.freedesktop.DBus.Error.Timeout",
+];
+
+/// Whether something on the network answers a name.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Lookup {
+    /// It answers: the name is in use.
+    Taken,
+    /// Resolved says nothing answers it.
+    Free,
+    /// Resolved could not say; why.
+    Unknown(String),
+}
+
+/// `ResolveHostname(0, "<name>.local", AF_UNSPEC, LOOKUP_FLAGS)`.
+pub fn resolve_hostname_call(_name: &NodeName, _serial: u32) -> Vec<u8> {
+    Vec::new() // red: the stub sends nothing
+}
+
+/// A lookup's outcome from the bus's answer.
+pub fn lookup(_answer: Result<(), BusError>) -> Lookup {
+    Lookup::Unknown("red: the stub reads nothing".to_owned())
+}
+
+/// Asks resolved, through the bus at `socket`, whether `name.local` answers.
+pub async fn name_answers(_socket: &Path, _uid: u32, _name: &NodeName, _limit: Duration) -> Lookup {
+    Lookup::Unknown("red: the stub asks nothing".to_owned())
+}
+
+/// The names the suggestion tries, in order.
+pub fn candidates() -> impl Iterator<Item = NodeName> {
+    std::iter::empty() // red
+}
+
+/// The first of [`candidates`] that `look` finds free, one at a time, all
+/// within `limit`: `Ok(None)` when every one is taken or the limit runs out;
+/// `Err` as soon as one is [`Lookup::Unknown`], never a guess.
+pub async fn suggest<F, Fut>(_look: F, _limit: Duration) -> Result<Option<NodeName>, String>
+where
+    F: FnMut(NodeName) -> Fut,
+    Fut: std::future::Future<Output = Lookup>,
+{
+    Err("red: the stub suggests nothing".to_owned())
+}
+
 /// A method call, little-endian, expecting a reply, with no flags: the
 /// fixed header, then the header fields (each aligned to 8 from the
 /// message's start: path, destination, interface, member, and the body's
@@ -832,6 +895,183 @@ mod tests {
         assert_eq!(MAX_MESSAGE, 65_536);
         assert_eq!(MAX_READ, 262_144);
         assert_eq!(BUS_TIMEOUT, Duration::from_secs(10));
+    }
+
+    // ---- 5c.4b-2: is a name in use? ----
+
+    #[test]
+    fn resolve_hostname_is_byte_for_byte_and_mdns_only() {
+        let name = NodeName::parse("rikuri01").unwrap();
+        let want = cat(&[
+            b"l\x01\x00\x01",
+            &le(40),
+            &le(2),
+            &le(162),
+            // 16: the path
+            b"\x01\x01o\x00",
+            &le(25),
+            b"/org/freedesktop/resolve1\0",
+            &[0; 6],
+            // 56: the destination
+            b"\x06\x01s\x00",
+            &le(24),
+            b"org.freedesktop.resolve1\0",
+            &[0; 7],
+            // 96: the interface
+            b"\x02\x01s\x00",
+            &le(32),
+            b"org.freedesktop.resolve1.Manager\0",
+            &[0; 7],
+            // 144: the member, ending at 168
+            b"\x03\x01s\x00",
+            &le(15),
+            b"ResolveHostname\0",
+            // 168: the body's signature, ending at 178, then padding to 184
+            b"\x08\x01g\x00",
+            b"\x04isit\0",
+            &[0; 6],
+            // 184: any interface, the name, AF_UNSPEC, then the flags at 216
+            &le(0),
+            &le(14),
+            b"rikuri01.local\0",
+            &[0; 1],
+            &le(0),
+            &[0; 4],
+            &0x1818_u64.to_le_bytes(),
+        ]);
+        assert_eq!(want.len(), 224);
+        assert_eq!(resolve_hostname_call(&name, 2), want);
+    }
+
+    #[test]
+    fn the_lookup_asks_mdns_only_never_synthesized_or_cached() {
+        assert_eq!(LOOKUP_FLAGS, 8 | 16 | 2048 | 4096);
+        // Neither DNS (1) nor LLMNR (2, 4), and the node's own zone (8192)
+        // is not turned off.
+        assert_eq!(LOOKUP_FLAGS & (1 | 2 | 4 | 8192), 0);
+    }
+
+    #[test]
+    fn only_resolveds_not_found_is_free_and_only_an_answer_taken() {
+        let refused = |n: &str| Err(BusError::Refused(n.to_owned()));
+        assert_eq!(lookup(Ok(())), Lookup::Taken);
+        for free in FREE {
+            assert_eq!(lookup(refused(free)), Lookup::Free, "{free}");
+        }
+        assert_eq!(
+            FREE,
+            [
+                "org.freedesktop.resolve1.DnsError.NXDOMAIN",
+                "org.freedesktop.DBus.Error.Timeout",
+            ]
+        );
+        for unknown in [
+            refused("org.freedesktop.resolve1.NoSuchRR"),
+            refused("org.freedesktop.resolve1.NoNameServers"),
+            refused("org.freedesktop.DBus.Error.ServiceUnknown"),
+            Err(BusError::Denied(
+                "org.freedesktop.resolve1.DnsError.NXDOMAIN".to_owned(),
+            )),
+            Err(BusError::TimedOut),
+            Err(BusError::Protocol("x")),
+            Err(BusError::Auth("REJECTED".to_owned())),
+            Err(BusError::Io(io::Error::other("x"))),
+            Err(BusError::Unreachable(io::Error::other("x"))),
+        ] {
+            let shown = format!("{unknown:?}");
+            assert!(matches!(lookup(unknown), Lookup::Unknown(_)), "{shown}");
+        }
+    }
+
+    #[test]
+    fn the_candidates_are_rikuri01_to_rikuri99() {
+        let all: Vec<String> = candidates().map(|n| n.as_str().to_owned()).collect();
+        assert_eq!(all.len(), 99);
+        assert_eq!(all[0], "rikuri01");
+        assert_eq!(all[8], "rikuri09");
+        assert_eq!(all[9], "rikuri10");
+        assert_eq!(all[98], "rikuri99");
+    }
+
+    /// `suggest` with names answering as `taken` says, each lookup taking
+    /// `each`; the names it asked about.
+    async fn suggesting(
+        taken: fn(&str) -> bool,
+        unknown: Option<&'static str>,
+        each: Duration,
+        limit: Duration,
+    ) -> (Result<Option<NodeName>, String>, Vec<String>) {
+        let asked = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = asked.clone();
+        let result = suggest(
+            move |name: NodeName| {
+                let log = log.clone();
+                async move {
+                    tokio::time::sleep(each).await;
+                    let n = name.as_str().to_owned();
+                    log.lock().unwrap().push(n.clone());
+                    if Some(n.as_str()) == unknown {
+                        Lookup::Unknown("resolved could not say".to_owned())
+                    } else if taken(&n) {
+                        Lookup::Taken
+                    } else {
+                        Lookup::Free
+                    }
+                }
+            },
+            limit,
+        )
+        .await;
+        let asked = asked.lock().unwrap().clone();
+        (result, asked)
+    }
+
+    const SOON: Duration = Duration::from_millis(1);
+    const LONG: Duration = Duration::from_secs(30);
+
+    #[tokio::test]
+    async fn the_suggestion_is_the_first_free_name_asked_in_order() {
+        let (got, asked) =
+            suggesting(|n| ["rikuri01", "rikuri02"].contains(&n), None, SOON, LONG).await;
+        assert_eq!(got.unwrap().unwrap().as_str(), "rikuri03");
+        assert_eq!(asked, ["rikuri01", "rikuri02", "rikuri03"], "and no more");
+        let (got, asked) = suggesting(|_| false, None, SOON, LONG).await;
+        assert_eq!(got.unwrap().unwrap().as_str(), "rikuri01");
+        assert_eq!(asked, ["rikuri01"]);
+    }
+
+    #[tokio::test]
+    async fn every_name_taken_is_no_suggestion() {
+        let (got, asked) = suggesting(|_| true, None, Duration::ZERO, LONG).await;
+        assert_eq!(got, Ok(None));
+        assert_eq!(asked.len(), 99);
+    }
+
+    #[tokio::test]
+    async fn an_unknown_answer_stops_the_suggestion() {
+        let (got, asked) = suggesting(|n| n == "rikuri01", Some("rikuri02"), SOON, LONG).await;
+        assert!(got.is_err(), "{got:?}");
+        assert_eq!(asked, ["rikuri01", "rikuri02"]);
+    }
+
+    #[tokio::test]
+    async fn the_limit_ends_the_suggestion_with_none() {
+        let started = std::time::Instant::now();
+        let (got, asked) = suggesting(
+            |_| true,
+            None,
+            Duration::from_millis(40),
+            Duration::from_millis(100),
+        )
+        .await;
+        assert_eq!(got, Ok(None));
+        assert!(asked.len() < 4, "{asked:?}");
+        assert!(started.elapsed() < Duration::from_secs(2));
+    }
+
+    #[test]
+    fn the_suggestions_limit_is_what_the_design_says() {
+        assert_eq!(SUGGEST_LIMIT, Duration::from_secs(30));
     }
 
     #[test]

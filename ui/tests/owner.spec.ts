@@ -6,6 +6,8 @@ import { expect, test, type Page, type Request } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import type { ErrorReply } from '../src/generated/ErrorReply';
 import type { HubReport } from '../src/generated/HubReport';
+import type { NameSuggestion } from '../src/generated/NameSuggestion';
+import type { Renamed } from '../src/generated/Renamed';
 import type { SessionInfo } from '../src/generated/SessionInfo';
 import type { SessionOpened } from '../src/generated/SessionOpened';
 import type { SetupReport } from '../src/generated/SetupReport';
@@ -504,4 +506,172 @@ test.describe('the SetupHub', () => {
       await expect(page.getByRole('button', { name: t('home.signout') })).toBeVisible();
     });
   }
+});
+
+// 5c.4b-2: naming the node, during setup only. The page suggests the first
+// free rikuriNN, lets the owner change it, renames, and then opens the new
+// name's sign-in: the session's cookie is the old name's.
+// Record: docs/build-records/2026-11-13-5c4b2-naming-page.md
+test.describe('naming the node', () => {
+  const SUGGESTED: NameSuggestion = { name: 'rikuri03' };
+  const RENAMED: Renamed = { name: 'rikuri03', host: 'rikuri03.local' };
+  const NAMED: HubReport = { ...HUB, steps: HUB.steps.map((s) => (s.step === 'name' ? { ...s, state: 'done' } : s)) };
+  const SIGNED_IN = { 'GET /api/session': { status: 200, body: INFO } } as const;
+  const field = (page: Page) => page.getByLabel(t('name.field'));
+  const submit = (page: Page) => page.getByRole('button', { name: t('name.submit') });
+  const renames = (seen: Request[]) => seen.filter((r) => r.method() === 'PUT' && new URL(r.url()).pathname === '/api/node/name');
+
+  test('the hub links to the naming page while the name is next, and not once it is done', async ({ page }) => {
+    await api(page, SIGNED_IN);
+    await page.goto('/home');
+    const link = page.locator('li[data-step="name"]').getByRole('link', { name: t('hub.name_link') });
+    await expect(link).toHaveAttribute('href', '/name');
+    await page.unrouteAll();
+    await api(page, { ...SIGNED_IN, 'GET /api/hub': { status: 200, body: NAMED } });
+    await page.goto('/home');
+    await expect(page.locator('li[data-step="name"]')).toHaveAttribute('data-state', 'done');
+    await expect(page.getByRole('link', { name: t('hub.name_link') })).toHaveCount(0);
+  });
+
+  test('suggests the first free name, and renames to it with the CSRF token, once', async ({ page }) => {
+    const errors = watchErrors(page);
+    const seen = await api(page, {
+      ...SIGNED_IN,
+      'GET /api/node/name/suggestion': { status: 200, body: SUGGESTED },
+      'PUT /api/node/name': { status: 200, body: RENAMED },
+    });
+    await page.route('https://rikuri03.local/**', (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<p>new name</p>' }));
+    await page.goto('/name');
+    await expect(page.getByRole('heading', { name: t('name.title') })).toBeVisible();
+    await expect(field(page)).toHaveValue('rikuri03');
+    await expect(page.getByText('.local', { exact: true })).toBeVisible();
+    await submit(page).click();
+    await expect(page.getByText(t('name.done').replace('{host}', 'rikuri03.local'))).toBeVisible();
+    await expect(page.getByRole('link', { name: t('name.continue') })).toHaveAttribute('href', 'https://rikuri03.local/signin');
+    const put = renames(seen);
+    expect(put).toHaveLength(1);
+    expect(put[0]!.postDataJSON()).toEqual({ name: 'rikuri03' });
+    expect(put[0]!.headers()['x-csrf-token']).toBe(CSRF);
+    await expect(page).toHaveURL('https://rikuri03.local/signin', { timeout: 10_000 });
+    expect(errors).toEqual([]);
+  });
+
+  test('the owner may type their own name; it is sent in lower case', async ({ page }) => {
+    const seen = await api(page, {
+      ...SIGNED_IN,
+      'GET /api/node/name/suggestion': { status: 200, body: SUGGESTED },
+      'PUT /api/node/name': { status: 200, body: { name: 'mynode', host: 'mynode.local' } },
+    });
+    await page.route('https://mynode.local/**', (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<p>new name</p>' }));
+    await page.goto('/name');
+    await expect(field(page)).toHaveValue('rikuri03');
+    await field(page).fill('MyNode');
+    await submit(page).click();
+    await expect(page.getByRole('link', { name: t('name.continue') })).toHaveAttribute('href', 'https://mynode.local/signin');
+    expect(renames(seen)[0]!.postDataJSON()).toEqual({ name: 'mynode' });
+  });
+
+  for (const bad of ['', 'my node', '-node', 'node-', 'rikuri.local', 'riku_ri', 'localhost', 'a'.repeat(64)]) {
+    test(`a name the node would refuse is not sent: ${JSON.stringify(bad.length > 20 ? '64 letters' : bad)}`, async ({ page }) => {
+      const seen = await api(page, { ...SIGNED_IN, 'GET /api/node/name/suggestion': { status: 200, body: SUGGESTED } });
+      await page.goto('/name');
+      await expect(field(page)).toHaveValue('rikuri03');
+      await field(page).fill(bad);
+      await submit(page).click();
+      await expect(page.getByText(t('name.rule'))).toBeVisible();
+      expect(renames(seen)).toHaveLength(0);
+    });
+  }
+
+  test('no free name: the field is empty and the page says to type one', async ({ page }) => {
+    await api(page, { ...SIGNED_IN, 'GET /api/node/name/suggestion': { status: 200, body: { name: null } } });
+    await page.goto('/name');
+    await expect(page.getByText(t('name.none_free'))).toBeVisible();
+    await expect(field(page)).toHaveValue('');
+    await expect(submit(page)).toBeEnabled();
+  });
+
+  for (const [why, answer] of [
+    ['the node could not check', { status: 503, body: refused('the node could not check which names are free') }],
+    ['no answer', 'offline'],
+    ['an answer that is not a suggestion', { status: 200, body: { name: 42 } }],
+    ['a suggestion that is not a name', { status: 200, body: { name: 'not a name' } }],
+  ] as const) {
+    test(`a suggestion that fails (${why}): said, the field empty, never a guess`, async ({ page }) => {
+      await api(page, { ...SIGNED_IN, 'GET /api/node/name/suggestion': answer as Answer });
+      await page.goto('/name');
+      await expect(page.getByText(t('name.check_failed'))).toBeVisible();
+      await expect(field(page)).toHaveValue('');
+      await expect(submit(page)).toBeEnabled();
+    });
+  }
+
+  for (const [why, answer, key] of [
+    ['a name in use', { status: 409, body: refused('that name is already in use on this network') }, 'name.taken'],
+    ['a node already named', { status: 409, body: refused('the node already has a name') }, 'name.already'],
+    ['a name the node refuses', { status: 400, body: refused('not a name for the node') }, 'name.rule'],
+    ['the node fails', { status: 503, body: refused('the node could not be renamed') }, 'name.failed'],
+    ['an answer that is not the new name', { status: 200, body: { name: 'rikuri03' } }, 'name.failed'],
+    ['no answer', 'offline', 'form.offline'],
+  ] as const) {
+    test(`a rename refused (${why}): said, the page stays, never success`, async ({ page }) => {
+      let left = false;
+      await page.route('https://rikuri03.local/**', (route) => { left = true; return route.abort(); });
+      await api(page, {
+        ...SIGNED_IN,
+        'GET /api/node/name/suggestion': { status: 200, body: SUGGESTED },
+        'PUT /api/node/name': answer as Answer,
+      });
+      await page.goto('/name');
+      await expect(field(page)).toHaveValue('rikuri03');
+      await submit(page).click();
+      await expect(page.getByText(t(key))).toBeVisible();
+      await expect(page.getByRole('link', { name: t('name.continue') })).toHaveCount(0);
+      await page.waitForTimeout(500);
+      expect(left).toBe(false);
+      await expect(page).toHaveURL(/\/name$/);
+    });
+  }
+
+  test('signed out: to sign-in', async ({ page }) => {
+    await api(page, {
+      'GET /api/session': { status: 401, body: refused('sign-in required') },
+      'GET /api/setup': { status: 200, body: CLAIMED },
+    });
+    await page.goto('/name');
+    await expect(page).toHaveURL(/\/signin$/);
+  });
+
+  test('a node already named: said, with the way back, and no form', async ({ page }) => {
+    const seen = await api(page, { ...SIGNED_IN, 'GET /api/hub': { status: 200, body: NAMED } });
+    await page.goto('/name');
+    await expect(page.getByText(t('name.already'))).toBeVisible();
+    await expect(page.getByRole('link', { name: t('name.back') })).toHaveAttribute('href', '/home');
+    await expect(field(page)).toHaveCount(0);
+    expect(seen.filter((r) => new URL(r.url()).pathname === '/api/node/name/suggestion')).toHaveLength(0);
+  });
+
+  test('/name fits, with every control at least 44 px, under the node\'s CSP', async ({ page }) => {
+    await page.addInitScript(() => {
+      const seen: string[] = [];
+      (window as unknown as { __violations: string[] }).__violations = seen;
+      document.addEventListener('securitypolicyviolation', (e) => seen.push(`${e.violatedDirective} ${e.blockedURI}`));
+    });
+    const errors = watchErrors(page);
+    await api(page, { ...SIGNED_IN, 'GET /api/node/name/suggestion': { status: 200, body: SUGGESTED } });
+    await page.goto('/name');
+    await expect(submit(page)).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow, 'no sideways scroll').toBeLessThanOrEqual(0);
+    const small = await page.evaluate(() =>
+      [...document.querySelectorAll('a[href], button, input')]
+        .filter((el) => (el as HTMLElement).offsetParent !== null)
+        .map((el) => ({ text: el.textContent?.trim() || el.id, box: el.getBoundingClientRect() }))
+        .filter(({ box }) => box.height < 44 || box.width < 44)
+        .map(({ text }) => text),
+    );
+    expect(small, 'every control at least 44 px').toEqual([]);
+    expect(await page.evaluate(() => (window as unknown as { __violations: string[] }).__violations)).toEqual([]);
+    expect(errors).toEqual([]);
+  });
 });

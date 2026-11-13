@@ -133,6 +133,7 @@ pub fn api_router(app: App) -> Router {
         .route("/api/status", get(status_handler))
         .route("/api/hub", get(hub_handler))
         .route("/api/node/name", put(rename))
+        .route("/api/node/name/suggestion", get(suggestion))
         .layer(middleware::from_fn_with_state(app.clone(), origin_check))
         // The secure page: read-only, so outside the origin check; a POST to
         // it is the method router's 405.
@@ -662,9 +663,27 @@ struct RenameRequest {
 }
 
 #[derive(Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 struct Renamed {
     name: String,
     host: String,
+}
+
+/// 5c.4b-2: the first free `rikuriNN`, or none.
+#[derive(Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+struct NameSuggestion {
+    name: Option<String>,
+}
+
+/// 5c.4b-2: the first of `rikuri01` to `rikuri99` that nothing on the
+/// network answers, asked of resolved one at a time.
+async fn suggestion(
+    State(app): State<App>,
+    headers: HeaderMap,
+) -> Result<Json<NameSuggestion>, Refusal> {
+    authenticate(&app, &headers)?;
+    Ok(Json(NameSuggestion { name: None })) // red: the stub suggests nothing
 }
 
 /// Renames the node: hostnamed sets the static name (polkit lets only this
@@ -843,6 +862,12 @@ mod tests {
             (
                 "HubReport.ts",
                 crate::hub::HubReport::export_to_string(&cfg).unwrap(),
+            ),
+            // 5c.4b-2: naming the node.
+            ("Renamed.ts", Renamed::export_to_string(&cfg).unwrap()),
+            (
+                "NameSuggestion.ts",
+                NameSuggestion::export_to_string(&cfg).unwrap(),
             ),
         ] {
             let committed = std::fs::read_to_string(dir.join(file)).unwrap_or_default();
