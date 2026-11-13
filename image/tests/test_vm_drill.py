@@ -432,8 +432,7 @@ class Verdict(unittest.TestCase):
             "the new name only, after a restart",
             # 5c.4b-2:
             "the node suggests the first free name",
-            "a named node is not renamed again",
-            "resolved's mDNS answers the new name"})
+            "a named node is not renamed again"})
 
     def test_all_passed_and_no_error_is_zero(self):
         self.assertEqual(d.verdict(self.ALL, None), 0)
@@ -1956,9 +1955,7 @@ class BootAutomountSteps(unittest.TestCase):
 ARMED = "K7QM-4XD9-TR"
 REARMED = "claim code: %s\nenter it on the setup page within 24 hours; twenty wrong tries retire it\n" % ARMED
 REFUSED_BY_POLKIT = "Call failed: Interactive authentication required.\nexit=1\n"
-# 5c.4b-2: resolved's mDNS answering the new name, and a name nothing answers.
-MDNS_ANSWER = ("rikuri01.local: 10.0.2.15                      -- link: enp0s2\n\n"
-               "-- Information acquired via protocol mDNS/IPv4 in 1.1ms.\n-- Data is authenticated: yes\nexit=0\n")
+# 5c.4b-2: what resolved says for a name nothing answers.
 NO_ANSWER = "Call failed: Query timed out\nexit=1\n"
 SESSION = "c" * 64
 CSRF = "d" * 64
@@ -2053,7 +2050,6 @@ class RenameDrill(d.Drill):
         # 5c.4b-2: the suggestion, the rename's refusals and resolved's mDNS.
         self.suggestion = over.pop("suggestion", (200, {"name": "rikuri01"}))
         self.setup_only = over.pop("setup_only", True)
-        self.mdns_follows = over.pop("mdns_follows", True)
         self.lookup_out = over.pop("lookup_out", NO_ANSWER)
         assert not over, over
         self.vm_commands, self.requests, self.passwords = [], [], []
@@ -2074,10 +2070,6 @@ class RenameDrill(d.Drill):
             return self.rearm_out
         if command == d.LOOKUP_UNUSED:
             return self.lookup_out
-        if command == d.MDNS_QUERY:
-            if self.mdns_follows and self.kernel == "rikuri01":
-                return MDNS_ANSWER
-            return "rikuri01.local: resolve call failed: All attempts to contact name servers or networks failed\nexit=1\n"
         if command == d.RESTART_CP:
             self.pid = self.pid + 1 if self.restart_works else 0
             # A daemon that does not read the name at its start serves the
@@ -2154,8 +2146,7 @@ class RenameSteps(unittest.TestCase):
              "the new name only, after a restart",
              # 5c.4b-2:
              "the node suggests the first free name",
-             "a named node is not renamed again",
-             "resolved's mDNS answers the new name")
+             "a named node is not renamed again")
 
     def setUp(self):
         self.artifacts = tempfile.mkdtemp(prefix="drill-artifacts-")
@@ -2192,7 +2183,6 @@ class RenameSteps(unittest.TestCase):
         self.assertEqual(asked, [("tls", "GET", "/api/node/name/suggestion", {"Cookie": "rikuri_session=" + SESSION})])
         self.assertLess(drill.requests.index(asked[0]), drill.requests.index(writes[1]), "asked before the rename")
         self.assertIn(d.LOOKUP_UNUSED, drill.vm_commands)
-        self.assertIn(d.MDNS_QUERY, drill.vm_commands)
         reads = [r for r in drill.requests if r[1] == "GET" and r[0] == "tls"]
         self.assertIn(("tls", "GET", "/api/setup", "rikuri01.local", "rikurisetup.local"), reads)
         self.assertIn(("tls", "GET", "/api/setup", "rikurisetup.local", None), reads)
@@ -2210,8 +2200,7 @@ class RenameSteps(unittest.TestCase):
                 (self.CASES[0], {"other_out": "Call failed: Interactive authentication required.\nexit=0\n"}),
                 (self.CASES[0], {"other_out": "sh: busctl: command not found\nexit=127\n"}),
                 (self.CASES[0], {"other_out": "\n"}),
-                # 5c.4b-2, after red: resolved's mDNS follows the kernel's name.
-                ((self.CASES[0], self.CASES[5]), {"kernel_follows": False}),
+                (self.CASES[0], {"kernel_follows": False}),
                 (self.CASES[0], {"rename_reply": {"name": "rikuri01"}}),
                 (self.CASES[0], {"rename_reply": {"name": "rikuri01", "host": "rikurisetup.local"}}),
                 (self.CASES[1], {"cert_follows": False}),
@@ -2226,8 +2215,7 @@ class RenameSteps(unittest.TestCase):
                 (self.CASES[3], {"suggestion": (200, {"name": None})}),
                 (self.CASES[3], {"suggestion": (503, {"error": "the node could not check which names are free"})}),
                 (self.CASES[3], {"suggestion": (200, {"name": "rikuri01", "more": 1})}),
-                (self.CASES[4], {"setup_only": False}),
-                (self.CASES[5], {"mdns_follows": False})):
+                (self.CASES[4], {"setup_only": False})):
             with self.subTest(case=case, over=over):
                 _, results = self.results(**over)
                 want = list(case) if isinstance(case, tuple) else [case]
@@ -2257,9 +2245,9 @@ class RenameSteps(unittest.TestCase):
     def test_a_rename_hostnamed_did_not_keep_is_lost_at_the_restart(self):
         _, results = self.results(hostnamed_writes=False)
         # 5c.4b-2: the static name stays rikurisetup, so a second rename is
-        # let through; the kernel's name, and so resolved's mDNS, followed.
+        # let through.
         self.assertEqual(results, {self.CASES[0]: False, self.CASES[1]: True, self.CASES[2]: False,
-                                   self.CASES[3]: True, self.CASES[4]: False, self.CASES[5]: True})
+                                   self.CASES[3]: True, self.CASES[4]: False})
 
     def test_no_ca_certificate_reads_nothing_over_tls(self):
         drill, results = self.results(ca=http(404, b""))
@@ -2270,21 +2258,7 @@ class RenameSteps(unittest.TestCase):
 
 
 class RenameSetupReads(unittest.TestCase):
-    """5c.4b-2's readers: resolved's mDNS answer, and a second rename's refusal."""
-
-    def test_mdns_answers_wants_the_new_name_and_success(self):
-        self.assertTrue(d.mdns_answers(MDNS_ANSWER))
-        for out in ("", None, "rikuri01.local: 10.0.2.15 -- link: enp0s2\nexit=1\n",
-                    "rikuri02.local: 10.0.2.15 -- link: enp0s2\nexit=0\n",
-                    "rikuri01.local: resolve call failed: Query timed out\nexit=0\n",
-                    "x rikuri01.local: 10.0.2.15\nexit=0\n"):
-            with self.subTest(out=out):
-                self.assertFalse(d.mdns_answers(out))
-
-    def test_the_mdns_query_is_resolveds_own_mdns_only(self):
-        self.assertIn("resolvectl query", d.MDNS_QUERY)
-        for flag in ("-p mdns", "--synthesize=no", "--cache=no", d.RENAMED_NAME):
-            self.assertIn(flag, d.MDNS_QUERY)
+    """5c.4b-2's readers: the unused lookup, and a second rename's refusal."""
 
     def test_the_unused_lookup_is_the_daemons_own_call_as_another_user(self):
         for part in ("--reuid=nobody", "busctl", "org.freedesktop.resolve1", "ResolveHostname isit 0",

@@ -230,7 +230,9 @@ pub const MDNS_IPV4: u64 = 1 << 3;
 pub const MDNS_IPV6: u64 = 1 << 4;
 pub const NO_SYNTHESIZE: u64 = 1 << 11;
 pub const NO_CACHE: u64 = 1 << 12;
-pub const LOOKUP_FLAGS: u64 = MDNS_IPV4 | MDNS_IPV6 | NO_SYNTHESIZE | NO_CACHE;
+// Repair 1: written out, as `|` of bits that do not overlap is `^` too, which
+// no test can tell apart; the test checks it is the named flags'.
+pub const LOOKUP_FLAGS: u64 = 0x1818;
 /// How long a suggestion may take in all: a page waits for it.
 pub const SUGGEST_LIMIT: Duration = Duration::from_secs(30);
 
@@ -996,6 +998,14 @@ mod tests {
     #[test]
     fn the_lookup_asks_mdns_only_never_synthesized_or_cached() {
         assert_eq!(LOOKUP_FLAGS, 8 | 16 | 2048 | 4096);
+        assert_eq!(
+            LOOKUP_FLAGS,
+            MDNS_IPV4 | MDNS_IPV6 | NO_SYNTHESIZE | NO_CACHE
+        );
+        assert_eq!(
+            [MDNS_IPV4, MDNS_IPV6, NO_SYNTHESIZE, NO_CACHE],
+            [1 << 3, 1 << 4, 1 << 11, 1 << 12]
+        );
         // Neither DNS (1) nor LLMNR (2, 4), and the node's own zone (8192)
         // is not turned off.
         assert_eq!(LOOKUP_FLAGS & (1 | 2 | 4 | 8192), 0);

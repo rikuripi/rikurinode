@@ -108,7 +108,7 @@
           <label for="name">{t('name.field')}</label>
           <div class="named">
             <input id="name" type="text" bind:value={name} autocomplete="off" autocapitalize="none"
-                   spellcheck="false" maxlength="63" />
+                   spellcheck="false" />
             <span class="suffix" aria-hidden="true">.local</span>
           </div>
         </div>

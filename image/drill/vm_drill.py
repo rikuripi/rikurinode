@@ -529,23 +529,7 @@ LOOKUP_UNUSED = (_AS_USER % ("nobody", "nobody")
                  + "busctl call org.freedesktop.resolve1 /org/freedesktop/resolve1 "
                  "org.freedesktop.resolve1.Manager ResolveHostname isit 0 rikuri98.local 0 6168"
                  " 2>&1; echo \"exit=$?\"")
-# resolved's mDNS zone answering the new name, from the node itself. No
-# other device is on the drill's network, so this is the node's own answer.
-MDNS_QUERY = ("resolvectl query -p mdns --synthesize=no --cache=no " + RENAMED_NAME
-              + " 2>&1; echo \"exit=$?\"")
 ALREADY_NAMED = "the node already has a name"
-
-
-def mdns_answers(out) -> bool:
-    """`resolvectl query` for the new name: exit 0, and a line that is its
-    answer (`rikuri01.local: <address>`), not an error."""
-    if exit_status(out) != 0:
-        return False
-    for line in (out or "").splitlines():
-        name, sep, rest = line.partition(": ")
-        if name == RENAMED_NAME and sep and "fail" not in rest and "timed out" not in rest:
-            return True
-    return False
 
 
 def again_refused(status, body: bytes) -> bool:
@@ -726,8 +710,7 @@ EXPECTED = frozenset({"first boot", "the containers range at the first boot", "c
                       "the new name only, after a restart",
                       # 5c.4b-2:
                       "the node suggests the first free name",
-                      "a named node is not renamed again",
-                      "resolved's mDNS answers the new name"})
+                      "a named node is not renamed again"})
 
 
 def verdict(results, error) -> int:
@@ -1322,10 +1305,6 @@ class Drill:
         again_detail += "; then /etc/hostname %r" % static_after
         self.check("a named node is not renamed again", again and static_after == RENAMED, again_detail)
         lines.append(again_detail)
-        answer = self.vm(MDNS_QUERY, check=False)
-        mdns_detail = "resolvectl query %s: %r" % (RENAMED_NAME, " ".join((answer or "").split())[:200])
-        self.check("resolved's mDNS answers the new name", mdns_answers(answer), mdns_detail)
-        lines.append(mdns_detail)
 
         served, detail = self.named_only(cafile, fingerprint)
         run_after = self.vm(SHOW_CP_RUN, check=False) or ""

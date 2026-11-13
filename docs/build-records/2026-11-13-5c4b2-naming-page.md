@@ -46,7 +46,7 @@
    - `image/drill/vm_drill.py` and its tests, extending 5c.4b-1's rename step:
      - the suggestion on the drill's network, where no other node answers, is `rikuri01`, and the drill renames to it;
      - a second rename is refused with 409;
-     - inside the guest, `resolvectl query -p mdns --synthesize=no rikuri01.local` answers. This shows resolved's mDNS zone holds the new name. It does not show another device receiving it (the drill's network has no peer), so that part stays Not yet proven until the N150.
+     - inside the guest, `resolvectl query -p mdns --synthesize=no rikuri01.local` answers. This shows resolved's mDNS zone holds the new name. It does not show another device receiving it (the drill's network has no peer), so that part stays Not yet proven until the N150. **Dropped at repair 1** (see the amendment below).
    - `docs/runbooks/install-node.md`: the naming step for a novice (the suggested name; signing in again at the new name; what to do if the new name isn't found), and what README.md says about naming.
    - this record.
 
@@ -65,7 +65,7 @@
      - the page: suggestion, edit, the rules, success and the redirect, each refusal, and an unreadable reply;
      - the drill's step against a stand-in VM;
    - `Full gate (Ubuntu)` green on the PR, including the UI's build, audit and Playwright steps;
-   - the VM drills on the PR: the suggestion is `rikuri01`, the rename and the second rename's refusal happen as above, resolved's mDNS answers the new name in the guest, and every earlier check passes as before;
+   - the VM drills on the PR: the suggestion is `rikuri01`, the rename and the second rename's refusal happen as above, ~~resolved's mDNS answers the new name in the guest~~ (dropped at repair 1), and every earlier check passes as before;
    - one verifier pass with hand mutations of the new checks, and the follow-up if needed.
 4. **Authority:** the owner's choices above. Edit the files in Scope.
    - Tests: Rust and UI tests run only in CI; on the Mac, only `scripts/cargo.sh` check, clippy and fmt. Python tests run on `rikuri-drill` through `scripts/quality/safe-run.sh` (host key pinned, as before).
@@ -74,6 +74,12 @@
    - No change to CI workflows, the gate, the guard, `deny.toml`'s bans, `clippy.toml`, npm dependencies or `ui/audit-exceptions.json`.
    - Verifier: required.
 5. **Limits:** this task only; at most two repair cycles and two review rounds. No budget configured: CI minutes used are reported.
+
+### Amendment, 2026-11-13, at repair 1: the owner's choice
+
+- The drill's check "resolved's mDNS answers the new name" (`resolvectl query -p mdns --synthesize=no` in the guest) is dropped from Scope and from Done when. The owner chose "Drop it, N150 (Recommended)".
+- **Why:** on the PR's drill, resolved answered `No appropriate name servers or networks for name found`. Recalled from resolved's source, not observed: it never looks up the machine's own hostname over mDNS, since its own names are what synthesis is for. So the node cannot ask itself. The drill's network has no second device to ask from.
+- So **another device finding the new name stays Not yet proven** until the N150 install, as in 5c.4b-1.
 
 ## Design notes (before any edit)
 
@@ -142,3 +148,31 @@
   - `other_renames=True` moved to its own test. A node another user renamed is named, so the node now refuses the owner's rename too, and only the suggestion (asked first) passes. The test says exactly that.
   - For `rename_status` 503 and 403, the suggestion passes: it is asked before the rename, so a failed rename does not make it fail.
 - On `rikuri-drill`, through `safe-run.sh`: every `image/tests` test, `Ran 554 tests`, `OK`. On the Mac: clippy and fmt exit 0, and `git diff --check` is clean. The Rust and UI tests run in CI.
+
+### CI on `6dc3d7c` (the fix): Fail, three causes
+
+- [PR #93](https://github.com/rikuripi/rikurinode/pull/93).
+- **`Full gate (Ubuntu)`: Fail**, [run 43522909588](https://github.com/rikuripi/rikurinode/actions/runs/43522909588), at step 8.
+  - `svelte-check found 0 errors and 0 warnings`.
+  - Playwright: `4 failed`, `383 passed`. The failure is the same at every width: `a name the node would refuse is not sent: "64 letters"`.
+  - **Cause:** the field's `maxlength="63"` cut the typed 64 letters to 63, a valid name, which was then sent. A real defect, caught by the test.
+  - Step 9 (Rust) did not run there.
+- **`Rust mutants (changed lines)`: Fail**, [run 43522909688](https://github.com/rikuripi/rikurinode/actions/runs/43522909688).
+  - The unmutated baseline (every Rust test, the integration tests included) passed.
+  - `41 mutants tested in 5m: 3 missed, 24 caught, 14 unviable`.
+  - The three missed mutants are all `hostname.rs:233`, `replace | with ^` in `LOOKUP_FLAGS`. With bits that do not overlap, `^` is `|`: equivalent mutants that no test can catch.
+- **The rollback drill: Fail on one check**, [run 43522909610](https://github.com/rikuripi/rikurinode/actions/runs/43522909610).
+  - **Pass:** the owner renames the node, and no other user can (`PUT /api/node/name: 200 {"name":"rikuri01","host":"rikuri01.local"}`).
+  - **Pass:** the node suggests the first free name (`200 {"name":"rikuri01"}`). resolved's answer for a name nothing answers, through `busctl`, was `Call failed: All attempts to contact name servers or networks failed`. That is the timeout error `FREE` counts as free, so **the design's one assumption from memory held on a real node.**
+  - **Pass:** a named node is not renamed again (`409 {"error":"the node already has a name"}`, `/etc/hostname` still `rikuri01`).
+  - **Pass:** the new name only, at once and after a restart.
+  - **Fail:** resolved's mDNS answers the new name: `rikuri01.local: resolve call failed: No appropriate name servers or networks for name found`. See the amendment above.
+  - Every earlier check passed, with cases 1, 2b and 3 among them.
+- The USB installer drill and the image build: Pass.
+
+### Repair 1 (of 2)
+
+- **The page:** no `maxlength`. A name over 63 characters reaches the page's rule check, which refuses it with `name.rule`, as the test wants.
+- **`LOOKUP_FLAGS`** is written as `0x1818`. Reason for this test change after red: its test also checks the value equals `MDNS_IPV4 | MDNS_IPV6 | NO_SYNTHESIZE | NO_CACHE`, and each flag's bit. This adds assertions and loosens none.
+- **The drill:** the mDNS check, `MDNS_QUERY` and `mdns_answers` are removed, on the owner's choice. Reason for these test changes after red: the stand-in's `mdns_follows`, the readers' tests, and `kernel_follows`' and "hostnamed did not keep" expectations of that check go with it. The check no longer exists; no other assertion changed.
+- On `rikuri-drill`, through `safe-run.sh`: `image/tests`, `Ran 552 tests`, `OK`. On the Mac: clippy and fmt exit 0, and `git diff --check` is clean.
