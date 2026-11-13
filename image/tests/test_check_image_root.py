@@ -59,6 +59,8 @@ NO_LLMNR = "usr/lib/systemd/resolved.conf.d/90-rikuri-no-llmnr.conf"
 # mDNS on, in its own file; the node's name (docs/build-records/2026-11-10-5c2-names-and-mdns.md).
 MDNS = "usr/lib/systemd/resolved.conf.d/90-rikuri-mdns.conf"
 HOSTNAME = "etc/hostname"
+# The rename's polkit rule (docs/build-records/2026-11-13-5c4b1-rename-engine.md).
+HOSTNAME_RULE = "usr/share/polkit-1/rules.d/50-rikuri-hostname.rules"
 # mDNS only on links with hardware behind them (docs/build-records/2026-11-10-plat01-mdns-allow-list.md).
 MDNS_LINKS = "usr/libexec/rikuri/mdns-links"
 MDNS_LINKS_UNIT = "usr/lib/systemd/system/rikuri-mdns-links.service"
@@ -180,7 +182,7 @@ class Root:
                 self.link(rel, "/dev/null")
         if os.path.exists(os.path.join(HERE, "..", "rootfs", NO_LLMNR)):
             self.write_bytes(NO_LLMNR, shipped_file(NO_LLMNR))
-        for rel in (MDNS, HOSTNAME):
+        for rel in (MDNS, HOSTNAME, HOSTNAME_RULE):
             if os.path.exists(os.path.join(HERE, "..", "rootfs", rel)):
                 self.write_bytes(rel, shipped_file(rel))
         if os.path.exists(os.path.join(HERE, "..", "rootfs", MDNS_LINKS)):
@@ -1308,9 +1310,9 @@ class ControlPlane(unittest.TestCase):
         self.assertEqual(keys["CapabilityBoundingSet"], "CAP_NET_BIND_SERVICE")
         self.assertEqual(keys["StateDirectory"], "rikuri/control-plane")
         self.assertEqual(keys["StateDirectoryMode"], "0700")
+        # 5c.4b-1: no RIKURI_NAMES; the name comes from /etc/hostname.
         self.assertEqual(keys["Environment"], "RIKURI_LISTEN=0.0.0.0:443 RIKURI_HTTP_LISTEN=0.0.0.0:80 "
-                                              "RIKURI_STATE_DIR=/var/lib/rikuri/control-plane "
-                                              "RIKURI_NAMES=rikurisetup.local")
+                                              "RIKURI_STATE_DIR=/var/lib/rikuri/control-plane")
         for key, value in (("NoNewPrivileges", "yes"), ("ProtectSystem", "strict"), ("ProtectHome", "yes"),
                            ("PrivateTmp", "yes"), ("PrivateDevices", "yes"), ("UMask", "0077"),
                            ("RestrictAddressFamilies", "AF_INET AF_INET6 AF_UNIX"),
@@ -1330,8 +1332,10 @@ class ControlPlane(unittest.TestCase):
                 ("ProtectSystem=strict", "ProtectSystem=full", "a weaker protection"),
                 ("Type=exec\n", "Type=exec\nExecStartPre=/bin/true\n", "a key the unit does not have"),
                 ("RIKURI_LISTEN=0.0.0.0:443", "RIKURI_LISTEN=0.0.0.0:8443", "another port"),
-                (" RIKURI_NAMES=rikurisetup.local", "", "no name: the certificate would not name rikurisetup.local"),
-                ("RIKURI_NAMES=rikurisetup.local", "RIKURI_NAMES=rikurisetup.local,evil.example", "another name"),
+                # 5c.4b-1: a configured name would outlive a rename.
+                ("RIKURI_STATE_DIR=/var/lib/rikuri/control-plane\n",
+                 "RIKURI_STATE_DIR=/var/lib/rikuri/control-plane RIKURI_NAMES=rikurisetup.local\n",
+                 "a configured name: the node would still answer it after a rename"),
                 ("WantedBy=multi-user.target", "WantedBy=default.target", "another target")):
             with self.subTest(why=why):
                 self.assertIn(old, good)
@@ -1416,6 +1420,44 @@ class ControlPlane(unittest.TestCase):
         self.root.write(CP_USER, shipped_file(CP_USER).decode("utf-8"))
         self.root.write("etc/sysusers.d/rikuri-control-plane.conf", "")
         self.assertFinds("etc/sysusers.d/rikuri-control-plane.conf: overrides")
+
+    # --- 5c.4b-1: the rename's polkit rule ------------------------------------
+    def test_the_shipped_rule_allows_one_action_for_one_user(self):
+        self.assertEqual(cir.HOSTNAME_RULE_LINES, [
+            'polkit.addRule(function (action, subject) {',
+            '    if (action.id == "org.freedesktop.hostname1.set-static-hostname" &&',
+            '            subject.user == "rikuri-control") {',
+            '        return polkit.Result.YES;',
+            '    }',
+            '});'])
+        lines = [l for l in shipped_file(HOSTNAME_RULE).decode("utf-8").splitlines()
+                 if l.strip() and not l.startswith("//")]
+        self.assertEqual(lines, cir.HOSTNAME_RULE_LINES)
+        self.assertEqual(self.found(), [])
+
+    def test_a_wider_or_missing_rule_is_a_finding(self):
+        good = shipped_file(HOSTNAME_RULE).decode("utf-8")
+        for old, new, why in (
+                ('subject.user == "rikuri-control"', 'subject.user == "nobody"', "another user"),
+                ('subject.user == "rikuri-control"', 'subject.isInGroup("wheel")', "a group"),
+                ('action.id == "org.freedesktop.hostname1.set-static-hostname" &&',
+                 'action.id.indexOf("org.freedesktop.hostname1.") == 0 &&', "every hostnamed action"),
+                ("&&\n", "||\n", "either, not both"),
+                ("polkit.Result.YES", "polkit.Result.AUTH_ADMIN", "another answer"),
+                ("    }\n});", "    }\n    return polkit.Result.YES;\n});", "yes for everything else"),
+                ("polkit.addRule(", "// polkit.addRule(", "commented out")):
+            with self.subTest(why=why):
+                self.assertIn(old, good)
+                self.root.write(HOSTNAME_RULE, good.replace(old, new, 1))
+                self.assertFinds(HOSTNAME_RULE + ": not exactly")
+        self.root.remove(HOSTNAME_RULE)
+        self.assertFinds(HOSTNAME_RULE + ": missing")
+        self.root.write(HOSTNAME_RULE, good)
+        rel = "etc/polkit-1/rules.d/50-rikuri-hostname.rules"
+        self.root.write(rel, "")
+        self.assertFinds(rel + ": overrides")
+        self.root.remove(rel)
+        self.assertEqual(self.found(), [])
 
     # --- no LLMNR: only SSH, 80 and 443 listen outside -------------------------
     def test_llmnr_is_turned_off(self):

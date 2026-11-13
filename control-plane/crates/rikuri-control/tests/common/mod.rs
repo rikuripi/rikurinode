@@ -4,6 +4,8 @@
 
 #![allow(dead_code, clippy::unwrap_used, clippy::expect_used)]
 
+pub mod bus;
+
 use std::io;
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -40,6 +42,7 @@ impl Drop for Scratch {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.0);
         let _ = std::fs::remove_file(self.0.with_extension("hostname"));
+        let _ = std::fs::remove_file(self.0.with_extension("bus"));
     }
 }
 
@@ -55,6 +58,7 @@ pub fn config(
         names: Names::new(names).unwrap(),
         state_dir: scratch.0.clone(),
         hostname_file: hostname_file(scratch),
+        bus_socket: bus_socket(scratch),
     }
 }
 
@@ -62,6 +66,12 @@ pub fn config(
 /// state folder, which the scratch's drop removes with it.
 pub fn hostname_file(scratch: &Scratch) -> PathBuf {
     scratch.0.with_extension("hostname")
+}
+
+/// 5c.4b-1: where the test node asks to be renamed; a stand-in bus listens
+/// there (`bus.rs`). Beside the state folder, as the hostname file is.
+pub fn bus_socket(scratch: &Scratch) -> PathBuf {
+    scratch.0.with_extension("bus")
 }
 
 /// Boots over `scratch` without listening: for router-level tests.

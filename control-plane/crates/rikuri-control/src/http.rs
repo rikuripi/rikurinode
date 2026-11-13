@@ -10,7 +10,9 @@
 //! `POST /api/step-up` (the password again, for one action); `PUT
 //! /api/owner/password` (needs a step-up); `GET /api/status` (open to a
 //! loopback peer, a session for anyone else); `GET /api/hub` (5c.4a: the
-//! node's UUID and what setup still needs, for a session only).
+//! node's UUID and what setup still needs, for a session only); `PUT
+//! /api/node/name` (5c.4b-1: renames the node, for a session with its CSRF
+//! token; the names the checks use and the certificate follow at once).
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -28,10 +30,11 @@ use serde::{Deserialize, Serialize};
 use subtle::ConstantTimeEq;
 use tracing::{error, info, warn};
 
+use crate::address::Follower;
 use crate::claim::{self, Attempt, ClaimState};
+use crate::hostname::{self, NodeName};
 use crate::hub;
 use crate::limiter::{self, Gate, Limiter};
-use crate::names::Names;
 use crate::node_id;
 use crate::owner;
 use crate::password::{self, PolicyError};
@@ -55,13 +58,19 @@ pub struct Peer(pub SocketAddr);
 pub struct Inner {
     pub started: Started,
     pub dir: StateDir,
-    pub names: Names,
+    /// The names in force and the certificate, followed (5c.4b-1).
+    pub follower: Arc<Follower>,
     pub sessions: Store,
     pub ca_pem: String,
     pub ca_fingerprint: String,
     pub https_port: u16,
     /// Where the node's name is read (5c.4a; `Config`).
     pub hostname_file: PathBuf,
+    /// Where hostnamed is asked to rename the node (5c.4b-1; `Config`).
+    pub bus_socket: PathBuf,
+    /// Held for a whole rename: the bus's call, the names and the
+    /// certificate, one rename at a time.
+    rename_lock: tokio::sync::Mutex<()>,
     /// Held for the whole of a claim attempt, so claims are judged one at a
     /// time and the limiter's count is exact.
     claim_limiter: tokio::sync::Mutex<Limiter>,
@@ -78,25 +87,28 @@ impl App {
     pub fn new(
         started: Started,
         dir: StateDir,
-        names: Names,
+        follower: Arc<Follower>,
         sessions: Store,
         ca_pem: String,
         ca_fingerprint: String,
         https_port: u16,
         claim_wrong_tries: u32,
         hostname_file: PathBuf,
+        bus_socket: PathBuf,
     ) -> Self {
         let mut claim_limiter = Limiter::new(claim::DELAY_AFTER, claim::DELAY_CAP);
         claim_limiter.sync(claim_wrong_tries);
         App(Arc::new(Inner {
             started,
             dir,
-            names,
+            follower,
             sessions,
             ca_pem,
             ca_fingerprint,
             https_port,
             hostname_file,
+            bus_socket,
+            rename_lock: tokio::sync::Mutex::new(()),
             claim_limiter: tokio::sync::Mutex::new(claim_limiter),
             signin_limiter: tokio::sync::Mutex::new(Limiter::new(
                 SIGNIN_DELAY_AFTER,
@@ -120,6 +132,7 @@ pub fn api_router(app: App) -> Router {
         .route("/api/owner/password", put(change_password))
         .route("/api/status", get(status_handler))
         .route("/api/hub", get(hub_handler))
+        .route("/api/node/name", put(rename))
         .layer(middleware::from_fn_with_state(app.clone(), origin_check))
         // The secure page: read-only, so outside the origin check; a POST to
         // it is the method router's 405.
@@ -222,8 +235,8 @@ fn peer_class(req: &Request) -> String {
 }
 
 async fn host_check(State(app): State<App>, req: Request, next: Next) -> Response {
-    let allowed =
-        header_str(req.headers(), header::HOST).is_some_and(|h| app.0.names.host_allowed(h));
+    let allowed = header_str(req.headers(), header::HOST)
+        .is_some_and(|h| app.0.follower.names().host_allowed(h));
     if !allowed {
         warn!(peer = %peer_class(&req), "request for a host that is not this node refused");
         return refuse(StatusCode::MISDIRECTED_REQUEST, "host is not this node").into_response();
@@ -238,7 +251,7 @@ async fn origin_check(State(app): State<App>, req: Request, next: Next) -> Respo
     );
     if mutation {
         let allowed = header_str(req.headers(), header::ORIGIN)
-            .is_some_and(|o| app.0.names.origin_allowed(o));
+            .is_some_and(|o| app.0.follower.names().origin_allowed(o));
         if !allowed {
             warn!(peer = %peer_class(&req), "mutation from an origin that is not this node refused");
             return refuse(StatusCode::FORBIDDEN, "origin is not this node").into_response();
@@ -376,7 +389,14 @@ async fn setup(State(app): State<App>) -> Result<Json<SetupReport>, Refusal> {
         claimed,
         claim,
         ca_fingerprint_sha256: app.0.ca_fingerprint.clone(),
-        names: app.0.names.iter().map(str::to_owned).collect(),
+        names: app
+            .0
+            .follower
+            .names()
+            .get()
+            .iter()
+            .map(str::to_owned)
+            .collect(),
     }))
 }
 
@@ -632,6 +652,76 @@ async fn status_handler(
         authenticate(&app, &headers)?;
     }
     Ok(Json(status::report(app.0.started)))
+}
+
+// ---- handlers: the node's name (5c.4b-1) ---------------------------------
+
+#[derive(Deserialize)]
+struct RenameRequest {
+    name: String,
+}
+
+#[derive(Serialize)]
+struct Renamed {
+    name: String,
+    host: String,
+}
+
+/// Renames the node: hostnamed sets the static name (polkit lets only this
+/// service's user ask), then the names the checks use and the certificate are
+/// read again from the hostname file, as the next tick would. The answer
+/// says what the node is called now; until the page moves there, the
+/// connection it came in on still works.
+async fn rename(
+    State(app): State<App>,
+    headers: HeaderMap,
+    Json(body): Json<RenameRequest>,
+) -> Result<Json<Renamed>, Refusal> {
+    let auth = authenticate(&app, &headers)?;
+    csrf_check(&auth, &headers)?;
+    let name = NodeName::parse(&body.name)
+        .map_err(|_| refuse(StatusCode::BAD_REQUEST, "not a name for the node"))?;
+    let _one = app.0.rename_lock.lock().await;
+    let uid = hostname::own_uid().map_err(internal)?;
+    if let Err(e) =
+        hostname::set_static_hostname(&app.0.bus_socket, uid, &name, hostname::BUS_TIMEOUT).await
+    {
+        error!(error = %e, name = %name, "the node could not be renamed");
+        return Err(refuse(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "the node could not be renamed",
+        ));
+    }
+    let follower = app.0.follower.clone();
+    let issued = tokio::task::spawn_blocking(move || follower.renamed())
+        .await
+        .map_err(internal)?;
+    if !app
+        .0
+        .follower
+        .names()
+        .get()
+        .iter()
+        .any(|n| n == name.local())
+    {
+        error!(name = %name, "renamed, but the hostname file names another node name");
+        return Err(refuse(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "the node could not be renamed",
+        ));
+    }
+    if let Err(e) = issued {
+        error!(error = %e, name = %name, "renamed, but the certificate was not renewed for the new name; the next look tries again");
+        return Err(refuse(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "the node was renamed, but its certificate was not renewed",
+        ));
+    }
+    info!(name = %name, "the node was renamed");
+    Ok(Json(Renamed {
+        host: name.local(),
+        name: name.as_str().to_owned(),
+    }))
 }
 
 /// 5c.4a: the SetupHub, read from the node's state on each request.

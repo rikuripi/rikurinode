@@ -1,0 +1,10 @@
+// Rikuri Node (5c.4b-1): the control plane's user, and only it, may ask
+// systemd-hostnamed to set the node's static name. It answers nothing for
+// any other action or user, so polkit's defaults stay in force for them.
+// Record: docs/build-records/2026-11-13-5c4b1-rename-engine.md
+polkit.addRule(function (action, subject) {
+    if (action.id == "org.freedesktop.hostname1.set-static-hostname" &&
+            subject.user == "rikuri-control") {
+        return polkit.Result.YES;
+    }
+});
