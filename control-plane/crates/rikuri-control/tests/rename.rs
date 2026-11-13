@@ -108,6 +108,40 @@ async fn anything_but_an_answer_is_an_error() {
     );
 }
 
+/// Repair 2 (verifier, Important 1 and 2): a bus that keeps talking and
+/// never answers is cut off at `MAX_READ`, long before the time limit.
+#[tokio::test]
+async fn a_bus_that_never_stops_talking_is_cut_off() {
+    let started = std::time::Instant::now();
+    let (result, _, file) = through(Answer::Flood, Duration::from_secs(20)).await;
+    assert!(
+        matches!(
+            result,
+            Err(BusError::Protocol("more than a rename's answer"))
+        ),
+        "{result:?}"
+    );
+    assert!(
+        started.elapsed() < Duration::from_secs(10),
+        "{:?}",
+        started.elapsed()
+    );
+    assert_eq!(file, None);
+}
+
+/// Repair 2 (verifier, Important 4): an error to `Hello` is a refusal at once.
+#[tokio::test]
+async fn an_error_to_hello_is_refused() {
+    let started = std::time::Instant::now();
+    let (result, _, file) = through(Answer::HelloError(ACCESS_DENIED), LIMIT).await;
+    assert!(
+        matches!(result, Err(BusError::Refused(ref name)) if name == ACCESS_DENIED),
+        "{result:?}"
+    );
+    assert!(started.elapsed() < Duration::from_secs(3));
+    assert_eq!(file, None);
+}
+
 // ---- the route ----------------------------------------------------------------
 
 /// A node whose hostname file names `hostname`, as hostnamed would keep it.

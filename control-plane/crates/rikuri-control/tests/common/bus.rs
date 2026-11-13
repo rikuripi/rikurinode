@@ -35,6 +35,12 @@ pub enum Answer {
     Huge,
     /// The answer to the call before the answer to `Hello`.
     CallBeforeHello,
+    /// Repair 2 (verifier, Important 1 and 2): answers `Hello`, then sends
+    /// signals in writes of an odd size (so the client's running count does
+    /// not land on the limit exactly), past `MAX_READ`, and never answers.
+    Flood,
+    /// Repair 2 (verifier, Important 4): `Hello` answered with an error.
+    HelloError(&'static str),
 }
 
 /// What the stand-in received.
@@ -211,6 +217,21 @@ async fn serve(
             return None;
         }
         Answer::Huge => [&[b'l', 2, 1, 1][..], &le(1 << 20), &le(1), &le(8)].concat(),
+        Answer::HelloError(name) => error(2, hello_serial, name),
+        Answer::Flood => {
+            conn.write_all(&reply(2, 1, hello_serial)).await.ok()?;
+            let signals: Vec<u8> = (0..100u32).flat_map(signal).collect();
+            let mut sent = 0;
+            while sent < 300 * 1024 {
+                for piece in signals.chunks(4093) {
+                    conn.write_all(piece).await.ok()?;
+                    sent += piece.len();
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+            }
+            let _ = conn.read(&mut [0u8; 1]).await;
+            return None;
+        }
         Answer::CallBeforeHello => [reply(2, 2, call_serial), reply(2, 1, hello_serial)].concat(),
         Answer::Renamed => {
             std::fs::write(&file, format!("{}\n", body_name(&call))).unwrap();

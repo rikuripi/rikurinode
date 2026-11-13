@@ -2036,6 +2036,7 @@ class RenameDrill(d.Drill):
         self.hostnamed_writes = over.pop("hostnamed_writes", True)
         self.kernel_follows = over.pop("kernel_follows", True)
         self.cert_follows = over.pop("cert_follows", True)
+        self.cert_keeps_old = over.pop("cert_keeps_old", False)
         self.hosts_follow = over.pop("hosts_follow", True)
         self.restarts_itself = over.pop("restarts_itself", False)
         self.restart_reads_file = over.pop("restart_reads_file", True)
@@ -2082,7 +2083,8 @@ class RenameDrill(d.Drill):
         if (host or name) not in self.hosts:
             return http(421, b'{"error":"host is not this node"}', reason="Misdirected Request")
         report = {"claimed": self.claimed, "claim": "done" if self.claimed else "armed",
-                  "ca_fingerprint_sha256": PEM_FP, "names": sorted({"localhost"} | self.cert)}
+                  # The daemon lists the names its Host check uses (repair 2).
+                  "ca_fingerprint_sha256": PEM_FP, "names": sorted({"localhost"} | self.hosts)}
         return http(200, json.dumps(report).encode())
 
     def send_tls(self, method, path, body, cafile, headers=()):
@@ -2111,7 +2113,7 @@ class RenameDrill(d.Drill):
         if self.kernel_follows:
             self.kernel = name
         if self.cert_follows:
-            self.cert = {name + ".local"}
+            self.cert = {name + ".local"} | (self.cert if self.cert_keeps_old else set())
         self.hosts = {name + ".local"} | (set() if self.hosts_follow else self.hosts)
         if self.restarts_itself:
             self.pid += 1
@@ -2175,6 +2177,8 @@ class RenameSteps(unittest.TestCase):
                 (self.CASES[0], {"rename_reply": {"name": "rikuri01", "host": "rikurisetup.local"}}),
                 (self.CASES[1], {"cert_follows": False}),
                 (self.CASES[1], {"hosts_follow": False}),
+                # Repair 2 (verifier, Important 5): both names in the certificate.
+                (self.CASES[1], {"cert_keeps_old": True}),
                 (self.CASES[1], {"restarts_itself": True}),
                 (self.CASES[2], {"restart_reads_file": False}),
                 (self.CASES[2], {"restart_works": False})):

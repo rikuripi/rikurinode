@@ -108,3 +108,58 @@ The contract first left "a real claim in the drill" out, so the route on a node 
 
 - **Test change after red, and its reason:** `tests/common/bus.rs`: `Hangs` now reads `BEGIN` and both calls, then closes with no answer, so the client always reads the end. No assertion changed: `Hangs` must still be `BusError::Protocol`. The race was in the stand-in, and the client is right on both of its paths.
 - On the Mac: clippy and fmt exit 0.
+
+### CI on `568bd1c` (repair 1): Pass
+
+- `Full gate (Ubuntu)`, run 43493692900: success (`tests/rename.rs`: `8 passed; 0 failed`).
+- OS image, run 43493692877: success. The rollback drill shows 38 PASS and 0 FAIL, the three rename checks among them (`MainPID=688` before and after; `688 -> 1646` across the restart).
+- Rust mutants, run 43493692858: success, with 178 mutants: 139 caught, 14 missed, 23 unviable, 2 timeouts. See the verifier's note on the job's exit codes below.
+
+### The verifier's first pass, at `568bd1c`: FAIL, on test adequacy only
+
+- **No defect in the code.** The trust boundary, the polkit rule and its image check, the D-Bus client against the specification, the locks, and the drill's secrecy were all checked and found sound. The route's refusals and the live drill: Pass.
+- **Important, each a surviving mutant in a refusal or a validation (REVIEW.md, high-risk):**
+  1. and 2. `hostname.rs` `read += n` -> `*=`, and `>` -> `==`: no test sent more than `MAX_READ`.
+  3. The arm refusing an error name of type `u32`: the test meant for it failed on later bytes, by accident.
+  4. The arm refusing an error to `Hello`: no stand-in sent one.
+  5. `vm_drill.py` `named_only` with `old` dropped: no case kept the old name in the certificate.
+- **Nits:**
+  1. Survivors that only tighten a limit, or touch message text or a log line (the limits' values; `>` -> `>=` at the read limit; the auth line's `>`; the three `Display` impls; a method call as `Kind::Call`; the start warning's condition). In Python, the claim and rename status checks are equivalent, and the restart retry is a timing gap.
+  2. README.md:89 still said `RIKURI_NAMES` lists the node's names.
+  3. `own_uid()` relies on who owns `/proc/self`: it fails closed if the process becomes non-dumpable.
+  4. Nothing observes mDNS answering the new name. The drill reads the kernel's name, which resolved announces.
+  5. A reload that loses the node's name logs only at info level, and the start warning could fire wrongly.
+- **A defect outside this task, for the owner:** `.github/workflows/mutants.yml:86` accepts cargo-mutants' exit code 3. Here 2 timeouts produced exit 3 and masked 14 missed mutants, so the check went green. Fixing it is its own control task.
+
+### Repair 2 (of 2): the tests the verifier asked for
+
+- **Test changes after red, each with its reason (verifier, first pass):**
+  - `hostname.rs` `an_error_name_that_is_a_u32_is_refused`: a well-formed `u32` error name reaches its own refusal (Important 3).
+  - `the_limits_are_what_the_design_says` pins `MAX_MESSAGE`, `MAX_READ` and `BUS_TIMEOUT` (nit 1).
+  - `tests/rename.rs` and `tests/common/bus.rs`:
+    - `Answer::Flood` answers `Hello`, then sends signals in 4093-byte writes, past `MAX_READ`, and never answers. The client must stop with `Protocol("more than a rename's answer")` well inside the time limit (Important 1 and 2).
+    - `Answer::HelloError` answers `Hello` with an error, which must be `Refused` at once (Important 4).
+  - `test_vm_drill.py`:
+    - the stand-in gains `cert_keeps_old`, a certificate holding both names (Important 5);
+    - its `/api/setup` now lists the names its Host check uses, as the daemon's does, not the certificate's. Without this second change, the new case failed through the names list, and the certificate check was still not the deciding one: dropping `old` survived (`Ran 155 tests … OK`, rikuri-drill). With it, that mutant fails `cert_keeps_old`, and every earlier case gives the same results.
+  - No assertion was loosened.
+- **Code (nit 5), later dropped:** `LiveNames` warned whenever the file named no node name, at the start and on a reload that lost it. See "CI on `628b573`" below.
+- **Docs (nit 2):** README.md says the name comes from `/etc/hostname` and names `PUT /api/node/name`.
+- **Not changed, recorded:**
+  - nit 1's other survivors, which only tighten a limit or change log text;
+  - nit 3: `own_uid` fails closed, and the drill proves it works on the node; `AUTH EXTERNAL` with an empty response is the alternative, noted for later;
+  - nit 4: mDNS answering the new name is **inferred** from the kernel's name, not observed. 5c.4b-2's mDNS check of a name is where it can be seen.
+- On rikuri-drill, through `safe-run.sh`: `image/tests`, `Ran 549 tests`, `OK`. Important 5's mutant now fails (`FAILED (failures=1)`, in `cert_keeps_old`). On the Mac: clippy and fmt exit 0. The Rust kills are for CI's mutants job and the follow-up pass.
+
+### CI on `628b573` (repair 2, PR #91): mutants Fail on nit 5 only; nit 5 dropped
+
+- PR #90 was merged at `568bd1c` before repair 2 was pushed, so repair 2 went to draft PR #91.
+- `Full gate (Ubuntu)`: **Pass**, [run 43504349040](https://github.com/rikuripi/rikurinode/actions/runs/43504349040). The image build, the USB installer drill and the rollback drill: **Pass**, [run 43504349146](https://github.com/rikuripi/rikurinode/actions/runs/43504349146).
+- `Rust mutants (changed lines)`: **Fail**, [run 43504348895](https://github.com/rikuripi/rikurinode/actions/runs/43504348895), `7 mutants tested in 76s: 3 missed, 4 unviable`. All three missed mutants are nit 5's warning:
+  - `names.rs:128:12: delete ! in LiveNames::load`;
+  - `names.rs:167:16: delete ! in LiveNames::reload`;
+  - `names.rs:192:5: replace warn_unnamed with ()`.
+
+  No test in the repository can see log output, so no test could catch them.
+- Both repair cycles were used, so this went to the owner. The owner chose "Drop nit 5": `names.rs` is back to `main`'s text (as merged in #90), and nothing else changes. This removes a change that was outside the verifier's Important findings; it is not a third repair.
+- Backlog, not started: a warning when a reload loses the node's name, with a test that captures logs.
