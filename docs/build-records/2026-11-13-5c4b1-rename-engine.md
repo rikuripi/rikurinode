@@ -91,3 +91,20 @@ The contract first left "a real claim in the drill" out, so the route on a node 
 - On rikuri-drill, through `safe-run.sh`:
   - `image/tests`: `Ran 549 tests`, `OK`.
   - `scripts/quality/tests`: `FAILED (failures=1, errors=15, skipped=1)`, the same list as `main`'s copy at `a59755d` run the same way: the copy has no `control-plane/`, `ui/`, `.claude/` or git. CI runs them on a checkout.
+
+### CI on `7e02605` (the fix): one racy test; the drill passed
+
+- `Full gate (Ubuntu)`: **Fail**, run 43488038984 (job 132101595466). Every Rust test passed but one, `tests/rename.rs` `anything_but_an_answer_is_an_error`:
+  `Hangs: Err(Io(Os { code: 32, kind: BrokenPipe, message: "Broken pipe" }))`.
+  The Rust mutants job failed on the same test in its unmutated baseline (run 43488039124, job 132101596315), so no mutant was tested.
+- **Cause: the test, not the client.** The stand-in's `Hangs` closed the socket right after `OK`. The client's write of `BEGIN` and its two calls then races its read: EPIPE gives `Io`, end of file gives `Protocol`. Both are correct failures, and the test pinned one.
+- The image workflow: **Pass**, run 43488038824. The rollback drill (job 132102951899) ran the new step on the image, and all three checks passed:
+  - `PASS the owner renames the node, and no other user can`: as nobody, `exit 1`, `Call failed: Access denied as the requested operation requires interactive authentication…`. `/etc/hostname` was still `rikurisetup`. Claimed; `PUT /api/node/name: 200 {"name":"rikuri01","host":"rikuri01.local"}`. Then `/etc/hostname` and the kernel's name were both `rikuri01`.
+  - `PASS the new name only, at once and with no restart`: as `rikuri01.local`, `200` and claimed. As `rikurisetup.local`, refused: `Hostname mismatch`. `Host: rikurisetup.local`: `421`. `MainPID=695` before and after.
+  - `PASS the new name only, after a restart`: the same answers, `MainPID=695 -> 1643`.
+  - So the daemon's own D-Bus client, polkit's rule and hostnamed work together on the image, in the service's sandbox.
+
+### Repair 1 (of 2): the stand-in's `Hangs` made deterministic
+
+- **Test change after red, and its reason:** `tests/common/bus.rs`: `Hangs` now reads `BEGIN` and both calls, then closes with no answer, so the client always reads the end. No assertion changed: `Hangs` must still be `BusError::Protocol`. The race was in the stand-in, and the client is right on both of its paths.
+- On the Mac: clippy and fmt exit 0.

@@ -24,7 +24,10 @@ pub enum Answer {
     ReturnOnly,
     /// `REJECTED` to the authentication.
     Rejected,
-    /// Closes the connection after `OK`.
+    /// Reads the calls, then closes the connection with no answer. Repair 1:
+    /// it closed right after `OK`, which raced the client's write of `BEGIN`
+    /// and its calls (EPIPE, so `Io`) against its read (end of file, so
+    /// `Protocol`); now the client always reads the end.
     Hangs,
     /// Answers the authentication, then never anything more.
     Silent,
@@ -189,9 +192,6 @@ async fn serve(
     conn.write_all(b"OK 0123456789abcdef0123456789abcdef\r\n")
         .await
         .ok()?;
-    if matches!(answer, Answer::Hangs) {
-        return None;
-    }
     let begin = read_until(&mut conn, b"\r\n").await?;
     assert_eq!(begin, b"BEGIN\r\n");
     let hello = read_message(&mut conn).await?;
@@ -204,6 +204,7 @@ async fn serve(
     }
     let (hello_serial, call_serial) = (u32_at(&hello, 8), u32_at(&call, 8));
     let out = match answer {
+        Answer::Hangs => return None,
         Answer::Silent => {
             // Hold the connection open until the client gives up.
             let _ = conn.read(&mut [0u8; 1]).await;
@@ -223,7 +224,7 @@ async fn serve(
         }
         Answer::ReturnOnly => [reply(2, 1, hello_serial), reply(2, 2, call_serial)].concat(),
         Answer::Error(name) => [reply(2, 1, hello_serial), error(2, call_serial, name)].concat(),
-        Answer::Rejected | Answer::Hangs => unreachable!(),
+        Answer::Rejected => unreachable!(),
     };
     conn.write_all(&out).await.ok()?;
     // Keep the connection until the client closes it.
