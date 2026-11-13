@@ -68,4 +68,26 @@ The contract first left "a real claim in the drill" out, so the route on a node 
 
 ## Evidence log
 
-(Filled as the work runs.)
+### Red (`0e7adec`, the tests with stubs)
+
+- **What it holds:**
+  - Rust: `hostname.rs` as a stub with the public surface (every answer wrong), `LiveNames` that never reads the hostname file, and, as plumbing, the follower, `Config.bus_socket` and `PUT /api/node/name`. Tests: `hostname.rs`'s unit tests (the name's rules, golden bytes for `Hello` and `SetStaticHostname`, the reader), `names.rs`'s `LiveNames` tests, `tests/rename.rs` against a stand-in bus (`tests/common/bus.rs`).
+  - `tests/address_change.rs` now passes the booted follower to `follow`, whose signature changed. The assertions are the same.
+  - Python: the image check's tests (the polkit rule, the unit without `RIKURI_NAMES`) and the drill's rename step against a stand-in node. None of the image's files, checks or drill code.
+- **Rust, on the Mac:** `scripts/cargo.sh clippy --locked --all-targets -- -D warnings` and `fmt --check` exit 0. The Rust red is CI's.
+- **Python, rikuri-drill, through `safe-run.sh`:** `image/tests`: `Ran 549 tests`, `FAILED (failures=4, errors=30)`. Every one is a new or changed 5c.4b-1 test: `RenameReads`, `RenameSteps`, the two polkit-rule tests, the unit's two tests, and `Verdict.test_every_check_names_a_step`.
+- **CI on `0e7adec`:**
+  - `Full gate (Ubuntu)`: **Fail**, as wanted, [run 43485803729](https://github.com/rikuripi/rikurinode/actions/runs/43485803729) (job 132093787987). The gate stopped at `image/tests`, `Ran 549 tests`, `FAILED (failures=4, errors=30)`, the same as on rikuri-drill. So it never reached the Rust steps.
+  - The Rust red is the mutants job's baseline, [run 43485803869](https://github.com/rikuripi/rikurinode/actions/runs/43485803869) (job 132093786592): `test result: FAILED. 151 passed; 11 failed`. The failures are the nine `hostname::tests` that need a real answer, and two of `names::tests`.
+  - Four new library tests pass on the stub, as they should: the refusal tests, which a stub that refuses everything meets (`what_this_client_does_not_read_is_refused`, `a_message_over_the_limit_is_refused_before_it_is_read`, `anything_else_is_not_a_name`, `no_file_or_no_node_name_leaves_the_configured_names`). They prove their worth against the fix and the mutations.
+  - **Not seen red:** the `--lib` failure stopped cargo before the integration tests, so `tests/rename.rs` was not run on the stub. The same gap 5c.2's verifier noted (its nit 1). Its tests are proven only green, after the fix, and by the verifier's mutations.
+  - The image workflow passed on the red commit. Its drill runs the old drill code, which the red commit did not change.
+
+### Fix (`d0072f9`)
+
+- `hostname.rs`, `names.rs` (`compose` reads the file), `check_image_root.py`, `vm_drill.py`, the polkit rule, and the unit without `RIKURI_NAMES`.
+- **No test changed after red.** The test modules of `hostname.rs` and `names.rs` are identical to `0e7adec`'s, compared by `diff`.
+- On the Mac: clippy and fmt exit 0.
+- On rikuri-drill, through `safe-run.sh`:
+  - `image/tests`: `Ran 549 tests`, `OK`.
+  - `scripts/quality/tests`: `FAILED (failures=1, errors=15, skipped=1)`, the same list as `main`'s copy at `a59755d` run the same way: the copy has no `control-plane/`, `ui/`, `.claude/` or git. CI runs them on a checkout.
