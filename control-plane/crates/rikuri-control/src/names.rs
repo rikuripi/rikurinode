@@ -20,7 +20,7 @@ use std::sync::{PoisonError, RwLock};
 
 use tracing::{info, warn};
 
-use crate::hostname::NodeName;
+use crate::hostname::{self, NodeName};
 
 /// The environment variable with the node's names, comma-separated.
 pub const ENV: &str = "RIKURI_NAMES";
@@ -175,9 +175,11 @@ impl LiveNames {
     }
 }
 
-// RED STUB: the hostname file is never read.
-fn compose(configured: &Names, _file: &Path) -> Names {
-    configured.clone()
+fn compose(configured: &Names, file: &Path) -> Names {
+    std::fs::read_to_string(file)
+        .ok()
+        .and_then(|text| hostname::name_in(&text))
+        .map_or_else(|| configured.clone(), |name| configured.with(&name))
 }
 
 enum Host {

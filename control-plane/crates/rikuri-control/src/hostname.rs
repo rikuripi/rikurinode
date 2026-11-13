@@ -1,44 +1,89 @@
 //! The node's name, and the one call that changes it (5c.4b-1).
-//! RED STUB: the public surface only; every answer is wrong.
+//!
+//! The name is one DNS label (lower-case letters, digits and inner hyphens);
+//! the node answers as `<name>.local`. It is the static hostname that
+//! systemd-hostnamed keeps in `/etc/hostname`, read again rather than
+//! remembered, so a rename by any route ends with the same names.
+//!
+//! The control plane never runs another program (ADR 0005, ADR 0014), so it
+//! asks hostnamed over the system bus itself: a minimal D-Bus client that
+//! authenticates with SASL EXTERNAL (the socket's own credentials), sends
+//! `Hello` and one fixed call, `org.freedesktop.hostname1.SetStaticHostname(s,
+//! b)` with `interactive = false`, and reads back only a method return or an
+//! error, within a time limit and a size limit. Polkit lets only the control
+//! plane's user make that call (the image's rule); a refusal comes back as an
+//! error, never as a prompt. Little-endian only: hostnamed and the bus run on
+//! the node itself (x86-64 and arm64).
 //! Record: docs/build-records/2026-11-13-5c4b1-rename-engine.md
 
 use std::fmt;
 use std::io;
+use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::time::Duration;
 
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::UnixStream;
+
+/// The system bus.
 pub const BUS_SOCKET: &str = "/run/dbus/system_bus_socket";
+/// How long a rename may take, the bus's answer included.
 pub const BUS_TIMEOUT: Duration = Duration::from_secs(10);
+/// No message from the bus is larger than this, and nothing larger is read.
 pub const MAX_MESSAGE: usize = 64 * 1024;
+/// All the bytes one rename may read from the bus.
 pub const MAX_READ: usize = 4 * MAX_MESSAGE;
+/// The longest line the bus may send while authenticating.
+const MAX_AUTH_LINE: usize = 512;
+
+/// The serials of the two calls a rename sends.
 pub const HELLO_SERIAL: u32 = 1;
 pub const CALL_SERIAL: u32 = 2;
 
+/// A name the node can be given: one lower-case DNS label, never `localhost`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NodeName(String);
 
+/// Not a name the node can be given.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NotAName;
 
 impl fmt::Display for NotAName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("not a name for the node")
+        f.write_str(
+            "not a name for the node: 1 to 63 letters, digits or inner hyphens, and not localhost",
+        )
     }
 }
 
 impl std::error::Error for NotAName {}
 
 impl NodeName {
-    pub fn parse(_raw: &str) -> Result<Self, NotAName> {
-        Err(NotAName)
+    /// `raw`, lower-cased, if it is one label of letters, digits and inner
+    /// hyphens, 1 to 63 characters, and not `localhost`. Nothing is trimmed.
+    pub fn parse(raw: &str) -> Result<Self, NotAName> {
+        let lower = raw.to_ascii_lowercase();
+        let label_ok = !lower.is_empty()
+            && lower.len() <= 63
+            && !lower.starts_with('-')
+            && !lower.ends_with('-')
+            && lower
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-');
+        if label_ok && lower != "localhost" {
+            Ok(Self(lower))
+        } else {
+            Err(NotAName)
+        }
     }
 
     pub fn as_str(&self) -> &str {
         &self.0
     }
 
+    /// The name the node answers to on the LAN.
     pub fn local(&self) -> String {
-        self.0.clone()
+        format!("{}.local", self.0)
     }
 }
 
@@ -48,18 +93,28 @@ impl fmt::Display for NodeName {
     }
 }
 
-pub fn first_line(_text: &str) -> Option<&str> {
-    None
+/// The name line of a hostname file: its first line that is neither blank nor
+/// a comment, trimmed (hostname(5)).
+pub fn first_line(text: &str) -> Option<&str> {
+    text.lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty() && !line.starts_with('#'))
 }
 
-pub fn name_in(_text: &str) -> Option<NodeName> {
-    None
+/// The node's name in a hostname file's text, if its name line is one.
+pub fn name_in(text: &str) -> Option<NodeName> {
+    first_line(text).and_then(|line| NodeName::parse(line).ok())
 }
 
+/// This process's user id, as the bus will see it on the socket: the owner
+/// of `/proc/self`, so no `unsafe` call is needed.
 pub fn own_uid() -> io::Result<u32> {
-    Ok(u32::MAX)
+    std::fs::metadata("/proc/self").map(|m| m.uid())
 }
 
+// ---- the wire ---------------------------------------------------------------
+
+/// What came back from the bus.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
     Call,
@@ -68,6 +123,7 @@ pub enum Kind {
     Signal,
 }
 
+/// The parts of a message a rename looks at.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Message {
     pub kind: Kind,
@@ -78,46 +134,385 @@ pub struct Message {
 
 #[derive(Debug)]
 pub enum BusError {
+    /// The bus's socket could not be reached.
     Unreachable(io::Error),
+    /// The connection failed after it was made.
     Io(io::Error),
+    /// The bus did not accept the authentication; what it said.
     Auth(String),
+    /// Polkit, or the bus, refused the call: the error's name.
     Denied(String),
+    /// Hostnamed, or the bus, answered with another error: its name.
     Refused(String),
+    /// Something the bus sent that this client does not read.
     Protocol(&'static str),
+    /// No answer within the limit.
     TimedOut,
 }
 
 impl fmt::Display for BusError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{self:?}")
+        match self {
+            BusError::Unreachable(e) => write!(f, "the system bus could not be reached: {e}"),
+            BusError::Io(e) => write!(f, "the connection to the system bus failed: {e}"),
+            BusError::Auth(line) => write!(f, "the system bus refused to authenticate: {line:?}"),
+            BusError::Denied(name) => write!(f, "renaming the node was not allowed: {name}"),
+            BusError::Refused(name) => write!(f, "hostnamed refused the name: {name}"),
+            BusError::Protocol(what) => write!(f, "the system bus sent {what}"),
+            BusError::TimedOut => write!(f, "the system bus did not answer in time"),
+        }
     }
 }
 
 impl std::error::Error for BusError {}
 
-pub fn auth_line(_uid: u32) -> Vec<u8> {
-    Vec::new()
+/// The error names that mean "not allowed".
+const DENIED: [&str; 2] = [
+    "org.freedesktop.DBus.Error.AccessDenied",
+    "org.freedesktop.DBus.Error.InteractiveAuthorizationRequired",
+];
+
+/// SASL EXTERNAL with the user id as the bus expects it: its decimal digits,
+/// each as two hex digits, after the protocol's leading NUL byte.
+pub fn auth_line(uid: u32) -> Vec<u8> {
+    let hex: String = uid
+        .to_string()
+        .bytes()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    let mut line = b"\0AUTH EXTERNAL ".to_vec();
+    line.extend_from_slice(hex.as_bytes());
+    line.extend_from_slice(b"\r\n");
+    line
 }
 
-pub fn hello(_serial: u32) -> Vec<u8> {
-    Vec::new()
+/// The bus's own first call, which every connection must make.
+pub fn hello(serial: u32) -> Vec<u8> {
+    method_call(
+        serial,
+        "/org/freedesktop/DBus",
+        "org.freedesktop.DBus",
+        "org.freedesktop.DBus",
+        "Hello",
+        None,
+    )
 }
 
-pub fn set_static_hostname_call(_name: &NodeName, _serial: u32) -> Vec<u8> {
-    Vec::new()
+/// `SetStaticHostname(name, false)`: never interactive, so polkit answers yes
+/// or no and never asks anyone.
+pub fn set_static_hostname_call(name: &NodeName, serial: u32) -> Vec<u8> {
+    let mut body = Wire::default();
+    body.string(name.as_str());
+    body.align(4);
+    body.u32(0);
+    method_call(
+        serial,
+        "/org/freedesktop/hostname1",
+        "org.freedesktop.hostname1",
+        "org.freedesktop.hostname1",
+        "SetStaticHostname",
+        Some(("sb", body.0)),
+    )
 }
 
-pub fn parse_message(_buf: &[u8]) -> Result<Option<(Message, usize)>, BusError> {
-    Err(BusError::Protocol("a red stub"))
+/// A method call, little-endian, expecting a reply, with no flags: the
+/// fixed header, then the header fields (each aligned to 8 from the
+/// message's start: path, destination, interface, member, and the body's
+/// signature if any), padding to 8, and the body.
+fn method_call(
+    serial: u32,
+    path: &str,
+    destination: &str,
+    interface: &str,
+    member: &str,
+    body: Option<(&str, Vec<u8>)>,
+) -> Vec<u8> {
+    let mut m = Wire::default();
+    m.bytes(&[b'l', 1, 0, 1]);
+    let body_len = body.as_ref().map_or(0, |(_, b)| b.len());
+    m.u32(u32::try_from(body_len).unwrap_or(u32::MAX));
+    m.u32(serial);
+    m.u32(0); // the fields' length, written below
+    let start = m.0.len();
+    m.field(1, b'o', path);
+    m.field(6, b's', destination);
+    m.field(2, b's', interface);
+    m.field(3, b's', member);
+    if let Some((signature, _)) = &body {
+        m.field(8, b'g', signature);
+    }
+    let fields_len = u32::try_from(m.0.len() - start).unwrap_or(u32::MAX);
+    m.0[12..16].copy_from_slice(&fields_len.to_le_bytes());
+    m.align(8);
+    if let Some((_, bytes)) = body {
+        m.bytes(&bytes);
+    }
+    m.0
 }
 
+/// The writer: offsets are the message's own, so alignment is absolute.
+#[derive(Default)]
+struct Wire(Vec<u8>);
+
+impl Wire {
+    fn align(&mut self, n: usize) {
+        while !self.0.len().is_multiple_of(n) {
+            self.0.push(0);
+        }
+    }
+    fn bytes(&mut self, b: &[u8]) {
+        self.0.extend_from_slice(b);
+    }
+    fn u32(&mut self, v: u32) {
+        self.align(4);
+        self.0.extend_from_slice(&v.to_le_bytes());
+    }
+    fn string(&mut self, s: &str) {
+        self.u32(u32::try_from(s.len()).unwrap_or(u32::MAX));
+        self.bytes(s.as_bytes());
+        self.0.push(0);
+    }
+    fn signature(&mut self, s: &str) {
+        self.0.push(u8::try_from(s.len()).unwrap_or(u8::MAX));
+        self.bytes(s.as_bytes());
+        self.0.push(0);
+    }
+    /// One header field: its code, its one-character type, its value.
+    fn field(&mut self, code: u8, kind: u8, value: &str) {
+        self.align(8);
+        self.bytes(&[code, 1, kind, 0]);
+        if kind == b'g' {
+            self.signature(value);
+        } else {
+            self.string(value);
+        }
+    }
+}
+
+fn align(n: usize, to: usize) -> Option<usize> {
+    n.checked_add(to - 1).map(|v| v / to * to)
+}
+
+fn u32_at(buf: &[u8], at: usize) -> Result<u32, BusError> {
+    buf.get(at..at + 4)
+        .and_then(|b| b.try_into().ok())
+        .map(u32::from_le_bytes)
+        .ok_or(BusError::Protocol("a header field cut short"))
+}
+
+/// The first message in `buf`, and how many bytes it took; `None` while it is
+/// still incomplete. Refuses at once a message that is not little-endian
+/// D-Bus 1, is of no known type, would be larger than [`MAX_MESSAGE`], or has
+/// a header field this client cannot read.
+pub fn parse_message(buf: &[u8]) -> Result<Option<(Message, usize)>, BusError> {
+    const SHORT: BusError = BusError::Protocol("a header field cut short");
+    if buf.len() < 16 {
+        return Ok(None);
+    }
+    if buf[0] != b'l' {
+        return Err(BusError::Protocol("a message that is not little-endian"));
+    }
+    let kind = match buf[1] {
+        1 => Kind::Call,
+        2 => Kind::Return,
+        3 => Kind::Error,
+        4 => Kind::Signal,
+        _ => return Err(BusError::Protocol("a message of no known type")),
+    };
+    if buf[3] != 1 {
+        return Err(BusError::Protocol("a message of another protocol version"));
+    }
+    let body_len = u32_at(buf, 4)? as usize;
+    let serial = u32_at(buf, 8)?;
+    let fields_end = 16usize
+        .checked_add(u32_at(buf, 12)? as usize)
+        .ok_or(BusError::Protocol("a message over the size limit"))?;
+    let total = align(fields_end, 8)
+        .and_then(|at| at.checked_add(body_len))
+        .filter(|&total| total <= MAX_MESSAGE)
+        .ok_or(BusError::Protocol("a message over the size limit"))?;
+    if buf.len() < total {
+        return Ok(None);
+    }
+    let mut reply_serial = None;
+    let mut error_name = None;
+    let mut pos = 16;
+    while pos < fields_end {
+        pos = align(pos, 8).ok_or(SHORT)?;
+        let head = buf.get(pos..pos + 4).ok_or(SHORT)?;
+        let (code, sig_len, kind_byte, nul) = (head[0], head[1], head[2], head[3]);
+        if sig_len != 1 || nul != 0 {
+            return Err(BusError::Protocol(
+                "a header field of a type this client does not read",
+            ));
+        }
+        pos += 4;
+        let text = match kind_byte {
+            b'u' => {
+                pos = align(pos, 4).ok_or(SHORT)?;
+                let value = u32_at(buf, pos)?;
+                pos += 4;
+                match code {
+                    5 => reply_serial = Some(value),
+                    4 => return Err(BusError::Protocol("an error name of the wrong type")),
+                    _ => {}
+                }
+                None
+            }
+            b's' | b'o' => {
+                pos = align(pos, 4).ok_or(SHORT)?;
+                let len = u32_at(buf, pos)? as usize;
+                pos += 4;
+                let end = pos.checked_add(len).ok_or(SHORT)?;
+                let bytes = buf.get(pos..end).ok_or(SHORT)?;
+                if buf.get(end) != Some(&0) {
+                    return Err(SHORT);
+                }
+                pos = end + 1;
+                Some(bytes)
+            }
+            b'g' => {
+                let len = *buf.get(pos).ok_or(SHORT)? as usize;
+                pos += 1;
+                let end = pos.checked_add(len).ok_or(SHORT)?;
+                let bytes = buf.get(pos..end).ok_or(SHORT)?;
+                if buf.get(end) != Some(&0) {
+                    return Err(SHORT);
+                }
+                pos = end + 1;
+                Some(bytes)
+            }
+            _ => {
+                return Err(BusError::Protocol(
+                    "a header field of a type this client does not read",
+                ));
+            }
+        };
+        match (code, text) {
+            (5, Some(_)) => return Err(BusError::Protocol("a reply serial of the wrong type")),
+            (4, Some(bytes)) => {
+                error_name = Some(
+                    String::from_utf8(bytes.to_vec())
+                        .map_err(|_| BusError::Protocol("an error name that is not UTF-8"))?,
+                );
+            }
+            _ => {}
+        }
+        if pos > fields_end {
+            return Err(SHORT);
+        }
+    }
+    Ok(Some((
+        Message {
+            kind,
+            serial,
+            reply_serial,
+            error_name,
+        },
+        total,
+    )))
+}
+
+// ---- the call ---------------------------------------------------------------
+
+/// Asks hostnamed, through the bus at `socket`, to make `name` the node's
+/// static hostname, as the user `uid` (the bus checks it on the socket).
+/// `Ok` only on hostnamed's method return to that call, after the bus's
+/// return to `Hello`; anything else within `limit` is an error.
 pub async fn set_static_hostname(
-    _socket: &Path,
-    _uid: u32,
-    _name: &NodeName,
-    _limit: Duration,
+    socket: &Path,
+    uid: u32,
+    name: &NodeName,
+    limit: Duration,
 ) -> Result<(), BusError> {
-    Err(BusError::Protocol("a red stub"))
+    tokio::time::timeout(limit, exchange(socket, uid, name))
+        .await
+        .map_err(|_| BusError::TimedOut)?
+}
+
+async fn exchange(socket: &Path, uid: u32, name: &NodeName) -> Result<(), BusError> {
+    let mut bus = UnixStream::connect(socket)
+        .await
+        .map_err(BusError::Unreachable)?;
+    bus.write_all(&auth_line(uid)).await.map_err(BusError::Io)?;
+    let line = auth_answer(&mut bus).await?;
+    if !line.starts_with(b"OK ") {
+        return Err(BusError::Auth(String::from_utf8_lossy(&line).into_owned()));
+    }
+    let mut out = b"BEGIN\r\n".to_vec();
+    out.extend_from_slice(&hello(HELLO_SERIAL));
+    out.extend_from_slice(&set_static_hostname_call(name, CALL_SERIAL));
+    bus.write_all(&out).await.map_err(BusError::Io)?;
+
+    let mut buf = Vec::new();
+    let mut read = 0;
+    let mut hello_answered = false;
+    loop {
+        while let Some((message, used)) = parse_message(&buf)? {
+            buf.drain(..used);
+            match (message.kind, message.reply_serial) {
+                (Kind::Return, Some(HELLO_SERIAL)) => hello_answered = true,
+                (Kind::Error, Some(HELLO_SERIAL)) => {
+                    return Err(BusError::Refused(error_name(message)));
+                }
+                (Kind::Return, Some(CALL_SERIAL)) if hello_answered => return Ok(()),
+                (Kind::Error, Some(CALL_SERIAL)) => {
+                    let name = error_name(message);
+                    return Err(if DENIED.contains(&name.as_str()) {
+                        BusError::Denied(name)
+                    } else {
+                        BusError::Refused(name)
+                    });
+                }
+                (_, Some(CALL_SERIAL)) => {
+                    return Err(BusError::Protocol("an answer to the call before Hello's"));
+                }
+                // Signals (NameAcquired), and replies to nothing this sent.
+                _ => {}
+            }
+        }
+        let mut chunk = [0u8; 4096];
+        let n = bus.read(&mut chunk).await.map_err(BusError::Io)?;
+        if n == 0 {
+            return Err(BusError::Protocol(
+                "the end of the connection, and no answer",
+            ));
+        }
+        read += n;
+        if read > MAX_READ {
+            return Err(BusError::Protocol("more than a rename's answer"));
+        }
+        buf.extend_from_slice(&chunk[..n]);
+    }
+}
+
+fn error_name(message: Message) -> String {
+    message
+        .error_name
+        .unwrap_or_else(|| "(an error with no name)".to_owned())
+}
+
+/// The bus's one line in answer to the authentication, without its `\r\n`.
+/// The bus sends nothing more until `BEGIN`, so it is read a byte at a time,
+/// and anything past the line is refused.
+async fn auth_answer(bus: &mut UnixStream) -> Result<Vec<u8>, BusError> {
+    let mut line = Vec::new();
+    loop {
+        let mut byte = [0u8; 1];
+        if bus.read(&mut byte).await.map_err(BusError::Io)? == 0 {
+            return Err(BusError::Protocol(
+                "the end of the connection while authenticating",
+            ));
+        }
+        line.push(byte[0]);
+        if line.ends_with(b"\r\n") {
+            line.truncate(line.len() - 2);
+            return Ok(line);
+        }
+        if line.len() > MAX_AUTH_LINE {
+            return Err(BusError::Protocol("an authentication line over the limit"));
+        }
+    }
 }
 
 #[cfg(test)]

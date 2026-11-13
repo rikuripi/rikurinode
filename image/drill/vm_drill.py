@@ -502,6 +502,25 @@ NAME_IN_SANDBOX = ('pid="$(systemctl show -p MainPID --value rikuri-control-plan
                    'nsenter --target "$pid" --mount --setuid "$(id -u %s)" --setgid "$(id -g %s)" '
                    'cat /etc/hostname' % (CP_USER, CP_USER))
 WRONG_CODE = "0000-0000-00"
+# 5c.4b-1: renaming the node (docs/build-records/2026-11-13-5c4b1-rename-engine.md).
+# Last, after every check that reaches the node as rikurisetup.local.
+RENAMED = "rikuri01"
+RENAMED_NAME = RENAMED + ".local"
+STATIC_NAME = "cat /etc/hostname"   # the static name hostnamed keeps
+_AS_USER = "setpriv --reuid=%s --regid=%s --clear-groups "
+# Another user than the service's asks hostnamed itself, never interactively:
+# polkit must refuse it. Its status is the last line.
+RENAME_AS_OTHER = (_AS_USER % ("nobody", "nobody")
+                   + "busctl --allow-interactive-authorization=no call org.freedesktop.hostname1 "
+                   "/org/freedesktop/hostname1 org.freedesktop.hostname1 SetStaticHostname sb rikuri99 false"
+                   " 2>&1; echo \"exit=$?\"")
+# A claim code armed at the console as the service's user, as the runbook's
+# rearm is, for the drill's own claim. The code is kept in memory only.
+REARM_AS_CP = (_AS_USER % (CP_USER, CP_USER)
+               + "env RIKURI_STATE_DIR=/var/lib/rikuri/control-plane /usr/bin/rikuri-control-plane rearm-claim")
+RESTART_CP = "systemctl restart rikuri-control-plane.service"
+# After its restart the service answers within seconds; 12 tries 5 s apart.
+RENAME_TRIES = 12
 
 
 def http_header(raw: bytes, name: str):
@@ -545,6 +564,53 @@ def page_ok(raw: bytes, page: str):
 def pem_fingerprint(pem: str) -> str:
     """The certificate's SHA-256 as the control plane reports it: colon-separated upper-case hex."""
     return ":".join("%02X" % b for b in hashlib.sha256(ssl.PEM_cert_to_DER_cert(pem)).digest())
+
+
+def exit_status(out):
+    """The status a command run as `...; echo "exit=$?"` ended with, or None."""
+    found = re.findall(r"^exit=(\d+)$", out or "", re.M)
+    return int(found[-1]) if found else None
+
+
+# What hostnamed answers when polkit says no to a call that may not ask anyone
+# (systemd's bus-polkit: a challenge it may not put, or a refusal), as busctl prints it.
+POLKIT_REFUSALS = ("Interactive authentication required", "Access denied")
+
+
+def polkit_refused(out) -> bool:
+    """Whether a busctl call ended in polkit's refusal: a failed status and its
+    words, not merely a failure (a missing busctl fails too)."""
+    return exit_status(out) not in (None, 0) and any(words in (out or "") for words in POLKIT_REFUSALS)
+
+
+def armed_code(out):
+    """The code `rearm-claim` printed, or None. Never kept, never logged."""
+    found = re.search(r"^claim code: ([A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{2})$", out or "", re.M)
+    return found.group(1) if found else None
+
+
+def first_name(text):
+    """A hostname file's name line: its first that is neither blank nor a comment."""
+    return next((line.strip() for line in (text or "").splitlines()
+                 if line.strip() and not line.strip().startswith("#")), None)
+
+
+def session_cookie(set_cookie):
+    """The session id a `Set-Cookie` header opens, or None."""
+    found = re.match(r"rikuri_session=([0-9a-f]{64});", set_cookie or "")
+    return found.group(1) if found else None
+
+
+def renamed_ok(body: bytes, fingerprint: str) -> bool:
+    """The setup report after the drill's claim and rename: claimed, this CA,
+    and the names in force are the new one and localhost, nothing else."""
+    try:
+        report = json.loads(body)
+    except ValueError:
+        return False
+    return (isinstance(report, dict) and report.get("claimed") is True
+            and report.get("ca_fingerprint_sha256") == fingerprint
+            and report.get("names") == ["localhost", RENAMED_NAME])
 
 
 def setup_ok(body: bytes, fingerprint: str) -> bool:
@@ -619,7 +685,10 @@ EXPECTED = frozenset({"first boot", "the containers range at the first boot", "c
                       "the SetupHub over HTTPS only, with only the node's CA",
                       "the hub refuses a browser without a session",
                       "the control plane reads the node's name in its sandbox",
-                      "the EFI partition's automount on /boot is masked"})
+                      "the EFI partition's automount on /boot is masked",
+                      "the owner renames the node, and no other user can",
+                      "the new name only, at once and with no restart",
+                      "the new name only, after a restart"})
 
 
 def verdict(results, error) -> int:
@@ -644,6 +713,7 @@ class Drill:
         self.address_pause = 5  # seconds between tries as the guest's address, while the daemon looks again
         self.mdns_pause = 2     # seconds between reads of resolved's mDNS, while udev's unit runs
         self.case1_poll = 10    # seconds between reads of bootc's status, while case 1's boots run
+        self.rename_pause = 5   # seconds between tries as the new name, while the service restarts
 
     # --- plumbing ------------------------------------------------------------
     def log(self, message: str) -> None:
@@ -772,15 +842,16 @@ class Drill:
             conn.sendall(b"GET %s HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n" % path.encode())
             return _read_all(conn)
 
-    def fetch_tls(self, path: str, cafile, name: str = SERVER_NAME):
+    def fetch_tls(self, path: str, cafile, name: str = SERVER_NAME, host=None):
         """One HTTPS request to the VM's 443, through its forward, as `name`
         (a host name, or an IP address that must be in the certificate as
-        one): trusting only `cafile`, or with None the system's CAs alone."""
+        one): trusting only `cafile`, or with None the system's CAs alone.
+        `host`, if given, is the `Host` header instead of `name` (5c.4b-1)."""
         context = ssl.create_default_context(cafile=cafile) if cafile else ssl.create_default_context()
         with socket.create_connection(("127.0.0.1", HTTPS_PORT), timeout=10) as raw:
             with context.wrap_socket(raw, server_hostname=name) as conn:
                 conn.sendall(b"GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n"
-                             % (path.encode(), name.encode()))
+                             % (path.encode(), (host or name).encode()))
                 return _read_all(conn)
 
     def post_tls(self, path: str, body: bytes, cafile, name: str = SERVER_NAME):
@@ -794,6 +865,20 @@ class Drill:
             conn.sendall(b"POST %s HTTP/1.1\r\nHost: %s\r\nOrigin: https://%s\r\n"
                          b"Content-Type: application/json\r\nContent-Length: %d\r\nConnection: close\r\n\r\n"
                          % (path.encode(), name.encode(), name.encode(), len(body)) + body)
+            return _read_all(conn)
+
+    def send_tls(self, method: str, path: str, body: bytes, cafile, headers=()):
+        """One HTTPS request with a JSON `body` to the VM's 443 as localhost,
+        with the Origin the node's page sends and `headers`, trusting only
+        `cafile` (5c.4b-1: the drill's claim and rename)."""
+        context = ssl.create_default_context(cafile=cafile)
+        raw = socket.create_connection(("127.0.0.1", HTTPS_PORT), timeout=30)
+        extra = b"".join(b"%s: %s\r\n" % (k.encode(), v.encode()) for k, v in headers)
+        with context.wrap_socket(raw, server_hostname=SERVER_NAME) as conn:
+            conn.sendall(b"%s %s HTTP/1.1\r\nHost: %s\r\nOrigin: https://%s\r\n%s"
+                         b"Content-Type: application/json\r\nContent-Length: %d\r\nConnection: close\r\n\r\n"
+                         % (method.encode(), path.encode(), SERVER_NAME.encode(), SERVER_NAME.encode(), extra,
+                            len(body)) + body)
             return _read_all(conn)
 
     def refused_as(self, cafile, name: str):
@@ -1153,6 +1238,111 @@ class Drill:
                    "the range once in both files: %s; the unit ran and succeeded: %s; a --userns=auto container "
                    "started: %s" % (once, unit_ran(unit), container_started(run)))
 
+    def rename(self) -> None:
+        """5c.4b-1, last: every earlier check reaches the node as
+        rikurisetup.local. Polkit refuses the rename to another user (nobody,
+        through busctl, never interactive). The drill claims the node with a
+        code armed at the console as the service's user (the code stays in
+        memory, never in the evidence) and renames it to rikuri01 through
+        PUT /api/node/name: the daemon's own D-Bus client, polkit's rule and
+        hostnamed, as the owner's browser will. Then, with the same service
+        process, HTTPS answers as rikuri01.local trusting only the node's CA
+        and lists only that name, and refuses rikurisetup.local by its
+        certificate and by its Host check; and the same after the service
+        restarts, reading the name from /etc/hostname."""
+        lines = []
+        cafile, status = self.node_cafile("node-ca-rename.crt")
+        fingerprint = None
+        if cafile:
+            with open(cafile, encoding="ascii") as f:
+                fingerprint = pem_fingerprint(f.read())
+        run_before = self.vm(SHOW_CP_RUN, check=False) or ""
+
+        other = self.vm(RENAME_AS_OTHER, check=False)
+        kept = first_name(self.vm(STATIC_NAME, check=False))
+        renamed, detail = False, "no CA certificate to trust (/ca.crt: %s)" % status
+        if cafile:
+            renamed, detail = self.rename_as_owner(cafile)
+        static = first_name(self.vm(STATIC_NAME, check=False))
+        kernel = (self.vm(HOSTNAME_CMD, check=False) or "").strip()
+        ok = polkit_refused(other) and kept == NODE_HOSTNAME and renamed and static == RENAMED and kernel == RENAMED
+        detail = "as nobody: exit %s, %r; /etc/hostname then %r; %s; then /etc/hostname %r, the kernel's name %r" % (
+            exit_status(other), " ".join((other or "").split())[:160], kept, detail, static, kernel)
+        self.check("the owner renames the node, and no other user can", ok, detail)
+        lines.append(detail)
+
+        served, detail = self.named_only(cafile, fingerprint)
+        run_after = self.vm(SHOW_CP_RUN, check=False) or ""
+        detail += "; the service %s -> %s" % ("; ".join(run_before.split()), "; ".join(run_after.split()))
+        self.check("the new name only, at once and with no restart", served and same_run(run_before, run_after),
+                   detail)
+        lines.append(detail)
+
+        self.vm(RESTART_CP, check=False)
+        for attempt in range(RENAME_TRIES):
+            if attempt:
+                time.sleep(self.rename_pause)
+            served, detail = self.named_only(cafile, fingerprint)
+            if served:
+                break
+        run_restarted = self.vm(SHOW_CP_RUN, check=False) or ""
+        restarted = main_pid(run_restarted) is not None and main_pid(run_restarted) != main_pid(run_after)
+        detail += "; the service %s -> %s" % ("; ".join(run_after.split()), "; ".join(run_restarted.split()))
+        self.check("the new name only, after a restart", served and restarted, detail)
+        lines.append(detail)
+        self.keep("05-rename.out", "\n".join(lines) + "\n")
+
+    def rename_as_owner(self, cafile):
+        """Claims the node with a code armed at the console, then renames it
+        through the API: (whether both answered as they should, what
+        happened). Neither the code nor the password is in what it returns."""
+        code = armed_code(self.vm(REARM_AS_CP, check=False))
+        if code is None:
+            return False, "no claim code armed at the console"
+        password = secrets.token_urlsafe(24)
+        try:
+            raw = self.send_tls("POST", "/api/claim", json.dumps({"code": code, "password": password}).encode(),
+                                cafile)
+            status, body = parse_http(raw)
+            cookie = session_cookie(http_header(raw, "set-cookie"))
+            reply = json.loads(body) if status == 201 else {}
+            csrf = reply.get("csrf_token") if isinstance(reply, dict) else None
+        except (OSError, ValueError) as e:
+            return False, "the claim: no answer (%s)" % e
+        if status != 201 or not cookie or not isinstance(csrf, str):
+            return False, "the claim: %s, a session %s" % (status, "opened" if cookie else "not opened")
+        try:
+            status, body = parse_http(self.send_tls(
+                "PUT", "/api/node/name", json.dumps({"name": RENAMED}).encode(), cafile,
+                headers=(("Cookie", "rikuri_session=" + cookie), ("X-CSRF-Token", csrf))))
+            reply = json.loads(body)
+        except (OSError, ValueError) as e:
+            return False, "claimed; the rename: no answer (%s)" % e
+        ok = status == 200 and reply == {"name": RENAMED, "host": RENAMED_NAME}
+        return ok, "claimed; PUT /api/node/name: %s %s" % (status, body[:120].decode("utf-8", "replace"))
+
+    def named_only(self, cafile, fingerprint):
+        """Whether HTTPS answers as the new name only, and what happened:
+        /api/setup as rikuri01.local, trusting only the node's CA, lists only
+        that name; rikurisetup.local is refused by the certificate; and on a
+        connection verified as rikuri01.local, `Host: rikurisetup.local` is
+        refused (421)."""
+        if not cafile:
+            return False, "no CA certificate to trust"
+        try:
+            status, body = parse_http(self.fetch_tls("/api/setup", cafile, RENAMED_NAME))
+            new = status == 200 and renamed_ok(body, fingerprint)
+            new_detail = "as %s: %s %s" % (RENAMED_NAME, status, body[:160].decode("utf-8", "replace"))
+        except OSError as e:     # a refused certificate among them
+            new, new_detail = False, "no answer as %s (%s)" % (RENAMED_NAME, e)
+        old, old_detail = self.refused_as(cafile, NODE_NAME)
+        try:
+            host, _ = parse_http(self.fetch_tls("/api/setup", cafile, RENAMED_NAME, host=NODE_NAME))
+        except OSError as e:
+            host = "no answer (%s)" % e
+        return (new and old and host == 421,
+                "%s; %s; Host: %s on a connection as %s: %s" % (new_detail, old_detail, NODE_NAME, RENAMED_NAME, host))
+
     def mdns_links(self) -> None:
         """PLAT-01: with a container's bridge and veth up, resolved answers
         mDNS on the NIC only; the unit run when resolved started and the one
@@ -1379,6 +1569,7 @@ def main(argv=None) -> int:
         drill.configure_mirror()
         drill.case4()
         drill.case5()
+        drill.rename()
     except (DrillFailure, subprocess.TimeoutExpired) as e:
         error = str(e)
         drill.check("drill", False, error)

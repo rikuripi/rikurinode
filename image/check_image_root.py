@@ -177,7 +177,7 @@ _AS_ITS_USER = {"User": "rikuri-control", "Group": "rikuri-control",
 CP_KEYS = {"[Unit]": {"Description": None, "After": "network.target"},
            "[Service]": {"Type": "exec", **_AS_ITS_USER, "ExecStart": "/" + CP_BIN,
                          "Environment": "RIKURI_LISTEN=0.0.0.0:443 RIKURI_HTTP_LISTEN=0.0.0.0:80 "
-                                        "RIKURI_STATE_DIR=/var/lib/rikuri/control-plane RIKURI_NAMES=rikurisetup.local",
+                                        "RIKURI_STATE_DIR=/var/lib/rikuri/control-plane",
                          "AmbientCapabilities": "CAP_NET_BIND_SERVICE",
                          "CapabilityBoundingSet": "CAP_NET_BIND_SERVICE", "PrivateDevices": "yes",
                          **_HARDENING, "Restart": "on-failure", "RestartSec": "5"},
@@ -224,6 +224,19 @@ MDNS_OVERRIDES = ("etc/systemd/resolved.conf.d/90-rikuri-mdns.conf",
 # three-way merge keeps a name the node has since been given.
 HOSTNAME = "etc/hostname"
 HOSTNAME_LINES = ["rikurisetup"]
+# 5c.4b-1: polkit lets the control plane's user, and only it, ask hostnamed to
+# set the static name; the rule answers nothing for anyone or anything else
+# (docs/build-records/2026-11-13-5c4b1-rename-engine.md).
+HOSTNAME_RULE = "usr/share/polkit-1/rules.d/50-rikuri-hostname.rules"
+HOSTNAME_RULE_LINES = [
+    'polkit.addRule(function (action, subject) {',
+    '    if (action.id == "org.freedesktop.hostname1.set-static-hostname" &&',
+    '            subject.user == "rikuri-control") {',
+    '        return polkit.Result.YES;',
+    '    }',
+    '});',
+]
+HOSTNAME_RULE_OVERRIDES = ("etc/polkit-1/rules.d/50-rikuri-hostname.rules",)
 CP_REQUIRED = "usr/lib/greenboot/check/required.d/50-rikuri-control-plane"
 # mDNS only on links with hardware behind them, the lessons register's PLAT-01
 # (docs/build-records/2026-11-10-plat01-mdns-allow-list.md): the program, the
@@ -796,6 +809,12 @@ def check_control_plane(root: str) -> list:
             found.append("%s: %s" % (rel, problem))
     found += _exact_lines(root, HOSTNAME, HOSTNAME_LINES, lambda line: line.startswith("#"),
                           "mDNS would answer another name than the certificate's rikurisetup.local")
+    found += _exact_lines(root, HOSTNAME_RULE, HOSTNAME_RULE_LINES, lambda line: line.startswith("//"),
+                          "the control plane could not rename the node, or another could")
+    for rel in HOSTNAME_RULE_OVERRIDES:
+        problem = _override_problem(root, rel, "overrides the rename's rule on every node")
+        if problem:
+            found.append("%s: %s" % (rel, problem))
     problem = _executable_problem(root, CP_REQUIRED, "a broken control plane would pass greenboot")
     if problem:
         found.append(problem)
