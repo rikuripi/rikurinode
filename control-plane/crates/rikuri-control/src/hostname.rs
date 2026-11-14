@@ -1038,6 +1038,10 @@ mod tests {
             Err(BusError::Denied(
                 "org.freedesktop.resolve1.DnsError.NXDOMAIN".to_owned(),
             )),
+            // Repair 2 (verifier, nit 1): the bus's answer to Hello.
+            Err(BusError::Hello(
+                "org.freedesktop.DBus.Error.Timeout".to_owned(),
+            )),
             Err(BusError::TimedOut),
             Err(BusError::Protocol("x")),
             Err(BusError::Auth("REJECTED".to_owned())),
