@@ -5,8 +5,8 @@
 | **Date** | 2026-11-14 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/suggest-limit-503`, from `main` at `fd157d9`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `57db7c0` (contract), `d1ed28a` (red), `cdf36e0` (fix); merged as `5fc7da6` (#104) |
+| **Status** | DONE |
 | **Change type** | fix |
 
 ## Intent: the owner's words
@@ -57,3 +57,37 @@
 - `README.md`: one sentence: without an answer within 30 s, 503, and the page asks for a name.
 - No test changed after red.
 - On the Mac: fmt and clippy (all targets, `-D warnings`) are clean.
+
+### CI on `cdf36e0` (the fix): Pass
+
+- `Full gate (Ubuntu)`, [run 43563632280](https://github.com/rikuripi/rikurinode/actions/runs/43563632280): `the_limit_ends_the_suggestion_unchecked ... ok`, `every_name_taken_is_no_suggestion ... ok`; `174 passed; 0 failed`.
+- Rust mutants, [run 43563632279](https://github.com/rikuripi/rikurinode/actions/runs/43563632279): `2 mutants tested … 1 caught, 1 unviable`. Caught: `suggest` replaced with `Ok(None)`. Unviable: `Ok(Some(Default::default()))`, since `NodeName` has no `Default`.
+- OS image, [run 43563632282](https://github.com/rikuripi/rikurinode/actions/runs/43563632282): passed.
+- The owner merged #104 at `cdf36e0` (as `5fc7da6`) before the verifier ran.
+
+### The verifier, at `cdf36e0`: PASS
+
+- `Ok(None)` now comes only from every candidate taken. The timeout goes through the route's `Err` arm, and the guard is still dropped there (`a_suggestion_resolved_cannot_give_is_refused` asks twice).
+- The test is unchanged between the red and the fix. It is not too loose: its fixture has no unknown answer, so the timeout is the only possible `Err`.
+- The page: `readSuggestion` expects 200, so a 503 shows `name.check_failed` (`Name.svelte:53`). `ui/tests/owner.spec.ts:595` already covers a 503 with this route's words. No UI test assumed `null` on a timeout.
+- **Hand mutations, reasoned:**
+  | Mutant | Killed by |
+  |---|---|
+  | `unwrap_or(Ok(None))` restored | `the_limit_ends_the_suggestion_unchecked` (seen red) |
+  | the timeout gives `Ok(Some(_))` | the same test |
+  | the limit ignored | the same test (`is_err`, `asked.len() < 4`, the 2 s bound) |
+  | every name taken gives `Err` | `every_name_taken_is_no_suggestion`, and the route test `every_name_taken_suggests_none` |
+- **Findings:** no Important finding. Nits:
+  1. this close-out (answered here);
+  2. Scope said the README would change "only if it describes this answer (it does not today)". It gained a sentence anyway, under AGENTS.md's Knowledge layer rule: a user-visible change carries its description;
+  3. that sentence's "it" read as the refused request; reworded here to "A suggestion without an answer within 30 s gets 503";
+  4. the route logs "resolved could not say which names are free" for a timeout too; the `why` field ("no answer within 30s") tells them apart;
+  5. the timeout test could also assert the "no answer within" text.
+- **Not yet proven:** the live node's container start times were not compared (the Mac sees no node); nothing was run against it.
+
+### Close-out
+
+- **Done when:** met. The changed test was red in CI, then green; the gate, the mutants run (1 caught, 0 missed) and the OS image passed; the verifier passed.
+- **Repairs:** 0. Review rounds: 1.
+- **Used:** no budget is configured. Two CI pushes and one verifier pass.
+- **Backlog, not started:** nits 4 and 5.
