@@ -5,8 +5,8 @@
 | **Date** | 2026-11-13 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/5c4b2-rename-page`, from `main` at `1e47e60`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `d6e4062` (contract), `bd06b80` (red), `6dc3d7c` (fix), `266c679` (repair 1), merged as `8ba7595` (#93); `f3c9929` (repair 2 red), `64237ce` (repair 2 fix), `d8a0acf`, `e790a5e` (repair 3), merged as `7149a6d` (#94) |
+| **Status** | DONE |
 | **Change type** | feature |
 
 ## Intent: the owner's words
@@ -234,3 +234,39 @@
 
 - **Test change, with its reason:** `each_error_says_what_happened` pins each `BusError` message, as the logs and an unknown lookup's reason carry it. It adds assertions only. No product code changes.
 - On the Mac: clippy and fmt exit 0.
+
+### CI on `e790a5e` (repair 3): Pass
+
+- `Full gate (Ubuntu)`: **Pass**, [run 43538431185](https://github.com/rikuripi/rikurinode/actions/runs/43538431185). All 11 steps passed.
+- `Rust mutants`: **Pass**, [run 43538431112](https://github.com/rikuripi/rikurinode/actions/runs/43538431112): `3 mutants tested in 80s: 3 caught`.
+- The OS image workflow, with both drills: **Pass**, [run 43538431158](https://github.com/rikuripi/rikurinode/actions/runs/43538431158).
+- The owner merged PR #94 at `e790a5e` (as `7149a6d`) before the verifier's follow-up ran.
+
+### The verifier's follow-up, at `e790a5e`: PASS
+
+- Only the corrections were checked. `git diff e790a5e 7149a6d` is empty.
+- **I1, I2, I3:** each mutant was traced to the assertion that kills it:
+  - I1 by the `evil.example#` reply;
+  - I2 by the `evil.example` and `rikuri04.local` hosts;
+  - I3 by `an_unreadable_hostname_file_is_no_rename`'s "bus never asked" and "no hostname written".
+- **Nit 1:** reverting `BusError::Hello` fails `an_error_to_hello_is_never_a_free_name` and `an_error_to_hello_is_refused`. Reading `Hello` as free fails the unit test's `Hello(Timeout)` unknown.
+- **Nit 3, nit 4:** Pass.
+- **The Display survivor:** killed by `each_error_says_what_happened`.
+- **Test changes after red:** each has its reason, and none is looser.
+- **Not yet proven:** nit 1's red in CI (the runs were cancelled). It is covered by the trace and by the mutants run.
+- **New:** one nit, that this record lacked the CI on `e790a5e` and a closing status. This close-out answers it. No Important finding.
+
+### Close-out
+
+- **Done when:**
+  - the suggestion, the setup-only rename and the refusals were seen on the real node (run 43528297377);
+  - the gate, the drills and mutants pass on the merged code;
+  - the verifier passed.
+- **Not yet proven:** another device finding the new name over mDNS. It needs the N150 (the owner's choice at repair 1).
+- **Repairs:** three. The third was on the owner's explicit authorization. Review rounds: two.
+- **Backlog, not started:**
+  - `mutants.yml`'s exit-3 control defect;
+  - a log warning when a reload loses the node's name;
+  - renaming a named node;
+  - a bound on concurrent suggestion requests;
+  - a network that drops mDNS replies makes every name look free.
