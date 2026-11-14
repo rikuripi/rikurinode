@@ -299,8 +299,8 @@ pub fn candidates() -> impl Iterator<Item = NodeName> {
 }
 
 /// The first of [`candidates`] that `look` finds free, one at a time, all
-/// within `limit`: `Ok(None)` when every one is taken or the limit runs out;
-/// `Err` as soon as one is [`Lookup::Unknown`], never a guess.
+/// within `limit`: `Ok(None)` only when every one is taken; `Err` as soon as
+/// one is [`Lookup::Unknown`], or when the limit runs out, never a guess.
 pub async fn suggest<F, Fut>(mut look: F, limit: Duration) -> Result<Option<NodeName>, String>
 where
     F: FnMut(NodeName) -> Fut,
@@ -316,9 +316,10 @@ where
         }
         Ok(None)
     };
+    // Out of time is not "every name taken": the node does not know.
     tokio::time::timeout(limit, first_free)
         .await
-        .unwrap_or(Ok(None))
+        .unwrap_or_else(|_| Err(format!("no answer within {limit:?}")))
 }
 
 /// A method call, little-endian, expecting a reply, with no flags: the
@@ -1165,7 +1166,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn the_limit_ends_the_suggestion_with_none() {
+    async fn the_limit_ends_the_suggestion_unchecked() {
+        // Out of time is not "every name taken": the node does not know.
         let started = std::time::Instant::now();
         let (got, asked) = suggesting(
             |_| true,
@@ -1174,7 +1176,7 @@ mod tests {
             Duration::from_millis(100),
         )
         .await;
-        assert_eq!(got, Ok(None));
+        assert!(got.is_err(), "{got:?}");
         assert!(asked.len() < 4, "{asked:?}");
         assert!(started.elapsed() < Duration::from_secs(2));
     }
