@@ -10,9 +10,11 @@ name: Rust mutants
 # nothing here holds a credential to send.) The settings are the verifier's
 # (.claude/agents/verifier.md). Timeouts pass: the tests did not
 # pass under that mutant. A missed mutant fails the run even beside a
-# timeout, which makes cargo-mutants exit 3 (2026-11-13-mutants-exit3.md). An exclusion, when one is ever needed, goes only in
-# control-plane/.cargo/mutants.toml, each with its reason.
-# Record: docs/build-records/2026-11-06-ci-cargo-mutants.md
+# timeout, which makes cargo-mutants exit 3. An exclusion, when one is
+# ever needed, goes only in control-plane/.cargo/mutants.toml, each with
+# its reason.
+# Records: docs/build-records/2026-11-06-ci-cargo-mutants.md,
+# docs/build-records/2026-11-13-mutants-exit3.md
 
 on:
   pull_request:
