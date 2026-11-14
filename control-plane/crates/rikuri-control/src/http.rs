@@ -71,6 +71,9 @@ pub struct Inner {
     /// Held for a whole rename: the bus's call, the names and the
     /// certificate, one rename at a time.
     rename_lock: tokio::sync::Mutex<()>,
+    /// Held for a whole suggestion: one at a time, any other refused at once
+    /// (the owner's choice), so no request waits in line.
+    suggest_lock: tokio::sync::Mutex<()>,
     /// Held for the whole of a claim attempt, so claims are judged one at a
     /// time and the limiter's count is exact.
     claim_limiter: tokio::sync::Mutex<Limiter>,
@@ -109,6 +112,7 @@ impl App {
             hostname_file,
             bus_socket,
             rename_lock: tokio::sync::Mutex::new(()),
+            suggest_lock: tokio::sync::Mutex::new(()),
             claim_limiter: tokio::sync::Mutex::new(claim_limiter),
             signin_limiter: tokio::sync::Mutex::new(Limiter::new(
                 SIGNIN_DELAY_AFTER,
@@ -678,12 +682,20 @@ struct NameSuggestion {
 }
 
 /// 5c.4b-2: the first of `rikuri01` to `rikuri99` that nothing on the
-/// network answers, asked of resolved one at a time.
+/// network answers, asked of resolved one at a time. One suggestion runs at
+/// a time; another gets 429 at once.
 async fn suggestion(
     State(app): State<App>,
     headers: HeaderMap,
 ) -> Result<Json<NameSuggestion>, Refusal> {
     authenticate(&app, &headers)?;
+    // After the session check: without one, nothing says a check runs.
+    let Ok(_one) = app.0.suggest_lock.try_lock() else {
+        return Err(refuse(
+            StatusCode::TOO_MANY_REQUESTS,
+            "a suggestion is already being checked",
+        ));
+    };
     let uid = hostname::own_uid().map_err(internal)?;
     let socket = app.0.bus_socket.clone();
     let found = hostname::suggest(

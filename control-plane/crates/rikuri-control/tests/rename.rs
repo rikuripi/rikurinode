@@ -499,6 +499,58 @@ async fn a_suggestion_resolved_cannot_give_is_refused() {
 }
 
 #[tokio::test]
+async fn a_second_suggestion_while_one_runs_is_refused() {
+    // The owner's choice: one suggestion at a time, any other refused at once.
+    let node = named("rikurisetup").await;
+    let bus = Bus::with_lookups(
+        bus_socket(&node.scratch),
+        hostname_file(&node.scratch),
+        Answer::Renamed,
+        Lookups::Slow(Duration::from_secs(2)),
+    );
+    let session = owner(&node).await;
+    let (first, (second, anonymous, asked)) = tokio::join!(suggestion(&node, &session), async {
+        tokio::time::timeout(Duration::from_secs(10), async {
+            while bus.seen().lookups.is_empty() {
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .expect("the first suggestion reached resolved");
+        let second = suggestion(&node, &session).await;
+        let anonymous = ok(&node, Req::get("/api/node/name/suggestion")).await;
+        (second, anonymous, bus.seen().lookups)
+    });
+    assert_eq!(second.status, 429, "{}", second.body);
+    assert_eq!(
+        second.json(),
+        json!({ "error": "a suggestion is already being checked" })
+    );
+    assert_eq!(
+        anonymous.status, 401,
+        "no session learns nothing: {}",
+        anonymous.body
+    );
+    assert_eq!(
+        asked,
+        ["rikuri01.local"],
+        "the refused one asked resolved nothing"
+    );
+    assert_eq!(first.status, 200, "{}", first.body);
+    assert_eq!(first.json(), json!({ "name": "rikuri01" }));
+    let third = suggestion(&node, &session).await;
+    assert_eq!(
+        third.status, 200,
+        "the first let the lock go: {}",
+        third.body
+    );
+    assert_eq!(third.json(), json!({ "name": "rikuri01" }));
+    assert_eq!(bus.seen().lookups, ["rikuri01.local", "rikuri01.local"]);
+    drop(bus);
+    node.stop().await;
+}
+
+#[tokio::test]
 async fn a_suggestion_needs_a_session() {
     let node = named("rikurisetup").await;
     let bus = Bus::start(
