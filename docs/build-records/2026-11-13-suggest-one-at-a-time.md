@@ -5,8 +5,8 @@
 | **Date** | 2026-11-13 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/suggest-bound`, from `main` at `346bdae`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `f18af0e` (contract), `8862779` (red), `50c7eba` (fix); merged as `1d186a3` (#100) |
+| **Status** | DONE |
 | **Change type** | fix |
 
 ## Intent: the owner's words
@@ -64,3 +64,39 @@
 - `README.md`: one suggestion at a time; another gets 429.
 - No test changed after red.
 - On the Mac: fmt and clippy (all targets, `-D warnings`) are clean.
+
+### CI on `50c7eba` (the fix): Pass
+
+- `Full gate (Ubuntu)`, [run 43551496243](https://github.com/rikuripi/rikurinode/actions/runs/43551496243): `test a_second_suggestion_while_one_runs_is_refused ... ok`; `tests/rename.rs` `22 passed; 0 failed`.
+- Rust mutants, [run 43551496190](https://github.com/rikuripi/rikurinode/actions/runs/43551496190): `4 mutants tested … 4 unviable`. All four replace the body of `http.rs:691` and fail to build (`E0599`, `E0283`), so there was nothing to catch.
+- OS image, [run 43551496217](https://github.com/rikuripi/rikurinode/actions/runs/43551496217): passed.
+- The owner merged #100 at `50c7eba` (as `1d186a3`) before the verifier ran.
+
+### The verifier, at `50c7eba`: PASS
+
+- **The fix:** the guard is held until `suggestion` returns, on every path (the `own_uid()?` return, the 503, the 30 s limit). The lock is taken after `authenticate`. `try_lock` never waits.
+- **The test:** unchanged between the red and the fix (`git diff 8862779 50c7eba -- control-plane/crates/rikuri-control/tests` is empty). It cannot pass vacuously: the 10 s wait panics if no lookup comes, and `asked` and the third 200 pin the rest. A runner stall over 2 s would show as a failure, never a false pass.
+- **Hand mutations, reasoned against the test** (the Rust tests do not run on the Mac):
+  | Mutant | Killed by |
+  |---|---|
+  | no lock | `second.status == 429` (the red run) |
+  | the guard dropped at once (`let _`) | `second.status == 429` |
+  | the lock before `authenticate` | `anonymous.status == 401` |
+  | another status | `second.status == 429` |
+  | other words | `second`'s JSON body |
+  | `lock().await` (waits in line) | `second.status == 429` |
+  | `drop(_one)` before the lookup | `second.status == 429` |
+  | `drop(_one)` after the lookup | survives; it behaves the same |
+- `git diff --check` and `fmt --check` are clean.
+- **Findings:** no Important finding. Nits, not fixed:
+  1. this close-out (answered here);
+  2. the 401 check relies on the anonymous request arriving within the 2 s hold;
+  3. no test shows the lock let go after a 503 or a timeout; it is released by drop;
+  4. one session can keep others refused for up to 30 s per request, which the contract leaves out ("any limit across sessions or over time").
+
+### Close-out
+
+- **Done when:** met. The test was seen red in CI, then green; the gate, the mutants run and the OS image passed; the verifier passed.
+- **Repairs:** 0. Review rounds: 1.
+- **Used:** no budget is configured. Two CI pushes and one verifier pass.
+- **Backlog, not started:** the verifier's nits 2 and 3, as test-only follow-ups.
