@@ -955,6 +955,46 @@ mod tests {
         assert_eq!(BUS_TIMEOUT, Duration::from_secs(10));
     }
 
+    /// Repair 3 (owner's authorization; CI's mutants job): what each error
+    /// says, as the logs and an unknown lookup's reason carry it.
+    #[test]
+    fn each_error_says_what_happened() {
+        let said = |e: BusError| e.to_string();
+        let name = || "org.example.Error".to_owned();
+        assert_eq!(
+            said(BusError::Unreachable(io::Error::other("gone"))),
+            "the system bus could not be reached: gone"
+        );
+        assert_eq!(
+            said(BusError::Io(io::Error::other("cut"))),
+            "the connection to the system bus failed: cut"
+        );
+        assert_eq!(
+            said(BusError::Auth("REJECTED".to_owned())),
+            "the system bus refused to authenticate: \"REJECTED\""
+        );
+        assert_eq!(
+            said(BusError::Denied(name())),
+            "renaming the node was not allowed: org.example.Error"
+        );
+        assert_eq!(
+            said(BusError::Refused(name())),
+            "hostnamed refused the name: org.example.Error"
+        );
+        assert_eq!(
+            said(BusError::Hello(name())),
+            "the system bus refused Hello: org.example.Error"
+        );
+        assert_eq!(
+            said(BusError::Protocol("nonsense")),
+            "the system bus sent nonsense"
+        );
+        assert_eq!(
+            said(BusError::TimedOut),
+            "the system bus did not answer in time"
+        );
+    }
+
     // ---- 5c.4b-2: is a name in use? ----
 
     #[test]

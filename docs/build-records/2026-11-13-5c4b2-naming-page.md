@@ -222,3 +222,15 @@
   - 5c.4b-1's `an_error_to_hello_is_refused` now expects `BusError::Hello(ACCESS_DENIED)`, not `Refused`. It is stricter: the same error name, in the kind of its own that nit 1 needs.
   - `only_resolveds_not_found_is_free…` gains `Hello(Timeout)` among the unknowns.
 - On the Mac: clippy and fmt exit 0. The Rust and UI tests run in CI.
+
+### CI on `d8a0acf` (repair 2): mutants Fail on one message text
+
+- The runs on `f3c9929` (repair 2's red) and `64237ce` (its fix) were **cancelled** when the next push came, so **nit 1's red was not seen in CI: Not yet proven.**
+- `Full gate (Ubuntu)`: **Pass**, [run 43536286493](https://github.com/rikuripi/rikurinode/actions/runs/43536286493). The OS image workflow, with both drills: **Pass**, [run 43536286424](https://github.com/rikuripi/rikurinode/actions/runs/43536286424).
+- `Rust mutants`: **Fail**, [run 43536286432](https://github.com/rikuripi/rikurinode/actions/runs/43536286432): `3 mutants tested in 82s: 1 missed, 2 caught`. The survivor is `hostname.rs:163`: `BusError`'s whole `Display` impl replaced. The new `Hello` message made the function a changed line, and no test read any message.
+- Both repair cycles were used. The owner chose "Authorize a 3rd repair (Recommended)", past AGENTS.md's limit of two, on their explicit word.
+
+### Repair 3 (the owner's authorization): the messages pinned
+
+- **Test change, with its reason:** `each_error_says_what_happened` pins each `BusError` message, as the logs and an unknown lookup's reason carry it. It adds assertions only. No product code changes.
+- On the Mac: clippy and fmt exit 0.
