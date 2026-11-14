@@ -640,3 +640,58 @@ async fn a_named_node_is_not_renamed_again() {
     drop(bus);
     node.stop().await;
 }
+
+// ---- 5c.4b-2, repair 2 (verifier, first pass) -------------------------------
+
+/// Nit 1: an error to `Hello` is the bus's, never resolved's "not found",
+/// whatever its name.
+#[tokio::test]
+async fn an_error_to_hello_is_never_a_free_name() {
+    for name_of_error in ["org.freedesktop.DBus.Error.Timeout", common::bus::NXDOMAIN] {
+        let scratch = Scratch::new();
+        let bus = Bus::with_lookups(
+            bus_socket(&scratch),
+            hostname_file(&scratch),
+            Answer::Renamed,
+            Lookups::HelloError(name_of_error),
+        );
+        let uid = hostname::own_uid().unwrap();
+        let got = hostname::name_answers(
+            &bus_socket(&scratch),
+            uid,
+            &name("rikuri02"),
+            Duration::from_secs(5),
+        )
+        .await;
+        assert!(
+            matches!(got, hostname::Lookup::Unknown(_)),
+            "{name_of_error}: {got:?}"
+        );
+        drop(bus);
+    }
+}
+
+/// Important 3: a hostname file that cannot be read is no proof the node is
+/// in setup: 503, and the bus is never asked.
+#[tokio::test]
+async fn an_unreadable_hostname_file_is_no_rename() {
+    let node = named("rikurisetup").await;
+    let bus = Bus::start(
+        bus_socket(&node.scratch),
+        hostname_file(&node.scratch),
+        Answer::Renamed,
+    );
+    let session = owner(&node).await;
+    std::fs::remove_file(hostname_file(&node.scratch)).unwrap();
+    let reply = rename(&node, &session, "rikuri02").await;
+    assert_eq!(reply.status, 503, "{}", reply.body);
+    assert_eq!(
+        reply.json(),
+        json!({ "error": "the node could not be renamed" })
+    );
+    let seen = bus.seen();
+    assert!(seen.auth.is_empty(), "the bus was never asked: {seen:?}");
+    assert!(!hostname_file(&node.scratch).exists());
+    drop(bus);
+    node.stop().await;
+}

@@ -176,3 +176,40 @@
 - **`LOOKUP_FLAGS`** is written as `0x1818`. Reason for this test change after red: its test also checks the value equals `MDNS_IPV4 | MDNS_IPV6 | NO_SYNTHESIZE | NO_CACHE`, and each flag's bit. This adds assertions and loosens none.
 - **The drill:** the mDNS check, `MDNS_QUERY` and `mdns_answers` are removed, on the owner's choice. Reason for these test changes after red: the stand-in's `mdns_follows`, the readers' tests, and `kernel_follows`' and "hostnamed did not keep" expectations of that check go with it. The check no longer exists; no other assertion changed.
 - On `rikuri-drill`, through `safe-run.sh`: `image/tests`, `Ran 552 tests`, `OK`. On the Mac: clippy and fmt exit 0, and `git diff --check` is clean.
+
+### CI on `266c679` (repair 1): Pass
+
+- `Full gate (Ubuntu)`: **Pass**, [run 43528297368](https://github.com/rikuripi/rikurinode/actions/runs/43528297368). All 11 steps passed: svelte-check had 0 errors, Playwright `387 passed`, the lib tests `173 passed`, and `image/tests` `Ran 552 tests … OK`.
+- The OS image workflow, with the rollback and installer drills: **Pass**, [run 43528297377](https://github.com/rikuripi/rikurinode/actions/runs/43528297377).
+- `Rust mutants`: **Pass**, [run 43528297422](https://github.com/rikuripi/rikurinode/actions/runs/43528297422): `35 mutants tested in 3m: 21 caught, 14 unviable`.
+- The owner merged PR #93 at `266c679` (as `8ba7595`) before the verifier ran.
+
+### The verifier's first pass, at `266c679`: FAIL, on test adequacy only
+
+- **No defect found in the code.** The setup-only and free-name refusals cannot be skipped, and `Unknown` never reads as free. The suggestion route needs a session. The page treats only a readable `{name, host}` as success and opens only `https://<host>/signin`. The 224 bytes and the flags were re-derived by hand.
+- **The drill:** on `rikuri-drill`, 12 hand mutations, 10 killed. The two survivors, a second rename's status and the suggestion's status not pinned, are nits: the body's exact words already pin them.
+- **Important** (surviving mutants of validation and refusal checks, found by reading the code):
+  - **I1:** `parseRenamed` with no `nodeName(name) === name` check. No test sends a reply whose name is not a name.
+  - **I2:** `parseRenamed` with a host check that only asks "is a string". No test sends a host that is not `<name>.local`.
+  - **I3:** `rename` letting an unreadable hostname file fall through instead of returning 503. No test makes the file unreadable.
+- **Nits:**
+  1. an error to `Hello` whose name is in `FREE` would read as free;
+  2. the drill's survivors above;
+  3. `LOOKUP_FLAGS`' comment says the node's own zone answers its own name, which the drill showed false;
+  4. the new Rust integration tests' red was not seen in CI either. Cargo stopped at the failing lib tests. Recorded here: **Not yet proven**, like the UI's;
+  5. 5c.4b-1's no-bus route case now stops at the lookup, not at hostnamed.
+- **Backlog, not started:**
+  - the suggestion route has no bound on concurrent requests;
+  - a network that drops mDNS replies makes every name look free.
+- The owner chose "Repair 2, new draft PR (Recommended)": tests for I1 to I3, and nits 1, 3 and 4.
+
+### Repair 2 (of 2): red
+
+- **Test changes after red, each with its reason (verifier, first pass):**
+  - `ui/tests/owner.spec.ts`: three more refused-rename replies: a name that is not a name (I1), a host that is not `<name>.local` (I2), and another name's host. Each must show `name.failed`, open nothing and stay on `/name`.
+  - `tests/rename.rs`:
+    - `an_unreadable_hostname_file_is_no_rename` (I3): 503, and the bus is never asked;
+    - `an_error_to_hello_is_never_a_free_name` (nit 1), with `Lookups::HelloError` in the stand-in bus.
+  - No assertion is loosened.
+- I1 to I3 guard code that is already right, so their new tests pass on it. Their proof is that each kills its mutant; the verifier's follow-up checks that.
+- Nit 1's test fails on the current code: an error to `Hello` comes back as `Refused(name)`, which `lookup` reads as free.
