@@ -35,3 +35,10 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Change
+
+- `a_second_suggestion_while_one_runs_is_refused`: a signed-in request `still`, sent after the anonymous one inside the same hold, must get 429. `asked` is read after it, so it also shows `still` asked resolved nothing.
+- `a_suggestion_resolved_cannot_give_is_refused`: each case now asks twice, and both must be 503 with the same words.
+- **Test changes, with their reason:** both only add assertions; none is loosened or removed. They answer the verifier's nits 2 and 3 above.
+- On the Mac: fmt and clippy (all targets, `-D warnings`) are clean. The tests run in CI.

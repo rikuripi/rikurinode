@@ -487,12 +487,15 @@ async fn a_suggestion_resolved_cannot_give_is_refused() {
             )
         });
         let session = owner(&node).await;
-        let reply = suggestion(&node, &session).await;
-        assert_eq!(reply.status, 503, "{lookups:?}: {}", reply.body);
-        assert_eq!(
-            reply.json(),
-            json!({ "error": "the node could not check which names are free" })
-        );
+        // Twice: a refused suggestion lets the lock go, so the next is not 429.
+        for _ in 0..2 {
+            let reply = suggestion(&node, &session).await;
+            assert_eq!(reply.status, 503, "{lookups:?}: {}", reply.body);
+            assert_eq!(
+                reply.json(),
+                json!({ "error": "the node could not check which names are free" })
+            );
+        }
         drop(bus);
         node.stop().await;
     }
@@ -509,19 +512,26 @@ async fn a_second_suggestion_while_one_runs_is_refused() {
         Lookups::Slow(Duration::from_secs(2)),
     );
     let session = owner(&node).await;
-    let (first, (second, anonymous, asked)) = tokio::join!(suggestion(&node, &session), async {
-        tokio::time::timeout(Duration::from_secs(10), async {
-            while bus.seen().lookups.is_empty() {
-                tokio::time::sleep(Duration::from_millis(10)).await;
-            }
-        })
-        .await
-        .expect("the first suggestion reached resolved");
-        let second = suggestion(&node, &session).await;
-        let anonymous = ok(&node, Req::get("/api/node/name/suggestion")).await;
-        (second, anonymous, bus.seen().lookups)
-    });
+    let (first, (second, anonymous, still, asked)) =
+        tokio::join!(suggestion(&node, &session), async {
+            tokio::time::timeout(Duration::from_secs(10), async {
+                while bus.seen().lookups.is_empty() {
+                    tokio::time::sleep(Duration::from_millis(10)).await;
+                }
+            })
+            .await
+            .expect("the first suggestion reached resolved");
+            let second = suggestion(&node, &session).await;
+            let anonymous = ok(&node, Req::get("/api/node/name/suggestion")).await;
+            let still = suggestion(&node, &session).await;
+            (second, anonymous, still, bus.seen().lookups)
+        });
     assert_eq!(second.status, 429, "{}", second.body);
+    assert_eq!(
+        still.status, 429,
+        "the first still ran after the anonymous one: {}",
+        still.body
+    );
     assert_eq!(
         second.json(),
         json!({ "error": "a suggestion is already being checked" })
