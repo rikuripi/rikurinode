@@ -636,7 +636,10 @@ class Mutants(unittest.TestCase):
             'case "$rc" in',
             "0|3) ;;",
             '*) echo "cargo-mutants exited $rc: missed mutants (2) or an error"; exit "$rc" ;;',
-            "esac"]])
+            "esac",
+            'missed="$RUNNER_TEMP/mutants.out/missed.txt"',
+            '[ -f "$missed" ] || { echo "cargo-mutants exited $rc but wrote no missed.txt"; exit 1; }',
+            '[ ! -s "$missed" ] || { echo "cargo-mutants exited $rc with missed mutants: see missed.txt"; exit 2; }']])
 
     def test_only_the_two_reports_have_a_condition(self):
         conditions = [line for line in self.lines if line.startswith("if:")]

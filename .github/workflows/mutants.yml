@@ -9,7 +9,8 @@ name: Rust mutants
 # namespaces safe-run.sh has only its stand-ins, so the network is not cut;
 # nothing here holds a credential to send.) The settings are the verifier's
 # (.claude/agents/verifier.md). Timeouts pass: the tests did not
-# pass under that mutant. An exclusion, when one is ever needed, goes only in
+# pass under that mutant. A missed mutant fails the run even beside a
+# timeout, which makes cargo-mutants exit 3 (2026-11-13-mutants-exit3.md). An exclusion, when one is ever needed, goes only in
 # control-plane/.cargo/mutants.toml, each with its reason.
 # Record: docs/build-records/2026-11-06-ci-cargo-mutants.md
 
@@ -86,6 +87,11 @@ jobs:
             0|3) ;;
             *) echo "cargo-mutants exited $rc: missed mutants (2) or an error"; exit "$rc" ;;
           esac
+          # Exit 3 is any timeout, whatever was missed (src/outcome.rs at v27.1.0),
+          # so only missed.txt, written from the start, says nothing was missed.
+          missed="$RUNNER_TEMP/mutants.out/missed.txt"
+          [ -f "$missed" ] || { echo "cargo-mutants exited $rc but wrote no missed.txt"; exit 1; }
+          [ ! -s "$missed" ] || { echo "cargo-mutants exited $rc with missed mutants: see missed.txt"; exit 2; }
       - name: What was missed, or timed out
         if: always()
         run: |

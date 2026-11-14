@@ -78,3 +78,14 @@
   - `test_no_missed_list_fails_even_on_success`
 - Exit 0 and 3 with an empty list pass; 2 and 4 fail, as now. The 17 line-checking `Mutants` tests pass.
 - This red run is recorded here. CI will also see red only if its run on the red commit is not cancelled by the fix's push.
+
+### Fix
+
+- `.github/workflows/mutants.yml`, the mutation step: after the existing `case`, which still passes 0 and 3 and fails any other exit, two more lines:
+  - no `missed.txt` fails with exit 1;
+  - a non-empty one fails with exit 2.
+  The header comment says so.
+- **A test change after red, with its reason:** `test_the_mutation_step_is_exactly_this` now lists the step's three new lines. It still pins the whole step, so the line checks keep refusing an added `exit 0`, `2) ;;` or `if: false` (2026-11-06's verifier, round 1).
+- On rikuri-drill, through `safe-run.sh`:
+  - `test_workflows.py`: `Ran 62 tests … OK`, all 7 `MutantsVerdict` cases included.
+  - The whole `scripts/quality/tests`: `Ran 207 tests … FAILED (errors=7, skipped=1)`. All 7 errors are `FileNotFoundError: … 'git'` in `test_repo_hygiene.WholeRepository` and `test_advisory_audit_age.Remotes`: the drill VM has no `git`, and the copied tree is not a checkout. They are outside this change; CI runs them.
