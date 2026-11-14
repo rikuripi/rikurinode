@@ -1165,7 +1165,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn the_limit_ends_the_suggestion_with_none() {
+    async fn the_limit_ends_the_suggestion_unchecked() {
+        // Out of time is not "every name taken": the node does not know.
         let started = std::time::Instant::now();
         let (got, asked) = suggesting(
             |_| true,
@@ -1174,7 +1175,7 @@ mod tests {
             Duration::from_millis(100),
         )
         .await;
-        assert_eq!(got, Ok(None));
+        assert!(got.is_err(), "{got:?}");
         assert!(asked.len() < 4, "{asked:?}");
         assert!(started.elapsed() < Duration::from_secs(2));
     }

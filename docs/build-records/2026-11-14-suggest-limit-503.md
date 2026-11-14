@@ -39,3 +39,9 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Red (the current code)
+
+- `src/hostname.rs`: `the_limit_ends_the_suggestion_with_none` is renamed `the_limit_ends_the_suggestion_unchecked`; `assert_eq!(got, Ok(None))` becomes `assert!(got.is_err())`. Its other checks (fewer than 4 names asked, done within 2 s) stay.
+- **Expected on the current code:** `got` is `Ok(None)`, so the assertion fails.
+- On the Mac: fmt and clippy (all targets, `-D warnings`) are clean. Pushed alone, so CI shows the red before the fix.
