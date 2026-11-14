@@ -68,3 +68,13 @@
 - **Why the test runs the script:** the current tests compare the step's lines. They pinned `0|3) ;;` exactly, so they held the defect in place. A test that runs the script checks what it does.
 
 ## Evidence log
+
+### Red (the current workflow)
+
+- `MutantsVerdict` runs the mutation step's own `run:` script under `bash -e`, with a stand-in `scripts/quality/safe-run.sh`. That stand-in creates `mutants.out`, writes `missed.txt` (or doesn't) and exits with the code given.
+- On rikuri-drill: `scripts/quality/safe-run.sh python3 -B -m unittest scripts/quality/tests/test_workflows.py -k Mutants`. The result was `Ran 24 tests … FAILED (failures=3)`, all `AssertionError: 0 == 0`:
+  - `test_a_timeout_does_not_hide_a_missed_mutant`: exit 3 with one missed mutant passes. This is 5c.4b-1's defect, reproduced.
+  - `test_a_timeout_with_no_missed_list_fails`
+  - `test_no_missed_list_fails_even_on_success`
+- Exit 0 and 3 with an empty list pass; 2 and 4 fail, as now. The 17 line-checking `Mutants` tests pass.
+- This red run is recorded here. CI will also see red only if its run on the red commit is not cancelled by the fix's push.

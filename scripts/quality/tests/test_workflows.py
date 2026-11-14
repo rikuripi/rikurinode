@@ -19,7 +19,9 @@ Run: python3 -m unittest discover -s scripts/quality/tests -p 'test_*.py'
 import glob
 import os
 import re
+import subprocess
 import sys
+import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -654,6 +656,70 @@ class Mutants(unittest.TestCase):
         self.assertIn("uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2",
                       self.lines)
         self.assertIn("path: ${{ runner.temp }}/mutants.out", self.lines)
+
+
+class MutantsVerdict(unittest.TestCase):
+    """The mutation step's own script, run as GitHub runs it (`bash -e`), with
+    a stand-in for safe-run.sh that plays cargo-mutants: it sets the exit code
+    and writes mutants.out. cargo-mutants v27.1.0 exits 3 for any timeout
+    before it looks at missed mutants (src/outcome.rs), so only missed.txt
+    says whether one was missed (docs/build-records/2026-11-13-mutants-exit3.md)."""
+    STEP = "- name: Mutate the changed lines (inside safe-run.sh, offline)"
+
+    def script(self):
+        lines = read(MUTANTS).splitlines()
+        start = [i for i, line in enumerate(lines) if line.strip() == self.STEP]
+        self.assertEqual(len(start), 1)
+        run = next(i for i in range(start[0], len(lines)) if lines[i].strip() == "run: |")
+        indent = len(lines[run]) - len(lines[run].lstrip())
+        body = []
+        for line in lines[run + 1:]:
+            if line.strip() and len(line) - len(line.lstrip()) <= indent:
+                break
+            body.append(line.strip())
+        return "\n".join(body) + "\n"
+
+    def verdict(self, rc, missed):
+        """The step's exit for cargo-mutants exiting `rc` with missed.txt holding
+        `missed` (None: no missed.txt)."""
+        with tempfile.TemporaryDirectory() as work:
+            temp = os.path.join(work, "runner-temp")
+            os.makedirs(os.path.join(work, "scripts", "quality"))
+            os.makedirs(temp)
+            stand_in = os.path.join(work, "scripts", "quality", "safe-run.sh")
+            with open(stand_in, "w", encoding="utf-8") as f:
+                f.write('#!/bin/sh\nmkdir -p "$RUNNER_TEMP/mutants.out"\n'
+                        'if [ "$MISSED" != absent ]; then printf %s "$MISSED" > "$RUNNER_TEMP/mutants.out/missed.txt"; fi\n'
+                        'exit "$RC"\n')
+            os.chmod(stand_in, 0o755)
+            env = {"PATH": os.environ["PATH"], "RUNNER_TEMP": temp, "RC": str(rc),
+                   "MISSED": "absent" if missed is None else missed}
+            done = subprocess.run(["bash", "-e", "-c", self.script()], cwd=work, env=env,
+                                  stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=60)
+            return done.returncode
+
+    MISSED = "crates/rikuri-control/src/hostname.rs:163:9: replace fmt -> fmt::Result with Ok(Default::default())\n"
+
+    def test_all_caught_passes(self):
+        self.assertEqual(self.verdict(0, ""), 0)
+
+    def test_timeouts_alone_pass(self):
+        self.assertEqual(self.verdict(3, ""), 0)
+
+    def test_a_timeout_does_not_hide_a_missed_mutant(self):
+        self.assertNotEqual(self.verdict(3, self.MISSED), 0)
+
+    def test_a_timeout_with_no_missed_list_fails(self):
+        self.assertNotEqual(self.verdict(3, None), 0)
+
+    def test_no_missed_list_fails_even_on_success(self):
+        self.assertNotEqual(self.verdict(0, None), 0)
+
+    def test_a_missed_mutant_fails(self):
+        self.assertEqual(self.verdict(2, self.MISSED), 2)
+
+    def test_a_failed_baseline_fails(self):
+        self.assertEqual(self.verdict(4, ""), 4)
 
 
 class MutantsExclusions(unittest.TestCase):
