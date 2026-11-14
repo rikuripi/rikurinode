@@ -58,6 +58,8 @@ pub enum Lookups {
     /// Repair 2 (verifier, nit 1): `Hello` gets this error, and the lookup
     /// no answer.
     HelloError(&'static str),
+    /// Every name is free (NXDOMAIN), after this long: a suggestion held open.
+    Slow(std::time::Duration),
 }
 
 pub const NXDOMAIN: &str = "org.freedesktop.resolve1.DnsError.NXDOMAIN";
@@ -242,6 +244,7 @@ fn lookup_answer(lookups: Lookups, name: &str, hello_serial: u32, call_serial: u
         Lookups::Taken(_) => error(2, call_serial, NXDOMAIN),
         Lookups::Error(e) => error(2, call_serial, e),
         Lookups::HelloError(e) => return error(1, hello_serial, e),
+        Lookups::Slow(_) => error(2, call_serial, NXDOMAIN),
     };
     [reply(2, 1, hello_serial), answer].concat()
 }
@@ -274,6 +277,9 @@ async fn serve(
             seen.messages.push(hello.clone());
             seen.messages.push(call.clone());
             seen.lookups.push(name.clone());
+        }
+        if let Lookups::Slow(d) = lookups {
+            tokio::time::sleep(d).await;
         }
         conn.write_all(&lookup_answer(lookups, &name, hello_serial, call_serial))
             .await

@@ -41,3 +41,10 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Red (the current code)
+
+- `tests/common/bus.rs`: `Lookups::Slow(d)` records the lookup, waits `d`, then answers NXDOMAIN.
+- `tests/rename.rs`: `a_second_suggestion_while_one_runs_is_refused`. It joins the first suggestion with a second request, sent once the stand-in has seen the first lookup. The wait for that lookup is bounded at 10 s.
+- **Expected on the current code:** the second is not refused. It runs beside the first and ends 200, so `assert_eq!(second.status, 429…)` fails.
+- On the Mac: fmt and clippy (all targets, `-D warnings`) are clean. Pushed alone, so CI shows the red before the fix.
