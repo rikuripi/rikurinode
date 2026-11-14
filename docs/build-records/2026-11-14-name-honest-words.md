@@ -35,3 +35,11 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Change
+
+- `en.json`: `name.seen`: "The node checks that nothing on your network answers to the name right now. It can’t see a device that is switched off, or one your network keeps apart."
+- `Name.svelte`: `<p class="hint">{t('name.seen')}</p>` under the field, in every form state; the existing hint (none free, or could not check) follows it.
+- `owner.spec.ts`: the first naming test expects `name.seen` to be visible. This adds an assertion; none is changed.
+- `install-node.md`, step 13: "answers to right now", why (a device switched off, or kept apart, "some guest Wi-Fi networks do"), and a new bullet for a name that later opens another device: use the node's address and report it.
+- `git diff --check` is clean; `en.json` parses. The runbook gains no links. The UI build and Playwright tests run in CI.

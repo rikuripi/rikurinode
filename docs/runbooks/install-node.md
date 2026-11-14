@@ -116,13 +116,14 @@ Use Fedora Media Writer (Fedora's own tool, free, from `fedoraproject.org/workst
       - A step that says **Couldn’t be read** is not done: report it. Below the list, the page says until when this device stays signed in.
     - If it says the code is not the one on the node's screen, check it against the screen (a code lasts 24 hours; Enter at the node shows a new one) and type it again. After several wrong tries it asks you to wait a number of seconds; the button returns when they are over.
     - If it says the node already has an owner, someone has claimed it. If that was not you, stop: unplug the node's network cable and report it.
-13. Tap **Choose its name**. The page **Name your node** opens, with a name already filled in: the first of `rikuri01`, `rikuri02`, … that nothing on your network answers to. Phones and computers will reach the node as that name followed by `.local`.
+13. Tap **Choose its name**. The page **Name your node** opens, with a name already filled in: the first of `rikuri01`, `rikuri02`, … that nothing on your network answers to right now. The node can't see a device that is switched off, or one the network keeps apart (some guest Wi-Fi networks do), and the page says so. Phones and computers will reach the node as that name followed by `.local`.
     - Keep it, or type your own: letters, digits and hyphens, at most 63, not starting or ending with a hyphen. Capitals become small letters.
     - Tap **Name the node**. The page says **Your node is now called rikuri01.local** (or your name), and opens `https://rikuri01.local/signin` by itself; **Go to the node now** does the same at once.
     - Sign in there with your password. The node no longer answers `rikurisetup.local`, and this device was signed in to that old name, so signing in again is expected. The certificate stays trusted: **Rikuri Node CA** signs the new one too.
     - **What setup still needs** now says **A name for the node**: **Done**. The node keeps this name: changing it later comes with a later update.
     - If the page says something on your network already answers to that name, choose another.
     - If the page says every name from rikuri01 to rikuri99 is in use, or that the node couldn't check which names are free, type a name of your own; if renaming then fails, wait a minute and try again.
+    - If the new name later opens another device, not the node, that device had the name first but did not answer when the node checked. Use the node's address from the claim screen (Ctrl+Alt+F2), as `https://<address>/signin`, and report it: renaming the node comes with a later update.
     - If the new address does not open ("cannot find" or "server not found"), wait a minute and reload: some phones take a moment to learn a new `.local` name. The node's address on the claim screen (Ctrl+Alt+F2) always works, as `https://<address>/signin`.
 14. Tap **Sign out**: the page **Sign in to your node** opens. Type the password and tap **Sign in**: **This node is yours** opens again, with the same **Node ID**. Sign out again, then power the N150 off with a short press of its power button.
 
