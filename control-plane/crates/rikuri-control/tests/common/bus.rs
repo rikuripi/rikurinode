@@ -55,6 +55,9 @@ pub enum Lookups {
     All,
     /// Every lookup gets this error.
     Error(&'static str),
+    /// Repair 2 (verifier, nit 1): `Hello` gets this error, and the lookup
+    /// no answer.
+    HelloError(&'static str),
 }
 
 pub const NXDOMAIN: &str = "org.freedesktop.resolve1.DnsError.NXDOMAIN";
@@ -238,6 +241,7 @@ fn lookup_answer(lookups: Lookups, name: &str, hello_serial: u32, call_serial: u
         Lookups::Taken(taken) if taken.contains(&bare) => reply(2, 2, call_serial),
         Lookups::Taken(_) => error(2, call_serial, NXDOMAIN),
         Lookups::Error(e) => error(2, call_serial, e),
+        Lookups::HelloError(e) => return error(1, hello_serial, e),
     };
     [reply(2, 1, hello_serial), answer].concat()
 }

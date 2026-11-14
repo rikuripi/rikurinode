@@ -149,6 +149,9 @@ pub enum BusError {
     Denied(String),
     /// Hostnamed, or the bus, answered with another error: its name.
     Refused(String),
+    /// The bus answered `Hello` with an error: its name (5c.4b-2, repair 2:
+    /// the bus's own error, never the call's, so never resolved's "not found").
+    Hello(String),
     /// Something the bus sent that this client does not read.
     Protocol(&'static str),
     /// No answer within the limit.
@@ -163,6 +166,7 @@ impl fmt::Display for BusError {
             BusError::Auth(line) => write!(f, "the system bus refused to authenticate: {line:?}"),
             BusError::Denied(name) => write!(f, "renaming the node was not allowed: {name}"),
             BusError::Refused(name) => write!(f, "hostnamed refused the name: {name}"),
+            BusError::Hello(name) => write!(f, "the system bus refused Hello: {name}"),
             BusError::Protocol(what) => write!(f, "the system bus sent {what}"),
             BusError::TimedOut => write!(f, "the system bus did not answer in time"),
         }
@@ -224,8 +228,10 @@ pub fn set_static_hostname_call(name: &NodeName, serial: u32) -> Vec<u8> {
 
 /// systemd-resolved's flags (org.freedesktop.resolve1(5)): ask mDNS only,
 /// over IPv4 and IPv6, never a synthesized answer and never the cache, so
-/// the answer is the network's now. The node's own zone still answers its
-/// own name: a node never suggests the name it has.
+/// the answer is the network's now. Resolved never looks the node's own
+/// name up over mDNS (the drill saw "No appropriate name servers"), so that
+/// name is `Unknown`, never free; setup's name, `rikurisetup`, is never a
+/// candidate (repair 2, verifier nit 3).
 pub const MDNS_IPV4: u64 = 1 << 3;
 pub const MDNS_IPV6: u64 = 1 << 4;
 pub const NO_SYNTHESIZE: u64 = 1 << 11;
@@ -568,7 +574,7 @@ async fn exchange(socket: &Path, uid: u32, call: Vec<u8>) -> Result<(), BusError
             match (message.kind, message.reply_serial) {
                 (Kind::Return, Some(HELLO_SERIAL)) => hello_answered = true,
                 (Kind::Error, Some(HELLO_SERIAL)) => {
-                    return Err(BusError::Refused(error_name(message)));
+                    return Err(BusError::Hello(error_name(message)));
                 }
                 (Kind::Return, Some(CALL_SERIAL)) if hello_answered => return Ok(()),
                 (Kind::Error, Some(CALL_SERIAL)) => {
@@ -949,6 +955,46 @@ mod tests {
         assert_eq!(BUS_TIMEOUT, Duration::from_secs(10));
     }
 
+    /// Repair 3 (owner's authorization; CI's mutants job): what each error
+    /// says, as the logs and an unknown lookup's reason carry it.
+    #[test]
+    fn each_error_says_what_happened() {
+        let said = |e: BusError| e.to_string();
+        let name = || "org.example.Error".to_owned();
+        assert_eq!(
+            said(BusError::Unreachable(io::Error::other("gone"))),
+            "the system bus could not be reached: gone"
+        );
+        assert_eq!(
+            said(BusError::Io(io::Error::other("cut"))),
+            "the connection to the system bus failed: cut"
+        );
+        assert_eq!(
+            said(BusError::Auth("REJECTED".to_owned())),
+            "the system bus refused to authenticate: \"REJECTED\""
+        );
+        assert_eq!(
+            said(BusError::Denied(name())),
+            "renaming the node was not allowed: org.example.Error"
+        );
+        assert_eq!(
+            said(BusError::Refused(name())),
+            "hostnamed refused the name: org.example.Error"
+        );
+        assert_eq!(
+            said(BusError::Hello(name())),
+            "the system bus refused Hello: org.example.Error"
+        );
+        assert_eq!(
+            said(BusError::Protocol("nonsense")),
+            "the system bus sent nonsense"
+        );
+        assert_eq!(
+            said(BusError::TimedOut),
+            "the system bus did not answer in time"
+        );
+    }
+
     // ---- 5c.4b-2: is a name in use? ----
 
     #[test]
@@ -1031,6 +1077,10 @@ mod tests {
             refused("org.freedesktop.DBus.Error.ServiceUnknown"),
             Err(BusError::Denied(
                 "org.freedesktop.resolve1.DnsError.NXDOMAIN".to_owned(),
+            )),
+            // Repair 2 (verifier, nit 1): the bus's answer to Hello.
+            Err(BusError::Hello(
+                "org.freedesktop.DBus.Error.Timeout".to_owned(),
             )),
             Err(BusError::TimedOut),
             Err(BusError::Protocol("x")),

@@ -612,6 +612,11 @@ test.describe('naming the node', () => {
     ['a name the node refuses', { status: 400, body: refused('not a name for the node') }, 'name.rule'],
     ['the node fails', { status: 503, body: refused('the node could not be renamed') }, 'name.failed'],
     ['an answer that is not the new name', { status: 200, body: { name: 'rikuri03' } }, 'name.failed'],
+    // Repair 2 (verifier, Important 1 and 2): the page opens only a name by
+    // the rules, at exactly that name's .local.
+    ['a new name that is not a name', { status: 200, body: { name: 'evil.example#', host: 'evil.example#.local' } }, 'name.failed'],
+    ['a host that is not the name', { status: 200, body: { name: 'rikuri03', host: 'evil.example' } }, 'name.failed'],
+    ['a host of another name', { status: 200, body: { name: 'rikuri03', host: 'rikuri04.local' } }, 'name.failed'],
     ['no answer', 'offline', 'form.offline'],
   ] as const) {
     test(`a rename refused (${why}): said, the page stays, never success`, async ({ page }) => {
