@@ -5,8 +5,8 @@
 | **Date** | 2026-11-13 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/mutants-exit3`, from `main` at `85b7992`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `2e4859b` (contract), `c7255aa` (red), `25f1dc4` (fix), `1611bc5` (repair 1); merged as `b78aab3` (#96) |
+| **Status** | DONE |
 | **Change type** | fix |
 
 ## Intent: the owner's words
@@ -103,3 +103,42 @@
   - `test_the_mutation_step_is_exactly_this` pins the corrected line.
 - On rikuri-drill, `test_workflows.py`: `Ran 63 tests … OK`, all 8 `MutantsVerdict` cases included.
 - **Counted as repair 1 of 2.** It was found before CI, but after the fix was pushed.
+
+### CI
+
+- **On `25f1dc4` (the first fix): Fail, as predicted above.**
+  - `Rust mutants` [run 43547528497](https://github.com/rikuripi/rikurinode/actions/runs/43547528497): `INFO Diff file is empty`, then `cargo-mutants exited 0 but wrote no missed.txt`, exit 1.
+  - CI 43547528415 was cancelled by the next push.
+- **On `1611bc5` (repair 1): Pass.**
+  - `Full gate (Ubuntu)` [run 43547640347](https://github.com/rikuripi/rikurinode/actions/runs/43547640347): `scripts/quality/tests` `Ran 208 tests … OK`.
+  - `Rust mutants` [run 43547640411](https://github.com/rikuripi/rikurinode/actions/runs/43547640411): the real nothing-to-mutate path (`Diff file is empty`), passed.
+  - OS image [run 43547640342](https://github.com/rikuripi/rikurinode/actions/runs/43547640342) and guard/quality [run 43547640529](https://github.com/rikuripi/rikurinode/actions/runs/43547640529): passed.
+- The owner merged #96 at `1611bc5` (as `b78aab3`) before the verifier ran.
+
+### The verifier, at `1611bc5`: PASS
+
+- **The premises, against cargo-mutants v27.1.0's source:**
+  - the exit-code order;
+  - `missed.txt` is created before any mutant runs, and every missed mutant is both counted and listed from one `summary()`;
+  - exit 3 only ever comes after `mutants.out` exists;
+  - no exit 0 can carry a missed mutant.
+- **The script under `bash -e`:** run in scratch for rc 0, 1, 2, 3, 4, 5, 6, 70, 125 and 126, each with the list absent, empty and listed. Only 0 (no list, or an empty one) and 3 (an empty list) pass.
+- **The red reproduced:** on `c7255aa`'s workflow, 3 cases fail. On `25f1dc4`'s, only `nothing_to_mutate` fails.
+- **19 hand mutations:** 17 killed by `MutantsVerdict`. 2 survive the behaviour tests and are caught by the line pin: `0|2|3` and `-f` → `-e`. Both behave the same today.
+- **Test changes after red:** each reason holds, including replacing `test_no_missed_list_fails_even_on_success`.
+- **Nits, not fixed here:**
+  1. this record's close-out (answered here);
+  2. a `verdict(2, None)` case would kill `0|2|3` by behaviour;
+  3. the header comment's new line is about 125 columns, and it cites the record by bare filename;
+  4. a real exit 3 with a missed mutant has not been seen in CI.
+
+### Close-out
+
+- **Done when:**
+  - the 8 behaviour cases were red, then green, on rikuri-drill;
+  - the gate passed in CI on the merged code, and the PR's own mutants run passed through the real empty-diff path;
+  - the verifier passed.
+- **Not yet proven:** a real cargo-mutants exit 3 beside a missed mutant. Only the stand-in covers it; the first real timeout on a Rust PR will show it.
+- **Repairs:** 1 of 2. Review rounds: 1.
+- **Used:** no budget is configured. There were five CI pushes across PRs #96 and this one, and one verifier pass.
+- **Backlog, not started:** the verifier's nits 2 and 3, as one small follow-up to the workflow and its tests.
