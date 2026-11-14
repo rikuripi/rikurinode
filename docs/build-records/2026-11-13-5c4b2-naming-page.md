@@ -213,3 +213,12 @@
   - No assertion is loosened.
 - I1 to I3 guard code that is already right, so their new tests pass on it. Their proof is that each kills its mutant; the verifier's follow-up checks that.
 - Nit 1's test fails on the current code: an error to `Hello` comes back as `Refused(name)`, which `lookup` reads as free.
+
+### Repair 2 (of 2): fix
+
+- **Nit 1:** a new kind, `BusError::Hello(name)`, for the bus's error to `Hello`. `lookup` reads only `Refused` with a name in `FREE` as free, so a Hello error is always `Unknown`. The rename's 503 is unchanged.
+- **Nit 3:** `LOOKUP_FLAGS`' comment now says what the drill saw: resolved never looks up the node's own name over mDNS, so that name is `Unknown`, and `rikurisetup` is never a candidate.
+- **Test changes, each with its reason:**
+  - 5c.4b-1's `an_error_to_hello_is_refused` now expects `BusError::Hello(ACCESS_DENIED)`, not `Refused`. It is stricter: the same error name, in the kind of its own that nit 1 needs.
+  - `only_resolveds_not_found_is_free…` gains `Hello(Timeout)` among the unknowns.
+- On the Mac: clippy and fmt exit 0. The Rust and UI tests run in CI.

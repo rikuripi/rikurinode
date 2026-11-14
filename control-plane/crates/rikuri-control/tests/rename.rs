@@ -139,7 +139,9 @@ async fn an_error_to_hello_is_refused() {
     let started = std::time::Instant::now();
     let (result, _, file) = through(Answer::HelloError(ACCESS_DENIED), LIMIT).await;
     assert!(
-        matches!(result, Err(BusError::Refused(ref name)) if name == ACCESS_DENIED),
+        // 5c.4b-2, repair 2: its own kind, `Hello`, so a lookup never reads
+        // it as resolved's answer.
+        matches!(result, Err(BusError::Hello(ref name)) if name == ACCESS_DENIED),
         "{result:?}"
     );
     assert!(started.elapsed() < Duration::from_secs(3));
