@@ -638,7 +638,7 @@ class Mutants(unittest.TestCase):
             '*) echo "cargo-mutants exited $rc: missed mutants (2) or an error"; exit "$rc" ;;',
             "esac",
             'missed="$RUNNER_TEMP/mutants.out/missed.txt"',
-            '[ -f "$missed" ] || { echo "cargo-mutants exited $rc but wrote no missed.txt"; exit 1; }',
+            '[ -f "$missed" ] || [ "$rc" = 0 ] || { echo "cargo-mutants exited $rc but wrote no missed.txt"; exit 1; }',
             '[ ! -s "$missed" ] || { echo "cargo-mutants exited $rc with missed mutants: see missed.txt"; exit 2; }']])
 
     def test_only_the_two_reports_have_a_condition(self):
@@ -691,8 +691,9 @@ class MutantsVerdict(unittest.TestCase):
             os.makedirs(temp)
             stand_in = os.path.join(work, "scripts", "quality", "safe-run.sh")
             with open(stand_in, "w", encoding="utf-8") as f:
-                f.write('#!/bin/sh\nmkdir -p "$RUNNER_TEMP/mutants.out"\n'
-                        'if [ "$MISSED" != absent ]; then printf %s "$MISSED" > "$RUNNER_TEMP/mutants.out/missed.txt"; fi\n'
+                # Like cargo-mutants, no mutants.out at all when there is no list.
+                f.write('#!/bin/sh\nif [ "$MISSED" != absent ]; then mkdir -p "$RUNNER_TEMP/mutants.out"; '
+                        'printf %s "$MISSED" > "$RUNNER_TEMP/mutants.out/missed.txt"; fi\n'
                         'exit "$RC"\n')
             os.chmod(stand_in, 0o755)
             env = {"PATH": os.environ["PATH"], "RUNNER_TEMP": temp, "RC": str(rc),
@@ -715,8 +716,13 @@ class MutantsVerdict(unittest.TestCase):
     def test_a_timeout_with_no_missed_list_fails(self):
         self.assertNotEqual(self.verdict(3, None), 0)
 
-    def test_no_missed_list_fails_even_on_success(self):
-        self.assertNotEqual(self.verdict(0, None), 0)
+    def test_nothing_to_mutate_passes(self):
+        # An empty diff, or one with no Rust source or no mutant in it, exits 0
+        # before mutants.out exists (src/main.rs, src/in_diff.rs at v27.1.0).
+        self.assertEqual(self.verdict(0, None), 0)
+
+    def test_success_with_a_missed_mutant_listed_fails(self):
+        self.assertNotEqual(self.verdict(0, self.MISSED), 0)
 
     def test_a_missed_mutant_fails(self):
         self.assertEqual(self.verdict(2, self.MISSED), 2)

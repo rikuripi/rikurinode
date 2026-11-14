@@ -89,3 +89,17 @@
 - On rikuri-drill, through `safe-run.sh`:
   - `test_workflows.py`: `Ran 62 tests … OK`, all 7 `MutantsVerdict` cases included.
   - The whole `scripts/quality/tests`: `Ran 207 tests … FAILED (errors=7, skipped=1)`. All 7 errors are `FileNotFoundError: … 'git'` in `test_repo_hygiene.WholeRepository` and `test_advisory_audit_age.Remotes`: the drill VM has no `git`, and the copied tree is not a checkout. They are outside this change; CI runs them.
+
+### A defect in the fix, found before CI, and its correction
+
+- **Found by reading cargo-mutants v27.1.0** after pushing `25f1dc4`. An empty diff, a diff with no Rust source, or one that matches no mutant gives exit 0 *before* `mutants.out` exists (`src/main.rs:596-606`, `src/in_diff.rs:47-51`).
+  - `25f1dc4` would fail every such run with "wrote no missed.txt". That includes this PR's own mutants run, which changes `mutants.yml` and no Rust.
+  - The design note above ("missing is not readable evidence") was wrong for exit 0.
+- **Correction:** a missing `missed.txt` fails only when the exit is not 0. Exit 3 always means mutants ran, so its list must exist. A non-empty list fails with any exit.
+- **Test changes after red, each with its reason:**
+  - `test_no_missed_list_fails_even_on_success` is replaced by `test_nothing_to_mutate_passes` (exit 0, no `mutants.out`: pass). The red test asserted behaviour cargo-mutants contradicts, as cited above. It kills `25f1dc4`'s version.
+  - Added `test_success_with_a_missed_mutant_listed_fails`: exit 0 with a listed mutant fails. This is stricter.
+  - The stand-in now creates `mutants.out` only when it writes a list, as cargo-mutants does in the no-mutants case.
+  - `test_the_mutation_step_is_exactly_this` pins the corrected line.
+- On rikuri-drill, `test_workflows.py`: `Ran 63 tests … OK`, all 8 `MutantsVerdict` cases included.
+- **Counted as repair 1 of 2.** It was found before CI, but after the fix was pushed.

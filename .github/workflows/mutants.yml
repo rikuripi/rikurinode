@@ -88,9 +88,10 @@ jobs:
             *) echo "cargo-mutants exited $rc: missed mutants (2) or an error"; exit "$rc" ;;
           esac
           # Exit 3 is any timeout, whatever was missed (src/outcome.rs at v27.1.0),
-          # so only missed.txt, written from the start, says nothing was missed.
+          # so only missed.txt, written before any mutant runs, says nothing was.
+          # Exit 0 with no mutants.out is a diff with nothing to mutate (src/main.rs).
           missed="$RUNNER_TEMP/mutants.out/missed.txt"
-          [ -f "$missed" ] || { echo "cargo-mutants exited $rc but wrote no missed.txt"; exit 1; }
+          [ -f "$missed" ] || [ "$rc" = 0 ] || { echo "cargo-mutants exited $rc but wrote no missed.txt"; exit 1; }
           [ ! -s "$missed" ] || { echo "cargo-mutants exited $rc with missed mutants: see missed.txt"; exit 2; }
       - name: What was missed, or timed out
         if: always()
