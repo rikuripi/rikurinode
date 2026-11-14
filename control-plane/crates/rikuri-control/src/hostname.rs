@@ -298,10 +298,19 @@ pub fn candidates() -> impl Iterator<Item = NodeName> {
     (1..=99).filter_map(|n| NodeName::parse(&format!("rikuri{n:02}")).ok())
 }
 
+/// Why a suggestion found no answer: never read as "every name taken".
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Unchecked {
+    /// Resolved could not say whether this name is free: the name, and why.
+    Unknown(String),
+    /// No answer within this limit.
+    OutOfTime(Duration),
+}
+
 /// The first of [`candidates`] that `look` finds free, one at a time, all
 /// within `limit`: `Ok(None)` only when every one is taken; `Err` as soon as
 /// one is [`Lookup::Unknown`], or when the limit runs out, never a guess.
-pub async fn suggest<F, Fut>(mut look: F, limit: Duration) -> Result<Option<NodeName>, String>
+pub async fn suggest<F, Fut>(mut look: F, limit: Duration) -> Result<Option<NodeName>, Unchecked>
 where
     F: FnMut(NodeName) -> Fut,
     Fut: std::future::Future<Output = Lookup>,
@@ -311,7 +320,9 @@ where
             match look(name.clone()).await {
                 Lookup::Free => return Ok(Some(name)),
                 Lookup::Taken => {}
-                Lookup::Unknown(why) => return Err(format!("{}: {why}", name.local())),
+                Lookup::Unknown(why) => {
+                    return Err(Unchecked::Unknown(format!("{}: {why}", name.local())));
+                }
             }
         }
         Ok(None)
@@ -319,7 +330,7 @@ where
     // Out of time is not "every name taken": the node does not know.
     tokio::time::timeout(limit, first_free)
         .await
-        .unwrap_or_else(|_| Err(format!("no answer within {limit:?}")))
+        .unwrap_or(Err(Unchecked::OutOfTime(limit)))
 }
 
 /// A method call, little-endian, expecting a reply, with no flags: the
@@ -1111,7 +1122,7 @@ mod tests {
         unknown: Option<&'static str>,
         each: Duration,
         limit: Duration,
-    ) -> (Result<Option<NodeName>, String>, Vec<String>) {
+    ) -> (Result<Option<NodeName>, Unchecked>, Vec<String>) {
         let asked = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let log = asked.clone();
         let result = suggest(
@@ -1161,7 +1172,12 @@ mod tests {
     #[tokio::test]
     async fn an_unknown_answer_stops_the_suggestion() {
         let (got, asked) = suggesting(|n| n == "rikuri01", Some("rikuri02"), SOON, LONG).await;
-        assert!(got.is_err(), "{got:?}");
+        assert_eq!(
+            got,
+            Err(Unchecked::Unknown(
+                "rikuri02.local: resolved could not say".to_owned()
+            ))
+        );
         assert_eq!(asked, ["rikuri01", "rikuri02"]);
     }
 
@@ -1176,7 +1192,7 @@ mod tests {
             Duration::from_millis(100),
         )
         .await;
-        assert!(got.is_err(), "{got:?}");
+        assert_eq!(got, Err(Unchecked::OutOfTime(Duration::from_millis(100))));
         assert!(asked.len() < 4, "{asked:?}");
         assert!(started.elapsed() < Duration::from_secs(2));
     }
