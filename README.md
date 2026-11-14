@@ -92,7 +92,12 @@ on each of the daemon's 60 s looks and after a rename; `RIKURI_NAMES` adds
 other names (`localhost` always may be used); any other `Host` is refused. A
 signed-in owner renames the node with `PUT /api/node/name`: the daemon asks
 systemd-hostnamed over the system bus, which a polkit rule allows for its
-user alone, and the new name replaces the old one at once (5c.4b-1). The
+user alone, and the new name replaces the old one at once (5c.4b-1). It
+does so during setup only, while the name is `rikurisetup`, and never to a
+name something on the network answers: the daemon asks systemd-resolved
+over mDNS first. `GET /api/node/name/suggestion` gives the first of
+`rikuri01` to `rikuri99` that nothing answers, and the page at `/name` uses
+it (5c.4b-2). The
 server certificate names them, the loopback addresses
 and the node's LAN address; the daemon looks at that address again every
 60 s and, when it changes, reissues the certificate from the same CA and

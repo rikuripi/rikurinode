@@ -4,6 +4,9 @@
 //! client's messages by their fixed header alone (lengths at fixed offsets),
 //! so it does not lean on the client's own reader; the unit tests in
 //! `hostname.rs` pin the client's bytes. Its replies are written out by hand.
+//!
+//! 5c.4b-2: it is resolved too. A call to `org.freedesktop.resolve1` is a
+//! lookup, answered as its [`Lookups`] say; any other call is the rename.
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -43,12 +46,28 @@ pub enum Answer {
     HelloError(&'static str),
 }
 
+/// How the stand-in answers lookups (5c.4b-2).
+#[derive(Clone, Copy, Debug)]
+pub enum Lookups {
+    /// These names (without `.local`) answer; every other one is NXDOMAIN.
+    Taken(&'static [&'static str]),
+    /// Every name answers.
+    All,
+    /// Every lookup gets this error.
+    Error(&'static str),
+}
+
+pub const NXDOMAIN: &str = "org.freedesktop.resolve1.DnsError.NXDOMAIN";
+
 /// What the stand-in received.
 #[derive(Clone, Debug, Default)]
 pub struct Seen {
     pub auth: Vec<Vec<u8>>,
     pub messages: Vec<Vec<u8>>,
+    /// The names the renames asked for.
     pub names: Vec<String>,
+    /// The names the lookups asked about, with `.local`, in order.
+    pub lookups: Vec<String>,
 }
 
 pub struct Bus {
@@ -58,7 +77,17 @@ pub struct Bus {
 }
 
 impl Bus {
+    /// Every lookup answers "free".
     pub fn start(path: PathBuf, hostname_file: PathBuf, answer: Answer) -> Bus {
+        Bus::with_lookups(path, hostname_file, answer, Lookups::Taken(&[]))
+    }
+
+    pub fn with_lookups(
+        path: PathBuf,
+        hostname_file: PathBuf,
+        answer: Answer,
+        lookups: Lookups,
+    ) -> Bus {
         let _ = std::fs::remove_file(&path);
         let listener = UnixListener::bind(&path).unwrap();
         let seen = Arc::new(Mutex::new(Seen::default()));
@@ -72,7 +101,7 @@ impl Bus {
                     let (seen, file, answer) =
                         (seen.clone(), hostname_file.clone(), answer.clone());
                     tokio::spawn(async move {
-                        let _ = serve(conn, seen, file, answer).await;
+                        let _ = serve(conn, seen, file, answer, lookups).await;
                     });
                 }
             })
@@ -178,9 +207,39 @@ async fn read_message(conn: &mut UnixStream) -> Option<Vec<u8>> {
 
 /// The name in a `SetStaticHostname` call's body: its first string.
 fn body_name(message: &[u8]) -> String {
-    let at = padded(16 + u32_at(message, 12) as usize);
+    string_at(message, padded(16 + u32_at(message, 12) as usize))
+}
+
+/// The name in a `ResolveHostname` call's body: the string after the
+/// interface's `i`.
+fn lookup_name(message: &[u8]) -> String {
+    string_at(message, padded(16 + u32_at(message, 12) as usize) + 4)
+}
+
+fn string_at(message: &[u8], at: usize) -> String {
     let len = u32_at(message, at) as usize;
     String::from_utf8(message[at + 4..at + 4 + len].to_vec()).unwrap()
+}
+
+/// Whether a call is to resolved: its destination, in its header fields.
+fn to_resolved(message: &[u8]) -> bool {
+    let fields = &message[16..16 + u32_at(message, 12) as usize];
+    fields
+        .windows(b"org.freedesktop.resolve1\0".len())
+        .any(|w| w == b"org.freedesktop.resolve1\0")
+}
+
+/// A lookup's answer: a method return (an address follows in resolved's,
+/// which no reader here needs) or an error.
+fn lookup_answer(lookups: Lookups, name: &str, hello_serial: u32, call_serial: u32) -> Vec<u8> {
+    let bare = name.strip_suffix(".local").unwrap_or(name);
+    let answer = match lookups {
+        Lookups::All => reply(2, 2, call_serial),
+        Lookups::Taken(taken) if taken.contains(&bare) => reply(2, 2, call_serial),
+        Lookups::Taken(_) => error(2, call_serial, NXDOMAIN),
+        Lookups::Error(e) => error(2, call_serial, e),
+    };
+    [reply(2, 1, hello_serial), answer].concat()
 }
 
 async fn serve(
@@ -188,6 +247,7 @@ async fn serve(
     seen: Arc<Mutex<Seen>>,
     file: PathBuf,
     answer: Answer,
+    lookups: Lookups,
 ) -> Option<()> {
     let auth = read_until(&mut conn, b"\r\n").await?;
     seen.lock().unwrap().auth.push(auth);
@@ -202,13 +262,27 @@ async fn serve(
     assert_eq!(begin, b"BEGIN\r\n");
     let hello = read_message(&mut conn).await?;
     let call = read_message(&mut conn).await?;
+    let (hello_serial, call_serial) = (u32_at(&hello, 8), u32_at(&call, 8));
+    if to_resolved(&call) {
+        let name = lookup_name(&call);
+        {
+            let mut seen = seen.lock().unwrap();
+            seen.messages.push(hello.clone());
+            seen.messages.push(call.clone());
+            seen.lookups.push(name.clone());
+        }
+        conn.write_all(&lookup_answer(lookups, &name, hello_serial, call_serial))
+            .await
+            .ok()?;
+        let _ = conn.read(&mut [0u8; 1]).await;
+        return Some(());
+    }
     {
         let mut seen = seen.lock().unwrap();
         seen.messages.push(hello.clone());
         seen.messages.push(call.clone());
         seen.names.push(body_name(&call));
     }
-    let (hello_serial, call_serial) = (u32_at(&hello, 8), u32_at(&call, 8));
     let out = match answer {
         Answer::Hangs => return None,
         Answer::Silent => {

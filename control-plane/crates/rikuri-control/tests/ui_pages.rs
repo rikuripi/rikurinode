@@ -227,3 +227,23 @@ async fn the_owners_pages_are_the_secure_app_over_tls_only() {
     }
     node.stop().await;
 }
+
+/// 5c.4b-2: the naming page is the secure app too, like the owner's pages.
+/// Record: docs/build-records/2026-11-13-5c4b2-naming-page.md
+#[tokio::test]
+async fn the_naming_page_is_the_secure_app_over_tls_only() {
+    let node = Node::start().await;
+    let port = node.https.port();
+    assert_page(&https(&node, Req::get("/name")).await.unwrap(), "secure");
+    let clear = plain(&node, Req::get("/name")).await;
+    assert_eq!(clear.status, 308, "{}", clear.body);
+    assert_eq!(
+        clear.header("location"),
+        Some(format!("https://localhost:{port}/name").as_str())
+    );
+    let post = https(&node, Req::post("/name", serde_json::json!({})))
+        .await
+        .unwrap();
+    assert_eq!(post.status, 405, "{}", post.body);
+    node.stop().await;
+}

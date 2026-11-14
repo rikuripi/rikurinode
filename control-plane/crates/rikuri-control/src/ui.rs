@@ -1,7 +1,8 @@
 //! The setup pages (5c.3a), served from the table `build.rs` embeds: the
 //! certificate screen in the clear at `/`, the secure app over TLS at `/`,
-//! `/setup`, `/claim`, `/signin` and `/home` (5c.3b), and their assets on both. A path not in the table is a 404;
-//! nothing here reads the disk.
+//! `/setup`, `/claim`, `/signin` and `/home` (5c.3b) and `/name` (5c.4b-2),
+//! and their assets on both. A path not in the table is a 404; nothing here
+//! reads the disk.
 //! Record: docs/build-records/2026-11-11-5c3a-ui-pipeline.md
 
 use axum::Router;
@@ -115,7 +116,9 @@ pub(crate) fn secure_routes<S: Clone + Send + Sync + 'static>() -> Router<S> {
             // 5c.3b: the owner's pages, the same app.
             .route("/claim", get(secure_page))
             .route("/signin", get(secure_page))
-            .route("/home", get(secure_page)),
+            .route("/home", get(secure_page))
+            // 5c.4b-2: naming the node.
+            .route("/name", get(secure_page)),
     )
 }
 
