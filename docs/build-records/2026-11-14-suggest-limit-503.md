@@ -45,3 +45,15 @@
 - `src/hostname.rs`: `the_limit_ends_the_suggestion_with_none` is renamed `the_limit_ends_the_suggestion_unchecked`; `assert_eq!(got, Ok(None))` becomes `assert!(got.is_err())`. Its other checks (fewer than 4 names asked, done within 2 s) stay.
 - **Expected on the current code:** `got` is `Ok(None)`, so the assertion fails.
 - On the Mac: fmt and clippy (all targets, `-D warnings`) are clean. Pushed alone, so CI shows the red before the fix.
+
+### CI on `d1ed28a` (the red): Fail, as expected
+
+- `Full gate (Ubuntu)`, [run 43562461921](https://github.com/rikuripi/rikurinode/actions/runs/43562461921): `test hostname::tests::the_limit_ends_the_suggestion_unchecked ... FAILED`, panicked at `src/hostname.rs:1178:9` with `Ok(None)`; `test result: FAILED. 173 passed; 1 failed`. It is the only failing test result in the log.
+- Rust mutants [43562461969](https://github.com/rikuripi/rikurinode/actions/runs/43562461969) and the OS image [43562461920](https://github.com/rikuripi/rikurinode/actions/runs/43562461920) passed.
+
+### Fix
+
+- `src/hostname.rs`, `suggest`: `.unwrap_or(Ok(None))` becomes `.unwrap_or_else(|_| Err(format!("no answer within {limit:?}")))`. The route's `Err` arm answers 503 "the node could not check which names are free" and logs the reason. The doc comment says `Ok(None)` is only for every name taken.
+- `README.md`: one sentence: without an answer within 30 s, 503, and the page asks for a name.
+- No test changed after red.
+- On the Mac: fmt and clippy (all targets, `-D warnings`) are clean.
