@@ -727,6 +727,11 @@ class MutantsVerdict(unittest.TestCase):
     def test_a_missed_mutant_fails(self):
         self.assertEqual(self.verdict(2, self.MISSED), 2)
 
+    def test_exit_2_with_no_list_fails(self):
+        # safe-run.sh refuses with 2 before cargo-mutants runs: no mutants.out.
+        # Kills a case widened to `0|2|3`, which the list check alone lets pass.
+        self.assertEqual(self.verdict(2, None), 2)
+
     def test_a_failed_baseline_fails(self):
         self.assertEqual(self.verdict(4, ""), 4)
 

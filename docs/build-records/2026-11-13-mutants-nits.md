@@ -29,3 +29,12 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Change and evidence
+
+- `test_exit_2_with_no_list_fails` is added. It is stricter, and no existing assertion changes.
+- The header comment is rewrapped. Every comment line in it is now 80 columns or fewer, and it cites both records by path.
+- On rikuri-drill, through `safe-run.sh`:
+  - `test_workflows.py` as written: `Ran 64 tests … OK`.
+  - With the copy's case widened to `0|2|3` by `sed` (one line matched): `FAIL: test_exit_2_with_no_list_fails` and `Ran 9 tests … FAILED (failures=1)`. That is the only failure, so this case is what kills that mutant.
+- `git diff --check` is clean.
