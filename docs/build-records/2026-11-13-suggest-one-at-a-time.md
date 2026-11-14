@@ -48,3 +48,19 @@
 - `tests/rename.rs`: `a_second_suggestion_while_one_runs_is_refused`. It joins the first suggestion with a second request, sent once the stand-in has seen the first lookup. The wait for that lookup is bounded at 10 s.
 - **Expected on the current code:** the second is not refused. It runs beside the first and ends 200, so `assert_eq!(second.status, 429…)` fails.
 - On the Mac: fmt and clippy (all targets, `-D warnings`) are clean. Pushed alone, so CI shows the red before the fix.
+
+### CI on `8862779` (the red): Fail, as expected
+
+- `Full gate (Ubuntu)`, [run 43550401872](https://github.com/rikuripi/rikurinode/actions/runs/43550401872):
+  - `test a_second_suggestion_while_one_runs_is_refused ... FAILED`, panicked at `tests/rename.rs:524:5` (`assert_eq!(second.status, 429, …)`), with `left: 200`, `right: 429`;
+  - the other tests passed: `test result: FAILED. 21 passed; 1 failed`.
+- Rust mutants [43550401797](https://github.com/rikuripi/rikurinode/actions/runs/43550401797) and the OS image [43550401826](https://github.com/rikuripi/rikurinode/actions/runs/43550401826) passed.
+
+### Fix
+
+- `src/http.rs`: `Inner.suggest_lock`. In `suggestion`, after `authenticate`:
+  `let Ok(_one) = app.0.suggest_lock.try_lock() else { return Err(refuse(429, "a suggestion is already being checked")) };`
+  - The guard is bound to `_one`, not `_`, so it is held until the function returns, on every path.
+- `README.md`: one suggestion at a time; another gets 429.
+- No test changed after red.
+- On the Mac: fmt and clippy (all targets, `-D warnings`) are clean.
