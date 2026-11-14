@@ -98,7 +98,8 @@ name something on the network answers: the daemon asks systemd-resolved
 over mDNS first. `GET /api/node/name/suggestion` gives the first of
 `rikuri01` to `rikuri99` that nothing answers, and the page at `/name` uses
 it (5c.4b-2); one suggestion runs at a time, and another gets 429 at once.
-Without an answer within 30 s it gets 503, and the page asks for a name. The
+A suggestion without an answer within 30 s gets 503, and the page asks for a
+name. The
 server certificate names them, the loopback addresses
 and the node's LAN address; the daemon looks at that address again every
 60 s and, when it changes, reissues the certificate from the same CA and
