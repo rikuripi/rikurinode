@@ -710,8 +710,18 @@ async fn suggestion(
         Ok(name) => Ok(Json(NameSuggestion {
             name: name.map(|n| n.as_str().to_owned()),
         })),
-        Err(why) => {
-            error!(why = %why, "resolved could not say which names are free");
+        Err(unchecked) => {
+            match unchecked {
+                hostname::Unchecked::Unknown(why) => {
+                    error!(why = %why, "resolved could not say which names are free");
+                }
+                hostname::Unchecked::OutOfTime(limit) => {
+                    error!(
+                        limit = ?limit,
+                        "resolved did not answer within the suggestion's time limit"
+                    );
+                }
+            }
             Err(refuse(
                 StatusCode::SERVICE_UNAVAILABLE,
                 "the node could not check which names are free",

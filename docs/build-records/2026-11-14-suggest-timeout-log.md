@@ -34,3 +34,10 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Change
+
+- `src/hostname.rs`: `pub enum Unchecked { Unknown(String), OutOfTime(Duration) }`; `suggest` returns `Result<Option<NodeName>, Unchecked>`. The timeout is `.unwrap_or(Err(Unchecked::OutOfTime(limit)))`; clippy (`unnecessary_lazy_evaluations`) refused the closure form.
+- `src/http.rs`: the `Err` arm matches the case. `Unknown` logs "resolved could not say which names are free" with `why`; `OutOfTime` logs "resolved did not answer within the suggestion's time limit" with `limit`. Both answer the same 503.
+- **Test changes, with their reason:** in `an_unknown_answer_stops_the_suggestion` and `the_limit_ends_the_suggestion_unchecked`, `assert!(got.is_err())` becomes `assert_eq!` on the exact case and value (nit 5). Both are stricter; the helper `suggesting` takes the new type.
+- On the Mac: fmt and clippy (all targets, `-D warnings`) are clean. The tests run in CI.
