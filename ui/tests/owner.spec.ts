@@ -588,6 +588,7 @@ test.describe('naming the node', () => {
     await api(page, { ...SIGNED_IN, 'GET /api/node/name/suggestion': { status: 200, body: { name: null } } });
     await page.goto('/name');
     await expect(page.getByText(t('name.none_free'))).toBeVisible();
+    await expect(page.getByText(t('name.seen'))).toBeVisible();
     await expect(field(page)).toHaveValue('');
     await expect(submit(page)).toBeEnabled();
   });
@@ -602,6 +603,7 @@ test.describe('naming the node', () => {
       await api(page, { ...SIGNED_IN, 'GET /api/node/name/suggestion': answer as Answer });
       await page.goto('/name');
       await expect(page.getByText(t('name.check_failed'))).toBeVisible();
+      await expect(page.getByText(t('name.seen')), 'no "checks" above "couldn’t check"').toHaveCount(0);
       await expect(field(page)).toHaveValue('');
       await expect(submit(page)).toBeEnabled();
     });

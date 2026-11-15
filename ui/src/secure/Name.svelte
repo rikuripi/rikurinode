@@ -23,6 +23,8 @@
   let phase = $state<'loading' | 'named' | 'form' | 'done' | 'unread'>('loading');
   let name = $state('');
   let hint = $state('');
+  // The suggestion was read (a name, or none free): only then does the page say what was checked.
+  let checked = $state(false);
   let busy = $state(false);
   let said = $state('');
   let opens = $state('');
@@ -51,8 +53,11 @@
     const suggested = await readSuggestion();
     if (suggested.kind === 'refused' && suggested.status === 401) return location.replace('/signin');
     if (suggested.kind !== 'ok') hint = t('name.check_failed');
-    else if (suggested.value.name === null) hint = t('name.none_free');
-    else if (name === '') name = suggested.value.name;
+    else {
+      checked = true;
+      if (suggested.value.name === null) hint = t('name.none_free');
+      else if (name === '') name = suggested.value.name;
+    }
   });
 
   async function submit(event: SubmitEvent) {
@@ -112,7 +117,7 @@
             <span class="suffix" aria-hidden="true">.local</span>
           </div>
         </div>
-        <p class="hint">{t('name.seen')}</p>
+        {#if checked}<p class="hint">{t('name.seen')}</p>{/if}
         {#if hint}<p class="hint">{hint}</p>{/if}
         {#if said}<p class="alert" role="alert">{said}</p>{/if}
         <button type="submit" class="action primary" disabled={busy}>{t('name.submit')}</button>
