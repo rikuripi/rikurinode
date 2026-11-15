@@ -164,7 +164,7 @@ impl LiveNames {
     pub fn reload(&self) -> Names {
         let fresh = compose(&self.configured, &self.file);
         let mut current = self.current.write().unwrap_or_else(PoisonError::into_inner);
-        if *current != fresh {
+        if change(&current, &fresh, &self.configured) != Change::Same {
             info!(
                 names = ?fresh.iter().collect::<Vec<_>>(),
                 "the node's names changed"
@@ -172,6 +172,27 @@ impl LiveNames {
             *current = fresh.clone();
         }
         fresh
+    }
+}
+
+/// How a reload moved the names.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Change {
+    Same,
+    Changed,
+    /// The node's own name left; only the configured names remain.
+    #[cfg_attr(
+        not(test),
+        expect(dead_code, reason = "red: the fix's `change` returns it")
+    )]
+    Lost,
+}
+
+fn change(before: &Names, fresh: &Names, _configured: &Names) -> Change {
+    if before == fresh {
+        Change::Same
+    } else {
+        Change::Changed
     }
 }
 
@@ -421,6 +442,22 @@ mod tests {
         assert!(!live.origin_allowed("https://rikurisetup.local"));
         assert!(live.origin_allowed("https://rikuri02.local"));
         let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn a_reload_that_loses_the_name_is_a_loss() {
+        let configured = Names::new(["extra.local"]).unwrap();
+        let named = |n: &str| configured.with(&hostname::name_in(n).unwrap());
+        let (one, two) = (named("rikuri01"), named("rikuri02"));
+        for (case, before, fresh, want) in [
+            ("renamed", &one, &two, Change::Changed),
+            ("unchanged", &one, &one, Change::Same),
+            ("name lost", &one, &configured, Change::Lost),
+            ("still none", &configured, &configured, Change::Same),
+            ("name found", &configured, &one, Change::Changed),
+        ] {
+            assert_eq!(change(before, fresh, &configured), want, "{case}");
+        }
     }
 
     #[test]
