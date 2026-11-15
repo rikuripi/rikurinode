@@ -5,8 +5,8 @@
 | **Date** | 2026-11-14 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/name-honest-words`, from `main` at `06b2e64`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `1889568` (contract), `6a0c3f7` (change); the owner merged `main` in as `2434c83` (only #107's close-out); merged as `b891a38` (#108) |
+| **Status** | DONE |
 | **Change type** | feature (text) |
 
 ## Intent: the owner's words
@@ -43,3 +43,31 @@
 - `owner.spec.ts`: the first naming test expects `name.seen` to be visible. This adds an assertion; none is changed.
 - `install-node.md`, step 13: "answers to right now", why (a device switched off, or kept apart, "some guest Wi-Fi networks do"), and a new bullet for a name that later opens another device: use the node's address and report it.
 - `git diff --check` is clean; `en.json` parses. The runbook gains no links. The UI build and Playwright tests run in CI.
+
+### CI: Pass
+
+- On `6a0c3f7`: `Full gate (Ubuntu)` [run 43653254230](https://github.com/rikuripi/rikurinode/actions/runs/43653254230) and OS image [run 43653254307](https://github.com/rikuripi/rikurinode/actions/runs/43653254307).
+- On `2434c83`: `Full gate (Ubuntu)` [run 43655850299](https://github.com/rikuripi/rikurinode/actions/runs/43655850299) and OS image [run 43655849947](https://github.com/rikuripi/rikurinode/actions/runs/43655849947).
+- In both: `svelte-check found 0 errors and 0 warnings`, the build, and Playwright `399 passed`. The first naming test passes at phone, phone-webkit, tablet and desktop.
+- **A correction to "Done when":** it listed the mutants run, which cannot run here. `mutants.yml` triggers only on `control-plane/**`, `rust-toolchain.toml` or itself; no Rust changed, so no run exists: N/A, not passed.
+- The owner merged #108 at `2434c83` (as `b891a38`) before the verifier ran.
+
+### The verifier, at `2434c83`: PASS
+
+- **The words match the code:** `FREE` reads NXDOMAIN and a timeout as free; the check runs at the suggestion and again at the rename (`http.rs:701-704`, `:764`); a named node gets 409 "the node already has a name" (`http.rs:750-752`), so "renaming the node comes with a later update" is accurate.
+- **The page:** `name.seen` shows in every form state, before the existing hint and alert, which are unchanged and in their order. It reuses the global `.hint` class, so the CSP sees nothing new. The state tests and `text-keys.spec.ts` pass.
+- **The test:** the one added assertion reads the text from `en.json`, so a missing element fails it; nothing loosened.
+- **The runbook:** agrees with the page and the next bullet; no links added; `git diff --check` is clean.
+- `2434c83` adds only #107's close-out of `2026-11-14-suggest-timeout-log.md`.
+- **Findings:** no Important finding. Nits:
+  1. the mutants line in "Done when" (corrected above);
+  2. this close-out (answered here);
+  3. in the could-not-check state the page shows "The node checks that nothing … answers" right above "The node couldn't check which names are free". A novice may read them as a contradiction;
+  4. the runbook's new bullet assumes the other device keeps the name; mDNS conflict handling might rename one of them instead. The bullet says "If …", so it stays true, but incomplete.
+
+### Close-out
+
+- **Done when:** met. The gate, the page build and Playwright at every width, and the OS image passed; the mutants run does not apply; the verifier passed.
+- **Repairs:** 0. Review rounds: 1.
+- **Used:** no budget is configured. One CI push of mine, one merge of the owner's, one verifier pass.
+- **Backlog, not started:** nit 3 (the two hints side by side), nit 4.
