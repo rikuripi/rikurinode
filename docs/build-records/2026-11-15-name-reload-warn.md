@@ -5,7 +5,7 @@
 | **Date** | 2026-11-15 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/name-reload-warn`, from `main` at `83c4a60`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled in as they land) |
+| **Commits** | `d5eca60` (contract), `4d65907` (red), `c47460d` (fix) |
 | **Status** | IN PROGRESS |
 | **Change type** | defect fix |
 
@@ -35,3 +35,17 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Red on `4d65907`: Fail, as intended
+
+- `Full gate (Ubuntu)`, [run 43744530182](https://github.com/rikuripi/rikurinode/actions/runs/43744530182): `a_reload_that_loses_the_name_is_a_loss ... FAILED`, "assertion `left == right` failed: name lost", `left: Changed`, `right: Lost`. `174 passed; 1 failed`; no other test failed.
+- Rust mutants, [run 43744530156](https://github.com/rikuripi/rikurinode/actions/runs/43744530156): "FAILED Unmutated baseline", because the baseline includes the red test.
+- OS image, [run 43744530078](https://github.com/rikuripi/rikurinode/actions/runs/43744530078): passed.
+- In the red, `Lost` carried `#[cfg_attr(not(test), expect(dead_code, …))]`: clippy refuses an unbuilt variant outside tests. The fix removes it; `expect` would fail had it stayed.
+
+### Fix, `c47460d`
+
+- `change` returns `Lost` when the names differ and the fresh ones are the configured names alone; otherwise `Changed`, or `Same` when they are equal.
+- `reload` matches it: `Same` logs nothing; `Changed` keeps the `info` line; `Lost` warns "the hostname file no longer names a node name: the node answers by address and its configured names only", with the file. The names in force follow the file as before; `*current = fresh` now runs in every case, which changes nothing when they are equal.
+- No test changed after the red.
+- On the Mac: fmt and clippy (all targets, `-D warnings`) are clean. The tests run in CI.
