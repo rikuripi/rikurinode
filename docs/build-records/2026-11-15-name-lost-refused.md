@@ -5,7 +5,7 @@
 | **Date** | 2026-11-15 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/name-lost-refused`, from `main` at `70bfcf0`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled in as they land) |
+| **Commits** | `c9df850` (contract), `4130701` (test) |
 | **Status** | IN PROGRESS |
 | **Change type** | test |
 
@@ -29,3 +29,13 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Test, `4130701`
+
+- `a_reload_that_loses_the_name_refuses_it`, four cases (missing, blank, dotted, odd). Each starts with the file naming `rikuri01` and checks that `rikuri01.local` is allowed. After the file is emptied, it checks four things:
+  - `reload()` and `get()` both equal the configured names;
+  - `rikuri01.local` is refused as `Host`;
+  - `https://rikuri01.local` is refused as `Origin`;
+  - `extra.local` is still allowed.
+- Every case's reload takes `reload`'s `Lost` arm, so the warning line now runs in a test.
+- No other test changed. On the Mac, fmt and clippy (all targets, `-D warnings`) are clean. The test runs in CI.
