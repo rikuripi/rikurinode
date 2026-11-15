@@ -164,14 +164,38 @@ impl LiveNames {
     pub fn reload(&self) -> Names {
         let fresh = compose(&self.configured, &self.file);
         let mut current = self.current.write().unwrap_or_else(PoisonError::into_inner);
-        if *current != fresh {
-            info!(
+        match change(&current, &fresh, &self.configured) {
+            Change::Same => {}
+            Change::Changed => info!(
                 names = ?fresh.iter().collect::<Vec<_>>(),
                 "the node's names changed"
-            );
-            *current = fresh.clone();
+            ),
+            Change::Lost => warn!(
+                file = %self.file.display(),
+                "the hostname file no longer names a node name: the node answers by address and its configured names only"
+            ),
         }
+        *current = fresh.clone();
         fresh
+    }
+}
+
+/// How a reload moved the names.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Change {
+    Same,
+    Changed,
+    /// The node's own name left; only the configured names remain.
+    Lost,
+}
+
+fn change(before: &Names, fresh: &Names, configured: &Names) -> Change {
+    if before == fresh {
+        Change::Same
+    } else if fresh == configured {
+        Change::Lost
+    } else {
+        Change::Changed
     }
 }
 
@@ -421,6 +445,22 @@ mod tests {
         assert!(!live.origin_allowed("https://rikurisetup.local"));
         assert!(live.origin_allowed("https://rikuri02.local"));
         let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn a_reload_that_loses_the_name_is_a_loss() {
+        let configured = Names::new(["extra.local"]).unwrap();
+        let named = |n: &str| configured.with(&hostname::name_in(n).unwrap());
+        let (one, two) = (named("rikuri01"), named("rikuri02"));
+        for (case, before, fresh, want) in [
+            ("renamed", &one, &two, Change::Changed),
+            ("unchanged", &one, &one, Change::Same),
+            ("name lost", &one, &configured, Change::Lost),
+            ("still none", &configured, &configured, Change::Same),
+            ("name found", &configured, &one, Change::Changed),
+        ] {
+            assert_eq!(change(before, fresh, &configured), want, "{case}");
+        }
     }
 
     #[test]
