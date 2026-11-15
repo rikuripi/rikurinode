@@ -5,8 +5,8 @@
 | **Date** | 2026-11-14 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/name-hint-clash`, from `main` at `412549d`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (fill at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `b6be380` (contract), `a94e912` (red), `722e986` (fix); merged as `9438073` (#110) |
+| **Status** | DONE |
 | **Change type** | fix |
 
 ## Intent: the owner's words
@@ -47,3 +47,31 @@
 
 - `Name.svelte`: `let checked = $state(false)`, set true only when the suggestion is read (`kind === 'ok'`), whether it holds a name or `null`. `name.seen` renders inside `{#if checked}`.
 - No test changed after red. `git diff --check` is clean; the build and tests run in CI.
+
+### CI on `722e986` (the fix): Pass
+
+- `Full gate (Ubuntu)`, [run 43660673171](https://github.com/rikuripi/rikurinode/actions/runs/43660673171): `svelte-check found 0 errors and 0 warnings`; Playwright `399 passed` (the red's 383 and 16), no failures or flakes.
+- OS image, [run 43660673108](https://github.com/rikuripi/rikurinode/actions/runs/43660673108): passed. No Rust changed, so no mutants run.
+- The owner merged #110 at `722e986` (as `9438073`) before the verifier ran.
+
+### The verifier, at `722e986`: PASS
+
+- **Every state:** `readSuggestion` is `ok` only for a 200 that `parseSuggestion` accepts (a name, or `null`), so the sentence shows with a suggestion or none free. It stays hidden in all four failure kinds, before the reply, and on a 401 (which redirects first). Nothing else on the page changed.
+- **The tests:** the absence check runs after `check_failed` is visible, so it is not a race. The happy path's visibility check still holds. The tests did not change between the red and the fix.
+- **The red:** the 16 failures are exactly the four failing cases at the four widths, all at `owner.spec.ts:606`.
+- **Mutations, reasoned:**
+  | Mutant | Killed by |
+  |---|---|
+  | `checked` never set | "no free name" and the happy path |
+  | `checked` set on failure too | `:606`, 4 cases at 4 widths |
+  | `checked` set before the reply | `:606` |
+  | `{#if checked}` removed | `:606` (the red run) |
+  | set early, then reset on failure (a brief flash) | survives |
+- **Findings:** no Important finding. Nits: this close-out (answered here); no test shows the sentence absent while the suggestion loads, so "no flash" rests on reading the code.
+
+### Close-out
+
+- **Done when:** met. The red was seen in CI, then green; the gate and the OS image passed; the verifier passed.
+- **Repairs:** 0. Review rounds: 1.
+- **Used:** no budget is configured. Two CI pushes and one verifier pass.
+- **Backlog, not started:** a test that the sentence is absent while the suggestion loads; nit 4 of `2026-11-14-name-honest-words.md`.
