@@ -545,6 +545,7 @@ test.describe('naming the node', () => {
     await expect(page.getByRole('heading', { name: t('name.title') })).toBeVisible();
     await expect(field(page)).toHaveValue('rikuri03');
     await expect(page.getByText('.local', { exact: true })).toBeVisible();
+    await expect(page.getByText(t('name.seen'))).toBeVisible();
     await submit(page).click();
     await expect(page.getByText(t('name.done').replace('{host}', 'rikuri03.local'))).toBeVisible();
     await expect(page.getByRole('link', { name: t('name.continue') })).toHaveAttribute('href', 'https://rikuri03.local/signin');

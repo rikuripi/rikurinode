@@ -112,6 +112,7 @@
             <span class="suffix" aria-hidden="true">.local</span>
           </div>
         </div>
+        <p class="hint">{t('name.seen')}</p>
         {#if hint}<p class="hint">{hint}</p>{/if}
         {#if said}<p class="alert" role="alert">{said}</p>{/if}
         <button type="submit" class="action primary" disabled={busy}>{t('name.submit')}</button>

@@ -94,6 +94,7 @@
   "name.lead": "Phones and computers on your network will reach the node by this name. Keep the suggestion, or choose your own.",
   "name.field": "The node’s name",
   "name.rule": "Use letters, digits and hyphens only, at most 63 of them, not starting or ending with a hyphen, and not “localhost”.",
+  "name.seen": "The node checks that nothing on your network answers to the name right now. It can’t see a device that is switched off, or one your network keeps apart.",
   "name.none_free": "Every name from rikuri01 to rikuri99 is in use on your network. Type a name of your own.",
   "name.check_failed": "The node couldn’t check which names are free on your network. You can still type one.",
   "name.submit": "Name the node",
