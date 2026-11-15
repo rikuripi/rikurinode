@@ -164,13 +164,18 @@ impl LiveNames {
     pub fn reload(&self) -> Names {
         let fresh = compose(&self.configured, &self.file);
         let mut current = self.current.write().unwrap_or_else(PoisonError::into_inner);
-        if change(&current, &fresh, &self.configured) != Change::Same {
-            info!(
+        match change(&current, &fresh, &self.configured) {
+            Change::Same => {}
+            Change::Changed => info!(
                 names = ?fresh.iter().collect::<Vec<_>>(),
                 "the node's names changed"
-            );
-            *current = fresh.clone();
+            ),
+            Change::Lost => warn!(
+                file = %self.file.display(),
+                "the hostname file no longer names a node name: the node answers by address and its configured names only"
+            ),
         }
+        *current = fresh.clone();
         fresh
     }
 }
@@ -181,16 +186,14 @@ enum Change {
     Same,
     Changed,
     /// The node's own name left; only the configured names remain.
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "red: the fix's `change` returns it")
-    )]
     Lost,
 }
 
-fn change(before: &Names, fresh: &Names, _configured: &Names) -> Change {
+fn change(before: &Names, fresh: &Names, configured: &Names) -> Change {
     if before == fresh {
         Change::Same
+    } else if fresh == configured {
+        Change::Lost
     } else {
         Change::Changed
     }
