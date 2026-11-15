@@ -31,3 +31,9 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Red (the current page)
+
+- `owner.spec.ts`: in the four "a suggestion that fails" cases, after `name.check_failed` is visible, `name.seen` must have count 0. "no free name" also expects `name.seen` visible.
+- **Expected on the current page:** `name.seen` shows in every form state, so the four failing cases fail at every width; "no free name" passes.
+- Pushed alone, so CI shows the red before the fix.
