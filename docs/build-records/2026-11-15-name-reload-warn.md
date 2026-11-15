@@ -5,8 +5,8 @@
 | **Date** | 2026-11-15 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/name-reload-warn`, from `main` at `83c4a60`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `d5eca60` (contract), `4d65907` (red), `c47460d` (fix) |
-| **Status** | IN PROGRESS |
+| **Commits** | `d5eca60` (contract), `4d65907` (red), `c47460d` (fix), `33805f2` (record); merged as `b606be2` (#112) |
+| **Status** | DONE |
 | **Change type** | defect fix |
 
 ## Intent: the owner's words
@@ -49,3 +49,33 @@
 - `reload` matches it: `Same` logs nothing; `Changed` keeps the `info` line; `Lost` warns "the hostname file no longer names a node name: the node answers by address and its configured names only", with the file. The names in force follow the file as before; `*current = fresh` now runs in every case, which changes nothing when they are equal.
 - No test changed after the red.
 - On the Mac: fmt and clippy (all targets, `-D warnings`) are clean. The tests run in CI.
+
+### CI on `33805f2`: Pass
+
+- `Full gate (Ubuntu)`, [run 43746413671](https://github.com/rikuripi/rikurinode/actions/runs/43746413671): `a_reload_that_loses_the_name_is_a_loss ... ok`; `175 passed; 0 failed`.
+- Rust mutants, [run 43746413805](https://github.com/rikuripi/rikurinode/actions/runs/43746413805): `4 mutants tested in 60s: 2 caught, 2 unviable`, none missed. The caught ones invert `before == fresh` and `fresh == configured` in `change`; the unviable ones need a `Default` that `Names` and `Change` do not have.
+- OS image, [run 43746413839](https://github.com/rikuripi/rikurinode/actions/runs/43746413839): passed.
+- The owner merged #112 at `33805f2` (as `b606be2`) before the verifier finished.
+
+### The verifier, at `33805f2`: PASS
+
+- The red holds only the test, `change` with the old behaviour, and an equivalent rewrite of `reload`'s check; it failed in CI on "name lost" alone. The fix is its own commit; no test changed after the red.
+- `change` is right in every case: `compose` always returns the configured names, plus the node's `.local` name when the file has one, so `fresh == configured` means exactly "no node name now". At start, `load` warns on its own; a node that starts and stays without a name logs once.
+- The `Lost` warning carries only the file's path, which comes from the node's configuration. The names in force follow the file as before.
+- **Hand mutations, reasoned:**
+  | Mutant | Result |
+  |---|---|
+  | the `Lost` and `Changed` arms' lines or levels swapped; `Same` logging | survive: no test reads logs (excluded by the Contract) |
+  | the `fresh == configured` branch removed, inverted, or made `true`/`false` | killed (`a_reload_that_loses_the_name_is_a_loss`) |
+  | the `before == fresh` branch removed or inverted | killed (the same test; cargo-mutants too) |
+  | `*current = fresh` removed | killed (`a_reload_follows_the_file_and_the_old_name_leaves`) |
+  | the assignment kept only in the `Changed` arm | survives: see nit 2 |
+- **Nits, for the backlog:**
+  1. When `RIKURI_NAMES` itself holds the node's `.local` name, a rename back to that name logs the `Lost` warning though the file names a name. `load` has the same false warning at start; not new.
+  2. No test reloads from a named state to a lost one and checks that the old name is then refused. The assignment runs in every arm, so it holds by reading; a test of `reload` there would also run the warning line.
+  3. The record lacked the green runs and DONE: this close-out.
+  4. #112 was not a draft when the verifier looked; the owner had marked it ready to merge.
+
+## Outcome
+
+DONE, with 0 repairs and 1 review round.
