@@ -37,3 +37,13 @@
 - `owner.spec.ts`: in the four "a suggestion that fails" cases, after `name.check_failed` is visible, `name.seen` must have count 0. "no free name" also expects `name.seen` visible.
 - **Expected on the current page:** `name.seen` shows in every form state, so the four failing cases fail at every width; "no free name" passes.
 - Pushed alone, so CI shows the red before the fix.
+
+### CI on `a94e912` (the red): Fail, as expected
+
+- `Full gate (Ubuntu)`, [run 43659577369](https://github.com/rikuripi/rikurinode/actions/runs/43659577369): `16 failed`, `383 passed`. The 16 are the four "a suggestion that fails" cases (`owner.spec.ts:602`) at phone, phone-webkit, tablet and desktop, each at the new assertion: `no "checks" above "couldn’t check"`, `Expected: 0`, `Received: 1`. "no free name" passed.
+- OS image [run 43659577366](https://github.com/rikuripi/rikurinode/actions/runs/43659577366) passed.
+
+### Fix
+
+- `Name.svelte`: `let checked = $state(false)`, set true only when the suggestion is read (`kind === 'ok'`), whether it holds a name or `null`. `name.seen` renders inside `{#if checked}`.
+- No test changed after red. `git diff --check` is clean; the build and tests run in CI.
