@@ -464,6 +464,31 @@ mod tests {
     }
 
     #[test]
+    fn a_reload_that_loses_the_name_refuses_it() {
+        let configured = Names::new(["extra.local"]).unwrap();
+        for (case, text) in [
+            ("missing", None),
+            ("blank", Some("\n# nothing\n")),
+            ("dotted", Some("rikuri.example.org\n")),
+            ("odd", Some("not a name\n")),
+        ] {
+            let path = file(&format!("lost-{case}"), Some("rikuri01\n"));
+            let live = LiveNames::load(configured.clone(), path.clone());
+            assert!(live.host_allowed("rikuri01.local"), "{case}: named first");
+            match text {
+                Some(text) => std::fs::write(&path, text).unwrap(),
+                None => std::fs::remove_file(&path).unwrap(),
+            }
+            assert_eq!(live.reload(), configured, "{case}");
+            assert_eq!(live.get(), configured, "{case}");
+            assert!(!live.host_allowed("rikuri01.local"), "{case}");
+            assert!(!live.origin_allowed("https://rikuri01.local"), "{case}");
+            assert!(live.host_allowed("extra.local"), "{case}");
+            let _ = std::fs::remove_file(path);
+        }
+    }
+
+    #[test]
     fn no_file_or_no_node_name_leaves_the_configured_names() {
         let configured = Names::new(["extra.local"]).unwrap();
         for (case, text) in [
