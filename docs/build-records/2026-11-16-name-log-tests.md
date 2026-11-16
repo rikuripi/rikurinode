@@ -5,8 +5,8 @@
 | **Date** | 2026-11-16 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/name-log-tests`, from `main` at `fce25b3`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `32fb218` (contract), `11d10ca` (tests) |
-| **Status** | IN PROGRESS |
+| **Commits** | `32fb218` (contract), `11d10ca` (tests), `1a3d17b` (record); merged as `f43ab6a` (#122) |
+| **Status** | DONE |
 | **Change type** | test |
 
 ## Intent: the owner's words
@@ -59,3 +59,35 @@
   - `a_reload_logs_what_the_file_did`: renamed gives `INFO` "the node's names changed"; lost gives `WARN` "no longer names a node name"; found again with `rikuri01.local` configured gives `INFO` "names a node name again"; unchanged gives nothing. `load` runs outside the capture, so only `reload`'s line is read.
   - Their temp files (`start-…`, `log-…`) are not used by another test.
 - No other test changed. On the Mac, fmt and clippy (all targets, `--locked`, `-D warnings`) are clean. The tests run in CI.
+
+### CI on `1a3d17b`: Pass
+
+- `Full gate (Ubuntu)`, [run 43805869906](https://github.com/rikuripi/rikurinode/actions/runs/43805869906): `a_reload_logs_what_the_file_did ... ok` and `the_start_warns_only_when_the_file_names_no_name ... ok`; `181 passed; 0 failed`; cargo deny "advisories ok, bans ok, licenses ok, sources ok".
+- Rust mutants, [run 43805869805](https://github.com/rikuripi/rikurinode/actions/runs/43805869805): passed, "No mutants to filter": no production code changed.
+- OS image, [run 43805869884](https://github.com/rikuripi/rikurinode/actions/runs/43805869884): passed.
+- Advisory audit, [run 43805869902](https://github.com/rikuripi/rikurinode/actions/runs/43805869902): passed (it runs when `Cargo.lock` changes).
+- The owner merged #122 at `1a3d17b` (as `f43ab6a`) before the verifier ran.
+
+### The verifier, at `1a3d17b`: PASS
+
+- Scope: test code, the dev-dependency and one lockfile edge. `tracing-subscriber 0.3.23` was already in the lock; no package was added or changed.
+- No other test's events can leak into a capture: without a global subscriber, an event goes to the subscriber of the thread that emits it.
+- The level check holds against fmt's padding (`" INFO"`, `" WARN"`); the temp files do not collide; every case goes through a real file and the real `load` or `reload`.
+- **Hand mutations, reasoned:**
+  | Mutant | Result |
+  |---|---|
+  | `Lost` and `Changed` swapped (whole, levels only, or words only); `Lost` at `info` or `error` | killed |
+  | `Same` logging at `info`, `warn` or `error` | killed ("unchanged") |
+  | `Same` logging at `debug` or `trace` | survives: below the capture's `info` filter, as in production |
+  | `load` warning on `names == configured`, or on `name.is_some()` | killed (the start cases) |
+  | `Found` emptied, or set to `warn` | killed ("found again") |
+  | log fields changed or dropped | survives (excluded by the Scope) |
+  All four survivors this task named are killed.
+- **Nits, for the backlog:**
+  1. **A rare missed event.** While a capture's subscriber is the only one alive, tracing-core caches a log line's interest from the thread that reaches it first. A parallel test with no subscriber can then cache "never", and the capture misses its own line. That would be a rare false red, or a rare surviving mutant. Calling `tracing::callsite::rebuild_interest_cache()` inside the capture, before `f`, would close it. This record's reasoning covered events leaking in, not events being missed.
+  2. `Same` logging at `debug` or `trace` survives (invisible in production too).
+  3. The record lacked the green runs and DONE: this close-out.
+
+## Outcome
+
+DONE, with 0 repairs and 1 review round.
