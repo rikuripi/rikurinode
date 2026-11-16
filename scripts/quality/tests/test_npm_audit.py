@@ -192,7 +192,9 @@ class TheRepositorysExceptions(unittest.TestCase):
     def test_each_names_the_record_that_gives_its_reason(self):
         with open(os.path.join(ROOT, "ui", "audit-exceptions.json"), encoding="utf-8") as f:
             exceptions = json.load(f)
-        self.assertEqual(set(exceptions), {GHSA}, "a new exception is an owner decision, recorded")
+        # GHSA-gcqx-w48m-w2h4 was withdrawn on 2026-11-16 and its exception removed
+        # (docs/build-records/2026-11-16-audit-stale-exception.md).
+        self.assertEqual(set(exceptions), set(), "a new exception is an owner decision, recorded")
         for ghsa, entry in exceptions.items():
             with self.subTest(ghsa=ghsa):
                 self.assertEqual(npm_audit.exception_problems(ghsa, entry), [])
