@@ -502,6 +502,22 @@ mod tests {
     }
 
     #[test]
+    fn a_lost_name_is_lost_though_the_names_stay() {
+        let configured = Names::new(["extra.local", "rikuri01.local"]).unwrap();
+        let path = file("kept", Some("rikuri01\n"));
+        let before = compose(&configured, &path);
+        std::fs::write(&path, "\n").unwrap();
+        let fresh = compose(&configured, &path);
+        assert_eq!(before.names, fresh.names, "the names stay");
+        assert!(
+            before.name.is_some() && fresh.name.is_none(),
+            "the file lost it"
+        );
+        assert_eq!(change(&before, &fresh), Change::Lost);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
     fn a_reload_that_loses_the_name_refuses_it() {
         let configured = Names::new(["extra.local"]).unwrap();
         for (case, text) in [
