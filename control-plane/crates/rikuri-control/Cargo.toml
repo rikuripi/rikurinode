@@ -28,6 +28,9 @@ tracing.workspace = true
 
 [dev-dependencies]
 http-body-util.workspace = true
+# Test-only: the tests read the log lines. Record:
+# docs/build-records/2026-11-16-name-log-tests.md
+tracing-subscriber.workspace = true
 ts-rs.workspace = true
 
 [lints]

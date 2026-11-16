@@ -542,6 +542,102 @@ mod tests {
         let _ = std::fs::remove_file(path);
     }
 
+    /// What `f` logs, without time or colour, one event per line.
+    fn logged(f: impl FnOnce()) -> String {
+        #[derive(Clone)]
+        struct Buffer(std::sync::Arc<std::sync::Mutex<Vec<u8>>>);
+        impl std::io::Write for Buffer {
+            fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+                self.0
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .extend_from_slice(bytes);
+                Ok(bytes.len())
+            }
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+        let buffer = Buffer(std::sync::Arc::default());
+        let writer = buffer.clone();
+        let subscriber = tracing_subscriber::fmt()
+            .with_writer(move || writer.clone())
+            .with_ansi(false)
+            .without_time()
+            .finish();
+        tracing::subscriber::with_default(subscriber, f);
+        let bytes = buffer
+            .0
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone();
+        String::from_utf8(bytes).unwrap()
+    }
+
+    /// One line at `level` with `words` in it, or nothing at all.
+    fn one_line(log: &str, want: Option<(&str, &str)>, case: &str) {
+        let lines: Vec<&str> = log.lines().collect();
+        match want {
+            None => assert!(lines.is_empty(), "{case}: {log}"),
+            Some((level, words)) => {
+                assert_eq!(lines.len(), 1, "{case}: {log}");
+                assert!(lines[0].trim_start().starts_with(level), "{case}: {log}");
+                assert!(lines[0].contains(words), "{case}: {log}");
+            }
+        }
+    }
+
+    #[test]
+    fn the_start_warns_only_when_the_file_names_no_name() {
+        let configured = Names::new(["extra.local", "rikuri01.local"]).unwrap();
+        for (case, text, want) in [
+            ("blank", "\n", Some(("WARN", "names no node name"))),
+            ("named", "rikuri01\n", None),
+        ] {
+            let path = file(&format!("start-{case}"), Some(text));
+            let log = logged(|| drop(LiveNames::load(configured.clone(), path.clone())));
+            one_line(&log, want, case);
+            let _ = std::fs::remove_file(path);
+        }
+    }
+
+    #[test]
+    fn a_reload_logs_what_the_file_did() {
+        let plain = Names::new(["extra.local"]).unwrap();
+        let holding = Names::new(["extra.local", "rikuri01.local"]).unwrap();
+        for (case, configured, first, then, want) in [
+            (
+                "renamed",
+                &plain,
+                "rikuri01\n",
+                "rikuri02\n",
+                Some(("INFO", "the node's names changed")),
+            ),
+            (
+                "lost",
+                &plain,
+                "rikuri01\n",
+                "\n",
+                Some(("WARN", "no longer names a node name")),
+            ),
+            (
+                "found again",
+                &holding,
+                "\n",
+                "rikuri01\n",
+                Some(("INFO", "names a node name again")),
+            ),
+            ("unchanged", &plain, "rikuri01\n", "rikuri01\n", None),
+        ] {
+            let path = file(&format!("log-{}", case.replace(' ', "-")), Some(first));
+            let live = LiveNames::load(configured.clone(), path.clone());
+            std::fs::write(&path, then).unwrap();
+            let log = logged(|| drop(live.reload()));
+            one_line(&log, want, case);
+            let _ = std::fs::remove_file(path);
+        }
+    }
+
     #[test]
     fn a_reload_that_loses_the_name_refuses_it() {
         let configured = Names::new(["extra.local"]).unwrap();

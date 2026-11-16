@@ -658,6 +658,7 @@ dependencies = [
  "tokio-rustls",
  "tower",
  "tracing",
+ "tracing-subscriber",
  "ts-rs",
 ]
 
