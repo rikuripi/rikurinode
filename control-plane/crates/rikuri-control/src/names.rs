@@ -588,6 +588,22 @@ mod tests {
     }
 
     #[test]
+    fn a_capture_hears_a_line_another_thread_reached_first() {
+        fn say() {
+            tracing::warn!("a line only this test logs");
+        }
+        let log = logged(|| {
+            std::thread::spawn(say).join().unwrap();
+            say();
+        });
+        one_line(
+            &log,
+            Some(("WARN", "a line only this test logs")),
+            "another thread first",
+        );
+    }
+
+    #[test]
     fn the_start_warns_only_when_the_file_names_no_name() {
         let configured = Names::new(["extra.local", "rikuri01.local"]).unwrap();
         for (case, text, want) in [
