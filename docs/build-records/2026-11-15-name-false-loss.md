@@ -5,7 +5,7 @@
 | **Date** | 2026-11-15 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/name-false-loss`, from `main` at `455bcc9`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled in as they land) |
+| **Commits** | `74511ac` (contract), `3c1378c` (red), `7dac185` (fix) |
 | **Status** | IN PROGRESS |
 | **Change type** | defect fix |
 
@@ -39,3 +39,20 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Red on `3c1378c`: Fail, as intended
+
+- `Full gate (Ubuntu)`, [run 43767528876](https://github.com/rikuripi/rikurinode/actions/runs/43767528876): `a_configured_name_does_not_hide_the_files ... FAILED`, "assertion `left == right` failed: the file's name", `left: None`, `right: Some(NodeName("rikuri01"))`. `176 passed; 1 failed`; no other test failed, so the refactor kept every other answer.
+- Rust mutants, [run 43767528910](https://github.com/rikuripi/rikurinode/actions/runs/43767528910): failed, as its baseline includes the red test.
+- OS image, [run 43767528951](https://github.com/rikuripi/rikurinode/actions/runs/43767528951): passed.
+- The red's structure:
+  - `LiveNames` keeps a `Read`, the file's name and the names in force;
+  - `load` warns on `name.is_none()`;
+  - `change(before, fresh)` is `Lost` first, then `Same`, then `Changed`.
+  With the flaw kept in `compose`, both warnings are exactly today's. "No name" there means the names equal the configured ones, so `Lost` needs names that differ.
+- **Test change in the red, with its reason:** `a_reload_that_loses_the_name_is_a_loss` builds `Read`s for `change`'s new signature. Its five cases and answers are unchanged.
+
+### Fix, `7dac185`
+
+- `compose` no longer drops a name that adds nothing to the configured names: the `filter` and its comment are removed. Nothing else changed.
+- No test changed after the red. On the Mac, fmt and clippy (all targets, `-D warnings`) are clean. The tests run in CI.
