@@ -119,13 +119,13 @@ impl Names {
 pub struct LiveNames {
     configured: Names,
     file: PathBuf,
-    current: RwLock<Names>,
+    current: RwLock<Read>,
 }
 
 impl LiveNames {
     pub fn load(configured: Names, file: PathBuf) -> Self {
         let current = compose(&configured, &file);
-        if current == configured {
+        if current.name.is_none() {
             warn!(
                 file = %file.display(),
                 "the hostname file names no node name: the node answers by address and its configured names only"
@@ -143,6 +143,7 @@ impl LiveNames {
         self.current
             .read()
             .unwrap_or_else(PoisonError::into_inner)
+            .names
             .clone()
     }
 
@@ -150,6 +151,7 @@ impl LiveNames {
         self.current
             .read()
             .unwrap_or_else(PoisonError::into_inner)
+            .names
             .host_allowed(host)
     }
 
@@ -157,6 +159,7 @@ impl LiveNames {
         self.current
             .read()
             .unwrap_or_else(PoisonError::into_inner)
+            .names
             .origin_allowed(origin)
     }
 
@@ -164,10 +167,10 @@ impl LiveNames {
     pub fn reload(&self) -> Names {
         let fresh = compose(&self.configured, &self.file);
         let mut current = self.current.write().unwrap_or_else(PoisonError::into_inner);
-        match change(&current, &fresh, &self.configured) {
+        match change(&current, &fresh) {
             Change::Same => {}
             Change::Changed => info!(
-                names = ?fresh.iter().collect::<Vec<_>>(),
+                names = ?fresh.names.iter().collect::<Vec<_>>(),
                 "the node's names changed"
             ),
             Change::Lost => warn!(
@@ -175,8 +178,9 @@ impl LiveNames {
                 "the hostname file no longer names a node name: the node answers by address and its configured names only"
             ),
         }
-        *current = fresh.clone();
-        fresh
+        let names = fresh.names.clone();
+        *current = fresh;
+        names
     }
 }
 
@@ -189,21 +193,32 @@ enum Change {
     Lost,
 }
 
-fn change(before: &Names, fresh: &Names, configured: &Names) -> Change {
-    if before == fresh {
-        Change::Same
-    } else if fresh == configured {
+fn change(before: &Read, fresh: &Read) -> Change {
+    if before.name.is_some() && fresh.name.is_none() {
         Change::Lost
+    } else if before.names == fresh.names {
+        Change::Same
     } else {
         Change::Changed
     }
 }
 
-fn compose(configured: &Names, file: &Path) -> Names {
-    std::fs::read_to_string(file)
+/// What one read of the hostname file gave: the node name in it, if any,
+/// and the names in force with it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct Read {
+    name: Option<NodeName>,
+    names: Names,
+}
+
+fn compose(configured: &Names, file: &Path) -> Read {
+    let name = std::fs::read_to_string(file)
         .ok()
-        .and_then(|text| hostname::name_in(&text))
-        .map_or_else(|| configured.clone(), |name| configured.with(&name))
+        .and_then(|text| hostname::name_in(&text));
+    let names = name
+        .as_ref()
+        .map_or_else(|| configured.clone(), |name| configured.with(name));
+    Read { name, names }
 }
 
 enum Host {
@@ -450,8 +465,18 @@ mod tests {
     #[test]
     fn a_reload_that_loses_the_name_is_a_loss() {
         let configured = Names::new(["extra.local"]).unwrap();
-        let named = |n: &str| configured.with(&hostname::name_in(n).unwrap());
+        let named = |n: &str| {
+            let name = hostname::name_in(n).unwrap();
+            Read {
+                names: configured.with(&name),
+                name: Some(name),
+            }
+        };
         let (one, two) = (named("rikuri01"), named("rikuri02"));
+        let configured = Read {
+            name: None,
+            names: configured,
+        };
         for (case, before, fresh, want) in [
             ("renamed", &one, &two, Change::Changed),
             ("unchanged", &one, &one, Change::Same),
@@ -459,8 +484,21 @@ mod tests {
             ("still none", &configured, &configured, Change::Same),
             ("name found", &configured, &one, Change::Changed),
         ] {
-            assert_eq!(change(before, fresh, &configured), want, "{case}");
+            assert_eq!(change(before, fresh), want, "{case}");
         }
+    }
+
+    #[test]
+    fn a_configured_name_does_not_hide_the_files() {
+        let configured = Names::new(["extra.local", "rikuri01.local"]).unwrap();
+        let path = file("hidden", Some("rikuri01\n"));
+        let fresh = compose(&configured, &path);
+        assert_eq!(fresh.name, hostname::name_in("rikuri01"), "the file's name");
+        assert_eq!(fresh.names, configured);
+        std::fs::write(&path, "rikuri02\n").unwrap();
+        let before = compose(&configured, &path);
+        assert_eq!(change(&before, &fresh), Change::Changed, "renamed back");
+        let _ = std::fs::remove_file(path);
     }
 
     #[test]
