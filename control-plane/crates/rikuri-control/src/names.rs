@@ -197,16 +197,14 @@ enum Change {
     /// The node's own name left; only the configured names remain.
     Lost,
     /// The file names a node name again, after naming none.
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "red: the fix's `change` returns it")
-    )]
     Found,
 }
 
 fn change(before: &Read, fresh: &Read) -> Change {
     if before.name.is_some() && fresh.name.is_none() {
         Change::Lost
+    } else if before.name.is_none() && fresh.name.is_some() {
+        Change::Found
     } else if before.names == fresh.names {
         Change::Same
     } else {
