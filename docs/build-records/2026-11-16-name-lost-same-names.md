@@ -5,7 +5,7 @@
 | **Date** | 2026-11-16 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/name-lost-same-names`, from `main` at `4ff6044`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled in as they land) |
+| **Commits** | `20caa6c` (contract), `00d1708` (test) |
 | **Status** | IN PROGRESS |
 | **Change type** | test |
 
@@ -33,3 +33,11 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Test, `00d1708`
+
+- `a_lost_name_is_lost_though_the_names_stay`:
+  - `compose` reads the file naming `rikuri01`, then reads it again blanked, with `extra.local` and `rikuri01.local` configured;
+  - it asserts equal names, a name before and none after, and `change` is `Lost`.
+- Its temp file, `kept`, is not used by another test in the module.
+- No other test changed. On the Mac, fmt and clippy (all targets, `-D warnings`) are clean. The test runs in CI.
