@@ -218,9 +218,6 @@ fn compose(configured: &Names, file: &Path) -> Read {
     let names = name
         .as_ref()
         .map_or_else(|| configured.clone(), |name| configured.with(name));
-    // Red: today's flaw, a name that adds nothing to the configured names
-    // counts as none. The fix keeps every name the file gives.
-    let name = name.filter(|_| names != *configured);
     Read { name, names }
 }
 
