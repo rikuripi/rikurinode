@@ -177,6 +177,11 @@ impl LiveNames {
                 file = %self.file.display(),
                 "the hostname file no longer names a node name: the node answers by address and its configured names only"
             ),
+            Change::Found => info!(
+                name = ?fresh.name,
+                names = ?fresh.names.iter().collect::<Vec<_>>(),
+                "the hostname file names a node name again"
+            ),
         }
         let names = fresh.names.clone();
         *current = fresh;
@@ -191,6 +196,12 @@ enum Change {
     Changed,
     /// The node's own name left; only the configured names remain.
     Lost,
+    /// The file names a node name again, after naming none.
+    #[cfg_attr(
+        not(test),
+        expect(dead_code, reason = "red: the fix's `change` returns it")
+    )]
+    Found,
 }
 
 fn change(before: &Read, fresh: &Read) -> Change {
@@ -482,7 +493,7 @@ mod tests {
             ("unchanged", &one, &one, Change::Same),
             ("name lost", &one, &configured, Change::Lost),
             ("still none", &configured, &configured, Change::Same),
-            ("name found", &configured, &one, Change::Changed),
+            ("name found", &configured, &one, Change::Found),
         ] {
             assert_eq!(change(before, fresh), want, "{case}");
         }
@@ -514,6 +525,22 @@ mod tests {
             "the file lost it"
         );
         assert_eq!(change(&before, &fresh), Change::Lost);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn a_name_found_again_is_found() {
+        let configured = Names::new(["extra.local", "rikuri01.local"]).unwrap();
+        let path = file("found", Some("\n"));
+        let before = compose(&configured, &path);
+        std::fs::write(&path, "rikuri01\n").unwrap();
+        let fresh = compose(&configured, &path);
+        assert_eq!(before.names, fresh.names, "the names stay");
+        assert!(
+            before.name.is_none() && fresh.name.is_some(),
+            "the file names it again"
+        );
+        assert_eq!(change(&before, &fresh), Change::Found);
         let _ = std::fs::remove_file(path);
     }
 
