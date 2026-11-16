@@ -5,8 +5,8 @@
 | **Date** | 2026-11-16 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/name-found-again`, from `main` at `87a2646`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `b06686c` (contract), `641c44a` (red), `a768f27` (fix) |
-| **Status** | IN PROGRESS |
+| **Commits** | `b06686c` (contract), `641c44a` (red), `a768f27` (fix), `a44ad71` (record); the owner's update-branch merge `5ec4ccc` (bringing in #119 only); merged as `1f413f0` (#120) |
+| **Status** | DONE |
 | **Change type** | defect fix |
 
 ## Intent: the owner's words
@@ -59,3 +59,34 @@
 - `change` returns `Found` when `before` had no name and `fresh` has one, checked after `Lost` and before `Same`. The `expect(dead_code)` marker is removed.
 - A name found while the names in force also change (the table's case) now logs the `Found` line instead of "the node's names changed". Nothing is lost: the line carries the names too.
 - No test changed after the red. On the Mac, fmt and clippy (all targets, `-D warnings`) are clean. The tests run in CI.
+
+### CI on `5ec4ccc`: Pass
+
+- `5ec4ccc` is the owner's update-branch merge; it brings in only #119 (`docs/build-records/2026-11-16-name-lost-same-names.md`). The same three runs also passed on `a44ad71`.
+- `Full gate (Ubuntu)`, [run 43801376828](https://github.com/rikuripi/rikurinode/actions/runs/43801376828): `a_name_found_again_is_found ... ok`; `179 passed; 0 failed`.
+- Rust mutants, [run 43801376907](https://github.com/rikuripi/rikurinode/actions/runs/43801376907): `3 mutants tested: 1 caught, 2 unviable`, none missed. The caught one is `&&` to `||` in the `Found` branch; the unviable ones need a `Default` that `Names` and `Change` do not have.
+- OS image, [run 43801376820](https://github.com/rikuripi/rikurinode/actions/runs/43801376820): passed.
+- The owner merged #120 at `5ec4ccc` (as `1f413f0`) before the verifier ran.
+
+### The verifier, at `5ec4ccc`: PASS
+
+- The red's `Found` arm could not run (`change` never built `Found`), so every log there was `main`'s. The deviation from the Contract is sound and recorded; the red's test edit is stricter.
+- The fix is exactly the `Found` branch and the marker's removal; the test module is byte-identical from the red to the head.
+- The names in force are `main`'s in every case; only which log line runs changes. (None, Some) now logs `Found` whether or not the names change; the line carries the names, as `Changed` did.
+- The `Found` line logs a checked DNS label and the names `Changed` already logged; nothing secret.
+- **Hand mutations, reasoned:**
+  | Mutant | Result |
+  |---|---|
+  | the `Found` branch removed, or its conditions swapped | killed (both `Found` assertions; the red itself) |
+  | one condition alone; `&&` to `\|\|` | killed (`a_reload_that_loses_the_name_is_a_loss`) |
+  | `Same` checked before `Found` | killed, by `a_name_found_again_is_found` alone |
+  | `Found` checked before `Lost` | equivalent: the two cannot both hold |
+  | `reload`'s `Found` arm emptied | survives: no test reads logs (excluded by the Contract) |
+- **Nits, for the backlog:**
+  1. No test shows the `Found` line is written; only a log-reading test, or one of `reload` across blank to named, would.
+  2. The record lacked the green runs and DONE: this close-out.
+  3. `name = ?fresh.name` logs `Some(NodeName("rikuri01"))`; a `Display` form would read better. #120 merged before the verifier ran (the owner's call).
+
+## Outcome
+
+DONE, with 0 repairs and 1 review round.
