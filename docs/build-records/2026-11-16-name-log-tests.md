@@ -5,7 +5,7 @@
 | **Date** | 2026-11-16 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/name-log-tests`, from `main` at `fce25b3`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled in as they land) |
+| **Commits** | `32fb218` (contract), `11d10ca` (tests) |
 | **Status** | IN PROGRESS |
 | **Change type** | test |
 
@@ -48,3 +48,14 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Tests, `11d10ca`
+
+- `Cargo.toml`: `tracing-subscriber.workspace = true` under `[dev-dependencies]`, with a comment naming this record. `Cargo.lock` gains one line, the edge in `rikuri-control`'s list; no package added or changed.
+- `names.rs`, test module:
+  - `logged(f)`: a `tracing_subscriber::fmt` subscriber (no time, no colour) writing into a shared buffer, set with `tracing::subscriber::with_default` for `f` only. The setting holds on this thread alone, so tests running in parallel cannot write into the buffer.
+  - `one_line(log, want, case)`: either nothing logged, or exactly one line that starts with the level and holds the words.
+  - `the_start_warns_only_when_the_file_names_no_name`: blank gives `WARN` "names no node name"; named with `rikuri01.local` configured gives nothing.
+  - `a_reload_logs_what_the_file_did`: renamed gives `INFO` "the node's names changed"; lost gives `WARN` "no longer names a node name"; found again with `rikuri01.local` configured gives `INFO` "names a node name again"; unchanged gives nothing. `load` runs outside the capture, so only `reload`'s line is read.
+  - Their temp files (`start-…`, `log-…`) are not used by another test.
+- No other test changed. On the Mac, fmt and clippy (all targets, `--locked`, `-D warnings`) are clean. The tests run in CI.
