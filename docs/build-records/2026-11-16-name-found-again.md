@@ -5,7 +5,7 @@
 | **Date** | 2026-11-16 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/name-found-again`, from `main` at `87a2646`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled in as they land) |
+| **Commits** | `b06686c` (contract), `641c44a` (red), `a768f27` (fix) |
 | **Status** | IN PROGRESS |
 | **Change type** | defect fix |
 
@@ -43,3 +43,19 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Red on `641c44a`: Fail, as intended
+
+- `Full gate (Ubuntu)`, [run 43795323994](https://github.com/rikuripi/rikurinode/actions/runs/43795323994): `177 passed; 2 failed`, exactly the two `Found` assertions:
+  - `a_name_found_again_is_found`: `left: Same`, `right: Found`;
+  - `a_reload_that_loses_the_name_is_a_loss`, "name found": `left: Changed`, `right: Found`.
+- Rust mutants, [run 43795323999](https://github.com/rikuripi/rikurinode/actions/runs/43795323999): failed, as its baseline includes the red tests.
+- OS image, [run 43795323995](https://github.com/rikuripi/rikurinode/actions/runs/43795323995): passed.
+- **A deviation from the Contract:** the red also holds `reload`'s `Found` arm (the `info` line), because the compiler requires the `match` to cover the new variant. It cannot run in the red, where `change` never returns `Found`, so every log is still today's.
+- **Test change in the red, with its reason:** the table's "name found" answer, from `Changed` to `Found`. The new case names that change exactly; the test is stricter.
+
+### Fix, `a768f27`
+
+- `change` returns `Found` when `before` had no name and `fresh` has one, checked after `Lost` and before `Same`. The `expect(dead_code)` marker is removed.
+- A name found while the names in force also change (the table's case) now logs the `Found` line instead of "the node's names changed". Nothing is lost: the line carries the names too.
+- No test changed after the red. On the Mac, fmt and clippy (all targets, `-D warnings`) are clean. The tests run in CI.
