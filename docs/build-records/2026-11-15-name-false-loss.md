@@ -5,8 +5,8 @@
 | **Date** | 2026-11-15 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/name-false-loss`, from `main` at `455bcc9`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `74511ac` (contract), `3c1378c` (red), `7dac185` (fix) |
-| **Status** | IN PROGRESS |
+| **Commits** | `74511ac` (contract), `3c1378c` (red), `7dac185` (fix), `f64b375` (record); merged as `177a0f4` (#116) |
+| **Status** | DONE |
 | **Change type** | defect fix |
 
 ## Intent: the owner's words
@@ -56,3 +56,38 @@
 
 - `compose` no longer drops a name that adds nothing to the configured names: the `filter` and its comment are removed. Nothing else changed.
 - No test changed after the red. On the Mac, fmt and clippy (all targets, `-D warnings`) are clean. The tests run in CI.
+
+### CI on `f64b375`: Pass
+
+- `Full gate (Ubuntu)`, [run 43778918223](https://github.com/rikuripi/rikurinode/actions/runs/43778918223): `a_configured_name_does_not_hide_the_files ... ok`; `177 passed; 0 failed`.
+- Rust mutants, [run 43778918178](https://github.com/rikuripi/rikurinode/actions/runs/43778918178): `11 mutants tested in 84s: 6 caught, 5 unviable`, none missed. The unviable ones need a `Default` that `LiveNames`, `Names`, `Change` and `Read` do not have.
+- OS image, [run 43778918177](https://github.com/rikuripi/rikurinode/actions/runs/43778918177): passed.
+- The owner merged #116 at `f64b375` (as `177a0f4`) before the verifier ran.
+
+### The verifier, at `f64b375`: PASS
+
+- The red kept every answer and warning, reasoned case by case:
+  - `load`'s `name.is_none()` is `main`'s `current == configured`;
+  - `change` gives the same result for every combination (`configured` never changes inside `LiveNames`);
+  - `get`, `host_allowed`, `origin_allowed` and `reload` use the same names.
+  The rewritten test keeps its five cases and answers.
+- The fix removes exactly the filter and its comment; no test changed after the red.
+- The names in force are byte-for-byte `main`'s in every case; only logs differ. The flagged choice (a file losing a name `RIKURI_NAMES` also holds warns `Lost`) is sound: it matches `load` at start, the message stays true, and it ends a silence about a broken file.
+- **Hand mutations, reasoned:**
+  | Mutant | Result |
+  |---|---|
+  | the filter restored | killed (`a_configured_name_does_not_hide_the_files`; seen in the red run) |
+  | either `Lost` condition removed, the roles swapped, `&&` to `\|\|` | killed (`a_reload_that_loses_the_name_is_a_loss`) |
+  | `Same` checked before `Lost` | survives: no test has a name before, none after, and equal names |
+  | `load` warning on `names == configured` again | survives: no test reads `load`'s warning |
+- **Nits, for the backlog:**
+  1. The two survivors. One `change` case (named before, none after, equal names) would kill the first without reading logs.
+  2. The record lacked the green runs and DONE: this close-out.
+  3. The red test stopped at its first assert, so its second (the rename back is `Changed`) was not seen failing; by reasoning it would have.
+  4. Existing behaviour, unchanged from `main`:
+     - a file that gains a name `RIKURI_NAMES` already holds is `Same`, so recovery from the start warning is not logged;
+     - a rename between two configured names is not logged.
+
+## Outcome
+
+DONE, with 0 repairs and 1 review round.
