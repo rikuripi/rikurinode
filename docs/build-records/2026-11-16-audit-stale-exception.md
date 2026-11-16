@@ -5,7 +5,7 @@
 | **Date** | 2026-11-16 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/audit-stale-exception`, from `main` at `d79ae74`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled in as they land) |
+| **Commits** | `d679a39` (contract), `b4357d2` (change) |
 | **Status** | IN PROGRESS |
 | **Change type** | control change (the gate's npm audit exceptions) |
 
@@ -39,3 +39,10 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Change, `b4357d2`
+
+- `ui/audit-exceptions.json`: `{}`.
+- `scripts/quality/tests/test_npm_audit.py`, `test_each_names_the_record_that_gives_its_reason`: `assertEqual(set(exceptions), set(), …)`, with a comment naming the withdrawal and this record. **Test change, with its reason:** the owner's decision to remove the withdrawn exception. A later exception still fails it; the per-entry checks have nothing to iterate until one is recorded.
+- `docs/build-records/2026-11-11-5c3a-ui-pipeline.md`: a dated clarification at the end; nothing earlier rewritten.
+- On the Mac: the file parses as `{}` (`python3 -I`); `git diff --check` is clean. The Python tests and the audit run in CI.
