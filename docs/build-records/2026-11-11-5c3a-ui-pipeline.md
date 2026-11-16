@@ -203,3 +203,9 @@ The owner (2026-11-11), after "Next" for 5c.3:
     - the image's UI stage could run the audit and type check;
     - case 1's timeout, if it recurs;
     - 5c.3b, the claim, password and sign-in pages.
+
+## Clarification, 2026-11-16: the deepmerge exception is removed
+
+- GitHub withdrew GHSA-gcqx-w48m-w2h4 on 2026-11-16 (`withdrawn_at` `2026-11-16T18:55:38Z`). npm stopped reporting it, so `npm_audit.py` failed the gate on the now-stale exception, as designed.
+- `ui/audit-exceptions.json` is empty, and `TheRepositorysExceptions` pins the empty set. The record is `docs/build-records/2026-11-16-audit-stale-exception.md`.
+- Nothing above is rewritten: the exception, its reason and the owner's decision stood until the withdrawal.
