@@ -5,7 +5,7 @@
 | **Date** | 2026-11-16 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/log-capture-race`, from `main` at `d79ae74`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled in as they land) |
+| **Commits** | `87ebe3a` (contract), `4fa07c2` (red); the owner-requested update from `main`, `420b02d` (bringing in #125 and #126 only); `6e32361` (fix) |
 | **Status** | IN PROGRESS |
 | **Change type** | defect fix (test code) |
 
@@ -44,3 +44,22 @@ The test helper `logged` (`control-plane/crates/rikuri-control/src/names.rs`) ca
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Red on `4fa07c2`: blocked, not counted
+
+- `Full gate (Ubuntu)`, [run 43967988915](https://github.com/rikuripi/rikurinode/actions/runs/43967988915), and Rust mutants, [run 43967988871](https://github.com/rikuripi/rikurinode/actions/runs/43967988871): both stopped at the npm audit, before any Rust test: `npm_audit: FAIL GHSA-gcqx-w48m-w2h4: excepted, but npm no longer reports it; remove the exception`. Not the red; the stale exception was removed by `docs/build-records/2026-11-16-audit-stale-exception.md` (#125).
+
+### Red on `420b02d`: Fail, as intended
+
+- `420b02d` is `gh pr update-branch 124`, at the owner's word ("update #124"). It merges `main` (#125, #126) and changes nothing under `control-plane/`; the red test is `4fa07c2`'s.
+- `Full gate (Ubuntu)`, [run 44119463554](https://github.com/rikuripi/rikurinode/actions/runs/44119463554): the audit passed (`npm audit: 0 advisories, all recorded exceptions`); `181 passed; 1 failed`, exactly:
+  - `a_capture_hears_a_line_another_thread_reached_first`, at `names.rs:583`: `left: 0`, `right: 1`: the capture held no line.
+- Rust mutants, [run 44119463299](https://github.com/rikuripi/rikurinode/actions/runs/44119463299): passed, "No mutants to filter": the diff is test code only, so no baseline ran.
+- OS image, [run 44119463159](https://github.com/rikuripi/rikurinode/actions/runs/44119463159): passed.
+
+### Fix, `6e32361`
+
+- `logged` first gets or makes a `static OTHER: OnceLock<tracing::Dispatch>` holding `Dispatch::new(NoSubscriber::default())`, then builds the capture as before.
+- In tracing-core 0.1.36 (pinned source), `Dispatch::new` calls `callsite::register_dispatch`, and `NoSubscriber::register_callsite` returns `Interest::never()`. Once the capture registers beside it, two are alive and `has_just_one` is false; a line's interest is the `and` of both (`sometimes`), and each event asks its own thread's subscriber.
+- The `OnceLock` holds the dispatch for the whole test process, so it is never dropped and never pruned.
+- No test changed after the red. On the Mac, fmt and clippy (all targets, `--locked`, `-D warnings`) are clean. The tests run in CI.
