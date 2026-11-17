@@ -5,8 +5,8 @@
 | **Date** | 2026-11-16 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/log-capture-race`, from `main` at `d79ae74`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `87ebe3a` (contract), `4fa07c2` (red); the owner-requested update from `main`, `420b02d` (bringing in #125 and #126 only); `6e32361` (fix) |
-| **Status** | IN PROGRESS |
+| **Commits** | `87ebe3a` (contract), `4fa07c2` (red); the owner-requested update from `main`, `420b02d` (bringing in #125 and #126 only); `6e32361` (fix), `9dd219d` (record); merged as `2c425eb` (#124) |
+| **Status** | DONE |
 | **Change type** | defect fix (test code) |
 
 ## Intent: the owner's words
@@ -63,3 +63,36 @@ The test helper `logged` (`control-plane/crates/rikuri-control/src/names.rs`) ca
 - In tracing-core 0.1.36 (pinned source), `Dispatch::new` calls `callsite::register_dispatch`, and `NoSubscriber::register_callsite` returns `Interest::never()`. Once the capture registers beside it, two are alive and `has_just_one` is false; a line's interest is the `and` of both (`sometimes`), and each event asks its own thread's subscriber.
 - The `OnceLock` holds the dispatch for the whole test process, so it is never dropped and never pruned.
 - No test changed after the red. On the Mac, fmt and clippy (all targets, `--locked`, `-D warnings`) are clean. The tests run in CI.
+
+### CI on `9dd219d`: Pass
+
+- `Full gate (Ubuntu)`, [run 44129260265](https://github.com/rikuripi/rikurinode/actions/runs/44129260265): `a_capture_hears_a_line_another_thread_reached_first ... ok`; `182 passed; 0 failed`.
+- Rust mutants, [run 44129259999](https://github.com/rikuripi/rikurinode/actions/runs/44129259999): passed, "No mutants to filter": the diff is test code only.
+- OS image, [run 44129260168](https://github.com/rikuripi/rikurinode/actions/runs/44129260168): passed.
+- The owner merged #124 at `9dd219d` (as `2c425eb`) before the verifier ran.
+
+### The verifier, at `9dd219d`: PASS
+
+- The red is the test alone; it failed in run 44119463554 at `one_line`'s count (`left: 0`, `right: 1`): the capture was empty. `420b02d` changes nothing under `control-plane/`; from the red to the head, the only Rust change is the eight lines in `logged`.
+- The mechanism, from the pinned tracing-core 0.1.36 and tracing 0.1.44 source:
+  - `Dispatch::new` registers; `register_dispatch` prunes dead entries, sets `has_just_one` to `len <= 1`, and rebuilds every callsite's interest. The `OnceLock` holds the strong reference, so `OTHER` is never pruned, and every later registration sees two or more.
+  - With two alive, interest is the `and` of both (`never` and `always` give `sometimes`), and each event asks its own thread's default subscriber.
+  - **Level:** `NoSubscriber` gives no `max_level_hint`, which counts as TRACE, so `OTHER` raises the test binary's global level filter to TRACE; it never lowers it. `debug!` and `trace!` lines then pass the global check and are refused by their interest instead. Harmless.
+- Test-only, inside `#[cfg(test)]`; production logging (`apps/rikuri-control-plane/src/main.rs`) is untouched.
+- **Hand mutations, reasoned:**
+  | Mutant | Result |
+  |---|---|
+  | `OTHER` removed | killed (the red itself) |
+  | `OTHER` a local alive through `f`, dropped at the end | survives, equivalent: two are alive during `f`; only the first-call window (nit 1) reopens on every call |
+  | `OTHER` made and dropped at once | killed: pruned at the capture's registration |
+  | `OTHER` made after `with_default` | killed only by test order: libtest starts tests by name, and `a_capture_…` sorts first |
+  | an always-interested subscriber in place of `NoSubscriber` | survives, equivalent: no `never` can be cached while a capture is alive |
+  | the red's spawned thread removed, or its `join` | the test loses its power: the capture's thread reaches the line first |
+- **Nits, for the backlog:**
+  1. **A first-call window.** In the process's first `logged` call, `OTHER` registers alone (`has_just_one` true) until the capture registers just after. A callsite first reached by another thread in those microseconds could still cache `never`. Two `NoSubscriber` dispatches in the `OnceLock` would close it. The new test's line cannot hit it: it is reached only inside the capture.
+  2. The level fact above: the builder's brief had guessed `NoSubscriber` might lower the filter; it raises it.
+  3. The record lacked the green runs and DONE: this close-out.
+
+## Outcome
+
+DONE, with 0 repairs and 1 review round.
