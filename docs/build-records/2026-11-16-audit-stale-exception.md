@@ -5,8 +5,8 @@
 | **Date** | 2026-11-16 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/audit-stale-exception`, from `main` at `d79ae74`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `d679a39` (contract), `b4357d2` (change) |
-| **Status** | IN PROGRESS |
+| **Commits** | `d679a39` (contract), `b4357d2` (change), `0113f65` (record); merged as `1fa13f7` (#125) |
+| **Status** | DONE |
 | **Change type** | control change (the gate's npm audit exceptions) |
 
 ## Intent: the owner's words
@@ -46,3 +46,36 @@
 - `scripts/quality/tests/test_npm_audit.py`, `test_each_names_the_record_that_gives_its_reason`: `assertEqual(set(exceptions), set(), …)`, with a comment naming the withdrawal and this record. **Test change, with its reason:** the owner's decision to remove the withdrawn exception. A later exception still fails it; the per-entry checks have nothing to iterate until one is recorded.
 - `docs/build-records/2026-11-11-5c3a-ui-pipeline.md`: a dated clarification at the end; nothing earlier rewritten.
 - On the Mac: the file parses as `{}` (`python3 -I`); `git diff --check` is clean. The Python tests and the audit run in CI.
+
+### CI on `0113f65`: Pass
+
+- `Full gate (Ubuntu)`, [run 43970883280](https://github.com/rikuripi/rikurinode/actions/runs/43970883280): `npm_audit: npm audit: 0 advisories, all recorded exceptions`; the quality tools' tests `Ran 209 tests … OK (skipped=6)`.
+- Guard and quality-tool tests, [run 43970883389](https://github.com/rikuripi/rikurinode/actions/runs/43970883389): passed on py3.9 and py3.12, `test_each_names_the_record_that_gives_its_reason (test_npm_audit.TheRepositorysExceptions) ... ok`.
+- OS image, [run 43970883418](https://github.com/rikuripi/rikurinode/actions/runs/43970883418): passed.
+- Rust mutants: Not run, N/A. Its path filter (`control-plane/**`, `rust-toolchain.toml`, the workflow) does not match this change; the Contract's "Done when" named it in error.
+- The owner merged #125 at `0113f65` (as `1fa13f7`, the same tree) before the verifier ran. On `main`, CI [run 43977215217](https://github.com/rikuripi/rikurinode/actions/runs/43977215217), the guard and quality tools [run 43977215307](https://github.com/rikuripi/rikurinode/actions/runs/43977215307) and the OS image [run 43977215415](https://github.com/rikuripi/rikurinode/actions/runs/43977215415) passed.
+
+### The verifier, at `0113f65`: PASS
+
+- Scope: the three files the Contract names and this record; `npm_audit.py`, `ui.sh`, `ui/package.json` and `ui/package-lock.json` unchanged; `git diff --check` clean.
+- The test is no looser: the set assertion comes before the per-entry loop, so any later entry, recorded or not, fails it.
+- `npm_audit.py` with `{}`: no shortcut for an empty file; a reported advisory gets no exception and fails with exit 1.
+- The 5c.3a clarification only appends; nothing earlier removed.
+- The withdrawal is real (`withdrawn_at` `2026-11-16T18:55:38Z`); the advisory's range, deepmerge `>= 4.2.0, <= 4.3.1`, covers the locked `4.3.1`.
+- **Hand mutations, reasoned:**
+  | Mutant | Result |
+  |---|---|
+  | the old exception back, or an invented one | killed (`TheRepositorysExceptions`; the audit's stale check too) |
+  | the test's expected set back to `{GHSA}` | killed |
+  | the test's set assertion deleted | survives: nothing checks the test itself; it survived before this change too. The audit's stale check and its naming of each advisory remain |
+  | `npm_audit.py`'s stale-exception check removed | killed (`Check.test_an_exception_no_longer_reported_fails`) |
+  | an empty exceptions file treated as "no checks" | killed (the advisory-with-`{}` tests, the exit-code test, the unreadable-report test) |
+  | `{}` always failing | killed (`test_a_clean_report_passes_with_no_exceptions`) |
+- **Nits, for the backlog:**
+  1. The record lacked the green runs and DONE: this close-out.
+  2. "Done when" named the mutants run, which cannot run for a change with no Rust (noted above).
+  3. Deleting the set assertion survives; a check on it would be its own control task.
+
+## Outcome
+
+DONE, with 0 repairs and 1 review round.
