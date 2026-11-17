@@ -5,8 +5,8 @@
 | **Date** | 2026-11-17 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/audit-picomatch-exception`, from `main` at `2c425eb`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `3259556` (contract), `b6f5e17` (change) |
-| **Status** | IN PROGRESS |
+| **Commits** | `3259556` (contract), `b6f5e17` (change), `b81ee2f` (record); merged as `4ba9453` (#128) |
+| **Status** | DONE |
 | **Change type** | control change (the gate's npm audit exceptions) |
 
 ## Intent: the owner's words
@@ -51,3 +51,37 @@
 - `ui/audit-exceptions.json`: one entry, `GHSA-fc5q-39xc-vjpf`, package `picomatch`, `review_by` `2026-12-17`, record this file; its `why` gives the reasons above and says to remove it once a fixed `picomatch` is published.
 - `scripts/quality/tests/test_npm_audit.py`, `test_each_names_the_record_that_gives_its_reason`: `assertEqual(set(exceptions), {"GHSA-fc5q-39xc-vjpf"}, …)`, with its comment naming this record. **Test change, with its reason:** the owner's decision to record this exception. Any other exception still fails it, and the per-entry checks now run on this one.
 - On the Mac: the file parses; `npm_audit.exception_problems` gives `[]` for the entry, and this record names the advisory; the test file parses; `git diff --check` is clean. The Python tests and the audit run in CI.
+
+### CI on `b81ee2f`: Pass
+
+- `Full gate (Ubuntu)`, [run 44159662786](https://github.com/rikuripi/rikurinode/actions/runs/44159662786): `npm_audit: allowed GHSA-fc5q-39xc-vjpf in picomatch until 2026-12-17: high (ReDoS); …` and `npm_audit: npm audit: 1 advisories, all recorded exceptions`: npm reported no other advisory.
+- Guard and quality-tool tests, [run 44159662953](https://github.com/rikuripi/rikurinode/actions/runs/44159662953): passed on py3.9 and py3.12; `TheRepositorysExceptions ... ok`; `Ran 209 tests … OK (skipped=6)`.
+- OS image, [run 44159662961](https://github.com/rikuripi/rikurinode/actions/runs/44159662961): passed.
+- Rust mutants: not run, N/A (no Rust changed), as the Contract says.
+- The owner merged #128 at `b81ee2f` (as `4ba9453`, the same files) before the verifier ran.
+
+### The verifier, at `b81ee2f`: PASS
+
+- Scope: only this record, the test and the exceptions file changed; `npm_audit.py`, `ui.sh`, `ui/package.json` and `ui/package-lock.json` unchanged.
+- The advisory, read independently: high, `picomatch <= 4.0.7`, no patched version, not withdrawn.
+- **Build-time only, checked:** `picomatch 4.0.7` is `dev`, depended on only by `vite`, `tinyglobby` and `fdir`, all `dev`; the UI has no runtime dependencies at all. No source in `ui/` or `control-plane/` uses `picomatch`, `import.meta.glob` or a glob; `vite.config.ts` has fixed inputs (`index.html`, `cert.html`). Nothing passes outside input as a pattern. A built `dist/` was not inspected (npm not run).
+- The audit, through its pure functions: the entry is allowed through 2026-12-17 and fails on 2026-12-18; it fails as stale if npm stops reporting it; an advisory in another package still fails.
+- **Hand mutations, reasoned on the real file with a synthetic report:**
+  | Mutant | Result |
+  |---|---|
+  | the entry's package changed (`vite`) | killed (the audit: "reported in picomatch, excepted for vite") |
+  | `review_by` in the past | killed (the audit) |
+  | `review_by` removed, or not a date | killed (the audit and `TheRepositorysExceptions`) |
+  | `record` naming a file without the id | killed (`TheRepositorysExceptions`) |
+  | a second, invented exception | killed (both) |
+  | the test's set reverted to `set()` | killed |
+  | this entry removed | killed (both) |
+  | a new advisory in another package | killed (the audit) |
+  None survives the gate as a whole.
+- **Nits, for the backlog:**
+  1. The record lacked the green runs and DONE: this close-out.
+  2. `TheRepositorysExceptions` checks neither `review_by` against today nor `package` against a report; only the gate's audit step does. As designed.
+
+## Outcome
+
+DONE, with 0 repairs and 1 review round. The exception expires on 2026-12-17.
