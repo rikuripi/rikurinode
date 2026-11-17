@@ -558,6 +558,14 @@ mod tests {
                 Ok(())
             }
         }
+        // While one dispatcher alone is alive, tracing-core caches a line's
+        // interest from the first thread to reach it; a parallel test with no
+        // subscriber would cache "never", and this capture would miss its own
+        // line. A second dispatcher, alive for the whole test process, makes
+        // each event ask its own thread's subscriber
+        // (docs/build-records/2026-11-16-log-capture-race.md).
+        static OTHER: std::sync::OnceLock<tracing::Dispatch> = std::sync::OnceLock::new();
+        OTHER.get_or_init(|| tracing::Dispatch::new(tracing::subscriber::NoSubscriber::default()));
         let buffer = Buffer(std::sync::Arc::default());
         let writer = buffer.clone();
         let subscriber = tracing_subscriber::fmt()
