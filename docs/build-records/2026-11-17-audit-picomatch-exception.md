@@ -5,7 +5,7 @@
 | **Date** | 2026-11-17 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/audit-picomatch-exception`, from `main` at `2c425eb`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled in as they land) |
+| **Commits** | `3259556` (contract), `b6f5e17` (change) |
 | **Status** | IN PROGRESS |
 | **Change type** | control change (the gate's npm audit exceptions) |
 
@@ -45,3 +45,9 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Change, `b6f5e17`
+
+- `ui/audit-exceptions.json`: one entry, `GHSA-fc5q-39xc-vjpf`, package `picomatch`, `review_by` `2026-12-17`, record this file; its `why` gives the reasons above and says to remove it once a fixed `picomatch` is published.
+- `scripts/quality/tests/test_npm_audit.py`, `test_each_names_the_record_that_gives_its_reason`: `assertEqual(set(exceptions), {"GHSA-fc5q-39xc-vjpf"}, …)`, with its comment naming this record. **Test change, with its reason:** the owner's decision to record this exception. Any other exception still fails it, and the per-entry checks now run on this one.
+- On the Mac: the file parses; `npm_audit.exception_problems` gives `[]` for the entry, and this record names the advisory; the test file parses; `git diff --check` is clean. The Python tests and the audit run in CI.
