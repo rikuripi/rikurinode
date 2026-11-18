@@ -33,7 +33,9 @@ with the claim screen's, then leads on: to the claim, where the owner types the
 code and chooses a password; to sign-in; and to a page that says the node is
 theirs: the SetupHub, with the node's UUID, given at the claim, and each step
 of setup read from the node's real state (done, next, or with a later update),
-and sign-out. Naming the node comes next; the rest of setup is still to come.
+and sign-out. From the hub the owner names the node: the first of
+`rikuri01` to `rikuri99` that nothing on the network answers, or a name of
+their own. Its Bitcoin, Lightning and backup steps come with later updates.
 Nothing here is ready to run on a node. The
 [platform and architecture plan](docs/architecture/platform-plan.md) says how
 the node will be built, and which decisions are still the owner's; its
