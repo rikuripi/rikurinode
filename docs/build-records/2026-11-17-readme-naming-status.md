@@ -5,7 +5,7 @@
 | **Date** | 2026-11-17 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/readme-naming-status`, from `main` at `e3b07a5`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled in as they land) |
+| **Commits** | `566248b` (contract), `3a426d7` (change) |
 | **Status** | IN PROGRESS |
 | **Change type** | documentation |
 
@@ -33,3 +33,12 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Change, `3a426d7`
+
+- README.md: "Naming the node comes next; the rest of setup is still to come." becomes "From the hub the owner names the node: the first of `rikuri01` to `rikuri99` that nothing on the network answers, or a name of their own. Its Bitcoin, Lightning and backup steps come with later updates."
+- **Citation checks, each against the tree at `e3b07a5`:**
+  - the hub's steps: `control-plane/crates/rikuri-control/src/hub.rs`, `STEPS` (connection, owner, name, bitcoin, lightning, backup), and `tests/hub_route.rs` (bitcoin, lightning and backup `later`);
+  - the suggestion's range and "nothing answers": README's own naming paragraph (`GET /api/node/name/suggestion`, 5c.4b-2);
+  - "a name of their own": the page's words, `ui/src/i18n/en.json` `name.lead` ("Keep the suggestion, or choose your own") and `name.none_free`.
+- No link added or changed; `git diff --check` is clean.
