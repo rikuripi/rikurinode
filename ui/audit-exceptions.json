@@ -1,8 +1,1 @@
-{
-  "GHSA-fc5q-39xc-vjpf": {
-    "package": "picomatch",
-    "why": "high (ReDoS); no fixed version; pulled in only by vite, tinyglobby and fdir to find the setup pages' own source files; build-time only, never shipped to the node; it matches the build's own glob patterns, never user or network input; remove once a fixed picomatch is published (owner, 2026-11-17)",
-    "review_by": "2026-12-17",
-    "record": "docs/build-records/2026-11-17-audit-picomatch-exception.md"
-  }
-}
+{}
