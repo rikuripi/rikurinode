@@ -194,9 +194,9 @@ class TheRepositorysExceptions(unittest.TestCase):
             exceptions = json.load(f)
         # GHSA-gcqx-w48m-w2h4 was withdrawn on 2026-11-16 and its exception removed
         # (docs/build-records/2026-11-16-audit-stale-exception.md). GHSA-fc5q-39xc-vjpf
-        # is excepted until a fixed picomatch is published
-        # (docs/build-records/2026-11-17-audit-picomatch-exception.md).
-        self.assertEqual(set(exceptions), {"GHSA-fc5q-39xc-vjpf"},
+        # was excepted on 2026-11-17, withdrawn on 2026-11-18 and its exception removed
+        # (docs/build-records/2026-11-19-audit-picomatch-withdrawn.md).
+        self.assertEqual(set(exceptions), set(),
                          "a new exception is an owner decision, recorded")
         for ghsa, entry in exceptions.items():
             with self.subTest(ghsa=ghsa):

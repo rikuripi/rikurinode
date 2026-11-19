@@ -85,3 +85,7 @@
 ## Outcome
 
 DONE, with 0 repairs and 1 review round. The exception expires on 2026-12-17.
+
+## Clarification, 2026-11-19
+
+GitHub withdrew GHSA-fc5q-39xc-vjpf at `2026-11-18T15:38:56Z`, with no patched version; npm stopped reporting it, and the audit failed the exception as stale. The exception was removed by [2026-11-19-audit-picomatch-withdrawn.md](2026-11-19-audit-picomatch-withdrawn.md). Nothing above is rewritten.
