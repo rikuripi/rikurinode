@@ -5,8 +5,8 @@
 | **Date** | 2026-11-20 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/boot-cause-rollback-rule`, from `main` at `0b50fa3`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `59ac4d7` (contract), `9c29ef2` (change), and this record |
-| **Status** | IN PROGRESS |
+| **Commits** | `59ac4d7` (contract), `9c29ef2` (change), `831c1b4` (record), `91bdc22` (repair 1); merged as `686a0d9` (#140); this close-out |
+| **Status** | DONE |
 | **Change type** | feature (OS image: greenboot's counter armed for every new image and told which boots not to count; the VM drill) |
 
 ## Intent: the owner's words
@@ -95,3 +95,29 @@
 ### Test changes in the repair, with their reasons
 
 - `test_vm_drill.py`, `RollbackRule.CAUSES` and the "second cut not a power cut" case: the first cause is `rolled-back`, as above; the check is still exact, so `update-applied` first now fails it, as would any other first cause.
+
+### CI on `91bdc22`: Pass
+
+- `Full gate (Ubuntu)`, [run 44707151201](https://github.com/rikuripi/rikurinode/actions/runs/44707151201): every step green.
+- The OS image, [run 44707151271](https://github.com/rikuripi/rikurinode/actions/runs/44707151271): built and checked; the USB install and the VM drill passed. The rule's checks on the real image:
+  - `the new image counted from its first boot | Pass | three boots of the broken image, then the rollback: ['update-applied', 'clean', 'clean', 'rolled-back']`
+  - `case 1b, power cuts in a new image's trial | Pass | rolled back; boot_counter at each held boot: ['2', '2', '1']; given back: [[1, 2]]; recorded: ['rolled-back', 'power-cut', 'power-cut', 'clean', 'rolled-back']`
+  - Cases 2b and 3: Pass, each with `no boot counter left: True`.
+- Merged by the owner as `686a0d9` (#140), at 19:32Z, at head `91bdc22`, the head the verifier checked.
+
+### The verifier, round 1, at `91bdc22`: PASS
+
+- The gate and the drill as above; `git diff --check` on the Mac. Local tests: **Not yet proven** here (`safe-run.sh` cannot run on this Mac), so CI is the evidence.
+- The code matches the Design and the Contract: nothing staged, another digest or unreadable output arms nothing; a restart during the trial cannot re-arm; the give-back never passes 3; `/boot` is remounted read-only on every path; a failed new step leaves greenboot as it was. The repair `91bdc22` is an exact expectation from `classify`, not a loosening; every test change has its reason.
+- **Hand mutations: Not yet proven by running**; worked through by reading. 22 mutants, 20 caught by named tests (the digest comparison inverted or dropped, the cap moved, the "entry before" condition dropped, the boot id check dropped, the counter left on never-applied, arming with nothing staged, +2 for +1, the `ExecStop` line removed or unguarded, among others), 2 equivalent survivors (N3).
+- **Important: none.** Minor, for the backlog:
+  1. (N1) **An update never applied leaves the armed counter counting the unchanged image until greenboot's pre-check clears it.** Finalize fails or the power is cut during it (cases 2b and 3); if the unchanged image then fails to reach `greenboot-healthcheck` three boots in a row, GRUB boots the older deployment, against the plan's "an update that was never applied never rolls the running image back". Software only, a narrow sequence, told as `rolled-back`; no test covers it. A candidate fix: clear the counter at the boot service's step, before `sysinit.target`. **The owner's choice**, asked at the close-out: a task of its own, or the risk accepted and recorded.
+  2. (N2) The give-back is not idempotent within one boot: `greenboot-healthcheck` started a second time by hand gives the same power cut back again (still capped at 3).
+  3. (N3) Two equivalent survivors: `BOOT_ID_FORM`'s check on the kernel's boot id, and the type check on this boot's cause, each covered by the comparison beside it.
+  4. (N4) This record was not closed when the PR merged: closed here.
+
+## Outcome
+
+- **Status: DONE.** A new image is counted from its first boot (three boots, then the previous image), so one that never reaches its checks is still rolled back; a first power cut in a row during its trial is given back and a second is counted; an update never applied leaves no trigger and no counter. One repair cycle and one review round used.
+- **D22's three tasks are done** (the record, the sentence, the rule). Stage 1 is not closed by this: its drill and records govern that.
+- **Backlog, not started:** N1 (the owner's choice), N2, N3; task 2's N3 to N5; the wording of a switch to an image run before (above); the kernel's panic setting and the hardware watchdog.
