@@ -1,0 +1,22 @@
+# Why the node restarted (D22, plan section 4.1). At each boot, before sysinit.target
+# and so before the control plane's first heartbeat, one cause for the boot
+# that ended. At each clean shutdown, a mark that it was clean: the unit stops
+# when final.target starts, after ostree's finalize has applied any update and
+# before /var is unmounted.
+# Record: docs/build-records/2026-11-19-boot-cause-record.md
+[Unit]
+Description=Why the node restarted: one cause for each boot that ended
+DefaultDependencies=no
+RequiresMountsFor=/var/lib/rikuri
+After=local-fs.target systemd-pstore.service
+Before=sysinit.target final.target ostree-finalize-staged.service
+Conflicts=final.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/rikuri/boot-cause boot
+ExecStop=/usr/libexec/rikuri/boot-cause shutdown
+
+[Install]
+WantedBy=sysinit.target

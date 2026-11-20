@@ -393,6 +393,135 @@ class ContainersRangeSteps(unittest.TestCase):
         self.assertEqual(self.result(drill, "the containers range after reboots"), [False])
 
 
+class BootCauseRecord(unittest.TestCase):
+    """The drill's reading of rikuri-boot-cause's record (D22,
+    docs/build-records/2026-11-19-boot-cause-record.md)."""
+
+    def line(self, cause, **extra):
+        return json.dumps(dict({"boot_id": "x", "at": 1, "cause": cause}, **extra))
+
+    def test_the_paths_the_boot_service_and_the_control_plane_write(self):
+        self.assertEqual(d.BOOT_CAUSES, "/var/lib/rikuri/boot-cause/history.jsonl")
+        self.assertEqual(d.HEARTBEAT, "/var/lib/rikuri/control-plane/heartbeat")
+
+    def test_entries_in_order_and_unreadable_lines_skipped(self):
+        text = "\n".join([self.line("first-boot"), "junk", "[]", json.dumps({"cause": 3}), self.line("clean"), ""])
+        self.assertEqual(d.causes(d.boot_causes(text)), ["first-boot", "clean"])
+        self.assertEqual(d.boot_causes(""), [])
+        self.assertEqual(d.boot_causes(None), [])
+
+    def test_an_update_then_its_rollback(self):
+        def ok(names):
+            return d.update_then_rollback([{"cause": n} for n in names])
+        self.assertTrue(ok(["update-applied", "clean", "clean", "clean", "rolled-back"]))
+        self.assertTrue(ok(["update-applied", "rolled-back"]))
+        self.assertFalse(ok(["rolled-back"]), "no update before it")
+        self.assertFalse(ok(["update-applied"]), "never rolled back")
+        self.assertFalse(ok(["update-applied", "rolled-back", "clean"]), "not the last boot")
+        self.assertFalse(ok(["clean", "rolled-back"]))
+        self.assertFalse(ok([]))
+
+    def test_dated(self):
+        self.assertTrue(d.dated({"last_alive": 100}, 100, 200))
+        self.assertTrue(d.dated({"last_alive": 200}, 100, 200))
+        self.assertFalse(d.dated({"last_alive": 99}, 100, 200))
+        self.assertFalse(d.dated({"last_alive": 201}, 100, 200))
+        self.assertFalse(d.dated({"last_alive": None}, 100, 200))
+        self.assertFalse(d.dated({"last_alive": True}, 0, 200))
+        self.assertFalse(d.dated({}, 0, 200))
+
+    def test_a_fresh_heartbeat(self):
+        self.assertTrue(d.fresh_heartbeat("1000\n", 1100))
+        self.assertTrue(d.fresh_heartbeat("1000", 1000 + d.HEARTBEAT_FRESH_S))
+        self.assertFalse(d.fresh_heartbeat("1000\n", 1001 + d.HEARTBEAT_FRESH_S))
+        self.assertFalse(d.fresh_heartbeat("1300\n", 1000 + 300 - d.HEARTBEAT_FRESH_S - 1), "from the future")
+        for text in ("", "x\n", " 1000\n", "1000\n\n"):
+            with self.subTest(text=text):
+                self.assertFalse(d.fresh_heartbeat(text, 1000))
+        self.assertFalse(d.fresh_heartbeat("1000\n", None))
+
+    def test_the_power_cut_window(self):
+        self.assertEqual((d.POWER_CUT_BEFORE_S, d.POWER_CUT_AFTER_REBOOT_S), (70, 60))
+
+
+class BootCauseDrill(d.Drill):
+    """A Drill whose VM answers fixed commands."""
+
+    def __init__(self, artifacts, answers):
+        super().__init__("localhost/rikuri-os:test", artifacts, artifacts)
+        self.answers = answers
+        self.log = lambda message: None
+
+    def vm(self, command, check=True, timeout=300, stdin=None):
+        if command not in self.answers:
+            raise AssertionError("unexpected VM command: %r" % command)
+        return self.answers[command]
+
+
+class BootCauseFirstBoot(unittest.TestCase):
+    def setUp(self):
+        self.artifacts = tempfile.mkdtemp(prefix="vm-drill-")
+        self.addCleanup(shutil.rmtree, self.artifacts)
+
+    def run_with(self, **over):
+        answers = {"cat " + d.BOOT_CAUSES: json.dumps({"boot_id": "a", "at": 1, "cause": "first-boot"}) + "\n",
+                   "systemctl is-active rikuri-boot-cause.service": "active\n",
+                   "date +%s": "1000\n",
+                   "cat " + d.HEARTBEAT: "990\n"}
+        answers.update(over)
+        drill = BootCauseDrill(self.artifacts, answers)
+        drill.boot_cause_first_boot()
+        return drill.results[-1]
+
+    def test_passes(self):
+        case, ok, detail = self.run_with()
+        self.assertEqual(case, "the boot cause at the first boot")
+        self.assertTrue(ok, detail)
+
+    def test_each_condition_fails_it(self):
+        for why, over in (("another cause", {"cat " + d.BOOT_CAUSES: json.dumps({"cause": "unknown"}) + "\n"}),
+                          ("no record", {"cat " + d.BOOT_CAUSES: None}),
+                          ("two entries", {"cat " + d.BOOT_CAUSES: (json.dumps({"cause": "first-boot"}) + "\n") * 2}),
+                          ("the unit inactive", {"systemctl is-active rikuri-boot-cause.service": None}),
+                          ("a stale heartbeat", {"cat " + d.HEARTBEAT: "500\n"}),
+                          ("no heartbeat", {"cat " + d.HEARTBEAT: None}),
+                          ("no clock", {"date +%s": None})):
+            with self.subTest(why=why):
+                self.assertFalse(self.run_with(**over)[1])
+
+
+class BootCauseCase1(unittest.TestCase):
+    def setUp(self):
+        self.artifacts = tempfile.mkdtemp(prefix="vm-drill-")
+        self.addCleanup(shutil.rmtree, self.artifacts)
+
+    def run_with(self, names, before=1):
+        text = "".join(json.dumps({"cause": n}) + "\n" for n in names)
+        drill = BootCauseDrill(self.artifacts, {"cat " + d.BOOT_CAUSES: text})
+        drill.boot_cause_case1(before)
+        [(case, ok, detail)] = drill.results
+        self.assertEqual(case, "the boot cause after an update and its rollback")
+        return ok, detail
+
+    def test_only_the_boots_since_the_update_count(self):
+        ok, detail = self.run_with(["first-boot", "update-applied", "clean", "rolled-back"])
+        self.assertTrue(ok, detail)
+        self.assertEqual(detail, "recorded since the update was staged: ['update-applied', 'clean', 'rolled-back']")
+        self.assertFalse(self.run_with(["update-applied", "rolled-back"], before=1)[0], "the update came before")
+        self.assertFalse(self.run_with(["first-boot", "update-applied", "clean"])[0])
+
+    def test_main_reads_the_record_right_after_its_step(self):
+        # Repair 1: the checks run from main, beside first_boot and case1, whose
+        # own stand-ins answer only their own commands.
+        import inspect
+        source = inspect.getsource(d.main)
+        order = ["drill.first_boot()", "drill.boot_cause_first_boot()", "drill.boot_automount()",
+                 "before = len(drill.boot_causes_now())", "drill.case1()", "drill.boot_cause_case1(before)",
+                 "drill.case2b()", "drill.case3()"]
+        at = [source.index(step) for step in order]
+        self.assertEqual(at, sorted(at))
+
+
 class Verdict(unittest.TestCase):
     def setUp(self):
         self.ALL = [(case, True, "") for case in sorted(d.EXPECTED)]
@@ -432,7 +561,12 @@ class Verdict(unittest.TestCase):
             "the new name only, after a restart",
             # 5c.4b-2:
             "the node suggests the first free name",
-            "a named node is not renamed again"})
+            "a named node is not renamed again",
+            # docs/build-records/2026-11-19-boot-cause-record.md:
+            "the boot cause at the first boot",
+            "the boot cause after an update and its rollback",
+            "the boot cause after a clean shutdown, the update not applied",
+            "the boot cause after a power cut, with its time"})
 
     def test_all_passed_and_no_error_is_zero(self):
         self.assertEqual(d.verdict(self.ALL, None), 0)

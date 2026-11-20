@@ -146,6 +146,24 @@ SUBID_TARGETS = ("../rikuri-containers-subid.service", "/" + SUBID_UNIT)
 # greenboot's wanted check of it: logged at every boot, never a rollback, since
 # no image can repair /etc (docs/build-records/2026-10-24-greenboot-subid-wanted.md).
 SUBID_WANTED = "usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid"
+# Why the node restarted (D22): one cause for each boot that ended, recorded at
+# the next boot, and a mark at the end of each clean shutdown, after ostree's
+# finalize and before /var is unmounted. A closed world like SUBID_KEYS.
+# Record: docs/build-records/2026-11-19-boot-cause-record.md
+BOOT_CAUSE_CHECK = "usr/libexec/rikuri/boot-cause"
+BOOT_CAUSE_UNIT = "usr/lib/systemd/system/rikuri-boot-cause.service"
+BOOT_CAUSE_WANTS = "usr/lib/systemd/system/sysinit.target.wants/rikuri-boot-cause.service"
+BOOT_CAUSE_KEYS = {"[Unit]": {"Description": None, "DefaultDependencies": "no",
+                              "RequiresMountsFor": "/var/lib/rikuri",
+                              "After": "local-fs.target systemd-pstore.service",
+                              "Before": "sysinit.target final.target ostree-finalize-staged.service",
+                              "Conflicts": "final.target"},
+                   "[Service]": {"Type": "oneshot", "RemainAfterExit": "yes",
+                                 "ExecStart": "/" + BOOT_CAUSE_CHECK + " boot",
+                                 "ExecStop": "/" + BOOT_CAUSE_CHECK + " shutdown"},
+                   "[Install]": {"WantedBy": "sysinit.target"}}
+BOOT_CAUSE_TARGETS = ("../rikuri-boot-cause.service", "/" + BOOT_CAUSE_UNIT)
+BOOT_CAUSE_OVERRIDES = unit_overrides(BOOT_CAUSE_UNIT)
 # shadow-utils 4.20 (Fedora 45) finds no subuid range for a name that is not a user, so
 # Podman's `containers` range needs a user of that name: one locked system user, made by
 # systemd-sysusers at boot, no password, shell or home of its own (probe f45-podman,
@@ -592,6 +610,33 @@ def check_containers_subid(root: str) -> list:
     return found
 
 
+def check_boot_cause(root: str) -> list:
+    found = []
+    path = _regular(root, BOOT_CAUSE_CHECK)
+    if path is None:
+        found.append("%s: missing, or not a regular file (no boot's cause would be recorded)" % BOOT_CAUSE_CHECK)
+    elif not os.lstat(path).st_mode & 0o111:
+        found.append("%s: not executable" % BOOT_CAUSE_CHECK)
+    data = _read_bytes(root, BOOT_CAUSE_UNIT)
+    if data is None:
+        found.append("%s: missing, or not a regular file" % BOOT_CAUSE_UNIT)
+    else:
+        found += ["%s: %s" % (BOOT_CAUSE_UNIT, p) for p in unit_problems(
+            data, BOOT_CAUSE_KEYS, "does not record each boot's cause before sysinit.target and mark each clean "
+                                   "shutdown after ostree's finalize")]
+    for rel in BOOT_CAUSE_OVERRIDES:
+        problem = _override_problem(root, rel)
+        if problem:
+            found.append("%s: %s" % (rel, problem))
+    wants = os.path.join(root, BOOT_CAUSE_WANTS)
+    hit = _lstat_in(root, os.path.dirname(BOOT_CAUSE_WANTS))
+    if hit is None or not os.path.islink(wants):
+        found.append("%s: not a link, so the unit is not enabled" % BOOT_CAUSE_WANTS)
+    elif os.readlink(wants) not in BOOT_CAUSE_TARGETS:
+        found.append("%s: points to %s, not to the unit" % (BOOT_CAUSE_WANTS, os.readlink(wants)))
+    return found
+
+
 def check_containers_user(root: str) -> list:
     data = _read_bytes(root, CONTAINERS_USER)
     if data is None:
@@ -999,7 +1044,7 @@ def check_boot_automount(root: str) -> list:
 def check_root(root: str, release: str, note=lambda line: None) -> list:
     return (check_os_release(root, release) + check_greenboot(root) + check_unapplied_update(root)
             + check_trigger_at_shutdown(root) + check_boot_automount(root)
-            + check_containers_subid(root) + check_containers_user(root)
+            + check_containers_subid(root) + check_boot_cause(root) + check_containers_user(root)
             + check_subid_wanted(root) + check_control_plane(root) + check_mdns_links(root)
             + check_quadlet_health(root) + check_signature_policy(root) + check_no_private_keys(root, note))
 

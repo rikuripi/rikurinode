@@ -36,6 +36,10 @@ SUBID_UNIT = "usr/lib/systemd/system/rikuri-containers-subid.service"
 SUBID_WANTS = "usr/lib/systemd/system/sysinit.target.wants/rikuri-containers-subid.service"
 # greenboot's wanted check of it (docs/build-records/2026-10-24-greenboot-subid-wanted.md).
 SUBID_WANTED = "usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid"
+# Why the node restarted (docs/build-records/2026-11-19-boot-cause-record.md).
+BOOT_CAUSE_CHECK = "usr/libexec/rikuri/boot-cause"
+BOOT_CAUSE_UNIT = "usr/lib/systemd/system/rikuri-boot-cause.service"
+BOOT_CAUSE_WANTS = "usr/lib/systemd/system/sysinit.target.wants/rikuri-boot-cause.service"
 CONTAINERS_USER = "usr/lib/sysusers.d/rikuri-containers.conf"
 # The signature policy for the node's OS image (docs/build-records/2026-10-25-signature-policy.md).
 POLICY = "etc/containers/policy.json"
@@ -167,6 +171,10 @@ class Root:
             self.link(SUBID_WANTS, "../rikuri-containers-subid.service")
         if os.path.exists(os.path.join(HERE, "..", "rootfs", SUBID_WANTED)):
             self.write_bytes(SUBID_WANTED, shipped_file(SUBID_WANTED), mode=0o755)
+        if os.path.exists(os.path.join(HERE, "..", "rootfs", BOOT_CAUSE_UNIT)):
+            self.write_bytes(BOOT_CAUSE_CHECK, shipped_file(BOOT_CAUSE_CHECK), mode=0o755)
+            self.write_bytes(BOOT_CAUSE_UNIT, shipped_file(BOOT_CAUSE_UNIT))
+            self.link(BOOT_CAUSE_WANTS, "../rikuri-boot-cause.service")
         if os.path.exists(os.path.join(HERE, "..", "rootfs", CONTAINERS_USER)):
             self.write_bytes(CONTAINERS_USER, shipped_file(CONTAINERS_USER))
         for rel in SIGNATURE_FILES:
@@ -1750,6 +1758,97 @@ class BootAutomount(unittest.TestCase):
                     hit, found = self.finds(rel + ": would override the image's mask of boot.automount")
                     self.root.remove(rel)
                     self.assertTrue(hit, found)
+
+
+
+class BootCause(unittest.TestCase):
+    """The boot-cause unit, its script and its link (D22,
+    docs/build-records/2026-11-19-boot-cause-record.md)."""
+
+    def setUp(self):
+        self.root = Root()
+        self.addCleanup(self.root.cleanup)
+
+    def finds(self, fragment):
+        found = cir.check_boot_cause(self.root.path)
+        self.assertTrue(any(fragment in f for f in found),
+                        "expected a finding with %r, got %r" % (fragment, found))
+
+    def test_the_shipped_files_pass(self):
+        self.assertEqual(cir.check_boot_cause(self.root.path), [])
+        self.assertEqual(self.root.check(), [])
+
+    def test_the_whole_check_runs_it(self):
+        self.root.remove(BOOT_CAUSE_UNIT)
+        self.assertTrue(any(BOOT_CAUSE_UNIT + ": missing" in f for f in self.root.check()))
+
+    def test_the_script_missing_not_executable_or_a_link(self):
+        self.root.remove(BOOT_CAUSE_CHECK)
+        self.finds(BOOT_CAUSE_CHECK + ": missing")
+        self.root.write_bytes(BOOT_CAUSE_CHECK, shipped_file(BOOT_CAUSE_CHECK), mode=0o644)
+        self.finds(BOOT_CAUSE_CHECK + ": not executable")
+        self.root.link(BOOT_CAUSE_CHECK, "/bin/true")
+        self.finds(BOOT_CAUSE_CHECK + ": missing")
+
+    def test_the_unit_missing(self):
+        self.root.remove(BOOT_CAUSE_UNIT)
+        self.finds(BOOT_CAUSE_UNIT + ": missing")
+
+    def test_the_link_missing_or_elsewhere(self):
+        self.root.remove(BOOT_CAUSE_WANTS)
+        self.finds(BOOT_CAUSE_WANTS + ": not a link")
+        self.root.write(BOOT_CAUSE_WANTS, "")
+        self.finds(BOOT_CAUSE_WANTS + ": not a link")
+        self.root.link(BOOT_CAUSE_WANTS, "../rikuri-containers-subid.service")
+        self.finds(BOOT_CAUSE_WANTS + ": points to ../rikuri-containers-subid.service")
+        self.root.link(BOOT_CAUSE_WANTS, "/" + BOOT_CAUSE_UNIT)
+        self.assertEqual(cir.check_boot_cause(self.root.path), [])
+
+    def test_the_unit_is_a_closed_world(self):
+        good = shipped_file(BOOT_CAUSE_UNIT).decode("ascii")
+        cases = (
+            ("ExecStart=/usr/libexec/rikuri/boot-cause boot\n", "ExecStart=/bin/true\n", "another command"),
+            ("ExecStop=/usr/libexec/rikuri/boot-cause shutdown\n", "", "no mark at a clean shutdown"),
+            ("ExecStop=/usr/libexec/rikuri/boot-cause shutdown\n",
+             "ExecStop=/usr/libexec/rikuri/boot-cause shutdown\nExecStop=/bin/false\n", "a second stop command"),
+            ("Before=sysinit.target final.target ostree-finalize-staged.service",
+             "Before=sysinit.target final.target", "the mark before ostree's finalize applies an update"),
+            ("Before=sysinit.target final.target ostree-finalize-staged.service",
+             "Before=multi-user.target final.target ostree-finalize-staged.service",
+             "after the control plane's first heartbeat"),
+            ("Conflicts=final.target\n", "Conflicts=shutdown.target\n", "stopped before ostree's finalize"),
+            ("Conflicts=final.target\n", "", "never stopped, so no mark"),
+            ("RequiresMountsFor=/var/lib/rikuri\n", "", "the mark after /var is unmounted"),
+            ("After=local-fs.target systemd-pstore.service", "After=local-fs.target",
+             "before systemd-pstore has archived a crash"),
+            ("DefaultDependencies=no\n", "DefaultDependencies=yes\n", "after sysinit.target"),
+            ("RemainAfterExit=yes\n", "", "inactive after its start, so no ExecStop"),
+            ("RemainAfterExit=yes\n", "RemainAfterExit=yes\nRemainAfterExit=no\n", "a later value replaces it"),
+            ("Type=oneshot\n", "Type=oneshot\nExecStartPre=/bin/true\n", "a key the unit does not have"),
+            ("DefaultDependencies=no\n", "DefaultDependencies=no\nConditionPathExists=/nope\n",
+             "a condition that would skip it"),
+            ("WantedBy=sysinit.target", "WantedBy=multi-user.target", "enabled for another target"),
+            ("Description=Why", "Description=Why \\\n", "a continuation line"),
+        )
+        for old, new, why in cases:
+            with self.subTest(why=why):
+                self.assertIn(old, good)
+                self.root.write_bytes(BOOT_CAUSE_UNIT, good.replace(old, new, 1).encode("utf-8"))
+                self.finds(BOOT_CAUSE_UNIT + ": ")
+
+    def test_an_override_is_a_finding(self):
+        for rel in ("etc/systemd/system/rikuri-boot-cause.service.d", "usr/lib/systemd/system/rikuri-boot-.service.d",
+                    "etc/systemd/system/rikuri-boot-cause.service"):
+            with self.subTest(rel=rel):
+                full = os.path.join(self.root.path, rel)
+                self.root.write(rel + "/50-x.conf" if rel.endswith(".d") else rel, "[Service]\nExecStop=\n")
+                self.finds(rel + ": overrides the unit")
+                if os.path.isdir(full):
+                    shutil.rmtree(full)
+                else:
+                    os.remove(full)
+        self.assertEqual(cir.check_boot_cause(self.root.path), [])
+        self.assertIn("usr/lib/systemd/system/rikuri-.service.d", cir.BOOT_CAUSE_OVERRIDES)
 
 
 if __name__ == "__main__":

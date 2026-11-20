@@ -1,0 +1,378 @@
+#!/usr/bin/python3 -I
+"""Why the node restarted: one cause for each boot that ended (D22, plan section 4.1).
+
+    boot-cause boot       at each boot, before sysinit.target (ExecStart)
+    boot-cause shutdown   at the end of each clean shutdown (ExecStop)
+
+A machine cannot record its own power cut, so the cause is worked out at the
+next boot from what the last boot left. At the end of every clean shutdown,
+after ostree's finalize (so after any update is applied) and before /var is
+unmounted, the shutdown step writes a mark naming the boot that ends. At each
+boot, the boot step reads the evidence, appends one JSON line for the boot that
+ended to HISTORY (the last KEEP boots), and removes the mark. The causes, the
+first that fits:
+
+  kernel-crash    a pstore record not seen at the last boot
+  watchdog        a watchdog's boot status has the card-reset bit
+  rolled-back     the booted deployment differs from the last boot's, and was
+                  booted before it
+  update-applied  the booted deployment differs from the last boot's, and is new
+  clean           the shutdown mark names the last boot
+  power-cut       no mark, and a heartbeat from the last boot, which dates it
+                  (last_alive) to within a minute
+  unknown         anything else: no heartbeat from the last boot, a mark naming
+                  another boot, no record of the last boot
+  first-boot      no record and no trace of an earlier boot
+
+The heartbeat is written every minute by the control plane, whose user faces
+the network, so it is untrusted here: it is opened without following a link,
+must be a regular file of at most 32 bytes, and must read as decimal digits;
+anything else is ignored and noted. Every other input is the kernel's, ostree's
+or this script's own. It runs no command (at its boot step neither D-Bus nor
+rpm-ostree is up): the booted deployment is read from /proc/cmdline's ostree=
+link under /sysroot. It takes no input from a user, and logs every decision to
+the journal.
+
+The boot step never fails its unit: an error is logged and noted, and it exits
+0, because a oneshot whose start failed never runs its ExecStop, and the next
+boot would read a clean shutdown as a power cut. Run twice in one boot, it
+records nothing more, and removes the mark a stop between would have left.
+Record: docs/build-records/2026-11-19-boot-cause-record.md
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+import stat
+import sys
+import time
+
+STATE = "/var/lib/rikuri/boot-cause"
+HISTORY = "history.jsonl"
+MARK = "shutdown"
+HEARTBEAT = "/var/lib/rikuri/control-plane/heartbeat"
+PSTORE_DIRS = ("/sys/fs/pstore", "/var/lib/systemd/pstore")
+WATCHDOGS = "/sys/class/watchdog"
+CMDLINE = "/proc/cmdline"
+SYSROOT = "/sysroot"
+BOOT_ID = "/proc/sys/kernel/random/boot_id"
+KEEP = 100
+VERSION = 1
+WDIOF_CARDRESET = 0x0020
+HEARTBEAT_MAX = 32
+READ_MAX = 1 << 16
+HISTORY_MAX = 1 << 22
+HEARTBEAT_LINE = re.compile(rb"[0-9]{1,12}\n?")
+BOOT_ID_LINE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+OSTREE_ARG = re.compile(r"/ostree/boot\.[01]/[A-Za-z0-9_.-]+/[0-9a-f]{64}/[0-9]+")
+DEPLOYMENT = re.compile(r"/ostree/deploy/[A-Za-z0-9_.-]+/deploy/([0-9a-f]{64})\.[0-9]+")
+CAUSES = ("kernel-crash", "watchdog", "rolled-back", "update-applied", "clean", "power-cut", "unknown",
+          "first-boot")
+
+
+def log(message: str) -> None:
+    print("rikuri-boot-cause: " + message, flush=True)
+
+
+def read_small(path: str, limit: int, follow: bool = True):
+    """The bytes of a regular file of at most `limit` bytes, or None (missing);
+    raises ValueError when it is not a regular file or is too long, and OSError
+    when it cannot be read."""
+    flags = os.O_RDONLY | os.O_CLOEXEC | os.O_NONBLOCK | (0 if follow else os.O_NOFOLLOW)
+    try:
+        fd = os.open(path, flags)
+    except FileNotFoundError:
+        return None
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise ValueError("not a regular file")
+        data = b""
+        while len(data) <= limit:
+            chunk = os.read(fd, limit + 1 - len(data))
+            if not chunk:
+                break
+            data += chunk
+    finally:
+        os.close(fd)
+    if len(data) > limit:
+        raise ValueError("longer than %d bytes" % limit)
+    return data
+
+
+def read_boot_id(path: str = BOOT_ID):
+    try:
+        data = read_small(path, 64)
+    except (OSError, ValueError):
+        return None
+    text = (data or b"").decode("ascii", "replace").strip()
+    return text if BOOT_ID_LINE.fullmatch(text) else None
+
+
+def read_heartbeat(path: str = HEARTBEAT):
+    """(Unix time, None) or (None, why not). Never follows a link."""
+    try:
+        data = read_small(path, HEARTBEAT_MAX, follow=False)
+    except ValueError as e:
+        return None, "the heartbeat is ignored: %s" % e
+    except OSError as e:
+        return None, "the heartbeat cannot be read: %s" % e.strerror
+    if data is None:
+        return None, "no heartbeat"
+    if not HEARTBEAT_LINE.fullmatch(data):
+        return None, "the heartbeat is ignored: not decimal digits"
+    return int(data), None
+
+
+def parse_entry(line: str):
+    """A history line as a dict, or None when it does not read."""
+    try:
+        entry = json.loads(line)
+    except ValueError:
+        return None
+    if (not isinstance(entry, dict) or not isinstance(entry.get("boot_id"), str)
+            or not isinstance(entry.get("at"), int) or isinstance(entry.get("at"), bool)):
+        return None
+    if entry.get("image") is not None and not isinstance(entry["image"], str):
+        return None
+    pstore = entry.get("pstore", [])
+    if not isinstance(pstore, list) or not all(isinstance(p, str) for p in pstore):
+        return None
+    return entry
+
+
+def read_history(path: str):
+    """(entries in order, how many lines did not read)."""
+    data = read_small(path, HISTORY_MAX)
+    if data is None:
+        return [], 0
+    entries, bad = [], 0
+    for line in data.decode("utf-8", "replace").split("\n"):
+        if not line:
+            continue
+        entry = parse_entry(line)
+        if entry is None:
+            bad += 1
+        else:
+            entries.append(entry)
+    return entries, bad
+
+
+def read_mark(path: str):
+    """(the mark as {"boot_id", "at"}, None), (None, None) when there is none,
+    or (None, why it does not read)."""
+    try:
+        data = read_small(path, 4096, follow=False)
+    except (OSError, ValueError) as e:
+        return None, "the shutdown mark cannot be read: %s" % e
+    if data is None:
+        return None, None
+    try:
+        mark = json.loads(data.decode("utf-8"))
+    except ValueError:
+        return None, "the shutdown mark does not read"
+    if (not isinstance(mark, dict) or not isinstance(mark.get("boot_id"), str)
+            or not isinstance(mark.get("at"), int) or isinstance(mark.get("at"), bool)):
+        return None, "the shutdown mark does not read"
+    return {"boot_id": mark["boot_id"], "at": mark["at"]}, None
+
+
+def list_pstore(dirs=PSTORE_DIRS):
+    """Every pstore record in the kernel's folder and systemd's archive, by path."""
+    found = []
+    for d in dirs:
+        try:
+            names = sorted(e.name for e in os.scandir(d))
+        except OSError:
+            continue
+        found += [d + "/" + n for n in names]
+    return found
+
+
+def card_resets(root: str = WATCHDOGS):
+    """The watchdogs whose boot status says they reset the machine."""
+    hits = []
+    try:
+        names = sorted(e.name for e in os.scandir(root))
+    except OSError:
+        return hits
+    for name in names:
+        try:
+            data = read_small(os.path.join(root, name, "bootstatus"), 64)
+        except (OSError, ValueError):
+            continue
+        text = (data or b"").decode("ascii", "replace").strip()
+        if text.isdigit() and int(text) & WDIOF_CARDRESET:
+            hits.append(name)
+    return hits
+
+
+def booted_deployment(cmdline: str, sysroot: str = SYSROOT):
+    """The booted ostree commit, from the kernel's ostree= argument, or None."""
+    args = [a[len("ostree="):] for a in cmdline.split() if a.startswith("ostree=")]
+    if len(args) != 1 or not OSTREE_ARG.fullmatch(args[0]):
+        return None
+    sysroot = os.path.realpath(sysroot)
+    real = os.path.realpath(sysroot + args[0])
+    if not real.startswith(sysroot + "/"):
+        return None
+    m = DEPLOYMENT.fullmatch(real[len(sysroot):])
+    return m.group(1) if m else None
+
+
+def images_before(history):
+    """The deployments booted before the latest run of the last boot's."""
+    last = history[-1].get("image")
+    n = len(history)
+    while n and history[n - 1].get("image") == last:
+        n -= 1
+    return {e.get("image") for e in history[:n] if e.get("image")}
+
+
+def classify(history, mark, heartbeat, pstore, watchdogs, image):
+    """(cause, last_alive, evidence) for the boot that ended."""
+    evidence = []
+    if not history:
+        if mark is None and heartbeat is None:
+            return "first-boot", None, ["no record of an earlier boot"]
+        return "unknown", None, ["no record of the last boot, though it left a trace (a shutdown mark or a "
+                                 "heartbeat)"]
+    last = history[-1]
+    clean = mark is not None and mark["boot_id"] == last["boot_id"]
+    if mark is not None and not clean:
+        evidence.append("the shutdown mark names boot %s, not the last recorded boot %s"
+                        % (mark["boot_id"], last["boot_id"]))
+    alive = heartbeat if heartbeat is not None and heartbeat >= last["at"] else None
+    if heartbeat is not None and alive is None:
+        evidence.append("the heartbeat (%d) is older than the last boot (%d): the control plane wrote none then"
+                        % (heartbeat, last["at"]))
+    last_alive = mark["at"] if clean else alive
+    new = sorted(set(pstore) - set(last.get("pstore") or []))
+    if image is None:
+        evidence.append("the booted deployment cannot be read")
+    if new:
+        return "kernel-crash", last_alive, evidence + ["new pstore records: " + ", ".join(new)]
+    if watchdogs:
+        return "watchdog", last_alive, evidence + ["card reset in boot status: " + ", ".join(watchdogs)]
+    if image is not None and last.get("image") and image != last["image"]:
+        was = "from %s to %s" % (last["image"], image)
+        if image in images_before(history):
+            return "rolled-back", last_alive, evidence + ["the deployment went back " + was]
+        return "update-applied", last_alive, evidence + ["the deployment changed " + was]
+    if clean:
+        return "clean", last_alive, evidence + ["the last boot shut down cleanly at %d" % mark["at"]]
+    if mark is not None:
+        return "unknown", None, evidence
+    if alive is not None:
+        return "power-cut", alive, evidence + ["no clean shutdown after the last heartbeat at %d" % alive]
+    return "unknown", None, evidence + ["no clean shutdown, and no heartbeat from the last boot"]
+
+
+def write_whole(path: str, data: bytes, mode: int = 0o644) -> None:
+    """Replace the file at once: a synced file beside it, renamed over it, then the folder synced."""
+    folder = os.path.dirname(path)
+    os.makedirs(folder, mode=0o755, exist_ok=True)
+    tmp = path + ".tmp"
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW | os.O_CLOEXEC, mode)
+    try:
+        os.fchmod(fd, mode)
+        view = memoryview(data)
+        while view:
+            view = view[os.write(fd, view):]
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    os.replace(tmp, path)
+    sync_folder(folder)
+
+
+def sync_folder(folder: str) -> None:
+    fd = os.open(folder, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def remove_mark(path: str) -> None:
+    try:
+        os.unlink(path)
+    except FileNotFoundError:
+        return
+    sync_folder(os.path.dirname(path))
+
+
+def read_text(path: str) -> str:
+    try:
+        return (read_small(path, READ_MAX) or b"").decode("utf-8", "replace")
+    except (OSError, ValueError):
+        return ""
+
+
+def boot(state: str = STATE, heartbeat_path: str = HEARTBEAT, pstore_dirs=PSTORE_DIRS,
+         watchdogs: str = WATCHDOGS, cmdline: str = CMDLINE, sysroot: str = SYSROOT,
+         boot_id_path: str = BOOT_ID, now=time.time) -> int:
+    history_path, mark_path = os.path.join(state, HISTORY), os.path.join(state, MARK)
+    this = read_boot_id(boot_id_path)
+    if this is None:
+        log("the boot id cannot be read; nothing recorded")
+        return 0
+    try:
+        history, bad = read_history(history_path)
+    except (OSError, ValueError) as e:
+        log("the history %s cannot be read (%s); nothing recorded" % (history_path, e))
+        return 0
+    if history and history[-1]["boot_id"] == this:
+        remove_mark(mark_path)
+        log("this boot (%s) is already recorded" % this)
+        return 0
+    mark, mark_note = read_mark(mark_path)
+    heartbeat, heartbeat_note = read_heartbeat(heartbeat_path)
+    pstore = list_pstore(pstore_dirs)
+    resets = card_resets(watchdogs)
+    image = booted_deployment(read_text(cmdline), sysroot)
+    cause, last_alive, evidence = classify(history, mark, heartbeat, pstore, resets, image)
+    notes = [n for n in (mark_note, heartbeat_note) if n and not (n == "no heartbeat" and cause == "first-boot")]
+    if bad:
+        notes.append("%d history line(s) did not read" % bad)
+    entry = {"v": VERSION, "boot_id": this, "at": int(now()), "cause": cause, "last_alive": last_alive,
+             "image": image, "pstore": pstore, "evidence": evidence + notes}
+    lines = [json.dumps(e, sort_keys=True) for e in (history + [entry])[-KEEP:]]
+    write_whole(history_path, ("\n".join(lines) + "\n").encode("utf-8"))
+    remove_mark(mark_path)
+    log("the last boot ended: %s%s; %s" % (cause, "" if last_alive is None else " (last alive at %d)" % last_alive,
+                                          "; ".join(entry["evidence"]) or "no other evidence"))
+    return 0
+
+
+def shutdown(state: str = STATE, boot_id_path: str = BOOT_ID, now=time.time) -> int:
+    this = read_boot_id(boot_id_path)
+    if this is None:
+        log("the boot id cannot be read; no shutdown mark written")
+        return 0
+    path = os.path.join(state, MARK)
+    write_whole(path, (json.dumps({"boot_id": this, "at": int(now())}, sort_keys=True) + "\n").encode("ascii"))
+    log("clean shutdown of boot %s marked in %s" % (this, path))
+    return 0
+
+
+def main(argv=None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv == ["boot"]:
+        try:
+            return boot()
+        except Exception as e:  # noqa: BLE001 -- the unit must stay active, so its ExecStop runs
+            log("FAILED to record why the last boot ended: %r" % e)
+            return 0
+    if argv == ["shutdown"]:
+        try:
+            return shutdown()
+        except OSError as e:
+            log("FAILED to write the shutdown mark: %s" % e)
+            return 1
+    print("usage: boot-cause boot|shutdown", file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

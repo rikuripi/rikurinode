@@ -33,6 +33,12 @@ checks, failing on any miss:
                project's key: bootc status names exactly that name and digest.
                Cases 4 and 5 run last; the staged update meets no reboot
                (docs/build-records/2026-10-29-node-refuses-unsigned.md).
+  boot cause   rikuri-boot-cause records each boot's cause (D22): first-boot at
+               the first boot, with its unit active and the control plane's
+               heartbeat fresh; update-applied and then rolled-back in case 1;
+               clean after case 2b's shutdown, whose update was not applied;
+               power-cut in case 3, dated by the last heartbeat before the
+               shutdown (docs/build-records/2026-11-19-boot-cause-record.md).
 
 The VM gets a key made for this run (root, on the drill's disk only; the image
 is unchanged) and a user-mode network restricted to one forwarded SSH port on
@@ -78,6 +84,13 @@ DNS_SKIPPED = "Skipping disabled script: 01_repository_dns_check.sh"
 PLATFORMS_SKIPPED = "Skipping disabled script: 01_update_platforms_check.sh"
 ROLLED_BACK = "Boot counter exhausted and next-deployment-id is set - initiating rollback"
 BROKEN = "localhost/rikuri-os:broken"
+BOOT_CAUSES = "/var/lib/rikuri/boot-cause/history.jsonl"
+HEARTBEAT = "/var/lib/rikuri/control-plane/heartbeat"
+HEARTBEAT_FRESH_S = 120
+# Case 3's last heartbeat: at most one beat (60 s) before the reboot is asked
+# for, and none after the control plane stops early in the shutdown.
+POWER_CUT_BEFORE_S = 70
+POWER_CUT_AFTER_REBOOT_S = 60
 # The journal of the boot that shut down: finalize's stop, ostree's own error,
 # and when the EFI partition's automount on /boot went (the race, in
 # docs/build-records/2026-11-11-case1-finalize-race.md).
@@ -682,6 +695,39 @@ def wait_until(predicate, timeout: float, interval: float = 5, clock=time.monoto
 
 
 # Every check main runs; the drill passes only if each of them passed.
+def boot_causes(text: str) -> list:
+    """The boot-cause record's entries in order; a line that does not read is skipped."""
+    entries = []
+    for line in (text or "").splitlines():
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(entry, dict) and isinstance(entry.get("cause"), str):
+            entries.append(entry)
+    return entries
+
+
+def causes(entries) -> list:
+    return [e["cause"] for e in entries]
+
+
+def update_then_rollback(entries) -> bool:
+    """Case 1's boots: the update applied, and the last boot rolled back."""
+    names = causes(entries)
+    return len(names) >= 2 and names[-1] == "rolled-back" and "update-applied" in names[:-1]
+
+
+def dated(entry, low: int, high: int) -> bool:
+    t = entry.get("last_alive")
+    return isinstance(t, int) and not isinstance(t, bool) and low <= t <= high
+
+
+def fresh_heartbeat(text: str, now, within: int = HEARTBEAT_FRESH_S) -> bool:
+    return (now is not None and re.fullmatch(r"[0-9]{1,12}\n?", text or "") is not None
+            and abs(now - int(text)) <= within)
+
+
 EXPECTED = frozenset({"first boot", "the containers range at the first boot", "case 1, a failing update",
                       "case 2b, finalize fails", "case 3, a power cut during the update",
                       "the containers range after reboots", "the containers range",
@@ -710,7 +756,12 @@ EXPECTED = frozenset({"first boot", "the containers range at the first boot", "c
                       "the new name only, after a restart",
                       # 5c.4b-2:
                       "the node suggests the first free name",
-                      "a named node is not renamed again"})
+                      "a named node is not renamed again",
+                      # docs/build-records/2026-11-19-boot-cause-record.md:
+                      "the boot cause at the first boot",
+                      "the boot cause after an update and its rollback",
+                      "the boot cause after a clean shutdown, the update not applied",
+                      "the boot cause after a power cut, with its time"})
 
 
 def verdict(results, error) -> int:
@@ -831,6 +882,24 @@ class Drill:
                    "booted %s; %s" % (self.installed, "; ".join("%s: %s" % kv for kv in checks.items())))
         self.vm("echo 'vm-drill marker' > %s && sync" % MARKER)
         self.subid_first_boot()
+
+    def boot_causes_now(self) -> list:
+        return boot_causes(self.vm("cat %s" % BOOT_CAUSES, check=False) or "")
+
+    def vm_time(self):
+        out = (self.vm("date +%s", check=False) or "").strip()
+        return int(out) if re.fullmatch(r"[0-9]{1,12}", out) else None
+
+    def boot_cause_first_boot(self) -> None:
+        entries = self.boot_causes_now()
+        active = (self.vm("systemctl is-active rikuri-boot-cause.service", check=False) or "").strip() == "active"
+        now = self.vm_time()
+        beat = self.vm("cat %s" % HEARTBEAT, check=False) or ""
+        fresh = fresh_heartbeat(beat, now)
+        self.keep("01-boot-cause.out", "\n".join([json.dumps(entries, indent=1), beat, str(now)]))
+        self.check("the boot cause at the first boot", causes(entries) == ["first-boot"] and active and fresh,
+                   "recorded: %s; the unit active: %s; the heartbeat fresh: %s (%r at %s)"
+                   % (causes(entries), active, fresh, beat.strip(), now))
 
     def boot_automount(self) -> None:
         """The image's mask holds on the running node: systemd loads
@@ -1439,6 +1508,13 @@ class Drill:
     def switch(self, name: str) -> None:
         self.vm("bootc switch --transport containers-storage localhost/rikuri-os:%s" % name, timeout=900)
 
+    def boot_cause_case1(self, before: int) -> None:
+        """After case1, which ends on the boot it waited for: the record since `before`."""
+        entries = self.boot_causes_now()[before:]
+        self.keep("02-case1-boot-cause.out", json.dumps(entries, indent=1))
+        self.check("the boot cause after an update and its rollback", update_then_rollback(entries),
+                   "recorded since the update was staged: %s" % causes(entries))
+
     def case1(self) -> None:
         self.switch("broken")
         old = self.reboot()
@@ -1502,10 +1578,15 @@ class Drill:
 
     def case2b(self) -> None:
         lines = self.record_lines()
+        before = len(self.boot_causes_now())
         self.switch("a")
         self.set_dropin(FINALIZE_FAILS)
         old = self.reboot()
         self.wait_up(old_boot=old)
+        entries = self.boot_causes_now()[before:]
+        self.keep("03-case2b-boot-cause.out", json.dumps(entries, indent=1))
+        self.check("the boot cause after a clean shutdown, the update not applied", causes(entries) == ["clean"],
+                   "recorded for the shutdown whose finalize failed: %s" % causes(entries))
         self.never_applied("case 2b, finalize fails", "03-case2b", lines)
 
     def serial_text(self) -> str:
@@ -1514,9 +1595,11 @@ class Drill:
 
     def case3(self) -> None:
         lines = self.record_lines()
+        before = len(self.boot_causes_now())
         self.switch("b")
         self.set_dropin(FINALIZE_HOLDS)
         offset = len(self.serial_text())
+        asked = self.vm_time()
         self.reboot()
         # Deterministic: the trigger has stopped in this shutdown, and finalize,
         # ordered after it, is held by the drop-in's sleep; cut within the hold.
@@ -1528,6 +1611,13 @@ class Drill:
         self.kill_vm()
         self.start_vm()
         self.wait_up(timeout=900)
+        entries = self.boot_causes_now()[before:]
+        self.keep("04-case3-boot-cause.out", json.dumps(entries, indent=1) + "\nreboot asked at %s\n" % asked)
+        on_time = (asked is not None and len(entries) == 1
+                   and dated(entries[0], asked - POWER_CUT_BEFORE_S, asked + POWER_CUT_AFTER_REBOOT_S))
+        self.check("the boot cause after a power cut, with its time", causes(entries) == ["power-cut"] and on_time,
+                   "recorded: %s; last alive %s, the reboot asked for at %s"
+                   % (causes(entries), entries[0].get("last_alive") if entries else None, asked))
         self.never_applied("case 3, a power cut during the update", "04-case3", lines)
 
     # --- 2c: the node's own update command and the signature policy --------
@@ -1610,14 +1700,18 @@ def main(argv=None) -> int:
     try:
         drill.install()
         drill.first_boot()
+        drill.boot_cause_first_boot()
         drill.boot_automount()
         drill.control_plane()
         drill.setup_pages()
         drill.owner_pages()
         drill.setup_hub()
         drill.load_variants()
-        for case in (drill.case1, drill.case2b, drill.case3):
-            case()
+        before = len(drill.boot_causes_now())
+        drill.case1()
+        drill.boot_cause_case1(before)
+        drill.case2b()
+        drill.case3()
         # After the cases, so that a --userns=auto run (which may add ID-mapped
         # layers to the storage bootc switch reads) cannot touch them; run 2
         # (40057729110) saw case 1's update fail to finalize with it before.
