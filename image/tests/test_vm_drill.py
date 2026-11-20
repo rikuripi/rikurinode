@@ -553,6 +553,11 @@ class RollbackRule(unittest.TestCase):
     def test_the_hold_runs_after_the_node_s_pre_check_and_ends_with_its_flag(self):
         # systemd merges drop-ins of every folder in name order: the node's is 50-, this 99-.
         self.assertTrue(d.HOLD_DROPIN.startswith("/etc/systemd/system/greenboot-healthcheck.service.d/99-"))
+        # N1: the hold before the node's pre-check, whose drop-in is 50-rikuri-unapplied-update.conf.
+        self.assertTrue(d.HOLD_FIRST_DROPIN.startswith("/etc/systemd/system/greenboot-healthcheck.service.d/10-"))
+        dropins = os.listdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "rootfs", "usr",
+                                          "lib", "systemd", "system", "greenboot-healthcheck.service.d"))
+        self.assertTrue(dropins and all(os.path.basename(d.HOLD_FIRST_DROPIN) < x for x in dropins), dropins)
         self.assertTrue(d.HOLD_FLAG.startswith("/var/"))
         self.assertEqual(d.GREENBOOT_HOLDS, "[Service]\nExecStartPre=/usr/bin/sh -c 'while [ -e "
                          "/var/lib/rikuri-drill/hold-greenboot ]; do sleep 1; done'\n")

@@ -1,0 +1,26 @@
+# Count an applied update's boots from its first (D22's rollback rule, plan
+# section 4.1). Its stop arms greenboot's boot_counter for the update noted at
+# greenboot's trigger, only once ostree's finalize has applied it: ordered
+# before ostree-finalize-staged.service, as rikuri-boot-cause.service is, it
+# stops after finalize, and before /boot is unmounted (After=boot.mount, an
+# order only: a Requires= could pull in the EFI partition's generated mount,
+# bootc #2402). An update never applied arms nothing, so it can never roll
+# back the image the node keeps (N1). The remount of /boot for its one write
+# stays in its own mount namespace.
+# Record: docs/build-records/2026-11-20-boot-counter-armed-after-finalize.md
+[Unit]
+Description=Count an applied update's boots from its first
+DefaultDependencies=no
+After=local-fs.target boot.mount
+Before=final.target ostree-finalize-staged.service
+Conflicts=final.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+PrivateMounts=yes
+ExecStart=/usr/bin/true
+ExecStop=-/usr/libexec/rikuri/greenboot-unapplied-update arm
+
+[Install]
+WantedBy=sysinit.target

@@ -15,11 +15,14 @@ checks, failing on any miss:
                to the installed image, with a /var marker intact.
   case 2b      an update whose finalize fails leaves the node on the installed
                image, with the check's "was never applied" in the journal,
-               also after one more reboot (D22, greenboot-rs #219).
+               also after one more reboot (D22, greenboot-rs #219), and no
+               boot counter at its first boot, read with greenboot's check
+               held before the node's pre-check (N1, 2026-11-20).
   case 3       a power cut after greenboot armed its trigger and before the
                update was written does the same. The cut is deterministic: a
                drop-in in /run holds finalize's stop (greenboot's trigger stops
-               first), and the VM is killed during the hold.
+               first), and the VM is killed during the hold; no boot counter
+               at the next boot either.
   containers range
                rikuri-containers-subid added Podman's range to /etc/subuid and
                /etc/subgid in the first boot, and greenboot's wanted check of
@@ -86,6 +89,10 @@ MARKER = "/var/drill-marker"
 HOLD_FLAG = "/var/lib/rikuri-drill/hold-greenboot"
 HOLD_DROPIN = "/etc/systemd/system/greenboot-healthcheck.service.d/99-drill-hold.conf"
 GREENBOOT_HOLDS = "[Service]\nExecStartPre=/usr/bin/sh -c 'while [ -e %s ]; do sleep 1; done'\n" % HOLD_FLAG
+# N1 (2026-11-20): the same hold, before the node's pre-check (`10-` sorts
+# before its `50-`), to read the counter GRUB left at an unchanged image's first
+# boot, before the pre-check clears anything.
+HOLD_FIRST_DROPIN = "/etc/systemd/system/greenboot-healthcheck.service.d/10-drill-hold-first.conf"
 GIVEN_BACK = "/var/lib/rikuri/boot-count-given-back"
 # The node's pre-check has decided this boot: its last line on each path.
 RULE_DECIDED = re.compile(r"rikuri-unapplied-update: .*(it counts|this boot counts|nothing to give back|"
@@ -1708,7 +1715,28 @@ class Drill:
     def record_lines(self) -> int:
         return len((self.vm("cat /var/lib/rikuri/update-not-applied", check=False) or "").splitlines())
 
-    def never_applied(self, case: str, name: str, lines_before: int) -> None:
+    def hold_first(self) -> None:
+        """Hold greenboot's check at the next boot, before the node's pre-check."""
+        self.write_in_vm(HOLD_FLAG, "")
+        self.write_in_vm(HOLD_FIRST_DROPIN, GREENBOOT_HOLDS)
+        self.vm("systemctl daemon-reload")
+
+    def counter_held_first(self, old_boot):
+        """At the boot after old_boot, held before the node's pre-check: boot_counter
+        as GRUB left it (None: unset), then the hold released and removed."""
+        wait_until(lambda: (lambda b: b if b and b != old_boot else None)(self.boot_id()),
+                   timeout=900, what="the VM to boot and answer on SSH")
+        wait_until(lambda: (self.vm("systemctl show -p ActiveState --value greenboot-healthcheck.service",
+                                    check=False) or "").strip() == "activating",
+                   timeout=300, what="greenboot's check to start, held before the node's pre-check")
+        counter = boot_counter(self.vm("grub2-editenv /boot/grub2/grubenv list", check=False) or "")
+        self.vm("rm -f %s" % HOLD_FLAG)
+        return counter
+
+    def release_first(self) -> None:
+        self.vm("rm -f %s && systemctl daemon-reload" % HOLD_FIRST_DROPIN)
+
+    def never_applied(self, case: str, name: str, lines_before: int, first=None) -> None:
         digest = self.booted_digest()
         journal = self.journal("-b")
         grubenv = self.vm("grub2-editenv /boot/grub2/grubenv list", check=False) or ""
@@ -1721,12 +1749,15 @@ class Drill:
         after = self.booted_digest()
         still = after is not None and after == self.installed[1]
         no_counter = boot_counter(grubenv) is None
+        # N1: never armed, so GRUB never counted the image the node kept.
+        never_armed = first is None
         self.check(case, stays and still and NEVER_APPLIED in journal
-                   and "greenboot_next_deployment_id" not in grubenv and no_counter and new_line,
+                   and "greenboot_next_deployment_id" not in grubenv and no_counter and never_armed and new_line,
                    "on the installed image: %s, after one more reboot: %s; 'never applied' logged: %s; "
-                   "trigger cleared: %s; no boot counter left: %s; a new record line: %s"
+                   "trigger cleared: %s; no boot counter at its first boot: %s (%s); no boot counter left: %s; "
+                   "a new record line: %s"
                    % (stays, still, NEVER_APPLIED in journal, "greenboot_next_deployment_id" not in grubenv,
-                      no_counter, new_line))
+                      never_armed, first, no_counter, new_line))
 
     def write_in_vm(self, path: str, text: str) -> None:
         p = subprocess.run(ssh_argv(self.key, PORT, "mkdir -p %s && cat > %s" % (os.path.dirname(path), path)),
@@ -1743,13 +1774,16 @@ class Drill:
         before = len(self.boot_causes_now())
         self.switch("a")
         self.set_dropin(FINALIZE_FAILS)
+        self.hold_first()
         old = self.reboot()
+        first = self.counter_held_first(old)
         self.wait_up(old_boot=old)
+        self.release_first()
         entries = self.boot_causes_now()[before:]
         self.keep("03-case2b-boot-cause.out", json.dumps(entries, indent=1))
         self.check("the boot cause after a clean shutdown, the update not applied", causes(entries) == ["clean"],
                    "recorded for the shutdown whose finalize failed: %s" % causes(entries))
-        self.never_applied("case 2b, finalize fails", "03-case2b", lines)
+        self.never_applied("case 2b, finalize fails", "03-case2b", lines, first)
 
     def serial_text(self) -> str:
         serial = os.path.join(self.workdir, "serial-%d.log" % self.starts)
@@ -1760,9 +1794,10 @@ class Drill:
         before = len(self.boot_causes_now())
         self.switch("b")
         self.set_dropin(FINALIZE_HOLDS)
+        self.hold_first()
         offset = len(self.serial_text())
         asked = self.vm_time()
-        self.reboot()
+        old = self.reboot()
         # Deterministic: the trigger has stopped in this shutdown, and finalize,
         # ordered after it, is held by the drop-in's sleep; cut within the hold.
         wait_until(lambda: trigger_stopped(self.serial_text(), offset), timeout=POWER_CUT_AFTER_S * 4,
@@ -1772,7 +1807,9 @@ class Drill:
                  "cutting the power")
         self.kill_vm()
         self.start_vm()
+        first = self.counter_held_first(old)
         self.wait_up(timeout=900)
+        self.release_first()
         entries = self.boot_causes_now()[before:]
         self.keep("04-case3-boot-cause.out", json.dumps(entries, indent=1) + "\nreboot asked at %s\n" % asked)
         on_time = (asked is not None and len(entries) == 1
@@ -1783,7 +1820,7 @@ class Drill:
         # Here, while the power cut is still the last restart: never_applied
         # reboots cleanly (CI run 44665429544).
         self.boot_cause_told()
-        self.never_applied("case 3, a power cut during the update", "04-case3", lines)
+        self.never_applied("case 3, a power cut during the update", "04-case3", lines, first)
 
     # --- 2c: the node's own update command and the signature policy --------
     def serve_registry(self, binary: str) -> None:
