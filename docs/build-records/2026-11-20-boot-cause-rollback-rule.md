@@ -5,7 +5,7 @@
 | **Date** | 2026-11-20 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/boot-cause-rollback-rule`, from `main` at `0b50fa3`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | this Task Contract |
+| **Commits** | `59ac4d7` (contract), `9c29ef2` (change), and this record |
 | **Status** | IN PROGRESS |
 | **Change type** | feature (OS image: greenboot's counter armed for every new image and told which boots not to count; the VM drill) |
 
@@ -55,3 +55,30 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Change, `9c29ef2`
+
+- `greenboot-unapplied-update` keeps its name and its boot-time run, and gains the rule's other parts:
+  - `arm` (a new `ExecStop=-` after greenboot's own in the trigger's drop-in): when `bootc status --json`'s staged image digest, read as greenboot reads it, is the one the trigger names, `grub2-editenv set boot_counter=3 boot_success=0`. Nothing staged, another digest, or anything unreadable: nothing armed. `/boot` is remounted around the write as before (the trigger's unit has `PrivateMounts=yes`).
+  - never applied: the one `unset` now names the trigger and `boot_counter`.
+  - `decide` gives the on-trial state its own action, `trial`; then `give_back`: a counter from 0 to 2, this boot's history entry (its boot id the kernel's) a `power-cut`, the entry before not: `boot_counter + 1`, appended to `/var/lib/rikuri/boot-count-given-back`. Every other state, and anything unreadable, is logged and changes nothing. With no counter set, the history is not read.
+  - `MAX_BOOT_ATTEMPTS = 3`, held equal to `greenboot.conf`'s by a test.
+- `check_image_root.py`: the trigger's drop-in must hold `ExecStop=-/usr/libexec/rikuri/greenboot-unapplied-update arm` under `[Service]`.
+- The VM drill:
+  - Case 1 gains "the new image counted from its first boot": the record since the switch is exactly `update-applied, clean, clean, rolled-back` (four boots of the broken image would be greenboot counting alone).
+  - Case 1b, "power cuts in a new image's trial": the broken image again, greenboot's check held after the node's pre-check by an `/etc` drop-in (`99-`, after the node's `50-`) while a flag in `/var` exists; the counter read at each held boot after the heartbeat is written, then the power cut; expected `2, 2, 1`, one give-back recorded `[1, 2]`, the record `update-applied, power-cut, power-cut, clean, rolled-back`, and the rollback.
+  - Cases 2b and 3 also require no `boot_counter` left.
+- `greenboot.conf`'s comments, plan §4.1 (three boots; the rule's dated clarification) and D22's row, `README.md`.
+- On the Mac: every changed Python file parses; `git diff --check` clean. The tests run in CI.
+
+### Test changes, with their reasons
+
+- `test_greenboot_unapplied_update.py`:
+  - `decide`'s two on-trial tests expect `trial`, not `none`: the state has its own action now, as the give-back acts on it; they still assert no clear.
+  - The never-applied tests expect `unset greenboot_next_deployment_id boot_counter`: the counter armed for the update is cleared with its trigger.
+  - `Run.runner` answers `set` and `bootc status --json` as well, for the new classes; new classes `MaxAttempts`, `StagedDigest`, `Arm`, `GiveBack`, `RunOnTrial`.
+- `test_check_image_root.py`: a new test for the arm line.
+- `test_vm_drill.py`:
+  - `BootCauseCase1.run_with` unpacks two results, as `boot_cause_case1` now makes two checks, and keeps asserting the first's name; a new test for the count.
+  - The order test gains `drill.case1_power_cuts()` between case 1's record and case 2b (stricter).
+  - `Verdict`'s expected set gains the two new checks, as each earlier check did; new class `RollbackRule`.
