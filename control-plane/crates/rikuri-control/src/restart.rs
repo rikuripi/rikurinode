@@ -228,6 +228,7 @@ mod tests {
     #[test]
     fn the_file_is_read_as_the_boot_service_writes_it() {
         let scratch = Scratch::new();
+        fs::create_dir_all(&scratch.0).unwrap();
         let path = scratch.0.join("this-boot.json");
         assert_eq!(
             read(&path),
@@ -247,6 +248,7 @@ mod tests {
     #[test]
     fn a_link_a_folder_or_a_long_file_is_refused() {
         let scratch = Scratch::new();
+        fs::create_dir_all(&scratch.0).unwrap();
         let target = scratch.0.join("elsewhere.json");
         fs::write(&target, entry("clean", 2000, Some(1500))).unwrap();
         let link = scratch.0.join("link.json");

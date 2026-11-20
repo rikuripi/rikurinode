@@ -533,9 +533,11 @@ class BootCauseTold(unittest.TestCase):
         self.artifacts = tempfile.mkdtemp(prefix="vm-drill-")
         self.addCleanup(shutil.rmtree, self.artifacts)
 
-    def http(self, status, restart):
+    def http(self, status, restart, newline="\n"):
+        # Repair 1: as vm() returns it. It reads ssh's output as text, whose
+        # universal newlines turn the reply's CRLF into LF (CI run 44665429544).
         body = json.dumps({"overall": "unknown", "restart": restart})
-        return "HTTP/1.1 %d OK\r\ncontent-type: application/json\r\n\r\n%s" % (status, body)
+        return "HTTP/1.1 %d OK%scontent-type: application/json%s%s%s" % (status, newline, newline, newline, body)
 
     def told(self):
         e = self.ENTRY
@@ -572,6 +574,12 @@ class BootCauseTold(unittest.TestCase):
         ok, detail = self.run_with()
         self.assertTrue(ok, detail)
 
+    def test_the_reply_reads_with_either_line_ending(self):
+        for newline in ("\n", "\r\n"):
+            with self.subTest(newline=newline):
+                ok, detail = self.run_with(**{d.STATUS_COMMAND: self.http(200, self.told(), newline)})
+                self.assertTrue(ok, detail)
+
     def test_a_restart_the_node_could_not_read_fails(self):
         self.assertFalse(self.run_with(**{d.STATUS_COMMAND: self.http(200, None)})[0])
 
@@ -601,11 +609,17 @@ class BootCauseTold(unittest.TestCase):
                 self.assertFalse(ok)
                 self.assertIn("never answered 200", detail)
 
-    def test_main_tells_right_after_case3(self):
+    def test_case3_tells_right_after_the_power_cut(self):
+        # Repair 1: case 3 reboots once more, cleanly, after the power cut
+        # (never_applied); from main the owner would be told that clean boot
+        # (CI run 44665429544), so the check runs inside case 3, before it.
         import inspect
-        source = inspect.getsource(d.main)
-        self.assertLess(source.index("drill.case3()"), source.index("drill.boot_cause_told()"))
-        self.assertLess(source.index("drill.boot_cause_told()"), source.index("drill.subid_after_reboots()"))
+        case3 = inspect.getsource(d.Drill.case3)
+        cut = case3.index('self.check("the boot cause after a power cut, with its time"')
+        told = case3.index("self.boot_cause_told()")
+        self.assertLess(cut, told)
+        self.assertLess(told, case3.index("self.never_applied("))
+        self.assertNotIn("boot_cause_told", inspect.getsource(d.main))
 
 
 class Verdict(unittest.TestCase):

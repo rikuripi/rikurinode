@@ -65,3 +65,17 @@
 - `hub.rs` and `status.rs` unit tests: the calls gain the new argument (`None`), and the hub's JSON test expects `"restart":null`: the reply has a new field; each gains a case with a restart.
 - `owner.spec.ts`: `HUB` gains a restart (its type requires it). The existing unread-hub cases each gain the node's restart, so that each still fails only for its own reason rather than also for a missing restart; ten new unread cases for the restart.
 - `test_vm_drill.py`: `Verdict`'s expected set gains the new check, as each earlier check did.
+
+### CI on `3061277`: Fail (repair 1)
+
+- `Full gate (Ubuntu)`, [run 44665429198](https://github.com/rikuripi/rikurinode/actions/runs/44665429198): `restart::tests::the_file_is_read_as_the_boot_service_writes_it` and `a_link_a_folder_or_a_long_file_is_refused` panicked, `Os { code: 2, kind: NotFound }`: `Scratch::new()` names a folder and does not make it (`StateDir::open` does), and these two tests write into it directly. The UI tests and the Python tests passed.
+- `Rust mutants (changed lines)`, [run 44665429444](https://github.com/rikuripi/rikurinode/actions/runs/44665429444): exit 4, the same two tests failing in the baseline, so no mutant ran.
+- The VM drill, [run 44665429544](https://github.com/rikuripi/rikurinode/actions/runs/44665429544): every check passed but the new one: `FAIL the owner is told the power cut, with its time: the history's last: {... "cause": "clean" ...}; this boot's file: {... the same ...}; /api/status's restart: null`. Two causes, from the drill's evidence (`04-case3-told.out`: the file, then "(no answer)"):
+  1. `vm()` reads ssh's output as text, whose universal newlines turn the reply's CRLF into LF; `parse_http` found the status line but not the blank line before the body, so the body read empty. The stand-in fed CRLF, which `vm()` never returns. The control plane was not shown to fail: its answer was never read.
+  2. From `main`, the check ran after case 3's last, clean reboot (`never_applied`), so the last restart was that one, correctly `clean`; this boot's file said so.
+
+## Repair 1
+
+- **Test change, with its reason:** the two `restart.rs` tests make their folder (`fs::create_dir_all`), as every test that writes into a `Scratch` directly must.
+- **Red tests, for the drill's defect:** `BootCauseTold`'s stand-in answers as `vm()` does, with LF (and a test for both endings); `test_case3_tells_right_after_the_power_cut` replaces `test_main_tells_right_after_case3`, whose placement was the defect.
+- **The fix, its own commit:** the reply is read with either line ending; `boot_cause_told` runs in case 3, right after the power cut's record check and before its clean reboot.
