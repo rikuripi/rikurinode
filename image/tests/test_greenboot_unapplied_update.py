@@ -12,6 +12,7 @@ import importlib.machinery
 import importlib.util
 import json
 import os
+import shutil
 import tempfile
 import unittest
 
@@ -351,65 +352,211 @@ class StagedDigest(unittest.TestCase):
                 self.assertIsNone(m.staged_digest(text))
 
 
-class Arm(unittest.TestCase):
-    """arm(), at the shutdown greenboot sets its trigger in."""
+FINALIZE_SHOW = ["/usr/bin/systemctl", "show",
+                 "--property=ActiveState,Result,ActiveEnterTimestampMonotonic,InactiveEnterTimestampMonotonic",
+                 "ostree-finalize-staged.service"]
+
+
+def finalize(active="inactive", result="success", entered=1500000, left=9000000):
+    return ("ActiveState=%s\nResult=%s\nActiveEnterTimestampMonotonic=%s\nInactiveEnterTimestampMonotonic=%s\n"
+            % (active, result, entered, left))
+
+
+class Note(unittest.TestCase):
+    """note(), at the shutdown greenboot sets its trigger in, before ostree's
+    finalize: the staged update noted in /run, and nothing armed yet (N1,
+    docs/build-records/2026-11-20-boot-counter-armed-after-finalize.md)."""
 
     # Run's fixtures, not its tests.
     setUp, tearDown, runner, status = Run.setUp, Run.tearDown, Run.runner, Run.status
 
-    def arm(self, run, mountinfo=MI_RW):
-        return m.arm(run=run, mountinfo=lambda: mountinfo)
+    def note(self, run):
+        self.path = os.path.join(self.tmp.name, "run", "rikuri-boot-counter", "staged")
+        return m.note(run=run, note_path=self.path)
 
-    def sets(self):
-        return [c for c in self.calls if len(c) > 2 and c[2] == "set"]
+    def noted(self):
+        if not os.path.exists(self.path):
+            return None
+        with open(self.path) as f:
+            return f.read()
 
-    def test_arms_the_counter_for_the_staged_update(self):
+    def writes(self):
+        return [c for c in self.calls if len(c) > 2 and c[:2] == [m.GRUB2_EDITENV, m.GRUBENV] and c[2] != "list"]
+
+    def test_the_note_is_in_run(self):
+        self.assertEqual(m.NOTE, "/run/rikuri-boot-counter/staged")
+
+    def test_notes_the_staged_update_and_arms_nothing(self):
         run = self.runner("greenboot_next_deployment_id=%s\nboot_success=1\n" % NEW, "unused", bootc_json=bootc(NEW))
-        self.assertEqual(self.arm(run), 0)
-        self.assertEqual(self.sets(), [[m.GRUB2_EDITENV, m.GRUBENV, "set", "boot_counter=3", "boot_success=0"]])
+        self.assertEqual(self.note(run), 0)
+        self.assertEqual(self.noted(), NEW + "\n")
+        self.assertEqual(self.writes(), [])
+        self.assertNotIn([m.MOUNT, "-o", "remount,rw", "/boot"], self.calls)
 
-    def test_read_only_boot_is_remounted_around_the_arm(self):
-        run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, "unused", bootc_json=bootc(NEW))
-        self.assertEqual(self.arm(run, MI_RO), 0)
-        self.assertEqual(self.calls[-3:], [[m.MOUNT, "-o", "remount,rw", "/boot"],
-                                           [m.GRUB2_EDITENV, m.GRUBENV, "set", "boot_counter=3", "boot_success=0"],
-                                           [m.MOUNT, "-o", "remount,bind,ro", "/boot"]])
-
-    def test_a_restart_during_the_trial_arms_nothing(self):
+    def test_a_restart_during_the_trial_notes_nothing(self):
         # Nothing staged: the trigger is the update on trial; a reset would let it retry for ever.
         run = self.runner("greenboot_next_deployment_id=%s\nboot_counter=1\n" % NEW, "unused", bootc_json=bootc(None))
-        self.assertEqual(self.arm(run), 0)
-        self.assertEqual(self.sets(), [])
+        self.assertEqual(self.note(run), 0)
+        self.assertIsNone(self.noted())
+        self.assertEqual(self.writes(), [])
 
-    def test_no_trigger_arms_nothing_and_reads_no_status(self):
+    def test_no_trigger_notes_nothing_and_reads_no_status(self):
         run = self.runner("boot_success=1\n", "unused", bootc_json=bootc(NEW))
-        self.assertEqual(self.arm(run), 0)
-        self.assertEqual(self.sets(), [])
+        self.assertEqual(self.note(run), 0)
+        self.assertIsNone(self.noted())
         self.assertNotIn([m.BOOTC, "status", "--json"], self.calls)
 
-    def test_a_trigger_for_another_update_arms_nothing(self):
+    def test_a_trigger_for_another_update_notes_nothing(self):
         run = self.runner("greenboot_next_deployment_id=%s\n" % OLDER, "unused", bootc_json=bootc(NEW))
-        self.assertEqual(self.arm(run), 0)
-        self.assertEqual(self.sets(), [])
+        self.assertEqual(self.note(run), 0)
+        self.assertIsNone(self.noted())
 
-    def test_unreadable_status_arms_nothing(self):
+    def test_unreadable_status_notes_nothing(self):
         for json_text, rc in (("not json", 0), (bootc(NEW), 1)):
             with self.subTest(rc=rc):
                 self.calls.clear()
                 run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, "unused", bootc_json=json_text, bootc_rc=rc)
+                self.assertEqual(self.note(run), 0)
+                self.assertIsNone(self.noted())
+
+    def test_unreadable_grubenv_notes_nothing(self):
+        def run(argv):
+            self.calls.append(argv)
+            return 1, "greenboot_next_deployment_id=%s\n" % NEW
+        self.assertEqual(self.note(run), 1)
+        self.assertEqual(len(self.calls), 1)
+        self.assertIsNone(self.noted())
+
+    def test_a_note_that_cannot_be_written_says_so(self):
+        run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, "unused", bootc_json=bootc(NEW))
+        with open(os.path.join(self.tmp.name, "run"), "w") as f:   # a file where the folder goes
+            f.write("")
+        self.assertEqual(self.note(run), 1)
+
+
+class Finalized(unittest.TestCase):
+    """finalized(): ostree's finalize ran in this boot and its stop succeeded."""
+
+    def test_a_finalize_that_applied_the_update(self):
+        self.assertTrue(m.finalized(finalize()))
+
+    def test_anything_else_is_not(self):
+        for text, why in ((finalize(active="failed", result="exit-code"), "its stop failed"),
+                          (finalize(result="exit-code"), "a result other than success"),
+                          (finalize(result="timeout"), "its stop timed out"),
+                          (finalize(active="active"), "still active: its stop has not run"),
+                          (finalize(active="deactivating"), "its stop still running"),
+                          (finalize(entered=0, left=0), "never started in this boot: nothing was staged"),
+                          (finalize(entered=0), "never active in this boot"),
+                          (finalize(left=1500000), "not stopped since it started"),
+                          (finalize(left=1000), "stopped before it started"),
+                          (finalize(entered="x"), "a time not a number"),
+                          (finalize(left=""), "a time missing"),
+                          (finalize().replace("Result=success\n", ""), "no result"),
+                          (finalize() + "Result=exit-code\n", "a key twice"),
+                          ("", "nothing read")):
+            with self.subTest(why=why):
+                self.assertFalse(m.finalized(text))
+
+
+class Arm(unittest.TestCase):
+    """arm(), at the shutdown's end, after ostree's finalize: the counter armed
+    only for the noted update, and only once it is applied (N1)."""
+
+    # Run's fixtures, not its tests.
+    setUp, tearDown, status = Run.setUp, Run.tearDown, Run.status
+
+    def runner(self, grubenv_text, finalize_text=None, finalize_rc=0, **kw):
+        inner = Run.runner(self, grubenv_text, "unused", **kw)
+
+        def run(argv):
+            if argv == FINALIZE_SHOW:
+                self.calls.append(argv)
+                return finalize_rc, finalize() if finalize_text is None else finalize_text
+            return inner(argv)
+        return run
+
+    def arm(self, run, noted=NEW + "\n", mountinfo=MI_RW):
+        path = os.path.join(self.tmp.name, "run", "rikuri-boot-counter", "staged")
+        if noted is not None:
+            os.makedirs(os.path.dirname(path))
+            with open(path, "w") as f:
+                f.write(noted)
+        return m.arm(run=run, mountinfo=lambda: mountinfo, note_path=path)
+
+    def sets(self):
+        return [c for c in self.calls if len(c) > 2 and c[2] == "set"]
+
+    def test_arms_the_counter_for_the_applied_update(self):
+        run = self.runner("greenboot_next_deployment_id=%s\nboot_success=1\n" % NEW)
+        self.assertEqual(self.arm(run), 0)
+        self.assertIn(FINALIZE_SHOW, self.calls)
+        self.assertEqual(self.sets(), [[m.GRUB2_EDITENV, m.GRUBENV, "set", "boot_counter=3", "boot_success=0"]])
+
+    def test_read_only_boot_is_remounted_around_the_arm(self):
+        run = self.runner("greenboot_next_deployment_id=%s\n" % NEW)
+        self.assertEqual(self.arm(run, mountinfo=MI_RO), 0)
+        self.assertEqual(self.calls[-3:], [[m.MOUNT, "-o", "remount,rw", "/boot"],
+                                           [m.GRUB2_EDITENV, m.GRUBENV, "set", "boot_counter=3", "boot_success=0"],
+                                           [m.MOUNT, "-o", "remount,bind,ro", "/boot"]])
+
+    def test_an_update_never_applied_arms_nothing(self):
+        # N1: finalize failed, so the node boots the image it kept; a counter
+        # armed now would count that image's boots and could roll it back.
+        for text, why in ((finalize(active="failed", result="exit-code"), "finalize failed"),
+                          (finalize(entered=0, left=0), "finalize never ran"),
+                          (finalize(active="active"), "finalize has not stopped")):
+            with self.subTest(why=why):
+                self.calls.clear()
+                run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, finalize_text=text)
+                path = os.path.join(self.tmp.name, "run")
+                if os.path.exists(path):
+                    shutil.rmtree(path)
                 self.assertEqual(self.arm(run), 0)
                 self.assertEqual(self.sets(), [])
+
+    def test_unreadable_finalize_arms_nothing(self):
+        run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, finalize_rc=1)
+        self.assertEqual(self.arm(run), 0)
+        self.assertEqual(self.sets(), [])
+
+    def test_nothing_noted_arms_nothing_and_reads_nothing_more(self):
+        # A restart during the trial: nothing staged, so nothing noted.
+        run = self.runner("greenboot_next_deployment_id=%s\nboot_counter=1\n" % NEW)
+        self.assertEqual(self.arm(run, noted=None), 0)
+        self.assertEqual(self.calls, [])
+
+    def test_a_note_not_a_digest_arms_nothing(self):
+        for noted in ("", "sha256:short\n", NEW, NEW + "\n" + NEW + "\n", " " + NEW + "\n", NEW.upper() + "\n"):
+            with self.subTest(noted=noted):
+                self.calls.clear()
+                path = os.path.join(self.tmp.name, "run")
+                if os.path.exists(path):
+                    shutil.rmtree(path)
+                run = self.runner("greenboot_next_deployment_id=%s\n" % NEW)
+                self.assertEqual(self.arm(run, noted=noted), 0)
+                self.assertEqual(self.sets(), [])
+
+    def test_a_trigger_for_another_update_arms_nothing(self):
+        run = self.runner("greenboot_next_deployment_id=%s\n" % OLDER)
+        self.assertEqual(self.arm(run), 0)
+        self.assertEqual(self.sets(), [])
+
+    def test_no_trigger_arms_nothing(self):
+        run = self.runner("boot_success=1\n")
+        self.assertEqual(self.arm(run), 0)
+        self.assertEqual(self.sets(), [])
 
     def test_unreadable_grubenv_arms_nothing(self):
         def run(argv):
             self.calls.append(argv)
             return 1, "greenboot_next_deployment_id=%s\n" % NEW
-        self.assertEqual(m.arm(run=run, mountinfo=lambda: MI_RW), 1)
-        self.assertEqual(len(self.calls), 1)
+        self.assertEqual(self.arm(run), 1)
+        self.assertEqual(self.sets(), [])
 
     def test_a_failed_arm_says_so(self):
-        run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, "unused", bootc_json=bootc(NEW), set_rc=1)
-        self.assertEqual(self.arm(run, MI_RO), 1)
+        run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, set_rc=1)
+        self.assertEqual(self.arm(run, mountinfo=MI_RO), 1)
         self.assertEqual(self.calls[-1], [m.MOUNT, "-o", "remount,bind,ro", "/boot"])
 
 

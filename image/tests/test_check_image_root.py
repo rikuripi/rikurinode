@@ -40,6 +40,10 @@ SUBID_WANTED = "usr/lib/greenboot/check/wanted.d/50-rikuri-containers-subid"
 BOOT_CAUSE_CHECK = "usr/libexec/rikuri/boot-cause"
 BOOT_CAUSE_UNIT = "usr/lib/systemd/system/rikuri-boot-cause.service"
 BOOT_CAUSE_WANTS = "usr/lib/systemd/system/sysinit.target.wants/rikuri-boot-cause.service"
+# greenboot's counter armed after ostree's finalize
+# (docs/build-records/2026-11-20-boot-counter-armed-after-finalize.md).
+BOOT_COUNTER_UNIT = "usr/lib/systemd/system/rikuri-boot-counter.service"
+BOOT_COUNTER_WANTS = "usr/lib/systemd/system/sysinit.target.wants/rikuri-boot-counter.service"
 CONTAINERS_USER = "usr/lib/sysusers.d/rikuri-containers.conf"
 # The signature policy for the node's OS image (docs/build-records/2026-10-25-signature-policy.md).
 POLICY = "etc/containers/policy.json"
@@ -175,6 +179,9 @@ class Root:
             self.write_bytes(BOOT_CAUSE_CHECK, shipped_file(BOOT_CAUSE_CHECK), mode=0o755)
             self.write_bytes(BOOT_CAUSE_UNIT, shipped_file(BOOT_CAUSE_UNIT))
             self.link(BOOT_CAUSE_WANTS, "../rikuri-boot-cause.service")
+        if os.path.exists(os.path.join(HERE, "..", "rootfs", BOOT_COUNTER_UNIT)):
+            self.write_bytes(BOOT_COUNTER_UNIT, shipped_file(BOOT_COUNTER_UNIT))
+            self.link(BOOT_COUNTER_WANTS, "../rikuri-boot-counter.service")
         if os.path.exists(os.path.join(HERE, "..", "rootfs", CONTAINERS_USER)):
             self.write_bytes(CONTAINERS_USER, shipped_file(CONTAINERS_USER))
         for rel in SIGNATURE_FILES:
@@ -356,19 +363,22 @@ class CheckImageRoot(unittest.TestCase):
                 self.root.write(TRIGGER_DROPIN, text)
                 self.assertFinds(TRIGGER_DROPIN + ": does not order")
 
-    def test_trigger_dropin_must_arm_the_counter(self):
-        # D22's rollback rule (2026-11-20): greenboot counts only from a first failed check.
+    def test_trigger_dropin_must_note_the_staged_update(self):
+        # D22's rollback rule (2026-11-20): the staged update noted after greenboot's
+        # trigger, and the counter armed only after finalize, by rikuri-boot-counter (N1).
         order = "[Unit]\nConflicts=final.target\nBefore=final.target\n"
-        arm = "ExecStop=-/usr/libexec/rikuri/greenboot-unapplied-update arm\n"
-        for text, why in ((order, "no arm line"),
-                          (order + "[Service]\n" + arm.replace("=-/", "=/"), "without '-'"),
-                          (order + arm, "under [Unit]"),
-                          (order + "[Service]\n# " + arm, "commented out"),
-                          (order + "[Service]\n" + arm.replace(" arm", ""), "the boot-time check, not arm")):
+        note = "ExecStop=-/usr/libexec/rikuri/greenboot-unapplied-update note\n"
+        for text, why in ((order, "no note line"),
+                          (order + "[Service]\n" + note.replace("=-/", "=/"), "without '-'"),
+                          (order + note, "under [Unit]"),
+                          (order + "[Service]\n# " + note, "commented out"),
+                          (order + "[Service]\n" + note.replace(" note", ""), "the boot-time check, not note"),
+                          (order + "[Service]\n" + note.replace(" note", " arm"), "armed before finalize (N1)"),
+                          (order + "[Service]\n" + note + note.replace(" note", " arm"), "armed there as well")):
             with self.subTest(why=why):
                 self.root.write(TRIGGER_DROPIN, text)
-                self.assertFinds(TRIGGER_DROPIN + ": does not arm")
-        self.root.write(TRIGGER_DROPIN, order + "[Service]\n" + arm)
+                self.assertFinds(TRIGGER_DROPIN + ": ")
+        self.root.write(TRIGGER_DROPIN, order + "[Service]\n" + note)
         self.assertEqual([f for f in self.root.check() if TRIGGER_DROPIN in f], [])
 
     # --- the user `containers` exists (shadow-utils 4.20, Fedora 45) ----------
@@ -1774,6 +1784,72 @@ class BootAutomount(unittest.TestCase):
                     self.root.remove(rel)
                     self.assertTrue(hit, found)
 
+
+
+class BootCounter(unittest.TestCase):
+    """The unit that arms greenboot's counter after ostree's finalize, and its
+    link (D22, N1: docs/build-records/2026-11-20-boot-counter-armed-after-finalize.md)."""
+
+    def setUp(self):
+        self.root = Root()
+        self.addCleanup(self.root.cleanup)
+
+    def finds(self, fragment):
+        found = cir.check_boot_counter(self.root.path)
+        self.assertTrue(any(fragment in f for f in found),
+                        "expected a finding with %r, got %r" % (fragment, found))
+
+    def test_the_shipped_files_pass(self):
+        self.assertEqual(cir.check_boot_counter(self.root.path), [])
+        self.assertEqual(self.root.check(), [])
+
+    def test_the_whole_check_runs_it(self):
+        self.root.remove(BOOT_COUNTER_UNIT)
+        self.assertTrue(any(BOOT_COUNTER_UNIT + ": missing" in f for f in self.root.check()))
+
+    def test_the_unit_missing(self):
+        self.root.remove(BOOT_COUNTER_UNIT)
+        self.finds(BOOT_COUNTER_UNIT + ": missing")
+
+    def test_the_link_missing_or_elsewhere(self):
+        self.root.remove(BOOT_COUNTER_WANTS)
+        self.finds(BOOT_COUNTER_WANTS + ": not a link")
+        self.root.link(BOOT_COUNTER_WANTS, "../rikuri-boot-cause.service")
+        self.finds(BOOT_COUNTER_WANTS + ": points to ../rikuri-boot-cause.service")
+        self.root.link(BOOT_COUNTER_WANTS, "/" + BOOT_COUNTER_UNIT)
+        self.assertEqual(cir.check_boot_counter(self.root.path), [])
+
+    def test_the_unit_is_a_closed_world(self):
+        good = shipped_file(BOOT_COUNTER_UNIT).decode("ascii")
+        arm = "ExecStop=-/usr/libexec/rikuri/greenboot-unapplied-update arm\n"
+        cases = (
+            (arm, "", "never armed"),
+            (arm, arm.replace("=-/", "=/"), "without '-'"),
+            (arm, arm.replace(" arm", " note"), "another mode"),
+            (arm, arm + "ExecStop=/bin/false\n", "a second stop command"),
+            ("Before=final.target ostree-finalize-staged.service", "Before=final.target",
+             "armed before ostree's finalize applies the update (N1)"),
+            ("Conflicts=final.target\n", "Conflicts=shutdown.target\n", "stopped before ostree's finalize"),
+            ("Conflicts=final.target\n", "", "never stopped, so never armed"),
+            ("RequiresMountsFor=/boot\n", "", "armed after /boot is unmounted"),
+            ("PrivateMounts=yes\n", "", "the remount of /boot outside its own namespace"),
+            ("DefaultDependencies=no\n", "DefaultDependencies=yes\n", "stopped with the default ordering"),
+            ("RemainAfterExit=yes\n", "", "inactive after its start, so no ExecStop"),
+            ("ExecStart=/usr/bin/true\n", "ExecStart=/bin/false\n", "another start command"),
+            ("Type=oneshot\n", "Type=oneshot\nExecStartPre=/bin/true\n", "a key the unit does not have"),
+            ("WantedBy=sysinit.target", "WantedBy=multi-user.target", "enabled for another target"),
+        )
+        for old, new, why in cases:
+            with self.subTest(why=why):
+                self.assertIn(old, good)
+                self.root.write_bytes(BOOT_COUNTER_UNIT, good.replace(old, new, 1).encode("utf-8"))
+                self.finds(BOOT_COUNTER_UNIT + ": ")
+
+    def test_an_override_is_a_finding(self):
+        for rel in ("etc/systemd/system/rikuri-boot-counter.service.d", "etc/systemd/system/rikuri-boot-counter.service"):
+            with self.subTest(rel=rel):
+                self.root.write(rel + "/50-x.conf" if rel.endswith(".d") else rel, "[Service]\nExecStop=\n")
+                self.finds(rel + ": overrides the unit")
 
 
 class BootCause(unittest.TestCase):
