@@ -106,3 +106,11 @@
 - **For I-1:** a test for the unreadable history (a folder, too long): `boot()` returns 0 and leaves the file. It passes on the current code; the gap was a missing test, not wrong behaviour, so it has no red.
 - **Test change, with its reason:** `Classify.test_no_heartbeat_from_the_last_boot_is_unknown` loses its second half (a heartbeat of 99 under a record of 100 was "unknown"); `test_a_heartbeat_counts_whatever_the_clock_says` replaces it, expecting `power-cut` at 99: with the heartbeat removed at each boot, its presence, not its value, ties it to the last boot, and a clock corrected back during that boot must not lose the date. `History.test_lines_that_do_not_read_are_counted_and_skipped` gains three lines (`heartbeat_seen` as a string, a bool, an int).
 - **Red tests first**, committed alone, to be seen failing in CI; the fix in its own commit.
+
+### Red, `6f2eb3a`: Fail, as expected
+
+- `Full gate (Ubuntu)`, [run 44650101501](https://github.com/rikuripi/rikurinode/actions/runs/44650101501): `FAILED (failures=6)`, exactly the six new or changed tests: `Classify.test_a_heartbeat_counts_whatever_the_clock_says`, `Classify.test_a_heartbeat_seen_at_the_last_boot_is_stale`, `History.test_lines_that_do_not_read_are_counted_and_skipped`, `BootAndShutdown.test_the_heartbeat_is_read_once_and_removed`, `BootAndShutdown.test_a_clock_behind_at_boot_does_not_reuse_an_old_heartbeat`, `BootAndShutdown.test_a_heartbeat_link_is_removed_not_followed`. `test_an_unreadable_history_records_nothing_and_never_fails` (I-1) passed, as the record expected.
+
+### Fix, `75784d3`
+
+- `boot-cause`: `classify` takes a heartbeat as the last boot's unless it equals the last entry's `heartbeat_seen`; the wall-clock comparison and its message are gone. `boot()` records `heartbeat_seen` and, after the history and the mark, unlinks the heartbeat (`remove_heartbeat`: a missing file is fine; any other error is logged, and `heartbeat_seen` keeps the next boot from reusing it). `parse_entry` refuses a `heartbeat_seen` that is not an integer. The docstring says so. No test changed in this commit.
