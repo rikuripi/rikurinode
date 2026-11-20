@@ -882,7 +882,6 @@ class Drill:
                    "booted %s; %s" % (self.installed, "; ".join("%s: %s" % kv for kv in checks.items())))
         self.vm("echo 'vm-drill marker' > %s && sync" % MARKER)
         self.subid_first_boot()
-        self.boot_cause_first_boot()
 
     def boot_causes_now(self) -> list:
         return boot_causes(self.vm("cat %s" % BOOT_CAUSES, check=False) or "")
@@ -1509,8 +1508,14 @@ class Drill:
     def switch(self, name: str) -> None:
         self.vm("bootc switch --transport containers-storage localhost/rikuri-os:%s" % name, timeout=900)
 
+    def boot_cause_case1(self, before: int) -> None:
+        """After case1, which ends on the boot it waited for: the record since `before`."""
+        entries = self.boot_causes_now()[before:]
+        self.keep("02-case1-boot-cause.out", json.dumps(entries, indent=1))
+        self.check("the boot cause after an update and its rollback", update_then_rollback(entries),
+                   "recorded since the update was staged: %s" % causes(entries))
+
     def case1(self) -> None:
-        before = len(self.boot_causes_now())
         self.switch("broken")
         old = self.reboot()
         # Four boots of the broken image, then greenboot's rollback and a boot
@@ -1519,10 +1524,6 @@ class Drill:
         outcome = wait_until(lambda: case1_outcome(self.status_quiet(), self.installed[1]),
                              timeout=600, interval=self.case1_poll, what="the broken update to roll back or be dropped")
         self.wait_up(old_boot=old)
-        entries = self.boot_causes_now()[before:]
-        self.keep("02-case1-boot-cause.out", json.dumps(entries, indent=1))
-        self.check("the boot cause after an update and its rollback", update_then_rollback(entries),
-                   "recorded since the update was staged: %s" % causes(entries))
         everything = self.journal("--grep 'greenboot|rikuri-unapplied-update|bootc'")
         if outcome == "never applied":
             finalize = self.journal(FINALIZE_JOURNAL)
@@ -1699,14 +1700,18 @@ def main(argv=None) -> int:
     try:
         drill.install()
         drill.first_boot()
+        drill.boot_cause_first_boot()
         drill.boot_automount()
         drill.control_plane()
         drill.setup_pages()
         drill.owner_pages()
         drill.setup_hub()
         drill.load_variants()
-        for case in (drill.case1, drill.case2b, drill.case3):
-            case()
+        before = len(drill.boot_causes_now())
+        drill.case1()
+        drill.boot_cause_case1(before)
+        drill.case2b()
+        drill.case3()
         # After the cases, so that a --userns=auto run (which may add ID-mapped
         # layers to the storage bootc switch reads) cannot touch them; run 2
         # (40057729110) saw case 1's update fail to finalize with it before.

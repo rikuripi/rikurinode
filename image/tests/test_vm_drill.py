@@ -490,6 +490,38 @@ class BootCauseFirstBoot(unittest.TestCase):
                 self.assertFalse(self.run_with(**over)[1])
 
 
+class BootCauseCase1(unittest.TestCase):
+    def setUp(self):
+        self.artifacts = tempfile.mkdtemp(prefix="vm-drill-")
+        self.addCleanup(shutil.rmtree, self.artifacts)
+
+    def run_with(self, names, before=1):
+        text = "".join(json.dumps({"cause": n}) + "\n" for n in names)
+        drill = BootCauseDrill(self.artifacts, {"cat " + d.BOOT_CAUSES: text})
+        drill.boot_cause_case1(before)
+        [(case, ok, detail)] = drill.results
+        self.assertEqual(case, "the boot cause after an update and its rollback")
+        return ok, detail
+
+    def test_only_the_boots_since_the_update_count(self):
+        ok, detail = self.run_with(["first-boot", "update-applied", "clean", "rolled-back"])
+        self.assertTrue(ok, detail)
+        self.assertEqual(detail, "recorded since the update was staged: ['update-applied', 'clean', 'rolled-back']")
+        self.assertFalse(self.run_with(["update-applied", "rolled-back"], before=1)[0], "the update came before")
+        self.assertFalse(self.run_with(["first-boot", "update-applied", "clean"])[0])
+
+    def test_main_reads_the_record_right_after_its_step(self):
+        # Repair 1: the checks run from main, beside first_boot and case1, whose
+        # own stand-ins answer only their own commands.
+        import inspect
+        source = inspect.getsource(d.main)
+        order = ["drill.first_boot()", "drill.boot_cause_first_boot()", "drill.boot_automount()",
+                 "before = len(drill.boot_causes_now())", "drill.case1()", "drill.boot_cause_case1(before)",
+                 "drill.case2b()", "drill.case3()"]
+        at = [source.index(step) for step in order]
+        self.assertEqual(at, sorted(at))
+
+
 class Verdict(unittest.TestCase):
     def setUp(self):
         self.ALL = [(case, True, "") for case in sorted(d.EXPECTED)]
