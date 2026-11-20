@@ -5,7 +5,7 @@
 | **Date** | 2026-11-19 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/boot-cause-record`, from `main` at `a162f46`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `203d6df` (contract), `e5fe093` (change), and this record |
+| **Commits** | `203d6df` (contract), `e5fe093` (change), `b683dec` (record), `d6bc5ad` (repair 1), and this record |
 | **Status** | IN PROGRESS |
 | **Change type** | feature (OS image: a root boot service; control plane: a heartbeat; the VM drill) |
 
@@ -67,3 +67,13 @@
 - `image/drill/vm_drill.py`: four new checks, in `EXPECTED`: "the boot cause at the first boot", "… after an update and its rollback", "… after a clean shutdown, the update not applied", "… after a power cut, with its time"; their helpers tested in `image/tests/test_vm_drill.py`, whose `Verdict` set gains the four names (a test change, with its reason: the drill gains these checks).
 - `docs/architecture/platform-plan.md`: the status paragraph, §4.1's "Why the node restarted" and D22's row, each with the dated clarification of 2026-11-19; earlier text unchanged.
 - **On the Mac:** every Python file parses (`python3 -I`, `ast`); `scripts/cargo.sh fmt --check` clean after `fmt`; `scripts/cargo.sh clippy --workspace --all-targets --locked --offline -- -D warnings` clean; `git diff --check` clean. No test ran here: the Python and Rust tests and the drill run in CI.
+
+### CI on `b683dec`: Fail (repair 1)
+
+- `Full gate (Ubuntu)`, [run 44645184378](https://github.com/rikuripi/rikurinode/actions/runs/44645184378): step 3 failed, `FAILED (failures=9)`, all in `test_vm_drill`: `FirstBoot` (3 tests, 6 failures with its subtests) with `AssertionError: unexpected VM command: 'cat /var/lib/rikuri/boot-cause/history.jsonl'`, and `Case1Steps` (3 tests) with `AssertionError: cat /var/lib/rikuri/boot-cause/history.jsonl`. The existing stand-ins of `first_boot` and `case1` answer only their own commands, and `Case1Steps` expects one result.
+- The rest of that run, on the same image: the VM drill, [run 44645184401](https://github.com/rikuripi/rikurinode/actions/runs/44645184401), **passed**, the four boot-cause checks included; the image build and check, and the USB install, passed; the Rust mutants run, [run 44645184281](https://github.com/rikuripi/rikurinode/actions/runs/44645184281), passed.
+
+### Repair 1, `d6bc5ad`
+
+- `image/drill/vm_drill.py`: the first-boot and case 1 boot-cause checks move out of `first_boot()` and `case1()` into `main()`, right after each (`boot_cause_first_boot()`, and `boot_cause_case1(before)` with `before` read before `case1()`). Neither step reboots after the boot it waited for, so each check reads the same record as before. Cases 2b and 3 keep theirs inline: they must read before `never_applied` reboots.
+- `image/tests/test_vm_drill.py`: two tests added (`BootCauseCase1`: the boots since the update, and the order of the calls in `main()`). No existing test changed.
