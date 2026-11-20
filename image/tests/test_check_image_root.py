@@ -356,6 +356,21 @@ class CheckImageRoot(unittest.TestCase):
                 self.root.write(TRIGGER_DROPIN, text)
                 self.assertFinds(TRIGGER_DROPIN + ": does not order")
 
+    def test_trigger_dropin_must_arm_the_counter(self):
+        # D22's rollback rule (2026-11-20): greenboot counts only from a first failed check.
+        order = "[Unit]\nConflicts=final.target\nBefore=final.target\n"
+        arm = "ExecStop=-/usr/libexec/rikuri/greenboot-unapplied-update arm\n"
+        for text, why in ((order, "no arm line"),
+                          (order + "[Service]\n" + arm.replace("=-/", "=/"), "without '-'"),
+                          (order + arm, "under [Unit]"),
+                          (order + "[Service]\n# " + arm, "commented out"),
+                          (order + "[Service]\n" + arm.replace(" arm", ""), "the boot-time check, not arm")):
+            with self.subTest(why=why):
+                self.root.write(TRIGGER_DROPIN, text)
+                self.assertFinds(TRIGGER_DROPIN + ": does not arm")
+        self.root.write(TRIGGER_DROPIN, order + "[Service]\n" + arm)
+        self.assertEqual([f for f in self.root.check() if TRIGGER_DROPIN in f], [])
+
     # --- the user `containers` exists (shadow-utils 4.20, Fedora 45) ----------
     # Probe f45-podman, run 3: without a user of that name, Podman 6.1.3 finds no range for
     # `containers` in /etc/subuid, and no UserNS=auto container starts.

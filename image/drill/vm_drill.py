@@ -80,6 +80,17 @@ FINALIZE_FAILS = "[Service]\nExecStop=\nExecStop=/usr/bin/false\n"
 FINALIZE_HOLDS = ("[Service]\nExecStop=\nExecStop=/usr/bin/sleep 240\n"
                   "ExecStop=/usr/bin/ostree admin finalize-staged\n")
 MARKER = "/var/drill-marker"
+# D22's rollback rule (2026-11-20): greenboot's check held, by a drop-in after
+# the node's own pre-check, while a flag in /var exists; /etc carries the
+# drop-in into the new deployment, and /var the flag.
+HOLD_FLAG = "/var/lib/rikuri-drill/hold-greenboot"
+HOLD_DROPIN = "/etc/systemd/system/greenboot-healthcheck.service.d/99-drill-hold.conf"
+GREENBOOT_HOLDS = "[Service]\nExecStartPre=/usr/bin/sh -c 'while [ -e %s ]; do sleep 1; done'\n" % HOLD_FLAG
+GIVEN_BACK = "/var/lib/rikuri/boot-count-given-back"
+# The node's pre-check has decided this boot: its last line on each path.
+RULE_DECIDED = re.compile(r"rikuri-unapplied-update: .*(it counts|this boot counts|nothing to give back|"
+                          r"nothing given back|recorded in /var/lib/rikuri/boot-count-given-back|FAILED|"
+                          r"could not be written)")
 NEVER_APPLIED = "was never applied"
 DNS_SKIPPED = "Skipping disabled script: 01_repository_dns_check.sh"
 PLATFORMS_SKIPPED = "Skipping disabled script: 01_update_platforms_check.sh"
@@ -738,6 +749,39 @@ def causes(entries) -> list:
     return [e["cause"] for e in entries]
 
 
+def boot_counter(grubenv: str):
+    """boot_counter's value in grub2-editenv's list, or None when it is not set."""
+    for line in (grubenv or "").splitlines():
+        if line.startswith("boot_counter="):
+            return line.split("=", 1)[1]
+    return None
+
+
+def counted_from_first_boot(entries) -> bool:
+    """Case 1's boots with the counter armed at the update's shutdown: three
+    boots of the broken image (its first, then greenboot's two restarts), then
+    the rollback; four when greenboot counts only from the first failure."""
+    return causes(entries) == ["update-applied", "clean", "clean", "rolled-back"]
+
+
+def power_cuts_counted(counters: list, given: str, entries) -> tuple:
+    """(ok, detail) for case 1b: the counter at each held boot (armed 3, so 2 at
+    the first; the first power cut given back, 2; the second in a row counted,
+    1), one give-back recorded, and the broken image still rolled back. Its
+    first boot is told `rolled-back`, not `update-applied`: case 1 booted the
+    same broken image, and the boot service names a deployment booted before
+    as one gone back to (boot-cause's `classify`)."""
+    lines = [line for line in (given or "").splitlines() if line.strip()]
+    try:
+        recorded = [json.loads(line).get("boot_counter") for line in lines]
+    except (ValueError, AttributeError):
+        recorded = None
+    ok = (counters == ["2", "2", "1"] and recorded == [[1, 2]]
+          and causes(entries) == ["rolled-back", "power-cut", "power-cut", "clean", "rolled-back"])
+    return ok, ("boot_counter at each held boot: %s; given back: %s; recorded: %s"
+                % (counters, recorded, causes(entries)))
+
+
 def update_then_rollback(entries) -> bool:
     """Case 1's boots: the update applied, and the last boot rolled back."""
     names = causes(entries)
@@ -807,6 +851,7 @@ EXPECTED = frozenset({"first boot", "the containers range at the first boot", "c
                       # docs/build-records/2026-11-19-boot-cause-record.md:
                       "the boot cause at the first boot",
                       "the boot cause after an update and its rollback",
+                      "the new image counted from its first boot", "case 1b, power cuts in a new image's trial",
                       "the boot cause after a clean shutdown, the update not applied",
                       "the boot cause after a power cut, with its time",
                       # docs/build-records/2026-11-19-boot-cause-sentence.md:
@@ -1586,13 +1631,57 @@ class Drill:
         self.keep("02-case1-boot-cause.out", json.dumps(entries, indent=1))
         self.check("the boot cause after an update and its rollback", update_then_rollback(entries),
                    "recorded since the update was staged: %s" % causes(entries))
+        self.check("the new image counted from its first boot", counted_from_first_boot(entries),
+                   "three boots of the broken image, then the rollback: %s" % causes(entries))
+
+    def held_boot(self, old_boot) -> str:
+        """The next boot, held before greenboot's check: the node's pre-check
+        has decided and the control plane has written a heartbeat. Returns
+        boot_counter as the pre-check left it."""
+        bid = wait_until(lambda: (lambda b: b if b and b != old_boot else None)(self.boot_id()),
+                         timeout=600, what="the VM to boot and answer on SSH")
+        wait_until(lambda: RULE_DECIDED.search(self.journal("-b -u greenboot-healthcheck")),
+                   timeout=300, what="the node's pre-check to decide this boot")
+        wait_until(lambda: (self.vm("cat %s" % HEARTBEAT, check=False) or "").strip(),
+                   timeout=180, what="the control plane's heartbeat")
+        self.held.append(bid)
+        return boot_counter(self.vm("grub2-editenv /boot/grub2/grubenv list", check=False) or "")
+
+    def case1_power_cuts(self) -> None:
+        """Case 1b: the broken update again, its greenboot check held; two
+        power cuts in its trial; the first given back, the second counted."""
+        before = len(self.boot_causes_now())
+        given_before = len((self.vm("cat %s" % GIVEN_BACK, check=False) or "").splitlines())
+        self.write_in_vm(HOLD_FLAG, "")
+        self.write_in_vm(HOLD_DROPIN, GREENBOOT_HOLDS)
+        self.vm("systemctl daemon-reload")
+        self.held = []
+        self.switch("broken")
+        counters = [self.held_boot(self.reboot())]
+        for _ in range(2):
+            self.kill_vm()
+            self.start_vm()
+            counters.append(self.held_boot(self.held[-1]))
+        self.vm("rm -f %s" % HOLD_FLAG)
+        outcome = wait_until(lambda: case1_outcome(self.status_quiet(), self.installed[1]),
+                             timeout=900, interval=self.case1_poll, what="the broken update to roll back")
+        self.wait_up(old_boot=self.held[-1])
+        self.vm("rm -f %s && systemctl daemon-reload" % HOLD_DROPIN)
+        entries = self.boot_causes_now()[before:]
+        given = "\n".join((self.vm("cat %s" % GIVEN_BACK, check=False) or "").splitlines()[given_before:])
+        self.keep("02-case1b.out", "\n".join([json.dumps(entries, indent=1), given, str(counters),
+                                              self.journal("--grep 'greenboot|rikuri-unapplied-update'")]))
+        ok, detail = power_cuts_counted(counters, given, entries)
+        self.check("case 1b, power cuts in a new image's trial", ok and outcome == "rolled back",
+                   "%s; %s" % (outcome, detail))
 
     def case1(self) -> None:
         self.switch("broken")
         old = self.reboot()
-        # Four boots of the broken image, then greenboot's rollback and a boot
-        # of the installed image; or, when finalize fails at the shutdown, the
-        # installed image at once with the update dropped.
+        # Three boots of the broken image, counted from its first (D22's rule,
+        # 2026-11-20), then greenboot's rollback and a boot of the installed
+        # image; or, when finalize fails at the shutdown, the installed image
+        # at once with the update dropped.
         outcome = wait_until(lambda: case1_outcome(self.status_quiet(), self.installed[1]),
                              timeout=600, interval=self.case1_poll, what="the broken update to roll back or be dropped")
         self.wait_up(old_boot=old)
@@ -1631,12 +1720,13 @@ class Drill:
         self.wait_up(old_boot=old)
         after = self.booted_digest()
         still = after is not None and after == self.installed[1]
+        no_counter = boot_counter(grubenv) is None
         self.check(case, stays and still and NEVER_APPLIED in journal
-                   and "greenboot_next_deployment_id" not in grubenv and new_line,
+                   and "greenboot_next_deployment_id" not in grubenv and no_counter and new_line,
                    "on the installed image: %s, after one more reboot: %s; 'never applied' logged: %s; "
-                   "trigger cleared: %s; a new record line: %s" % (stays, still, NEVER_APPLIED in journal,
-                                                                   "greenboot_next_deployment_id" not in grubenv,
-                                                                   new_line))
+                   "trigger cleared: %s; no boot counter left: %s; a new record line: %s"
+                   % (stays, still, NEVER_APPLIED in journal, "greenboot_next_deployment_id" not in grubenv,
+                      no_counter, new_line))
 
     def write_in_vm(self, path: str, text: str) -> None:
         p = subprocess.run(ssh_argv(self.key, PORT, "mkdir -p %s && cat > %s" % (os.path.dirname(path), path)),
@@ -1785,6 +1875,7 @@ def main(argv=None) -> int:
         before = len(drill.boot_causes_now())
         drill.case1()
         drill.boot_cause_case1(before)
+        drill.case1_power_cuts()
         drill.case2b()
         drill.case3()
         # After the cases, so that a --userns=auto run (which may add ID-mapped

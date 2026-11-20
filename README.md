@@ -38,6 +38,9 @@ and sign-out. From the hub the owner names the node: the first of
 their own. The hub also says in one sentence why the node last restarted and
 when (a clean shutdown, a power cut, an update applied or undone, a crash, or
 that it cannot tell), from a record a small boot service keeps on the node.
+A new image's boots count against it from its first, so one that never
+reaches its health checks is still rolled back, while a single power cut
+during its trial does not count.
 Its Bitcoin, Lightning and backup steps come with later updates.
 Nothing here is ready to run on a node. The
 [platform and architecture plan](docs/architecture/platform-plan.md) says how
