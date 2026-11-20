@@ -5,7 +5,7 @@
 | **Date** | 2026-11-19 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/boot-cause-record`, from `main` at `a162f46`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled in as they land) |
+| **Commits** | `203d6df` (contract), `e5fe093` (change), and this record |
 | **Status** | IN PROGRESS |
 | **Change type** | feature (OS image: a root boot service; control plane: a heartbeat; the VM drill) |
 
@@ -56,3 +56,14 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Change, `e5fe093`
+
+- `image/rootfs/usr/libexec/rikuri/boot-cause` (new, 0755): the boot and shutdown steps; `classify` is one pure function over the evidence; the heartbeat read with `O_NOFOLLOW`, as a regular file of at most 32 bytes of decimal digits; every write whole (synced file, rename, synced folder), 0644; the boot step exits 0 on any error.
+- `image/rootfs/usr/lib/systemd/system/rikuri-boot-cause.service` (new) and its `sysinit.target.wants` link: `DefaultDependencies=no`, `RequiresMountsFor=/var/lib/rikuri`, `After=local-fs.target systemd-pstore.service`, `Before=sysinit.target final.target ostree-finalize-staged.service`, `Conflicts=final.target`; oneshot, `RemainAfterExit=yes`, the boot step as `ExecStart`, the mark as `ExecStop`. The stop order follows ostree's own finalize unit: ordered before it, this unit stops after finalize's `ExecStop` has applied (or failed to apply) the update, and before `/var` is unmounted.
+- `image/check_image_root.py`: `BOOT_CAUSE_KEYS`, a closed world read by the existing `unit_problems`; the script present and executable; the link; every override path (`unit_overrides`). `image/tests/test_check_image_root.py`: the fixture root ships the three files; `BootCause` covers each finding.
+- `image/tests/test_boot_cause.py` (new): the readers (the heartbeat's link, FIFO, length and form; the mark; the history), pstore, the watchdog bit, the booted deployment from a fake `/sysroot`, the decision table and its precedence, whole boots and shutdowns in a temporary tree (first boot, clean, power cut, update applied, run twice in one boot, no boot id, the last 100 kept, file modes), and `main`.
+- `control-plane/crates/rikuri-control/src/heartbeat.rs` (new): `beat` and `keep`, with six tests; `main.rs` spawns `keep` beside the address follower, stopped by the same signal.
+- `image/drill/vm_drill.py`: four new checks, in `EXPECTED`: "the boot cause at the first boot", "… after an update and its rollback", "… after a clean shutdown, the update not applied", "… after a power cut, with its time"; their helpers tested in `image/tests/test_vm_drill.py`, whose `Verdict` set gains the four names (a test change, with its reason: the drill gains these checks).
+- `docs/architecture/platform-plan.md`: the status paragraph, §4.1's "Why the node restarted" and D22's row, each with the dated clarification of 2026-11-19; earlier text unchanged.
+- **On the Mac:** every Python file parses (`python3 -I`, `ast`); `scripts/cargo.sh fmt --check` clean after `fmt`; `scripts/cargo.sh clippy --workspace --all-targets --locked --offline -- -D warnings` clean; `git diff --check` clean. No test ran here: the Python and Rust tests and the drill run in CI.
