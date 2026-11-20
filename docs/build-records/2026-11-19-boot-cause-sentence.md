@@ -79,3 +79,16 @@
 - **Test change, with its reason:** the two `restart.rs` tests make their folder (`fs::create_dir_all`), as every test that writes into a `Scratch` directly must.
 - **Red tests, for the drill's defect:** `BootCauseTold`'s stand-in answers as `vm()` does, with LF (and a test for both endings); `test_case3_tells_right_after_the_power_cut` replaces `test_main_tells_right_after_case3`, whose placement was the defect.
 - **The fix, its own commit:** the reply is read with either line ending; `boot_cause_told` runs in case 3, right after the power cut's record check and before its clean reboot.
+
+### CI on `3223466` (red): Fail, as expected
+
+- `Full gate (Ubuntu)`, [run 44667205874](https://github.com/rikuripi/rikurinode/actions/runs/44667205874): the Python tests failed on the three new drill tests only: `test_passes` and `test_the_reply_reads_with_either_line_ending` (`newline='\n'`) with `/api/status's restart: null`, and `test_case3_tells_right_after_the_power_cut` (`substring not found`: no `boot_cause_told()` in `case3`). The gate stops there, so its Rust steps did not run.
+- `Rust mutants (changed lines)`, [run 44667205753](https://github.com/rikuripi/rikurinode/actions/runs/44667205753): the baseline passed this time (the reader's tests make their folder), and three mutants of `restart::read` were missed, hidden on `3061277` by the failing baseline:
+  - `|| !open.is_file()` → `&&`: the clause was redundant (the same device and inode as a regular file, once open, is that file), so no test could tell.
+  - `take(MAX + 1)` → `MAX - 1` and `MAX * 1`: the size from the metadata refused every long file first, so the read's own bound was never reached.
+- The VM drill, [run 44667205751](https://github.com/rikuripi/rikurinode/actions/runs/44667205751): as on `3061277`, the new check failed (the drill unchanged) and every other check passed.
+
+### Fix, its own commit
+
+- `vm_drill.py`: `status_now` turns the reply's line endings back to CRLF before `parse_http`, so it reads either ending; `boot_cause_told` runs in `case3`, after the power cut's record check and before `never_applied`'s clean reboot; `main` no longer calls it.
+- `restart.rs`: `read` drops the redundant `is_file` clause and the size from the metadata; `take(MAX + 1)` and the check after it are the one bound, which also holds for a file that grows once open. The existing tests (the long file, the file of exactly `MAX` bytes, every normal read) now kill all three mutants. No test changed.

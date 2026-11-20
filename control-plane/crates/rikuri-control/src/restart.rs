@@ -121,11 +121,10 @@ pub fn read(path: &Path) -> Result<LastRestart, String> {
     let open = file
         .metadata()
         .map_err(|e| format!("cannot be read: {e}"))?;
-    if (open.dev(), open.ino()) != (seen.dev(), seen.ino()) || !open.is_file() {
+    // The same inode is the same regular file. The size is bounded by the
+    // read itself, which also holds for a file that grows once open.
+    if (open.dev(), open.ino()) != (seen.dev(), seen.ino()) {
         return Err("changed while it was read".to_owned());
-    }
-    if open.len() > MAX {
-        return Err(format!("{} bytes, more than an entry", open.len()));
     }
     let mut bytes = Vec::new();
     file.take(MAX + 1)

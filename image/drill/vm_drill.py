@@ -938,8 +938,10 @@ class Drill:
     def status_now(self, tries: int = STATUS_TRIES, pause: float = STATUS_PAUSE_S):
         """/api/status's body from the node's loopback, or None if it never answered 200."""
         for i in range(tries):
-            out = self.vm(STATUS_COMMAND, check=False, timeout=60) or ""
-            status, body = parse_http(out.encode("utf-8", "replace"))
+            # vm() reads as text: universal newlines have turned the reply's
+            # CRLF into LF (CI run 44665429544). Read either ending.
+            out = (self.vm(STATUS_COMMAND, check=False, timeout=60) or "").replace("\r\n", "\n")
+            status, body = parse_http(out.replace("\n", "\r\n").encode("utf-8", "replace"))
             if status == 200:
                 return body.decode("utf-8", "replace")
             if i + 1 < tries:
@@ -947,7 +949,7 @@ class Drill:
         return None
 
     def boot_cause_told(self, pause: float = STATUS_PAUSE_S) -> None:
-        """Right after case 3: what the owner is told is the power cut, dated."""
+        """In case 3, before its clean reboot: what the owner is told is the power cut, dated."""
         history = self.boot_causes_now()
         this_boot = self.vm("cat %s" % THIS_BOOT, check=False) or ""
         body = self.status_now(pause=pause)
@@ -1688,6 +1690,9 @@ class Drill:
         self.check("the boot cause after a power cut, with its time", causes(entries) == ["power-cut"] and on_time,
                    "recorded: %s; last alive %s, the reboot asked for at %s"
                    % (causes(entries), entries[0].get("last_alive") if entries else None, asked))
+        # Here, while the power cut is still the last restart: never_applied
+        # reboots cleanly (CI run 44665429544).
+        self.boot_cause_told()
         self.never_applied("case 3, a power cut during the update", "04-case3", lines)
 
     # --- 2c: the node's own update command and the signature policy --------
@@ -1782,7 +1787,6 @@ def main(argv=None) -> int:
         drill.boot_cause_case1(before)
         drill.case2b()
         drill.case3()
-        drill.boot_cause_told()
         # After the cases, so that a --userns=auto run (which may add ID-mapped
         # layers to the storage bootc switch reads) cannot touch them; run 2
         # (40057729110) saw case 1's update fail to finalize with it before.
