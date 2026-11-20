@@ -538,7 +538,7 @@ class BootCauseCase1(unittest.TestCase):
 class RollbackRule(unittest.TestCase):
     """D22's rollback rule in the drill (docs/build-records/2026-11-20-boot-cause-rollback-rule.md)."""
 
-    CAUSES = ["update-applied", "power-cut", "power-cut", "clean", "rolled-back"]
+    CAUSES = ["rolled-back", "power-cut", "power-cut", "clean", "rolled-back"]
 
     def entries(self, names):
         return [{"cause": n} for n in names]
@@ -584,7 +584,7 @@ class RollbackRule(unittest.TestCase):
                 (["2", "2", "1"], given + given, self.CAUSES, "two records"),
                 (["2", "2", "1"], "not json\n", self.CAUSES, "a record not JSON"),
                 (["2", "2", "1"], given, self.CAUSES[:3] + ["clean", "clean", "rolled-back"], "one boot more"),
-                (["2", "2", "1"], given, ["update-applied", "power-cut", "unknown", "clean", "rolled-back"],
+                (["2", "2", "1"], given, ["rolled-back", "power-cut", "unknown", "clean", "rolled-back"],
                  "the second cut not a power cut")):
             with self.subTest(why=why):
                 self.assertFalse(d.power_cuts_counted(counters, given_text, self.entries(names))[0])

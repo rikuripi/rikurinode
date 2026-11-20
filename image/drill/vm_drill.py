@@ -767,14 +767,17 @@ def counted_from_first_boot(entries) -> bool:
 def power_cuts_counted(counters: list, given: str, entries) -> tuple:
     """(ok, detail) for case 1b: the counter at each held boot (armed 3, so 2 at
     the first; the first power cut given back, 2; the second in a row counted,
-    1), one give-back recorded, and the broken image still rolled back."""
+    1), one give-back recorded, and the broken image still rolled back. Its
+    first boot is told `rolled-back`, not `update-applied`: case 1 booted the
+    same broken image, and the boot service names a deployment booted before
+    as one gone back to (boot-cause's `classify`)."""
     lines = [line for line in (given or "").splitlines() if line.strip()]
     try:
         recorded = [json.loads(line).get("boot_counter") for line in lines]
     except (ValueError, AttributeError):
         recorded = None
     ok = (counters == ["2", "2", "1"] and recorded == [[1, 2]]
-          and causes(entries) == ["update-applied", "power-cut", "power-cut", "clean", "rolled-back"])
+          and causes(entries) == ["rolled-back", "power-cut", "power-cut", "clean", "rolled-back"])
     return ok, ("boot_counter at each held boot: %s; given back: %s; recorded: %s"
                 % (counters, recorded, causes(entries)))
 

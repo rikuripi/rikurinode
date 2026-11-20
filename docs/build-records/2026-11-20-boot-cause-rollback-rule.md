@@ -82,3 +82,16 @@
   - `BootCauseCase1.run_with` unpacks two results, as `boot_cause_case1` now makes two checks, and keeps asserting the first's name; a new test for the count.
   - The order test gains `drill.case1_power_cuts()` between case 1's record and case 2b (stricter).
   - `Verdict`'s expected set gains the two new checks, as each earlier check did; new class `RollbackRule`.
+
+### CI on `831c1b4`: Fail (repair cycle 1 of 2)
+
+- Full gate (Ubuntu): Pass. Build and check the OS image: Pass. USB installer: Pass. VM drill: **Fail**, one check ([run 44693858296](https://github.com/rikuripi/rikurinode/actions/runs/44693858296/job/136146707526)):
+  - `case 1b, power cuts in a new image's trial | **Fail** | rolled back; boot_counter at each held boot: ['2', '2', '1']; given back: [[1, 2]]; recorded: ['rolled-back', 'power-cut', 'power-cut', 'clean', 'rolled-back']`
+  - Every other check Pass, among them "the new image counted from its first boot" (`update-applied, clean, clean, rolled-back`: three boots, not four) and cases 2b and 3 with "no boot counter left: True".
+- **Cause: the drill's expectation, not the rule.** The counters, the give-back and the rollback are exactly as designed. The first boot of case 1b is told `rolled-back`, because case 1b switches to the same broken image case 1 booted, and the boot service's `classify` names a deployment booted before as one gone back to (its documented order: `rolled-back` "the booted deployment differs from the last boot's, and was booted before it"). The rule does not read that entry's cause except as "not a power cut", which `rolled-back` is.
+- **Repair:** `power_cuts_counted` expects `rolled-back` first, with the reason in its docstring.
+- **Noted for the backlog, not in this task:** on a real node, an update to an image the node once ran (rare: a re-release of the same digest) would be told to the owner as an update undone. A wording question for the boot cause, not the rule.
+
+### Test changes in the repair, with their reasons
+
+- `test_vm_drill.py`, `RollbackRule.CAUSES` and the "second cut not a power cut" case: the first cause is `rolled-back`, as above; the check is still exact, so `update-applied` first now fails it, as would any other first cause.
