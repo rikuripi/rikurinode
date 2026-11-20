@@ -4,9 +4,9 @@
 |---|---|
 | **Date** | 2026-11-19 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
-| **Branch** | `stage1/boot-cause-sentence`, from `main` at `9b4bc2d`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `ea30d54` (contract), `113d082` (change), and this record |
-| **Status** | IN PROGRESS |
+| **Branch** | `stage1/boot-cause-sentence`, from `main` at `9b4bc2d`, merged as `ca76370` (#138); close-out on `stage1/boot-cause-sentence-close`, from `main` at `ca76370`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
+| **Commits** | `ea30d54` (contract), `113d082` (change), `3061277` (record); `3223466` (repair 1's red tests), `d6f5840` (repair 1's fix); and this close-out |
+| **Status** | DONE |
 | **Change type** | feature (OS image: the boot service names this boot's cause; control plane: reads it; setup pages: one sentence) |
 
 ## Intent: the owner's words
@@ -36,6 +36,7 @@
    - `image/rootfs/usr/libexec/rikuri/boot-cause` and `image/tests/test_boot_cause.py`: this boot's file in `/run`.
    - `control-plane/crates/rikuri-control/src/restart.rs` (new), `config.rs`, `boot.rs`, `http.rs`, `hub.rs`, `status.rs`, `lib.rs`, the integration tests (`tests/common`, `tests/hub_route.rs`), and the generated TypeScript types in `ui/src/generated/`.
    - `ui/src/lib/api.ts`, `ui/src/secure/Home.svelte`, `ui/src/i18n/en.json`, `ui/tests/owner.spec.ts`.
+   - Clarification at close-out (2026-11-20, the verifier's N1): the change also needed `ui/src/lib/restart.ts` (new, the page's reader and sentence) and `control-plane/crates/rikuri-control/tests/status_route.rs`; both were in the plan's design, not listed here.
    - `image/drill/vm_drill.py` and `image/tests/test_vm_drill.py`: after case 3's power cut, `/api/status` on the VM's loopback says `power-cut` with the history's times.
    - `docs/architecture/platform-plan.md` §4.1 and D22's row: a dated clarification (where the sentence is shown; the funds clause left out until proven); `README.md`'s status.
    - **Not included:** a status page; alerts; the rollback rule (task 3); any change to the control plane's unit or sandbox; the history's older entries on a page.
@@ -92,3 +93,28 @@
 
 - `vm_drill.py`: `status_now` turns the reply's line endings back to CRLF before `parse_http`, so it reads either ending; `boot_cause_told` runs in `case3`, after the power cut's record check and before `never_applied`'s clean reboot; `main` no longer calls it.
 - `restart.rs`: `read` drops the redundant `is_file` clause and the size from the metadata; `take(MAX + 1)` and the check after it are the one bound, which also holds for a file that grows once open. The existing tests (the long file, the file of exactly `MAX` bytes, every normal read) now kill all three mutants. No test changed.
+
+### CI on `d6f5840`: Pass
+
+- `Full gate (Ubuntu)`, [run 44685690054](https://github.com/rikuripi/rikurinode/actions/runs/44685690054): every step green; among them the reader's unit tests, `the_hub_says_why_the_node_restarted_as_the_boot_service_wrote_it`, `the_status_says_why_the_node_restarted`, and Playwright's sentence cases at phone, tablet and desktop widths.
+- The OS image, [run 44685690006](https://github.com/rikuripi/rikurinode/actions/runs/44685690006): built and checked; the VM drill and the USB install passed. The new check, on the real image: `PASS the owner is told the power cut, with its time`: the history's last, this boot's file and `/api/status` all `power-cut`, at 1795155444, last alive 1795155419.
+- `Rust mutants (changed lines)`, [run 44685689969](https://github.com/rikuripi/rikurinode/actions/runs/44685689969): 32 mutants, 16 caught, 0 missed, 16 unviable (each a type with no `Default`, or a `<` that does not compile).
+- Merged by the owner as `ca76370` (#138), at 06:20Z, before the verifier's pass ended; its tree equals `d6f5840`'s, the head the verifier checked.
+
+### The verifier, round 1, at `d6f5840`: PASS
+
+- The gate, the drill and the mutants as above; `fmt --check`, `clippy -D warnings` and `git diff --check` on the Mac. Local tests: **Not yet proven** here (`safe-run.sh` refused: no namespaces; `SAFE_RUN_ALLOW_NO_NAMESPACE` not set), so CI is the evidence.
+- The owner's two decisions honoured (no funds or data clause, pinned by "no claim the node cannot check"; the SetupHub and `/api/status`, no new page); the control plane's unit and sandbox unchanged; every test change has its reason.
+- **Hand mutations: Not yet proven by running**; worked through by reading. Caught, each by a named test: a link accepted, `deny_unknown_fields` dropped, a first boot with a time, a clean shutdown or power cut without one, the already-recorded branch's write skipped, the write's `try` dropped, a key or the mode changed, `parseRestart` or `parseHub` loosened, the drill comparing the cause only, the handlers passing `None`.
+- **Important: none.** Nits, for the backlog:
+  1. (N1) The Scope list left out two files: clarified above.
+  2. (N2) This record was not closed when the PR merged: closed here.
+  3. (N3) `restart::parse` reads an entry with no `last_alive` key as `None` (serde's default for an `Option`, even under `deny_unknown_fields`), where the design says "exact keys". The boot service always writes the key and the page's reader is exact, so nothing is shown wrongly.
+  4. (N4) The classifier never gives `unknown` a `last_alive`, yet the reader accepts one, so `restart.unknown.alive` can never be shown and `parse`'s comment overstates.
+  5. (N5) Three mutants survive: M1, writing this boot's file before the history (no test makes the history's write fail while `/run` stays writable; the design's "the file exists only if this boot was recorded" rests on the order alone); M2, the drill not comparing this boot's file's times; M3, `restart.ts` refusing a time of 0.
+
+## Outcome
+
+- **Status: DONE.** The signed-in owner sees on the SetupHub one sentence on why the node last restarted and when, in the browser's own time; `/api/status` carries the same cause and times; the VM drill proves it after a power cut on the real image. One repair cycle and one review round used.
+- **Backlog, not started:** the nits above; M1 is the one that holds a design claim, a candidate for its own small test task.
+- **Next (task 3 of 3, not started, only on the owner's word):** the rollback rule.
