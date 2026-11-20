@@ -4,7 +4,7 @@
 |---|---|
 | **Date** | 2026-11-19 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
-| **Branch** | `stage1/boot-cause-record`, from `main` at `a162f46`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
+| **Branch** | `stage1/boot-cause-record`, from `main` at `a162f46`, merged as `8b05fa0` (#135); repair 2 on `stage1/boot-cause-repair`, from `main` at `8b05fa0`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | `203d6df` (contract), `e5fe093` (change), `b683dec` (record), `d6bc5ad` (repair 1), and this record |
 | **Status** | IN PROGRESS |
 | **Change type** | feature (OS image: a root boot service; control plane: a heartbeat; the VM drill) |
@@ -47,7 +47,7 @@
    - `docs/architecture/platform-plan.md` §4.1 and D22's row: a dated clarification (2026-11-19): the root boot service works out the cause, the control plane writes the heartbeat and only reads the record, and a clean shutdown is shown by the shutdown mark.
    - **Not included:** the sentence to the owner (task 2); the rollback rule and greenboot (task 3); alerts; a shutdown reason written by the control plane or a UPS (nothing orders a shutdown yet); enabling the hardware watchdog; reading the record from the control plane.
 3. **Done when:**
-   - The image workflow's VM drill passes with the five boot-cause checks above, on this branch's image.
+   - The image workflow's VM drill passes with the four boot-cause checks above (corrected from "five" in repair 2: the unit and the heartbeat are part of the first), on this branch's image.
    - The full gate passes in CI: the image tests (`test_boot_cause`, `test_check_image_root`, `test_vm_drill`), the Rust steps (fmt, clippy, `cargo test` with the heartbeat's tests); the OS image builds and its check passes. The Rust mutants run reports no surviving mutant in `heartbeat.rs`.
    - **Not yet proven, by design:** a kernel crash and a watchdog reset are unit-tested only; the CI VM has no pstore backend or hardware watchdog. They are proven on the N150 (stage 1's drill).
    - No red commit: a new feature, not a defect fix.
@@ -77,3 +77,40 @@
 
 - `image/drill/vm_drill.py`: the first-boot and case 1 boot-cause checks move out of `first_boot()` and `case1()` into `main()`, right after each (`boot_cause_first_boot()`, and `boot_cause_case1(before)` with `before` read before `case1()`). Neither step reboots after the boot it waited for, so each check reads the same record as before. Cases 2b and 3 keep theirs inline: they must read before `never_applied` reboots.
 - `image/tests/test_vm_drill.py`: two tests added (`BootCauseCase1`: the boots since the update, and the order of the calls in `main()`). No existing test changed.
+
+### CI on `d75a425`: Pass
+
+- `Full gate (Ubuntu)`, [run 44647260197](https://github.com/rikuripi/rikurinode/actions/runs/44647260197): the image tests `Ran 609 tests … OK`; Rust `189 passed; 0 failed`.
+- The image workflow, [run 44647260762](https://github.com/rikuripi/rikurinode/actions/runs/44647260762), the VM drill on the real image:
+  - `PASS the boot cause at the first boot: recorded: ['first-boot']; the unit active: True; the heartbeat fresh: True ('1795135329' at 1795135339)`
+  - `PASS the boot cause after an update and its rollback: recorded since the update was staged: ['update-applied', 'clean', 'clean', 'clean', 'rolled-back']`
+  - `PASS the boot cause after a clean shutdown, the update not applied: recorded for the shutdown whose finalize failed: ['clean']`
+  - `PASS the boot cause after a power cut, with its time: recorded: ['power-cut']; last alive 1795135608, the reboot asked for at 1795135620`
+- Rust mutants, [run 44647260514](https://github.com/rikuripi/rikurinode/actions/runs/44647260514): `Found 2 mutants to test`, `2 mutants tested in 69s: 2 caught` (the bodies of `beat` and `keep`).
+- The owner merged #135 at `d75a425` (as `8b05fa0`, the same tree) before the verifier ran.
+
+### The verifier, round 1, at `d75a425`: FAIL
+
+- **I-1, Important:** in `boot()`, the branch for a history it cannot read (a folder, or over 4 MiB) returns 0, and no test reaches it; mutated to return 1 (in a scratch copy), `boot()` returned 1, and the unit would fail, so its next `ExecStop` (the mark) would not run. A surviving mutant in a recovery path.
+- **I-2, Important:** `classify` took a heartbeat as the last boot's when it was at least the last boot's record time, a wall-clock comparison. A clock behind at boot (a Pi 5 without an RTC battery, a dead CMOS battery) lets an older boot's heartbeat pass: boot N cut before the control plane's first beat, then boot N+1 records `power-cut` dated by boot N-1. Verbatim: `classify([e(A,1_790_000_000), e(B,1_700_000_000)], None, 1_790_050_000, [], [], img)` gives `('power-cut', 1790050000)`. The record claimed "a heartbeat from the last boot" without a check that proves it.
+- **Nits, for the backlog unless repair 2 takes them:**
+  1. §4.1 and the status paragraph of the plan were edited in place with "(clarified 2026-11-19)" inline; the change log above said "earlier text unchanged", which holds only for D22's row. **Corrected here:** D22's row keeps its earlier text and appends the clarification; §4.1 and the status paragraph were reworded in place, each marked with the date.
+  2. Surviving low-value mutants: `booted_deployment`'s `startswith` check (the regex refuses the same input); in `keep`, `biased;` and `set_missed_tick_behavior`. cargo-mutants made only 2 mutants for `heartbeat.rs`.
+  3. The heartbeat has no upper bound: the control plane's user can turn `unknown` into a dated `power-cut`, nothing more. `StateDir::write` syncs the file, not the folder, so after a cut the heartbeat may be one beat older.
+  4. A boot back into an image that ran earlier, by hand, is recorded `rolled-back`; a history over 4 MiB stops the record until repaired (only logged).
+  5. "Done when" says five drill checks; there are four (the unit and the heartbeat are part of the first). **Corrected here.**
+
+## Repair 2 (the verifier's I-1 and I-2)
+
+- **The fix, for I-2:** each boot removes the heartbeat it read, as it removes the shutdown mark, so a heartbeat found at boot was written by the boot that ended, whatever the clock says. Each entry keeps the value it read (`heartbeat_seen`), so a heartbeat whose removal failed is never used twice. The wall-clock comparison goes. The removal unlinks the name only: a link the control plane's user planted is removed, never followed.
+- **For I-1:** a test for the unreadable history (a folder, too long): `boot()` returns 0 and leaves the file. It passes on the current code; the gap was a missing test, not wrong behaviour, so it has no red.
+- **Test change, with its reason:** `Classify.test_no_heartbeat_from_the_last_boot_is_unknown` loses its second half (a heartbeat of 99 under a record of 100 was "unknown"); `test_a_heartbeat_counts_whatever_the_clock_says` replaces it, expecting `power-cut` at 99: with the heartbeat removed at each boot, its presence, not its value, ties it to the last boot, and a clock corrected back during that boot must not lose the date. `History.test_lines_that_do_not_read_are_counted_and_skipped` gains three lines (`heartbeat_seen` as a string, a bool, an int).
+- **Red tests first**, committed alone, to be seen failing in CI; the fix in its own commit.
+
+### Red, `6f2eb3a`: Fail, as expected
+
+- `Full gate (Ubuntu)`, [run 44650101501](https://github.com/rikuripi/rikurinode/actions/runs/44650101501): `FAILED (failures=6)`, exactly the six new or changed tests: `Classify.test_a_heartbeat_counts_whatever_the_clock_says`, `Classify.test_a_heartbeat_seen_at_the_last_boot_is_stale`, `History.test_lines_that_do_not_read_are_counted_and_skipped`, `BootAndShutdown.test_the_heartbeat_is_read_once_and_removed`, `BootAndShutdown.test_a_clock_behind_at_boot_does_not_reuse_an_old_heartbeat`, `BootAndShutdown.test_a_heartbeat_link_is_removed_not_followed`. `test_an_unreadable_history_records_nothing_and_never_fails` (I-1) passed, as the record expected.
+
+### Fix, `75784d3`
+
+- `boot-cause`: `classify` takes a heartbeat as the last boot's unless it equals the last entry's `heartbeat_seen`; the wall-clock comparison and its message are gone. `boot()` records `heartbeat_seen` and, after the history and the mark, unlinks the heartbeat (`remove_heartbeat`: a missing file is fine; any other error is logged, and `heartbeat_seen` keeps the next boot from reusing it). `parse_entry` refuses a `heartbeat_seen` that is not an integer. The docstring says so. No test changed in this commit.
