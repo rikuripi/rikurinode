@@ -41,11 +41,20 @@ and writes the same grubenv. greenboot 0.16.4 counts a new image's boots only
 from its first failed check (it sets boot_counter then); GRUB counts down only
 while boot_counter is set and boot_success=0. So:
 
-  `arm`, an ExecStop=- after greenboot's own in greenboot-set-rollback-trigger:
-    when the trigger names the deployment staged at this shutdown, set
+  `note`, an ExecStop=- after greenboot's own in greenboot-set-rollback-trigger,
+    before ostree's finalize: when the trigger names the deployment staged at
+    this shutdown, write its digest to NOTE in /run. Nothing staged (a restart
+    during the trial) notes nothing, so a countdown is never reset.
+
+  `arm`, the ExecStop=- of rikuri-boot-counter.service, which stops after
+    ostree's finalize: when NOTE names the update the trigger still names, and
+    finalize ran in this boot and stopped successfully, set
     boot_counter=MAX_BOOT_ATTEMPTS and boot_success=0, so GRUB counts every
     boot of the new image from its first, one that never reaches its checks
-    too. Nothing staged (a restart during the trial) arms nothing.
+    too. A finalize that failed, or a power cut before the arm, arms nothing:
+    the image the node kept is never counted, so an update never applied can
+    never roll it back (N1, docs/build-records/2026-11-20-boot-counter-armed-
+    after-finalize.md); greenboot then counts as it always has.
 
   at boot, never applied: the counter armed for that update is unset with
     the trigger, so the node that kept its image is as before.
@@ -74,6 +83,10 @@ GRUB2_EDITENV = "/usr/bin/grub2-editenv"
 GRUBENV = "/boot/grub2/grubenv"
 RPM_OSTREE = "/usr/bin/rpm-ostree"
 BOOTC = "/usr/bin/bootc"
+SYSTEMCTL = "/usr/bin/systemctl"
+FINALIZE_UNIT = "ostree-finalize-staged.service"
+FINALIZE_KEYS = ("ActiveState", "Result", "ActiveEnterTimestampMonotonic", "InactiveEnterTimestampMonotonic")
+NOTE = "/run/rikuri-boot-counter/staged"
 MOUNT = "/usr/bin/mount"
 MOUNTINFO = "/proc/self/mountinfo"
 TRIGGER = "greenboot_next_deployment_id"
@@ -228,29 +241,84 @@ def staged_digest(text: str):
     return digest if isinstance(digest, str) and IMAGE_DIGEST.fullmatch(digest) else None
 
 
-def arm(run=default_run, mountinfo=read_mountinfo) -> int:
-    """At shutdown, after greenboot set its trigger: count the staged update's boots from its first."""
+def note(run=default_run, note_path: str = NOTE) -> int:
+    """At shutdown, after greenboot set its trigger and before ostree's finalize:
+    note the staged update the trigger names. Nothing is armed here."""
+    rc, text = run([GRUB2_EDITENV, GRUBENV, "list"])
+    if rc != 0:
+        log("cannot read %s (exit %d); nothing noted, so nothing will be armed" % (GRUBENV, rc))
+        return 1
+    trigger = parse_grubenv(text).get(TRIGGER, "")
+    if not trigger:
+        log("no rollback trigger set; nothing to note")
+        return 0
+    rc, text = run([BOOTC, "status", "--json"])
+    staged = staged_digest(text) if rc == 0 else None
+    if staged is None:
+        log("nothing staged at this shutdown (or bootc status unreadable); nothing noted")
+        return 0
+    if staged != trigger:
+        log("the trigger %s does not name the staged update %s; nothing noted" % (trigger, staged))
+        return 0
+    try:
+        os.makedirs(os.path.dirname(note_path), mode=0o755, exist_ok=True)
+        with open(note_path, "w", encoding="ascii") as f:
+            f.write(staged + "\n")
+    except OSError as e:
+        log("FAILED to note update %s in %s: %s; nothing will be armed" % (staged, note_path, e))
+        return 1
+    log("noted update %s; its counter is armed once ostree has applied it" % staged)
+    return 0
+
+
+def finalized(text: str) -> bool:
+    """True when systemctl show's FINALIZE_KEYS say ostree's finalize started in
+    this boot and has since stopped successfully (its ExecStop applied the update)."""
+    seen = {}
+    for line in text.splitlines():
+        key, sep, value = line.partition("=")
+        if not sep or key not in FINALIZE_KEYS or key in seen:
+            return False
+        seen[key] = value
+    if set(seen) != set(FINALIZE_KEYS):
+        return False
+    entered, left = seen["ActiveEnterTimestampMonotonic"], seen["InactiveEnterTimestampMonotonic"]
+    if not (entered.isdigit() and left.isdigit()):
+        return False
+    return (seen["ActiveState"] == "inactive" and seen["Result"] == "success"
+            and 0 < int(entered) < int(left))
+
+
+def arm(run=default_run, mountinfo=read_mountinfo, note_path: str = NOTE) -> int:
+    """At shutdown, after ostree's finalize: count the noted update's boots from
+    its first, only once it is applied."""
+    noted = read_text(note_path)
+    if not noted:
+        log("no update noted at this shutdown; nothing to arm")
+        return 0
+    if not (noted.endswith("\n") and IMAGE_DIGEST.fullmatch(noted[:-1])):
+        log("unknown: the note %s is not one digest; nothing armed" % note_path)
+        return 0
+    digest = noted[:-1]
     rc, text = run([GRUB2_EDITENV, GRUBENV, "list"])
     if rc != 0:
         log("cannot read %s (exit %d); boots counted as greenboot counts them" % (GRUBENV, rc))
         return 1
     trigger = parse_grubenv(text).get(TRIGGER, "")
-    if not trigger:
-        log("no rollback trigger set; nothing to arm")
+    if trigger != digest:
+        log("the trigger %r no longer names the noted update %s; nothing armed" % (trigger, digest))
         return 0
-    rc, text = run([BOOTC, "status", "--json"])
-    staged = staged_digest(text) if rc == 0 else None
-    if staged is None:
-        log("nothing staged at this shutdown (or bootc status unreadable); nothing armed")
-        return 0
-    if staged != trigger:
-        log("the trigger %s does not name the staged update %s; nothing armed" % (trigger, staged))
+    rc, text = run([SYSTEMCTL, "show", "--property=" + ",".join(FINALIZE_KEYS), FINALIZE_UNIT])
+    if rc != 0 or not finalized(text):
+        log("ostree did not finish applying update %s (%s); nothing armed: the image the node keeps is "
+            "not counted" % (digest, " ".join(text.split()) if rc == 0 else "systemctl exit %d" % rc))
         return 0
     rc = edit_grubenv(run, mountinfo, ["set", "%s=%d" % (COUNTER, MAX_BOOT_ATTEMPTS), "%s=0" % SUCCESS],
                       "arm %s" % COUNTER, "boots counted as greenboot counts them")
     if rc != 0:
         return 1
-    log("armed %s=%d for update %s: every boot of it counts from its first" % (COUNTER, MAX_BOOT_ATTEMPTS, staged))
+    log("armed %s=%d for update %s, applied: every boot of it counts from its first"
+        % (COUNTER, MAX_BOOT_ATTEMPTS, digest))
     return 0
 
 
@@ -350,6 +418,8 @@ def give_back_now(run, mountinfo, trigger, counter, history, boot_id, now, path)
 
 
 if __name__ == "__main__":
+    if sys.argv[1:] == ["note"]:
+        sys.exit(note())
     if sys.argv[1:] == ["arm"]:
         sys.exit(arm())
     if sys.argv[1:]:

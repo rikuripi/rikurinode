@@ -97,6 +97,7 @@ TRIGGER_LINES = ("Conflicts=final.target", "Before=final.target")
 # staged update, so every boot of a new image counts from its first; with "-",
 # so a failure leaves greenboot's own behaviour.
 # Record: docs/build-records/2026-11-20-boot-cause-rollback-rule.md
+TRIGGER_NOTE_EXEC = "ExecStop=-/" + UNAPPLIED_CHECK + " note"
 TRIGGER_ARM_EXEC = "ExecStop=-/" + UNAPPLIED_CHECK + " arm"
 # bootc #2402: since ostree 2026.3, systemd-gpt-auto-generator's boot.automount
 # for the EFI partition sits in front of ostree's /boot; when it goes first at a
@@ -169,6 +170,23 @@ BOOT_CAUSE_KEYS = {"[Unit]": {"Description": None, "DefaultDependencies": "no",
                    "[Install]": {"WantedBy": "sysinit.target"}}
 BOOT_CAUSE_TARGETS = ("../rikuri-boot-cause.service", "/" + BOOT_CAUSE_UNIT)
 BOOT_CAUSE_OVERRIDES = unit_overrides(BOOT_CAUSE_UNIT)
+# greenboot's counter armed at the shutdown's end, after ostree's finalize, only
+# for an update applied (D22, N1). A closed world like SUBID_KEYS; ordered on
+# /boot's mount without requiring it (a Requires= could pull in the EFI
+# partition's generated mount, bootc #2402).
+# Record: docs/build-records/2026-11-20-boot-counter-armed-after-finalize.md
+BOOT_COUNTER_UNIT = "usr/lib/systemd/system/rikuri-boot-counter.service"
+BOOT_COUNTER_WANTS = "usr/lib/systemd/system/sysinit.target.wants/rikuri-boot-counter.service"
+BOOT_COUNTER_KEYS = {"[Unit]": {"Description": None, "DefaultDependencies": "no",
+                                "After": "local-fs.target boot.mount",
+                                "Before": "final.target ostree-finalize-staged.service",
+                                "Conflicts": "final.target"},
+                     "[Service]": {"Type": "oneshot", "RemainAfterExit": "yes", "PrivateMounts": "yes",
+                                   "ExecStart": "/usr/bin/true",
+                                   "ExecStop": "-/" + UNAPPLIED_CHECK + " arm"},
+                     "[Install]": {"WantedBy": "sysinit.target"}}
+BOOT_COUNTER_TARGETS = ("../rikuri-boot-counter.service", "/" + BOOT_COUNTER_UNIT)
+BOOT_COUNTER_OVERRIDES = unit_overrides(BOOT_COUNTER_UNIT)
 # shadow-utils 4.20 (Fedora 45) finds no subuid range for a name that is not a user, so
 # Podman's `containers` range needs a user of that name: one locked system user, made by
 # systemd-sysusers at boot, no password, shell or home of its own (probe f45-podman,
@@ -512,24 +530,30 @@ def check_trigger_at_shutdown(root: str) -> list:
     if text is None:
         return ["%s: missing, or not a regular file (on a layout without a /boot partition a broken "
                 "update would never roll back, greenboot-rs #218)" % TRIGGER_DROPIN]
-    section, seen, arms = None, set(), False
+    section, seen, notes, arms = None, set(), False, False
     for line in text.splitlines():
         line = line.strip()
         if line.startswith("[") and line.endswith("]"):
             section = line
         elif section == "[Unit]" and line in TRIGGER_LINES:
             seen.add(line)
-        elif section == "[Service]" and line == TRIGGER_ARM_EXEC:
+        elif section == "[Service]" and line == TRIGGER_NOTE_EXEC:
+            notes = True
+        elif line.split("#")[0].strip() == TRIGGER_ARM_EXEC:
             arms = True
     found = []
     missing = [line for line in TRIGGER_LINES if line not in seen]
     if missing:
         found.append("%s: does not order greenboot's rollback trigger against shutdown (missing under "
                      "[Unit]: %s)" % (TRIGGER_DROPIN, ", ".join(missing)))
-    if not arms:
-        found.append("%s: does not arm the boot counter after the trigger (expected the line %r under "
+    if not notes:
+        found.append("%s: does not note the staged update after the trigger (expected the line %r under "
                      "[Service]; a new image that never reaches its checks would never roll back)"
-                     % (TRIGGER_DROPIN, TRIGGER_ARM_EXEC))
+                     % (TRIGGER_DROPIN, TRIGGER_NOTE_EXEC))
+    if arms:
+        found.append("%s: arms the boot counter before ostree's finalize (%r): an update never applied would "
+                     "count the image the node keeps (N1); %s arms it after finalize"
+                     % (TRIGGER_DROPIN, TRIGGER_ARM_EXEC, BOOT_COUNTER_UNIT))
     return found
 
 
@@ -646,6 +670,28 @@ def check_boot_cause(root: str) -> list:
         found.append("%s: not a link, so the unit is not enabled" % BOOT_CAUSE_WANTS)
     elif os.readlink(wants) not in BOOT_CAUSE_TARGETS:
         found.append("%s: points to %s, not to the unit" % (BOOT_CAUSE_WANTS, os.readlink(wants)))
+    return found
+
+
+def check_boot_counter(root: str) -> list:
+    data = _read_bytes(root, BOOT_COUNTER_UNIT)
+    if data is None:
+        found = ["%s: missing, or not a regular file (a new image would be counted only from its first "
+                 "failed check)" % BOOT_COUNTER_UNIT]
+    else:
+        found = ["%s: %s" % (BOOT_COUNTER_UNIT, p) for p in unit_problems(
+            data, BOOT_COUNTER_KEYS, "does not arm the boot counter after ostree's finalize, only for an update "
+                                     "applied")]
+    for rel in BOOT_COUNTER_OVERRIDES:
+        problem = _override_problem(root, rel)
+        if problem:
+            found.append("%s: %s" % (rel, problem))
+    wants = os.path.join(root, BOOT_COUNTER_WANTS)
+    hit = _lstat_in(root, os.path.dirname(BOOT_COUNTER_WANTS))
+    if hit is None or not os.path.islink(wants):
+        found.append("%s: not a link, so the unit is not enabled" % BOOT_COUNTER_WANTS)
+    elif os.readlink(wants) not in BOOT_COUNTER_TARGETS:
+        found.append("%s: points to %s, not to the unit" % (BOOT_COUNTER_WANTS, os.readlink(wants)))
     return found
 
 
@@ -1056,7 +1102,8 @@ def check_boot_automount(root: str) -> list:
 def check_root(root: str, release: str, note=lambda line: None) -> list:
     return (check_os_release(root, release) + check_greenboot(root) + check_unapplied_update(root)
             + check_trigger_at_shutdown(root) + check_boot_automount(root)
-            + check_containers_subid(root) + check_boot_cause(root) + check_containers_user(root)
+            + check_containers_subid(root) + check_boot_cause(root) + check_boot_counter(root)
+            + check_containers_user(root)
             + check_subid_wanted(root) + check_control_plane(root) + check_mdns_links(root)
             + check_quadlet_health(root) + check_signature_policy(root) + check_no_private_keys(root, note))
 
