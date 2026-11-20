@@ -10,6 +10,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 
+use crate::restart::LastRestart;
+
 /// The four states a component can be in.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -135,11 +137,14 @@ pub struct Report {
     pub overall: State,
     pub control_plane: ControlPlane,
     pub components: BTreeMap<Component, ComponentStatus>,
+    /// Why the node last restarted (D22); `None` when that could not be read.
+    pub restart: Option<LastRestart>,
 }
 
 /// The report as of now. B0.1: no probe exists, so every component is
-/// `unknown`, and the overall state with it.
-pub fn report(started: Started) -> Report {
+/// `unknown`, and the overall state with it. `restart` is the boot service's
+/// record of this boot, as read (D22).
+pub fn report(started: Started, restart: Option<LastRestart>) -> Report {
     let components: BTreeMap<_, _> = Component::ALL
         .iter()
         .map(|component| (*component, ComponentStatus::unknown(NOT_PROBED)))
@@ -154,6 +159,7 @@ pub fn report(started: Started) -> Report {
             uptime_seconds: started.uptime().as_secs(),
         },
         components,
+        restart,
     }
 }
 
@@ -210,7 +216,7 @@ mod tests {
 
     #[test]
     fn the_report_before_any_probe_is_unknown_throughout() {
-        let report = report(Started::now());
+        let report = report(Started::now(), None);
         assert_eq!(report.overall, Unknown);
         assert_eq!(report.components.len(), Component::ALL.len());
         for status in report.components.values() {
@@ -221,11 +227,29 @@ mod tests {
         assert_eq!(report.control_plane.version, env!("CARGO_PKG_VERSION"));
         assert!(report.observed_unix.is_some());
         assert!(report.control_plane.started_unix.is_some());
+        assert_eq!(report.restart, None);
+    }
+
+    #[test]
+    fn the_restart_is_reported_as_read() {
+        use crate::restart::RestartCause;
+        let restart = LastRestart {
+            cause: RestartCause::PowerCut,
+            at_unix: 2000,
+            last_alive_unix: Some(1940),
+        };
+        let value = serde_json::to_value(report(Started::now(), Some(restart))).unwrap();
+        assert_eq!(
+            value["restart"],
+            serde_json::json!({"cause": "power-cut", "at_unix": 2000, "last_alive_unix": 1940})
+        );
+        let value = serde_json::to_value(report(Started::now(), None)).unwrap();
+        assert!(value["restart"].is_null(), "{value}");
     }
 
     #[test]
     fn components_serialize_by_name() {
-        let value = serde_json::to_value(report(Started::now())).unwrap();
+        let value = serde_json::to_value(report(Started::now(), None)).unwrap();
         for name in ["os", "bitcoind", "lnd", "tor"] {
             assert_eq!(value["components"][name]["state"], "unknown", "{name}");
         }

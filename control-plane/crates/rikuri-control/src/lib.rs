@@ -26,6 +26,7 @@ pub mod node_id;
 pub mod owner;
 pub mod password;
 pub mod random;
+pub mod restart;
 pub mod serve;
 pub mod session;
 pub mod state;

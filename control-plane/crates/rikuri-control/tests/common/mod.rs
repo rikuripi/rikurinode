@@ -43,6 +43,7 @@ impl Drop for Scratch {
         let _ = std::fs::remove_dir_all(&self.0);
         let _ = std::fs::remove_file(self.0.with_extension("hostname"));
         let _ = std::fs::remove_file(self.0.with_extension("bus"));
+        let _ = std::fs::remove_file(self.0.with_extension("restart"));
     }
 }
 
@@ -59,6 +60,7 @@ pub fn config(
         state_dir: scratch.0.clone(),
         hostname_file: hostname_file(scratch),
         bus_socket: bus_socket(scratch),
+        restart_file: restart_file(scratch),
     }
 }
 
@@ -66,6 +68,12 @@ pub fn config(
 /// state folder, which the scratch's drop removes with it.
 pub fn hostname_file(scratch: &Scratch) -> PathBuf {
     scratch.0.with_extension("hostname")
+}
+
+/// D22: where the test node reads why it last restarted, as the boot
+/// service writes it; beside the state folder, as the hostname file is.
+pub fn restart_file(scratch: &Scratch) -> PathBuf {
+    scratch.0.with_extension("restart")
 }
 
 /// 5c.4b-1: where the test node asks to be renamed; a stand-in bus listens

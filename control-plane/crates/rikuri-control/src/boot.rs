@@ -134,6 +134,7 @@ pub fn boot(config: &Config, started: Started, lan: Option<IpAddr>) -> Result<Bo
         claim_wrong_tries,
         config.hostname_file.clone(),
         config.bus_socket.clone(),
+        config.restart_file.clone(),
     );
     Ok(Booted {
         app,
@@ -158,6 +159,7 @@ mod tests {
             state_dir: scratch.0.clone(),
             hostname_file: scratch.0.join("hostname-for-the-test"),
             bus_socket: scratch.0.join("bus-for-the-test"),
+            restart_file: scratch.0.join("restart-for-the-test"),
         }
     }
 

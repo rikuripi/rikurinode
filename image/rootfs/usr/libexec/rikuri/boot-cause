@@ -41,7 +41,15 @@ The boot step never fails its unit: an error is logged and noted, and it exits
 0, because a oneshot whose start failed never runs its ExecStop, and the next
 boot would read a clean shutdown as a power cut. Run twice in one boot, it
 records nothing more, and removes the mark a stop between would have left.
-Record: docs/build-records/2026-11-19-boot-cause-record.md
+
+This boot's entry (its boot_id, at, cause and last_alive) is also written to
+THIS_BOOT under /run, the one file the control plane reads to tell the owner
+why the node restarted. /run is a fresh tmpfs at every boot, so the file exists
+only when this boot was recorded: a boot whose record failed has none, and the
+node says it cannot tell, never the previous boot's cause. No clock and no boot
+id need comparing (the control plane's sandbox cannot read the boot id).
+Records: docs/build-records/2026-11-19-boot-cause-record.md,
+docs/build-records/2026-11-19-boot-cause-sentence.md
 """
 from __future__ import annotations
 
@@ -56,6 +64,8 @@ STATE = "/var/lib/rikuri/boot-cause"
 HISTORY = "history.jsonl"
 MARK = "shutdown"
 HEARTBEAT = "/var/lib/rikuri/control-plane/heartbeat"
+THIS_BOOT = "/run/rikuri-boot-cause/this-boot.json"
+THIS_BOOT_KEYS = ("boot_id", "at", "cause", "last_alive")
 PSTORE_DIRS = ("/sys/fs/pstore", "/var/lib/systemd/pstore")
 WATCHDOGS = "/sys/class/watchdog"
 CMDLINE = "/proc/cmdline"
@@ -310,6 +320,14 @@ def remove_mark(path: str) -> None:
     sync_folder(os.path.dirname(path))
 
 
+def write_this_boot(path: str, entry: dict) -> None:
+    """This boot's entry, for the control plane; a failure is logged, never raised."""
+    try:
+        write_whole(path, (json.dumps({k: entry.get(k) for k in THIS_BOOT_KEYS}, sort_keys=True) + "\n").encode("ascii"))
+    except OSError as e:
+        log("this boot's cause could not be written to %s (%s); the owner will be told it is unknown" % (path, e))
+
+
 def remove_heartbeat(path: str) -> None:
     """Unlink the heartbeat's name (a link is removed, never followed)."""
     try:
@@ -329,7 +347,7 @@ def read_text(path: str) -> str:
 
 def boot(state: str = STATE, heartbeat_path: str = HEARTBEAT, pstore_dirs=PSTORE_DIRS,
          watchdogs: str = WATCHDOGS, cmdline: str = CMDLINE, sysroot: str = SYSROOT,
-         boot_id_path: str = BOOT_ID, now=time.time) -> int:
+         boot_id_path: str = BOOT_ID, now=time.time, this_boot_path: str = THIS_BOOT) -> int:
     history_path, mark_path = os.path.join(state, HISTORY), os.path.join(state, MARK)
     this = read_boot_id(boot_id_path)
     if this is None:
@@ -342,6 +360,7 @@ def boot(state: str = STATE, heartbeat_path: str = HEARTBEAT, pstore_dirs=PSTORE
         return 0
     if history and history[-1]["boot_id"] == this:
         remove_mark(mark_path)
+        write_this_boot(this_boot_path, history[-1])
         log("this boot (%s) is already recorded" % this)
         return 0
     mark, mark_note = read_mark(mark_path)
@@ -359,6 +378,7 @@ def boot(state: str = STATE, heartbeat_path: str = HEARTBEAT, pstore_dirs=PSTORE
     write_whole(history_path, ("\n".join(lines) + "\n").encode("utf-8"))
     remove_mark(mark_path)
     remove_heartbeat(heartbeat_path)
+    write_this_boot(this_boot_path, entry)
     log("the last boot ended: %s%s; %s" % (cause, "" if last_alive is None else " (last alive at %d)" % last_alive,
                                           "; ".join(entry["evidence"]) or "no other evidence"))
     return 0

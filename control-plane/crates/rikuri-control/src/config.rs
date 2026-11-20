@@ -10,6 +10,7 @@ use crate::hostname;
 use crate::hub;
 use crate::listen::{self, ListenError};
 use crate::names::{self, NameError, Names};
+use crate::restart;
 use crate::state;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -30,6 +31,10 @@ pub struct Config {
     /// always [`hostname::BUS_SOCKET`] on a node, from no variable; the tests
     /// point it at a stand-in of their own.
     pub bus_socket: PathBuf,
+    /// Why the node last restarted, as the boot service wrote it at this
+    /// boot (D22): always [`restart::THIS_BOOT`] on a node, from no
+    /// variable; the tests point it at a file of their own.
+    pub restart_file: PathBuf,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -83,6 +88,7 @@ impl Config {
             state_dir,
             hostname_file: PathBuf::from(hub::HOSTNAME_FILE),
             bus_socket: PathBuf::from(hostname::BUS_SOCKET),
+            restart_file: PathBuf::from(restart::THIS_BOOT),
         })
     }
 }
@@ -114,6 +120,11 @@ mod tests {
         assert_eq!(
             config.bus_socket,
             PathBuf::from("/run/dbus/system_bus_socket")
+        );
+        // D22: this boot's entry, which the boot service writes; no variable.
+        assert_eq!(
+            config.restart_file,
+            PathBuf::from("/run/rikuri-boot-cause/this-boot.json")
         );
     }
 

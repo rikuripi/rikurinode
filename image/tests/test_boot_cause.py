@@ -57,6 +57,7 @@ class Node:
         self.cmdline = self.p("proc/cmdline")
         self.sysroot = self.p("sysroot")
         self.boot_id_path = self.p("proc/boot_id")
+        self.this_boot = self.p("run/rikuri-boot-cause/this-boot.json")
         for d in (self.state, os.path.dirname(self.heartbeat), self.watchdogs, self.sysroot) + self.pstore:
             os.makedirs(d, exist_ok=True)
         self.deploy(I1)
@@ -88,7 +89,7 @@ class Node:
     def boot(self, now=1000):
         return m.boot(state=self.state, heartbeat_path=self.heartbeat, pstore_dirs=self.pstore,
                       watchdogs=self.watchdogs, cmdline=self.cmdline, sysroot=self.sysroot,
-                      boot_id_path=self.boot_id_path, now=lambda: now)
+                      boot_id_path=self.boot_id_path, now=lambda: now, this_boot_path=self.this_boot)
 
     def shutdown(self, now=2000):
         return m.shutdown(state=self.state, boot_id_path=self.boot_id_path, now=lambda: now)
@@ -96,6 +97,10 @@ class Node:
     def history(self):
         with open(os.path.join(self.state, m.HISTORY), encoding="utf-8") as f:
             return [json.loads(line) for line in f.read().splitlines()]
+
+    def read_this_boot(self):
+        with open(self.this_boot, encoding="ascii") as f:
+            return json.loads(f.read())
 
     def cleanup(self):
         shutil.rmtree(self.path)
@@ -112,6 +117,9 @@ class Constants(unittest.TestCase):
         self.assertEqual(m.STATE, "/var/lib/rikuri/boot-cause")
         self.assertEqual((m.HISTORY, m.MARK), ("history.jsonl", "shutdown"))
         self.assertEqual(m.HEARTBEAT, "/var/lib/rikuri/control-plane/heartbeat")
+        # The control plane reads this one (restart.rs, THIS_BOOT).
+        self.assertEqual(m.THIS_BOOT, "/run/rikuri-boot-cause/this-boot.json")
+        self.assertEqual(m.THIS_BOOT_KEYS, ("boot_id", "at", "cause", "last_alive"))
         self.assertEqual(m.PSTORE_DIRS, ("/sys/fs/pstore", "/var/lib/systemd/pstore"))
         self.assertEqual((m.KEEP, m.WDIOF_CARDRESET, m.HEARTBEAT_MAX), (100, 0x20, 32))
 
@@ -412,6 +420,49 @@ class BootAndShutdown(Case):
         self.node.boot(now=1100)
         self.assertEqual(len(self.node.history()), 1)
         self.assertFalse(os.path.exists(os.path.join(self.node.state, m.MARK)))
+
+    # The sentence (task 2): this boot's entry under /run, for the control plane.
+    def test_this_boot_is_written_for_the_control_plane(self):
+        self.node.boot(now=1000)
+        self.assertEqual(self.node.read_this_boot(),
+                         {"boot_id": A, "at": 1000, "cause": "first-boot", "last_alive": None})
+        self.node.shutdown(now=1500)
+        self.node.set_boot(B)
+        self.node.boot(now=2000)
+        self.assertEqual(self.node.read_this_boot(),
+                         {"boot_id": B, "at": 2000, "cause": "clean", "last_alive": 1500})
+        with open(self.node.this_boot, "rb") as f:
+            raw = f.read()
+        self.assertEqual(raw, b'{"at": 2000, "boot_id": "%s", "cause": "clean", "last_alive": 1500}\n' % B.encode())
+        self.assertEqual(os.stat(self.node.this_boot).st_mode & 0o777, 0o644, "readable by the control plane")
+
+    def test_a_second_run_in_one_boot_writes_this_boot_again(self):
+        self.node.boot(now=1000)
+        os.unlink(self.node.this_boot)
+        self.node.boot(now=1100)
+        self.assertEqual(self.node.read_this_boot(),
+                         {"boot_id": A, "at": 1000, "cause": "first-boot", "last_alive": None})
+
+    def test_no_record_no_this_boot(self):
+        path = os.path.join(self.node.state, m.HISTORY)
+        os.mkdir(path)
+        self.assertEqual(self.node.boot(), 0)
+        self.assertFalse(os.path.lexists(self.node.this_boot), "an unreadable history: nothing to tell")
+        os.rmdir(path)
+        self.node.write(self.node.boot_id_path, "not a boot id\n")
+        self.assertEqual(self.node.boot(), 0)
+        self.assertFalse(os.path.lexists(self.node.this_boot), "no boot id: nothing to tell")
+
+    def test_a_failed_this_boot_write_leaves_the_record_and_never_fails(self):
+        self.node.boot(now=1000)
+        self.node.shutdown(now=1500)
+        os.unlink(self.node.this_boot)
+        os.rmdir(os.path.dirname(self.node.this_boot))
+        self.node.write(os.path.dirname(self.node.this_boot), "a file where the folder goes")
+        self.node.set_boot(B)
+        self.assertEqual(self.node.boot(now=2000), 0)
+        self.assertEqual(self.node.history()[-1]["cause"], "clean")
+        self.assertFalse(os.path.exists(os.path.join(self.node.state, m.MARK)), "the mark is still consumed")
 
     def test_no_boot_id_records_nothing(self):
         self.node.write(self.node.boot_id_path, "not a boot id\n")
