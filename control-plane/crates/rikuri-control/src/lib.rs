@@ -15,6 +15,7 @@ pub mod boot;
 pub mod claim;
 pub mod config;
 pub mod console;
+pub mod heartbeat;
 pub mod hostname;
 pub mod http;
 pub mod hub;

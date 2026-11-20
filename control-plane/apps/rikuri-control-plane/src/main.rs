@@ -18,7 +18,8 @@ use rikuri_control::config::Config;
 use rikuri_control::state::StateDir;
 use rikuri_control::status::{self, Started};
 use rikuri_control::{
-    address, api_router, boot, claim, console, owner, plain_router, serve_plain, serve_tls,
+    address, api_router, boot, claim, console, heartbeat, owner, plain_router, serve_plain,
+    serve_tls,
 };
 use tokio::net::TcpListener;
 use tokio::signal::unix::{SignalKind, signal};
@@ -135,6 +136,13 @@ fn run() -> Result<(), Box<dyn Error>> {
             booted.follower.clone(),
             console::lan_address,
             address::EVERY,
+            wait(stopped.clone()),
+        ));
+        // The heartbeat (D22): the next boot dates a power cut from it.
+        tokio::spawn(heartbeat::keep(
+            StateDir::open(&config.state_dir)?,
+            status::unix_now,
+            heartbeat::EVERY,
             wait(stopped.clone()),
         ));
         let api = serve_tls(https, booted.identity.config.clone(), api_router(booted.app.clone()), wait(stopped.clone()));
