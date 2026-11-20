@@ -4,9 +4,9 @@
 |---|---|
 | **Date** | 2026-11-19 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
-| **Branch** | `stage1/boot-cause-record`, from `main` at `a162f46`, merged as `8b05fa0` (#135); repair 2 on `stage1/boot-cause-repair`, from `main` at `8b05fa0`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `203d6df` (contract), `e5fe093` (change), `b683dec` (record), `d6bc5ad` (repair 1), and this record |
-| **Status** | IN PROGRESS |
+| **Branch** | `stage1/boot-cause-record`, from `main` at `a162f46`, merged as `8b05fa0` (#135); repair 2 on `stage1/boot-cause-repair`, from `main` at `8b05fa0`, merged as `f9ae460` (#136); close-out on `stage1/boot-cause-close`, from `main` at `f9ae460`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
+| **Commits** | `203d6df` (contract), `e5fe093` (change), `b683dec` (record), `d6bc5ad` (repair 1), `d75a425` (record); `6f2eb3a` (red), `75784d3` (fix), `c81e921` (record); and this close-out |
+| **Status** | DONE |
 | **Change type** | feature (OS image: a root boot service; control plane: a heartbeat; the VM drill) |
 
 ## Intent: the owner's words
@@ -114,3 +114,23 @@
 ### Fix, `75784d3`
 
 - `boot-cause`: `classify` takes a heartbeat as the last boot's unless it equals the last entry's `heartbeat_seen`; the wall-clock comparison and its message are gone. `boot()` records `heartbeat_seen` and, after the history and the mark, unlinks the heartbeat (`remove_heartbeat`: a missing file is fine; any other error is logged, and `heartbeat_seen` keeps the next boot from reusing it). `parse_entry` refuses a `heartbeat_seen` that is not an integer. The docstring says so. No test changed in this commit.
+
+### CI on `c81e921`: Pass
+
+- `Full gate (Ubuntu)`, [run 44653181129](https://github.com/rikuripi/rikurinode/actions/runs/44653181129): `Ran 615 tests … OK`; every step green.
+- The OS image, [run 44653181121](https://github.com/rikuripi/rikurinode/actions/runs/44653181121): built and checked; the VM rollback drill and the USB install passed. The drill's four boot-cause checks passed with the fix on the real image, among them the power cut: recorded `['power-cut']`, last alive 1795138299, the reboot asked for at 1795138309.
+- Merged by the owner as `f9ae460` (#136); its tree equals `c81e921`'s.
+
+### The verifier, round 2, at `c81e921`: PASS
+
+- Checked only the corrections, per AGENTS.md section 5. I-1 and I-2: corrected, each pinned by a test that fails without its part of the fix. The loosened test: justified by the reason above, and the fix commit changed no test.
+- **Hand mutations: Not yet proven by running.** `safe-run.sh` refused on the Mac (no namespaces), and `SAFE_RUN_ALLOW_NO_NAMESPACE` was not set; the verifier worked the mutants through by reading. Caught: dropping `remove_heartbeat`, dropping the stale check, following the link, each part of the `heartbeat_seen` validation, recording it as None. Survives: deleting `except OSError` in `remove_heartbeat` (only the log line differs; `main()` still exits 0).
+- **Important: none.** Nits, for the backlog:
+  1. No test makes the heartbeat's removal fail through `boot()` (a folder planted at its path), so the `except OSError` mutant survives.
+  2. No test pins that a second run in the same boot leaves the current heartbeat in place.
+
+## Outcome
+
+- **Status: DONE.** Each boot records one cause on the node, from the heartbeat, the shutdown mark, pstore, the watchdog and the booted deployment; the VM drill proves first-boot, update-applied, clean, rolled-back and a dated power cut on the real image. Two repair cycles and two review rounds used, none left.
+- **Backlog, not started:** round 1's nits 2 to 4 and round 2's nits 1 and 2 above.
+- **Next (task 2 of 3, not started):** the sentence on the status page and SetupHub, which reads this record.
