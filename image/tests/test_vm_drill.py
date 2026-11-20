@@ -499,9 +499,22 @@ class BootCauseCase1(unittest.TestCase):
         text = "".join(json.dumps({"cause": n}) + "\n" for n in names)
         drill = BootCauseDrill(self.artifacts, {"cat " + d.BOOT_CAUSES: text})
         drill.boot_cause_case1(before)
-        [(case, ok, detail)] = drill.results
+        # Two checks since the rollback rule (2026-11-20): the cause, then the count.
+        [(case, ok, detail), (counted, self.counted, _)] = drill.results
         self.assertEqual(case, "the boot cause after an update and its rollback")
+        self.assertEqual(counted, "the new image counted from its first boot")
         return ok, detail
+
+    def test_three_boots_of_the_broken_image_then_the_rollback(self):
+        self.run_with(["first-boot", "update-applied", "clean", "clean", "rolled-back"])
+        self.assertTrue(self.counted)
+        for names, why in ((["first-boot", "update-applied", "clean", "clean", "clean", "rolled-back"],
+                            "four: greenboot counting from its first failure"),
+                           (["first-boot", "update-applied", "clean", "rolled-back"], "two"),
+                           (["first-boot", "update-applied", "clean", "power-cut", "rolled-back"], "a power cut")):
+            with self.subTest(why=why):
+                self.run_with(names)
+                self.assertFalse(self.counted)
 
     def test_only_the_boots_since_the_update_count(self):
         ok, detail = self.run_with(["first-boot", "update-applied", "clean", "rolled-back"])
@@ -517,9 +530,64 @@ class BootCauseCase1(unittest.TestCase):
         source = inspect.getsource(d.main)
         order = ["drill.first_boot()", "drill.boot_cause_first_boot()", "drill.boot_automount()",
                  "before = len(drill.boot_causes_now())", "drill.case1()", "drill.boot_cause_case1(before)",
-                 "drill.case2b()", "drill.case3()"]
+                 "drill.case1_power_cuts()", "drill.case2b()", "drill.case3()"]
         at = [source.index(step) for step in order]
         self.assertEqual(at, sorted(at))
+
+
+class RollbackRule(unittest.TestCase):
+    """D22's rollback rule in the drill (docs/build-records/2026-11-20-boot-cause-rollback-rule.md)."""
+
+    CAUSES = ["update-applied", "power-cut", "power-cut", "clean", "rolled-back"]
+
+    def entries(self, names):
+        return [{"cause": n} for n in names]
+
+    def test_boot_counter_reads_grub2_editenv_s_list(self):
+        self.assertEqual(d.boot_counter("boot_success=0\nboot_counter=2\n"), "2")
+        self.assertEqual(d.boot_counter("boot_counter=-1"), "-1")
+        for text in ("", "boot_success=0\n", "# boot_counter=2\n", None):
+            with self.subTest(text=text):
+                self.assertIsNone(d.boot_counter(text))
+
+    def test_the_hold_runs_after_the_node_s_pre_check_and_ends_with_its_flag(self):
+        # systemd merges drop-ins of every folder in name order: the node's is 50-, this 99-.
+        self.assertTrue(d.HOLD_DROPIN.startswith("/etc/systemd/system/greenboot-healthcheck.service.d/99-"))
+        self.assertTrue(d.HOLD_FLAG.startswith("/var/"))
+        self.assertEqual(d.GREENBOOT_HOLDS, "[Service]\nExecStartPre=/usr/bin/sh -c 'while [ -e "
+                         "/var/lib/rikuri-drill/hold-greenboot ]; do sleep 1; done'\n")
+
+    def test_the_pre_check_s_last_line_on_every_path_ends_the_wait(self):
+        for line in ("this boot followed a update-applied; it counts", "a second power cut in a row; it counts",
+                     "boot_counter not set: greenboot is not counting; nothing to give back",
+                     "boot_counter=3: nothing counted yet; nothing to give back",
+                     "unknown: boot_counter='x'; nothing given back",
+                     "unknown: fewer than two boots recorded; this boot counts",
+                     "boot_counter 1 -> 2 for update sha256:a; recorded in /var/lib/rikuri/boot-count-given-back",
+                     "FAILED to give back a boot (exit 1); this boot counts against update sha256:a",
+                     "given back, but the record /var/lib/rikuri/boot-count-given-back could not be written: x"):
+            with self.subTest(line=line):
+                self.assertTrue(d.RULE_DECIDED.search("greenboot-unapplied-update[7]: rikuri-unapplied-update: " + line))
+        # The give-back's reason comes before its write: the wait goes on.
+        self.assertIsNone(d.RULE_DECIDED.search(
+            "rikuri-unapplied-update: a first power cut in a row (the boot before followed a update-applied): given back"))
+
+    def test_power_cuts_counted(self):
+        given = json.dumps({"boot_counter": [1, 2]}) + "\n"
+        ok, detail = d.power_cuts_counted(["2", "2", "1"], given, self.entries(self.CAUSES))
+        self.assertTrue(ok, detail)
+        for counters, given_text, names, why in (
+                (["2", "1", "0"], given, self.CAUSES, "nothing given back"),
+                (["2", "2", "2"], given, self.CAUSES, "the second given back too"),
+                (["3", "2", "1"], given, self.CAUSES, "the first boot not counted"),
+                (["2", "2", "1"], "", self.CAUSES, "no record"),
+                (["2", "2", "1"], given + given, self.CAUSES, "two records"),
+                (["2", "2", "1"], "not json\n", self.CAUSES, "a record not JSON"),
+                (["2", "2", "1"], given, self.CAUSES[:3] + ["clean", "clean", "rolled-back"], "one boot more"),
+                (["2", "2", "1"], given, ["update-applied", "power-cut", "unknown", "clean", "rolled-back"],
+                 "the second cut not a power cut")):
+            with self.subTest(why=why):
+                self.assertFalse(d.power_cuts_counted(counters, given_text, self.entries(names))[0])
 
 
 class BootCauseTold(unittest.TestCase):
@@ -668,7 +736,9 @@ class Verdict(unittest.TestCase):
             "the boot cause after a clean shutdown, the update not applied",
             "the boot cause after a power cut, with its time",
             # docs/build-records/2026-11-19-boot-cause-sentence.md:
-            "the owner is told the power cut, with its time"})
+            "the owner is told the power cut, with its time",
+            # docs/build-records/2026-11-20-boot-cause-rollback-rule.md:
+            "the new image counted from its first boot", "case 1b, power cuts in a new image's trial"})
 
     def test_all_passed_and_no_error_is_zero(self):
         self.assertEqual(d.verdict(self.ALL, None), 0)

@@ -93,6 +93,11 @@ UNAPPLIED_EXEC = "ExecStartPre=-/" + UNAPPLIED_CHECK
 # Record: docs/build-records/2026-10-22-greenboot-218.md
 TRIGGER_DROPIN = "usr/lib/systemd/system/greenboot-set-rollback-trigger.service.d/50-rikuri-run-at-shutdown.conf"
 TRIGGER_LINES = ("Conflicts=final.target", "Before=final.target")
+# D22's rollback rule: after greenboot's own ExecStop, arm boot_counter for the
+# staged update, so every boot of a new image counts from its first; with "-",
+# so a failure leaves greenboot's own behaviour.
+# Record: docs/build-records/2026-11-20-boot-cause-rollback-rule.md
+TRIGGER_ARM_EXEC = "ExecStop=-/" + UNAPPLIED_CHECK + " arm"
 # bootc #2402: since ostree 2026.3, systemd-gpt-auto-generator's boot.automount
 # for the EFI partition sits in front of ostree's /boot; when it goes first at a
 # shutdown, ostree cannot finalize and the staged update is dropped. Masked in
@@ -507,18 +512,25 @@ def check_trigger_at_shutdown(root: str) -> list:
     if text is None:
         return ["%s: missing, or not a regular file (on a layout without a /boot partition a broken "
                 "update would never roll back, greenboot-rs #218)" % TRIGGER_DROPIN]
-    section, seen = None, set()
+    section, seen, arms = None, set(), False
     for line in text.splitlines():
         line = line.strip()
         if line.startswith("[") and line.endswith("]"):
             section = line
         elif section == "[Unit]" and line in TRIGGER_LINES:
             seen.add(line)
+        elif section == "[Service]" and line == TRIGGER_ARM_EXEC:
+            arms = True
+    found = []
     missing = [line for line in TRIGGER_LINES if line not in seen]
     if missing:
-        return ["%s: does not order greenboot's rollback trigger against shutdown (missing under "
-                "[Unit]: %s)" % (TRIGGER_DROPIN, ", ".join(missing))]
-    return []
+        found.append("%s: does not order greenboot's rollback trigger against shutdown (missing under "
+                     "[Unit]: %s)" % (TRIGGER_DROPIN, ", ".join(missing)))
+    if not arms:
+        found.append("%s: does not arm the boot counter after the trigger (expected the line %r under "
+                     "[Service]; a new image that never reaches its checks would never roll back)"
+                     % (TRIGGER_DROPIN, TRIGGER_ARM_EXEC))
+    return found
 
 
 def subid_unit_problems(data: bytes) -> list:

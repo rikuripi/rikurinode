@@ -35,6 +35,31 @@ that unit's mount namespace (CI drill run 39713948238). A clear is
 appended to RECORD (one JSON line) for the control plane, which stages the
 update again (D22; not built yet). Remove when greenboot fixes #219.
 Record: docs/build-records/2026-10-22-d22-unapplied-update.md
+
+The rest of D22's rollback rule (plan section 4.1) lives here too, as it reads
+and writes the same grubenv. greenboot 0.16.4 counts a new image's boots only
+from its first failed check (it sets boot_counter then); GRUB counts down only
+while boot_counter is set and boot_success=0. So:
+
+  `arm`, an ExecStop=- after greenboot's own in greenboot-set-rollback-trigger:
+    when the trigger names the deployment staged at this shutdown, set
+    boot_counter=MAX_BOOT_ATTEMPTS and boot_success=0, so GRUB counts every
+    boot of the new image from its first, one that never reaches its checks
+    too. Nothing staged (a restart during the trial) arms nothing.
+
+  at boot, never applied: the counter armed for that update is unset with
+    the trigger, so the node that kept its image is as before.
+
+  at boot, on trial: a boot that followed a power cut, when the boot before
+    it did not, is given back (boot_counter + 1, never above the maximum): a
+    frozen node its owner unplugs looks like a power cut, so a second in a
+    row counts. Every other cause counts, a clean restart too (owner,
+    2026-11-20). This boot's cause is the boot-cause history's last entry,
+    taken only when its boot id is the kernel's. Each give-back is appended
+    to GIVEN_BACK. Anything unreadable gives nothing back: an unknown cause
+    counts against the update.
+
+Record: docs/build-records/2026-11-20-boot-cause-rollback-rule.md
 """
 from __future__ import annotations
 
@@ -48,6 +73,7 @@ import sys
 GRUB2_EDITENV = "/usr/bin/grub2-editenv"
 GRUBENV = "/boot/grub2/grubenv"
 RPM_OSTREE = "/usr/bin/rpm-ostree"
+BOOTC = "/usr/bin/bootc"
 MOUNT = "/usr/bin/mount"
 MOUNTINFO = "/proc/self/mountinfo"
 TRIGGER = "greenboot_next_deployment_id"
@@ -55,6 +81,15 @@ DIGEST = "container-image-reference-digest"
 CHECKSUM = "checksum"
 IMAGE_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 RECORD = "/var/lib/rikuri/update-not-applied"
+COUNTER = "boot_counter"
+SUCCESS = "boot_success"
+# greenboot.conf's GREENBOOT_MAX_BOOT_ATTEMPTS; a test holds the two equal.
+MAX_BOOT_ATTEMPTS = 3
+COUNTER_VALUE = re.compile(r"-?[0-9]{1,4}")
+HISTORY = "/var/lib/rikuri/boot-cause/history.jsonl"
+BOOT_ID = "/proc/sys/kernel/random/boot_id"
+BOOT_ID_FORM = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+GIVEN_BACK = "/var/lib/rikuri/boot-count-given-back"
 TIMEOUT_S = 60
 
 
@@ -105,7 +140,8 @@ def deployments_from_json(text: str):
 
 
 def decide(trigger, deployments):
-    """(action, reason): action is "clear" only when the update was never applied."""
+    """(action, reason): "clear" only when the update was never applied, "trial"
+    when the booted deployment is the update named, otherwise "none"."""
     if not trigger:
         return "none", "no rollback trigger set"
     if not deployments:
@@ -122,14 +158,14 @@ def decide(trigger, deployments):
         return "none", "unknown: %d deployments marked booted" % len(booted)
     index = booted[0]
     if deployments[index].get(CHECKSUM) == trigger:
-        return "none", "update %s booted and is on trial; greenboot decides" % trigger
+        return "trial", "update %s booted and is on trial; greenboot decides" % trigger
     if not IMAGE_DIGEST.fullmatch(trigger):
         return "none", "unknown: the trigger %r is not an image digest; greenboot decides" % trigger
     digest = deployments[index].get(DIGEST)
     if not digest:
         return "none", "unknown: the booted deployment has no image digest"
     if digest == trigger:
-        return "none", "update %s booted and is on trial; greenboot decides" % trigger
+        return "trial", "update %s booted and is on trial; greenboot decides" % trigger
     if index != 0:
         return "none", ("booted deployment %d is not the default (GRUB fell back, or a deployment "
                         "is staged ahead of it); greenboot decides" % index)
@@ -155,32 +191,121 @@ def append_record(path: str, entry: dict) -> None:
         f.write(json.dumps(entry, sort_keys=True) + "\n")
 
 
-def clear_trigger(run, mountinfo) -> int:
-    """Unset the trigger, with /boot writable for the write if it is mounted read-only."""
+def edit_grubenv(run, mountinfo, args, what: str, otherwise: str) -> int:
+    """One grub2-editenv write, with /boot writable for it if it is mounted read-only."""
     readonly = boot_is_readonly(mountinfo())
     if readonly:
         rc, _ = run([MOUNT, "-o", "remount,rw", "/boot"])
         if rc != 0:
-            log("FAILED to remount /boot writable (exit %d); greenboot will roll this healthy node back" % rc)
+            log("FAILED to remount /boot writable (exit %d); %s" % (rc, otherwise))
             return rc or 1
     try:
-        rc, _ = run([GRUB2_EDITENV, GRUBENV, "unset", TRIGGER])
+        rc, _ = run([GRUB2_EDITENV, GRUBENV] + args)
     finally:
         if readonly:
             back, _ = run([MOUNT, "-o", "remount,bind,ro", "/boot"])
             if back != 0:
-                log("/boot left writable in greenboot's private mount namespace (remount exit %d)" % back)
+                log("/boot left writable in this unit's mount namespace (remount exit %d)" % back)
     if rc != 0:
-        log("FAILED to clear %s (exit %d); greenboot will roll this healthy node back" % (TRIGGER, rc))
+        log("FAILED to %s (exit %d); %s" % (what, rc, otherwise))
     return rc
 
 
-def main(run=default_run, record_path: str = RECORD, now=default_now, mountinfo=read_mountinfo) -> int:
+def clear_trigger(run, mountinfo) -> int:
+    """Unset the trigger and the counter armed for its update."""
+    return edit_grubenv(run, mountinfo, ["unset", TRIGGER, COUNTER], "clear %s" % TRIGGER,
+                        "greenboot will roll this healthy node back")
+
+
+def staged_digest(text: str):
+    """The staged deployment's image digest in bootc status --json, as greenboot
+    reads it (status.staged.image.imageDigest), or None."""
+    try:
+        doc = json.loads(text)
+        digest = doc["status"]["staged"]["image"]["imageDigest"]
+    except (ValueError, KeyError, TypeError):
+        return None
+    return digest if isinstance(digest, str) and IMAGE_DIGEST.fullmatch(digest) else None
+
+
+def arm(run=default_run, mountinfo=read_mountinfo) -> int:
+    """At shutdown, after greenboot set its trigger: count the staged update's boots from its first."""
+    rc, text = run([GRUB2_EDITENV, GRUBENV, "list"])
+    if rc != 0:
+        log("cannot read %s (exit %d); boots counted as greenboot counts them" % (GRUBENV, rc))
+        return 1
+    trigger = parse_grubenv(text).get(TRIGGER, "")
+    if not trigger:
+        log("no rollback trigger set; nothing to arm")
+        return 0
+    rc, text = run([BOOTC, "status", "--json"])
+    staged = staged_digest(text) if rc == 0 else None
+    if staged is None:
+        log("nothing staged at this shutdown (or bootc status unreadable); nothing armed")
+        return 0
+    if staged != trigger:
+        log("the trigger %s does not name the staged update %s; nothing armed" % (trigger, staged))
+        return 0
+    rc = edit_grubenv(run, mountinfo, ["set", "%s=%d" % (COUNTER, MAX_BOOT_ATTEMPTS), "%s=0" % SUCCESS],
+                      "arm %s" % COUNTER, "boots counted as greenboot counts them")
+    if rc != 0:
+        return 1
+    log("armed %s=%d for update %s: every boot of it counts from its first" % (COUNTER, MAX_BOOT_ATTEMPTS, staged))
+    return 0
+
+
+def read_text(path: str) -> str:
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
+def give_back(counter, history: str, boot_id: str):
+    """(new boot_counter or None, reason), for a boot of an update on trial."""
+    if counter is None:
+        return None, "%s not set: greenboot is not counting; nothing to give back" % COUNTER
+    if not COUNTER_VALUE.fullmatch(counter):
+        return None, "unknown: %s=%r; nothing given back" % (COUNTER, counter)
+    n = int(counter)
+    if n < 0:
+        return None, "%s=%d: GRUB has chosen the previous image; nothing given back" % (COUNTER, n)
+    if n >= MAX_BOOT_ATTEMPTS:
+        return None, "%s=%d: nothing counted yet; nothing to give back" % (COUNTER, n)
+    boot_id = boot_id.strip()
+    if not BOOT_ID_FORM.fullmatch(boot_id):
+        return None, "unknown: this boot's id cannot be read; this boot counts"
+    lines = [line for line in history.splitlines() if line.strip()]
+    if len(lines) < 2:
+        return None, "unknown: fewer than two boots recorded; this boot counts"
+    try:
+        last, before = json.loads(lines[-1]), json.loads(lines[-2])
+    except ValueError:
+        return None, "unknown: the boot-cause history cannot be read; this boot counts"
+    if not isinstance(last, dict) or not isinstance(before, dict):
+        return None, "unknown: the boot-cause history cannot be read; this boot counts"
+    if last.get("boot_id") != boot_id:
+        return None, "unknown: this boot is not the history's last; this boot counts"
+    cause, earlier = last.get("cause"), before.get("cause")
+    if not isinstance(cause, str) or not isinstance(earlier, str):
+        return None, "unknown: a cause in the history cannot be read; this boot counts"
+    if cause != "power-cut":
+        return None, "this boot followed a %s; it counts" % cause
+    if earlier == "power-cut":
+        return None, "a second power cut in a row; it counts"
+    return n + 1, "a first power cut in a row (the boot before followed a %s): given back" % earlier
+
+
+def main(run=default_run, record_path: str = RECORD, now=default_now, mountinfo=read_mountinfo,
+         given_back_path: str = GIVEN_BACK, history=lambda: read_text(HISTORY),
+         boot_id=lambda: read_text(BOOT_ID)) -> int:
     rc, text = run([GRUB2_EDITENV, GRUBENV, "list"])
     if rc != 0:
         log("cannot read %s (exit %d); greenboot decides" % (GRUBENV, rc))
         return 0
-    trigger = parse_grubenv(text).get(TRIGGER, "")
+    env = parse_grubenv(text)
+    trigger = env.get(TRIGGER, "")
     if not trigger:
         log("no rollback trigger set; nothing to do")
         return 0
@@ -188,6 +313,8 @@ def main(run=default_run, record_path: str = RECORD, now=default_now, mountinfo=
     deployments = deployments_from_json(text) if rc == 0 else None
     action, reason = decide(trigger, deployments)
     log(reason)
+    if action == "trial":
+        return give_back_now(run, mountinfo, trigger, env.get(COUNTER), history, boot_id, now, given_back_path)
     if action != "clear":
         return 0
     if clear_trigger(run, mountinfo) != 0:
@@ -202,5 +329,30 @@ def main(run=default_run, record_path: str = RECORD, now=default_now, mountinfo=
     return 0
 
 
+def give_back_now(run, mountinfo, trigger, counter, history, boot_id, now, path) -> int:
+    if counter is None:   # greenboot is not counting: nothing more to read
+        new, reason = give_back(None, "", "")
+    else:
+        new, reason = give_back(counter, history(), boot_id())
+    log(reason)
+    if new is None:
+        return 0
+    if edit_grubenv(run, mountinfo, ["set", "%s=%d" % (COUNTER, new)], "give back a boot",
+                    "this boot counts against update %s" % trigger) != 0:
+        return 1
+    try:
+        append_record(path, {"at": now(), "update": trigger, "boot_counter": [int(counter), new], "reason": reason})
+    except OSError as e:
+        log("given back, but the record %s could not be written: %s" % (path, e))
+        return 1
+    log("%s %s -> %d for update %s; recorded in %s" % (COUNTER, counter, new, trigger, path))
+    return 0
+
+
 if __name__ == "__main__":
+    if sys.argv[1:] == ["arm"]:
+        sys.exit(arm())
+    if sys.argv[1:]:
+        log("unknown arguments %r; nothing done" % (sys.argv[1:],))
+        sys.exit(2)
     sys.exit(main())
