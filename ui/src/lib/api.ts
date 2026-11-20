@@ -14,6 +14,7 @@ import type { StepState } from '../generated/StepState';
 import type { SessionInfo } from '../generated/SessionInfo';
 import type { SessionOpened } from '../generated/SessionOpened';
 import type { SignInRequest } from '../generated/SignInRequest';
+import { parseRestart } from './restart';
 
 export type Outcome<T> =
   | { kind: 'ok'; value: T }
@@ -54,7 +55,8 @@ const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f
 
 /** A hub exactly as the node writes it, or null: a node ID that is not its
  *  UUID, or anything but every step once, in the node's order, with a state
- *  this page knows, makes the whole reply unreadable (repair 1, nit 2). */
+ *  this page knows, makes the whole reply unreadable (repair 1, nit 2). So
+ *  does a restart (D22) that is neither null nor exactly the node's. */
 export function parseHub(value: unknown): HubReport | null {
   const v = record(value);
   const id = v?.['node_id'];
@@ -67,7 +69,10 @@ export function parseHub(value: unknown): HubReport | null {
     if (s?.['step'] !== STEPS[i] || !(STATES as readonly unknown[]).includes(state)) return null;
     steps.push({ step: STEPS[i]!, state: state as StepState });
   }
-  return { node_id: id, steps };
+  const said = v?.['restart'];
+  const restart = said === null ? null : parseRestart(said);
+  if (restart === undefined) return null;
+  return { node_id: id, steps, restart };
 }
 
 async function body(reply: Response): Promise<unknown> {

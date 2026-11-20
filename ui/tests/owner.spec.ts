@@ -6,6 +6,7 @@ import { expect, test, type Page, type Request } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import type { ErrorReply } from '../src/generated/ErrorReply';
 import type { HubReport } from '../src/generated/HubReport';
+import type { LastRestart } from '../src/generated/LastRestart';
 import type { NameSuggestion } from '../src/generated/NameSuggestion';
 import type { Renamed } from '../src/generated/Renamed';
 import type { SessionInfo } from '../src/generated/SessionInfo';
@@ -28,6 +29,8 @@ const CLAIMED: SetupReport = { claimed: true, claim: 'done', ca_fingerprint_sha2
 const OPENED: SessionOpened = { csrf_token: CSRF, issued_unix: 1_800_000_000, expires_unix: 1_802_592_000 };
 const INFO: SessionInfo = OPENED;
 const NODE_ID = '12345678-9abc-4ef0-8fed-cba987654321';
+// D22: the node last restarted after a power cut.
+const POWER_CUT: LastRestart = { cause: 'power-cut', at_unix: 1_800_000_400, last_alive_unix: 1_800_000_000 };
 // 5c.4a: the hub of a node just claimed, not yet named.
 const HUB: HubReport = {
   node_id: NODE_ID,
@@ -39,6 +42,7 @@ const HUB: HubReport = {
     { step: 'lightning', state: 'later' },
     { step: 'backup', state: 'later' },
   ],
+  restart: POWER_CUT,
 };
 
 type Answer = { status: number; body?: unknown; headers?: Record<string, string> } | 'offline';
@@ -487,15 +491,26 @@ test.describe('the SetupHub', () => {
   for (const [why, answer] of [
     ['the node fails', { status: 500, body: refused('internal error') }],
     ['no answer', 'offline'],
-    ['an answer that is not the hub', { status: 200, body: { node_id: NODE_ID, steps: [{ step: 'name', state: 'finished' }] } }],
-    ['a step the page does not know', { status: 200, body: { node_id: NODE_ID, steps: [{ step: 'tor', state: 'done' }] } }],
-    ['no node ID', { status: 200, body: { node_id: '', steps: HUB.steps } }],
-    ['a step listed twice', { status: 200, body: { node_id: NODE_ID, steps: [...HUB.steps, HUB.steps[0]] } }],
+    ['an answer that is not the hub', { status: 200, body: { node_id: NODE_ID, steps: [{ step: 'name', state: 'finished' }], restart: POWER_CUT } }],
+    ['a step the page does not know', { status: 200, body: { node_id: NODE_ID, steps: [{ step: 'tor', state: 'done' }], restart: POWER_CUT } }],
+    ['no node ID', { status: 200, body: { node_id: '', steps: HUB.steps, restart: POWER_CUT } }],
+    ['a step listed twice', { status: 200, body: { node_id: NODE_ID, steps: [...HUB.steps, HUB.steps[0]], restart: POWER_CUT } }],
     // Repair 1 (verifier nit 2): only the node's whole list, in its order, is the hub.
-    ['no steps', { status: 200, body: { node_id: NODE_ID, steps: [] } }],
-    ['some steps missing', { status: 200, body: { node_id: NODE_ID, steps: HUB.steps.slice(0, 3) } }],
-    ['the steps out of order', { status: 200, body: { node_id: NODE_ID, steps: [...HUB.steps].reverse() } }],
-    ['a node ID that is not a UUID', { status: 200, body: { node_id: 'x', steps: HUB.steps } }],
+    ['no steps', { status: 200, body: { node_id: NODE_ID, steps: [], restart: POWER_CUT } }],
+    ['some steps missing', { status: 200, body: { node_id: NODE_ID, steps: HUB.steps.slice(0, 3), restart: POWER_CUT } }],
+    ['the steps out of order', { status: 200, body: { node_id: NODE_ID, steps: [...HUB.steps].reverse(), restart: POWER_CUT } }],
+    ['a node ID that is not a UUID', { status: 200, body: { node_id: 'x', steps: HUB.steps, restart: POWER_CUT } }],
+    // D22: a restart that is neither null nor exactly the node's.
+    ['no restart at all', { status: 200, body: { node_id: NODE_ID, steps: HUB.steps } }],
+    ['a cause the page does not know', { status: 200, body: { ...HUB, restart: { ...POWER_CUT, cause: 'power-outage' } } }],
+    ['a time that is text', { status: 200, body: { ...HUB, restart: { ...POWER_CUT, at_unix: '1800000400' } } }],
+    ['a time before 1970', { status: 200, body: { ...HUB, restart: { ...POWER_CUT, at_unix: -1 } } }],
+    ['a time that is not whole', { status: 200, body: { ...HUB, restart: { ...POWER_CUT, last_alive_unix: 1.5 } } }],
+    ['a power cut with no time', { status: 200, body: { ...HUB, restart: { ...POWER_CUT, last_alive_unix: null } } }],
+    ['a clean shutdown with no time', { status: 200, body: { ...HUB, restart: { cause: 'clean', at_unix: 9, last_alive_unix: null } } }],
+    ['a first boot with a time before it', { status: 200, body: { ...HUB, restart: { cause: 'first-boot', at_unix: 9, last_alive_unix: 8 } } }],
+    ['a restart with more than the node writes', { status: 200, body: { ...HUB, restart: { ...POWER_CUT, evidence: [] } } }],
+    ['a restart that is a list', { status: 200, body: { ...HUB, restart: [POWER_CUT] } }],
   ] as const) {
     test(`the hub unread when ${why}: said, never a guess, and sign-out stays`, async ({ page }) => {
       await api(page, { 'GET /api/session': { status: 200, body: INFO }, 'GET /api/hub': answer as Answer });
@@ -506,6 +521,67 @@ test.describe('the SetupHub', () => {
       await expect(page.getByRole('button', { name: t('home.signout') })).toBeVisible();
     });
   }
+});
+
+// D22: why the node last restarted, in one sentence on the SetupHub, its
+// times in the browser's own zone; only what the node's record shows.
+// Record: docs/build-records/2026-11-19-boot-cause-sentence.md
+test.describe('the last restart', () => {
+  const AT = 1_800_000_400;
+  const ALIVE = 1_800_000_000;
+  const CASES: readonly (readonly [LastRestart, string])[] = [
+    [{ cause: 'power-cut', at_unix: AT, last_alive_unix: ALIVE }, 'restart.power-cut.alive'],
+    [{ cause: 'clean', at_unix: AT, last_alive_unix: ALIVE }, 'restart.clean.alive'],
+    [{ cause: 'update-applied', at_unix: AT, last_alive_unix: null }, 'restart.update-applied'],
+    [{ cause: 'update-applied', at_unix: AT, last_alive_unix: ALIVE }, 'restart.update-applied.alive'],
+    [{ cause: 'rolled-back', at_unix: AT, last_alive_unix: null }, 'restart.rolled-back'],
+    [{ cause: 'rolled-back', at_unix: AT, last_alive_unix: ALIVE }, 'restart.rolled-back.alive'],
+    [{ cause: 'kernel-crash', at_unix: AT, last_alive_unix: null }, 'restart.kernel-crash'],
+    [{ cause: 'kernel-crash', at_unix: AT, last_alive_unix: ALIVE }, 'restart.kernel-crash.alive'],
+    [{ cause: 'watchdog', at_unix: AT, last_alive_unix: null }, 'restart.watchdog'],
+    [{ cause: 'watchdog', at_unix: AT, last_alive_unix: ALIVE }, 'restart.watchdog.alive'],
+    [{ cause: 'unknown', at_unix: AT, last_alive_unix: null }, 'restart.unknown'],
+    [{ cause: 'unknown', at_unix: AT, last_alive_unix: ALIVE }, 'restart.unknown.alive'],
+    [{ cause: 'first-boot', at_unix: AT, last_alive_unix: null }, 'restart.first-boot'],
+  ];
+  const card = (page: Page) => page.getByRole('region', { name: t('restart.title') });
+  // The browser's own way of saying a time, as the page says it.
+  const said = (page: Page, unix: number) => page.evaluate((u) => new Date(u * 1000).toLocaleString(), unix);
+
+  for (const [restart, key] of CASES) {
+    test(`${restart.cause}${restart.last_alive_unix === null ? '' : ', with a last-alive time'}: one sentence`, async ({ page }) => {
+      const errors = watchErrors(page);
+      await api(page, { 'GET /api/session': { status: 200, body: INFO }, 'GET /api/hub': { status: 200, body: { ...HUB, restart } } });
+      await page.goto('/home');
+      const want = t(key).replace('{at}', await said(page, AT)).replace('{alive}', await said(page, ALIVE));
+      await expect(card(page)).toHaveAttribute('data-restart', restart.cause);
+      await expect(card(page).getByRole('paragraph')).toHaveText(want);
+      expect(want).not.toContain('{');
+      expect(errors).toEqual([]);
+    });
+  }
+
+  test('every cause the node writes has its sentence', () => {
+    const causes = new Set(CASES.map(([r]) => r.cause));
+    expect([...causes].sort()).toEqual(
+      ['clean', 'first-boot', 'kernel-crash', 'power-cut', 'rolled-back', 'unknown', 'update-applied', 'watchdog'],
+    );
+  });
+
+  test('a restart the node could not read says so, and the steps stay', async ({ page }) => {
+    await api(page, { 'GET /api/session': { status: 200, body: INFO }, 'GET /api/hub': { status: 200, body: { ...HUB, restart: null } } });
+    await page.goto('/home');
+    await expect(card(page)).toHaveAttribute('data-restart', 'unread');
+    await expect(card(page).getByRole('paragraph')).toHaveText(t('restart.unread'));
+    await expect(page.locator('li[data-step]')).toHaveCount(6);
+  });
+
+  test('no claim the node cannot check', () => {
+    const texts = Object.entries(en).filter(([k]) => k.startsWith('restart.')).map(([, v]) => v.toLowerCase());
+    for (const word of ['funds', 'data', 'safe', 'not affected']) {
+      expect(texts.filter((v) => v.includes(word)), word).toEqual([]);
+    }
+  });
 });
 
 // 5c.4b-2: naming the node, during setup only. The page suggests the first

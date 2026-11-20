@@ -5,11 +5,15 @@
 //! first step that takes input.
 //!
 //! The steps are a closed set: a `match` over them must name every one.
-//! Record: docs/build-records/2026-11-11-5c4a-uuid-and-setup-hub.md
+//! The hub also says why the node last restarted (D22; `restart.rs`).
+//! Records: docs/build-records/2026-11-11-5c4a-uuid-and-setup-hub.md,
+//! docs/build-records/2026-11-19-boot-cause-sentence.md
 
 use std::io;
 
 use serde::Serialize;
+
+use crate::restart::LastRestart;
 
 /// The node's static hostname, as systemd-hostnamed keeps it and 5c.4b's
 /// rename will write it. Repair 1 (verifier I-1; the owner, "/etc/hostname"):
@@ -73,6 +77,8 @@ pub struct HubStep {
 pub struct HubReport {
     pub node_id: String,
     pub steps: Vec<HubStep>,
+    // Why the node last restarted; `None` when that could not be read.
+    pub restart: Option<LastRestart>,
 }
 
 /// The name step, from a read of [`HOSTNAME_FILE`].
@@ -94,9 +100,15 @@ pub fn name_state(hostname: &io::Result<String>) -> StepState {
 }
 
 /// The hub for a node whose UUID is `node_id`, whose owner exists or not,
-/// and whose hostname read gave `hostname`. Reached only over the node's TLS,
-/// so the connection is done by the time anyone reads this.
-pub fn report(node_id: String, owner: bool, hostname: &io::Result<String>) -> HubReport {
+/// whose hostname read gave `hostname`, and whose restart read gave
+/// `restart`. Reached only over the node's TLS, so the connection is done by
+/// the time anyone reads this.
+pub fn report(
+    node_id: String,
+    owner: bool,
+    hostname: &io::Result<String>,
+    restart: Option<LastRestart>,
+) -> HubReport {
     let state = |step: SetupStep| match step {
         SetupStep::Connection => StepState::Done,
         SetupStep::Owner if owner => StepState::Done,
@@ -113,6 +125,7 @@ pub fn report(node_id: String, owner: bool, hostname: &io::Result<String>) -> Hu
                 state: state(step),
             })
             .collect(),
+        restart,
     }
 }
 
@@ -154,7 +167,7 @@ mod tests {
     #[test]
     fn every_step_in_order_with_its_state_from_the_node() {
         let id = "12345678-9abc-4ef0-8fed-cba987654321".to_owned();
-        let hub = report(id.clone(), true, &read("rikurisetup\n"));
+        let hub = report(id.clone(), true, &read("rikurisetup\n"), None);
         assert_eq!(hub.node_id, id);
         assert_eq!(
             hub.steps.iter().map(|s| s.step).collect::<Vec<_>>(),
@@ -164,12 +177,22 @@ mod tests {
         use StepState::{Done, Later, Next, Unknown};
         assert_eq!(states, [Done, Done, Next, Later, Later, Later]);
 
-        let named = report(id.clone(), true, &read("rikuri01\n"));
+        let named = report(id.clone(), true, &read("rikuri01\n"), None);
         assert_eq!(named.steps[2].state, Done);
-        let unread = report(id.clone(), true, &failed());
+        let unread = report(id.clone(), true, &failed(), None);
         assert_eq!(unread.steps[2].state, Unknown);
-        let unowned = report(id, false, &read("rikurisetup\n"));
+        let unowned = report(id.clone(), false, &read("rikurisetup\n"), None);
         assert_eq!(unowned.steps[1].state, Next);
+
+        // D22: the restart is passed through as read, or None.
+        assert_eq!(hub.restart, None);
+        let restart = LastRestart {
+            cause: crate::restart::RestartCause::Clean,
+            at_unix: 2000,
+            last_alive_unix: Some(1500),
+        };
+        let told = report(id, true, &read("rikuri01\n"), Some(restart));
+        assert_eq!(told.restart, Some(restart));
     }
 
     #[test]
@@ -180,10 +203,11 @@ mod tests {
                 step: SetupStep::Lightning,
                 state: StepState::Unknown,
             }],
+            restart: None,
         };
         assert_eq!(
             serde_json::to_string(&hub).unwrap(),
-            r#"{"node_id":"12345678-9abc-4ef0-8fed-cba987654321","steps":[{"step":"lightning","state":"unknown"}]}"#
+            r#"{"node_id":"12345678-9abc-4ef0-8fed-cba987654321","steps":[{"step":"lightning","state":"unknown"}],"restart":null}"#
         );
     }
 }

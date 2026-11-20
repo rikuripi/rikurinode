@@ -522,6 +522,106 @@ class BootCauseCase1(unittest.TestCase):
         self.assertEqual(at, sorted(at))
 
 
+class BootCauseTold(unittest.TestCase):
+    """What the owner is told after case 3's power cut
+    (docs/build-records/2026-11-19-boot-cause-sentence.md)."""
+
+    ENTRY = {"boot_id": "0f1e2d3c-4b5a-4968-8776-655443322110", "at": 2000, "cause": "power-cut",
+             "last_alive": 1940, "evidence": []}
+
+    def setUp(self):
+        self.artifacts = tempfile.mkdtemp(prefix="vm-drill-")
+        self.addCleanup(shutil.rmtree, self.artifacts)
+
+    def http(self, status, restart, newline="\n"):
+        # Repair 1: as vm() returns it. It reads ssh's output as text, whose
+        # universal newlines turn the reply's CRLF into LF (CI run 44665429544).
+        body = json.dumps({"overall": "unknown", "restart": restart})
+        return "HTTP/1.1 %d OK%scontent-type: application/json%s%s%s" % (status, newline, newline, newline, body)
+
+    def told(self):
+        e = self.ENTRY
+        return {"cause": e["cause"], "at_unix": e["at"], "last_alive_unix": e["last_alive"]}
+
+    def file(self, **over):
+        e = dict(self.ENTRY, **over)
+        return json.dumps({k: e[k] for k in ("at", "boot_id", "cause", "last_alive")}) + "\n"
+
+    def run_with(self, **over):
+        history = [{"boot_id": "x", "at": 1, "cause": "first-boot"}, self.ENTRY]
+        answers = {"cat " + d.BOOT_CAUSES: "\n".join(json.dumps(e) for e in history) + "\n",
+                   "cat " + d.THIS_BOOT: self.file(),
+                   d.STATUS_COMMAND: self.http(200, self.told())}
+        answers.update(over)
+        drill = BootCauseDrill(self.artifacts, answers)
+        drill.boot_cause_told(pause=0)
+        [(case, ok, detail)] = drill.results
+        self.assertEqual(case, "the owner is told the power cut, with its time")
+        return ok, detail
+
+    def test_the_paths_and_the_request(self):
+        self.assertEqual(d.THIS_BOOT, "/run/rikuri-boot-cause/this-boot.json")
+        import base64
+        echo, b64, rest = d.STATUS_COMMAND.split(" ", 2)
+        self.assertEqual((echo, rest), ("echo", "| base64 -d | python3 -I -"))
+        script = base64.b64decode(b64).decode("ascii")
+        self.assertEqual(script, d.STATUS_SCRIPT)
+        self.assertIn('b"GET /api/status HTTP/1.1\\r\\nHost: localhost\\r\\n', script)
+        self.assertIn('("127.0.0.1", 443)', script)
+        compile(script, "status", "exec")
+
+    def test_passes(self):
+        ok, detail = self.run_with()
+        self.assertTrue(ok, detail)
+
+    def test_the_reply_reads_with_either_line_ending(self):
+        for newline in ("\n", "\r\n"):
+            with self.subTest(newline=newline):
+                ok, detail = self.run_with(**{d.STATUS_COMMAND: self.http(200, self.told(), newline)})
+                self.assertTrue(ok, detail)
+
+    def test_a_restart_the_node_could_not_read_fails(self):
+        self.assertFalse(self.run_with(**{d.STATUS_COMMAND: self.http(200, None)})[0])
+
+    def test_another_cause_or_time_fails(self):
+        for told in (dict(self.told(), cause="clean"), dict(self.told(), at_unix=2001),
+                     dict(self.told(), last_alive_unix=None), dict(self.told(), extra=1)):
+            with self.subTest(told=told):
+                self.assertFalse(self.run_with(**{d.STATUS_COMMAND: self.http(200, told)})[0])
+
+    def test_this_boots_file_must_say_the_same(self):
+        for text in ("", "junk", self.file(cause="clean"), self.file(boot_id="another")):
+            with self.subTest(text=text):
+                self.assertFalse(self.run_with(**{"cat " + d.THIS_BOOT: text})[0])
+
+    def test_the_last_entry_must_be_the_power_cut(self):
+        clean = dict(self.ENTRY, cause="clean")
+        answers = {"cat " + d.BOOT_CAUSES: json.dumps(clean) + "\n",
+                   "cat " + d.THIS_BOOT: self.file(cause="clean"),
+                   d.STATUS_COMMAND: self.http(200, dict(self.told(), cause="clean"))}
+        self.assertFalse(self.run_with(**answers)[0], "consistent, but not the power cut")
+        self.assertFalse(self.run_with(**{"cat " + d.BOOT_CAUSES: ""})[0], "no history")
+
+    def test_no_answer_fails_and_says_so(self):
+        for answer in (None, "", self.http(401, None), "not http"):
+            with self.subTest(answer=answer):
+                ok, detail = self.run_with(**{d.STATUS_COMMAND: answer})
+                self.assertFalse(ok)
+                self.assertIn("never answered 200", detail)
+
+    def test_case3_tells_right_after_the_power_cut(self):
+        # Repair 1: case 3 reboots once more, cleanly, after the power cut
+        # (never_applied); from main the owner would be told that clean boot
+        # (CI run 44665429544), so the check runs inside case 3, before it.
+        import inspect
+        case3 = inspect.getsource(d.Drill.case3)
+        cut = case3.index('self.check("the boot cause after a power cut, with its time"')
+        told = case3.index("self.boot_cause_told()")
+        self.assertLess(cut, told)
+        self.assertLess(told, case3.index("self.never_applied("))
+        self.assertNotIn("boot_cause_told", inspect.getsource(d.main))
+
+
 class Verdict(unittest.TestCase):
     def setUp(self):
         self.ALL = [(case, True, "") for case in sorted(d.EXPECTED)]
@@ -566,7 +666,9 @@ class Verdict(unittest.TestCase):
             "the boot cause at the first boot",
             "the boot cause after an update and its rollback",
             "the boot cause after a clean shutdown, the update not applied",
-            "the boot cause after a power cut, with its time"})
+            "the boot cause after a power cut, with its time",
+            # docs/build-records/2026-11-19-boot-cause-sentence.md:
+            "the owner is told the power cut, with its time"})
 
     def test_all_passed_and_no_error_is_zero(self):
         self.assertEqual(d.verdict(self.ALL, None), 0)

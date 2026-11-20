@@ -7,7 +7,7 @@
 
 mod common;
 
-use common::{Node, PASSWORD, Req, claim, hostname_file, ok};
+use common::{Node, PASSWORD, Req, claim, hostname_file, ok, restart_file};
 use rikuri_control::node_id;
 use serde_json::json;
 
@@ -152,6 +152,43 @@ async fn a_uuid_file_that_cannot_be_read_is_an_error_and_is_never_replaced() {
         std::fs::read(&path).unwrap(),
         br#"{"uuid":"not a uuid","created_unix":1}"#,
         "the node's identity is never quietly replaced"
+    );
+    node.stop().await;
+}
+
+async fn restart(node: &Node, session: &str) -> serde_json::Value {
+    ok(node, Req::get("/api/hub").cookie(session)).await.json()["restart"].clone()
+}
+
+/// D22: why the node last restarted, read from the boot service's file on
+/// each request through the real router: told as written, or `null` when the
+/// file is missing or is not exactly this boot's entry.
+/// Record: docs/build-records/2026-11-19-boot-cause-sentence.md
+#[tokio::test]
+async fn the_hub_says_why_the_node_restarted_as_the_boot_service_wrote_it() {
+    let node = Node::start().await;
+    let session = claim(&node, PASSWORD).await.session_cookie();
+    let path = restart_file(&node.scratch);
+
+    assert_eq!(
+        restart(&node, &session).await,
+        serde_json::Value::Null,
+        "no file: not told"
+    );
+    std::fs::write(
+        &path,
+        r#"{"at": 2000, "boot_id": "0f1e2d3c-4b5a-4968-8776-655443322110", "cause": "power-cut", "last_alive": 1940}"#,
+    )
+    .unwrap();
+    assert_eq!(
+        restart(&node, &session).await,
+        json!({"cause": "power-cut", "at_unix": 2000, "last_alive_unix": 1940})
+    );
+    std::fs::write(&path, r#"{"at": 2000, "cause": "power-cut"}"#).unwrap();
+    assert_eq!(
+        restart(&node, &session).await,
+        serde_json::Value::Null,
+        "not the entry: never a guess"
     );
     node.stop().await;
 }

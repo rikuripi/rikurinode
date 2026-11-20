@@ -7,7 +7,7 @@ mod common;
 
 use axum::body::Body;
 use axum::http::{Method, Request, StatusCode, header};
-use common::{Scratch, boot_only};
+use common::{Scratch, boot_only, restart_file};
 use http_body_util::BodyExt;
 use rikuri_control::{Peer, api_router};
 use tower::ServiceExt;
@@ -116,4 +116,37 @@ async fn an_unknown_path_is_not_found_and_status_answers_only_get() {
             "{method} with the node's Origin"
         );
     }
+}
+
+/// D22: the status carries why the node last restarted, from the boot
+/// service's file, for a later status page and alerts; `null` without it.
+/// Record: docs/build-records/2026-11-19-boot-cause-sentence.md
+#[tokio::test]
+async fn the_status_says_why_the_node_restarted() {
+    let scratch = Scratch::new();
+    let booted = boot_only(&scratch);
+    let get = |app: rikuri_control::App| async move {
+        let mut request = Request::builder()
+            .uri("/api/status")
+            .header(header::HOST, "localhost")
+            .body(Body::empty())
+            .unwrap();
+        request
+            .extensions_mut()
+            .insert(Peer("127.0.0.1:50000".parse().unwrap()));
+        let response = api_router(app).oneshot(request).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()["restart"].clone()
+    };
+    assert!(get(booted.app.clone()).await.is_null(), "no file");
+    std::fs::write(
+        restart_file(&scratch),
+        r#"{"at": 2000, "boot_id": "0f1e2d3c-4b5a-4968-8776-655443322110", "cause": "clean", "last_alive": 1500}"#,
+    )
+    .unwrap();
+    assert_eq!(
+        get(booted.app).await,
+        serde_json::json!({"cause": "clean", "at_unix": 2000, "last_alive_unix": 1500})
+    );
 }

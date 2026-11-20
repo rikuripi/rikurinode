@@ -54,6 +54,7 @@ Evidence goes to --artifacts. Record: docs/build-records/2026-10-22-ci-vm-drill.
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import json
 import os
@@ -91,6 +92,31 @@ HEARTBEAT_FRESH_S = 120
 # for, and none after the control plane stops early in the shutdown.
 POWER_CUT_BEFORE_S = 70
 POWER_CUT_AFTER_REBOOT_S = 60
+# The sentence (docs/build-records/2026-11-19-boot-cause-sentence.md): this
+# boot's entry, which the boot service writes and the control plane reads, and
+# /api/status as greenboot's check asks it, on the node's own loopback (no
+# session there). The script goes in base64, which the shell takes as it is,
+# to `python3 -I -`. Its TLS is not checked: the drill's other checks do that;
+# this one reads the report.
+THIS_BOOT = "/run/rikuri-boot-cause/this-boot.json"
+STATUS_SCRIPT = """import socket, ssl, sys
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+with socket.create_connection(("127.0.0.1", 443), timeout=10) as raw:
+    with ctx.wrap_socket(raw, server_hostname="localhost") as conn:
+        conn.sendall(b"GET /api/status HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n")
+        data = b""
+        while len(data) < 65536:
+            chunk = conn.recv(4096)
+            if not chunk:
+                break
+            data += chunk
+sys.stdout.write(data.decode("utf-8", "replace"))
+"""
+STATUS_COMMAND = "echo %s | base64 -d | python3 -I -" % base64.b64encode(STATUS_SCRIPT.encode("ascii")).decode("ascii")
+STATUS_TRIES = 12
+STATUS_PAUSE_S = 5
 # The journal of the boot that shut down: finalize's stop, ostree's own error,
 # and when the EFI partition's automount on /boot went (the race, in
 # docs/build-records/2026-11-11-case1-finalize-race.md).
@@ -723,6 +749,27 @@ def dated(entry, low: int, high: int) -> bool:
     return isinstance(t, int) and not isinstance(t, bool) and low <= t <= high
 
 
+def restart_told(history: list, this_boot: str, status_body) -> tuple:
+    """(ok, detail): after the power cut, this boot's file and /api/status's
+    restart both say the history's last entry, and it is the power cut."""
+    last = history[-1] if history else None
+    try:
+        file = json.loads(this_boot or "")
+    except ValueError:
+        file = None
+    try:
+        told = json.loads(status_body).get("restart") if status_body is not None else None
+    except (ValueError, AttributeError):
+        told = None
+    if last is None:
+        return False, "no entry in the history"
+    want_file = {k: last.get(k) for k in ("boot_id", "at", "cause", "last_alive")}
+    want_told = {"cause": last.get("cause"), "at_unix": last.get("at"), "last_alive_unix": last.get("last_alive")}
+    ok = last.get("cause") == "power-cut" and file == want_file and told == want_told
+    return ok, "the history's last: %s; this boot's file: %s; /api/status's restart: %s" % (
+        json.dumps(want_file, sort_keys=True), json.dumps(file, sort_keys=True), json.dumps(told, sort_keys=True))
+
+
 def fresh_heartbeat(text: str, now, within: int = HEARTBEAT_FRESH_S) -> bool:
     return (now is not None and re.fullmatch(r"[0-9]{1,12}\n?", text or "") is not None
             and abs(now - int(text)) <= within)
@@ -761,7 +808,9 @@ EXPECTED = frozenset({"first boot", "the containers range at the first boot", "c
                       "the boot cause at the first boot",
                       "the boot cause after an update and its rollback",
                       "the boot cause after a clean shutdown, the update not applied",
-                      "the boot cause after a power cut, with its time"})
+                      "the boot cause after a power cut, with its time",
+                      # docs/build-records/2026-11-19-boot-cause-sentence.md:
+                      "the owner is told the power cut, with its time"})
 
 
 def verdict(results, error) -> int:
@@ -885,6 +934,29 @@ class Drill:
 
     def boot_causes_now(self) -> list:
         return boot_causes(self.vm("cat %s" % BOOT_CAUSES, check=False) or "")
+
+    def status_now(self, tries: int = STATUS_TRIES, pause: float = STATUS_PAUSE_S):
+        """/api/status's body from the node's loopback, or None if it never answered 200."""
+        for i in range(tries):
+            # vm() reads as text: universal newlines have turned the reply's
+            # CRLF into LF (CI run 44665429544). Read either ending.
+            out = (self.vm(STATUS_COMMAND, check=False, timeout=60) or "").replace("\r\n", "\n")
+            status, body = parse_http(out.replace("\n", "\r\n").encode("utf-8", "replace"))
+            if status == 200:
+                return body.decode("utf-8", "replace")
+            if i + 1 < tries:
+                time.sleep(pause)
+        return None
+
+    def boot_cause_told(self, pause: float = STATUS_PAUSE_S) -> None:
+        """In case 3, before its clean reboot: what the owner is told is the power cut, dated."""
+        history = self.boot_causes_now()
+        this_boot = self.vm("cat %s" % THIS_BOOT, check=False) or ""
+        body = self.status_now(pause=pause)
+        self.keep("04-case3-told.out", "\n".join([this_boot, body or "(no answer)"]))
+        ok, detail = restart_told(history, this_boot, body)
+        self.check("the owner is told the power cut, with its time", ok,
+                   detail if body is not None else "GET /api/status never answered 200; " + detail)
 
     def vm_time(self):
         out = (self.vm("date +%s", check=False) or "").strip()
@@ -1618,6 +1690,9 @@ class Drill:
         self.check("the boot cause after a power cut, with its time", causes(entries) == ["power-cut"] and on_time,
                    "recorded: %s; last alive %s, the reboot asked for at %s"
                    % (causes(entries), entries[0].get("last_alive") if entries else None, asked))
+        # Here, while the power cut is still the last restart: never_applied
+        # reboots cleanly (CI run 44665429544).
+        self.boot_cause_told()
         self.never_applied("case 3, a power cut during the update", "04-case3", lines)
 
     # --- 2c: the node's own update command and the signature policy --------

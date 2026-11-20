@@ -5,13 +5,17 @@
      setup from GET /api/hub, each state said in words, never by colour alone.
      A reply that is not exactly the hub shows no step at all: never a guess.
      5c.4b-2: while the name is next, the step links to /name.
+     D22: one sentence on why the node last restarted, from the hub's restart;
+     when the node could not read it, the page says so.
      Records: docs/build-records/2026-11-11-5c3b-claim-and-sign-in.md,
-     docs/build-records/2026-11-11-5c4a-uuid-and-setup-hub.md -->
+     docs/build-records/2026-11-11-5c4a-uuid-and-setup-hub.md,
+     docs/build-records/2026-11-19-boot-cause-sentence.md -->
 <script lang="ts">
   import type { HubReport } from '../generated/HubReport';
   import type { SessionInfo } from '../generated/SessionInfo';
   import Header from '../lib/Header.svelte';
   import { readHub, readSession, signOut } from '../lib/api';
+  import { sentence } from '../lib/restart';
   import { t } from '../lib/i18n';
   import { shared } from '../lib/says';
 
@@ -90,6 +94,12 @@
           </ol>
         {/if}
       </section>
+      {#if hub}
+        <section class="card" aria-labelledby="restart-title" data-restart={hub.restart?.cause ?? 'unread'}>
+          <h2 id="restart-title">{t('restart.title')}</h2>
+          <p class:unread={hub.restart === null}>{sentence(hub.restart)}</p>
+        </section>
+      {/if}
       <section class="card">
         <p>{until}</p>
         <button type="button" class="action strong" disabled={busy} onclick={out}>{t('home.signout')}</button>

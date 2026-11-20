@@ -38,6 +38,7 @@ use crate::limiter::{self, Gate, Limiter};
 use crate::node_id;
 use crate::owner;
 use crate::password::{self, PolicyError};
+use crate::restart;
 use crate::session::{self, Record, Store};
 use crate::state::StateDir;
 use crate::status::{self, Started};
@@ -68,6 +69,8 @@ pub struct Inner {
     pub hostname_file: PathBuf,
     /// Where hostnamed is asked to rename the node (5c.4b-1; `Config`).
     pub bus_socket: PathBuf,
+    /// Where why the node last restarted is read (D22; `Config`).
+    pub restart_file: PathBuf,
     /// Held for a whole rename: the bus's call, the names and the
     /// certificate, one rename at a time.
     rename_lock: tokio::sync::Mutex<()>,
@@ -98,6 +101,7 @@ impl App {
         claim_wrong_tries: u32,
         hostname_file: PathBuf,
         bus_socket: PathBuf,
+        restart_file: PathBuf,
     ) -> Self {
         let mut claim_limiter = Limiter::new(claim::DELAY_AFTER, claim::DELAY_CAP);
         claim_limiter.sync(claim_wrong_tries);
@@ -111,6 +115,7 @@ impl App {
             https_port,
             hostname_file,
             bus_socket,
+            restart_file,
             rename_lock: tokio::sync::Mutex::new(()),
             suggest_lock: tokio::sync::Mutex::new(()),
             claim_limiter: tokio::sync::Mutex::new(claim_limiter),
@@ -656,7 +661,10 @@ async fn status_handler(
     if !loopback {
         authenticate(&app, &headers)?;
     }
-    Ok(Json(status::report(app.0.started)))
+    Ok(Json(status::report(
+        app.0.started,
+        restart::now(&app.0.restart_file),
+    )))
 }
 
 // ---- handlers: the node's name (5c.4b-1) ---------------------------------
@@ -833,7 +841,12 @@ async fn hub_handler(
     if let Err(e) = &hostname {
         warn!(error = %e, "the hostname could not be read: the name step is unknown");
     }
-    Ok(Json(hub::report(node_id, owner::exists(dir), &hostname)))
+    Ok(Json(hub::report(
+        node_id,
+        owner::exists(dir),
+        &hostname,
+        restart::now(&app.0.restart_file),
+    )))
 }
 
 // ---- the plain router ----------------------------------------------------
@@ -937,6 +950,15 @@ mod tests {
             (
                 "HubReport.ts",
                 crate::hub::HubReport::export_to_string(&cfg).unwrap(),
+            ),
+            // D22: why the node last restarted.
+            (
+                "RestartCause.ts",
+                crate::restart::RestartCause::export_to_string(&cfg).unwrap(),
+            ),
+            (
+                "LastRestart.ts",
+                crate::restart::LastRestart::export_to_string(&cfg).unwrap(),
             ),
             // 5c.4b-2: naming the node.
             ("Renamed.ts", Renamed::export_to_string(&cfg).unwrap()),

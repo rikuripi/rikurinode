@@ -35,7 +35,10 @@ theirs: the SetupHub, with the node's UUID, given at the claim, and each step
 of setup read from the node's real state (done, next, or with a later update),
 and sign-out. From the hub the owner names the node: the first of
 `rikuri01` to `rikuri99` that nothing on the network answers, or a name of
-their own. Its Bitcoin, Lightning and backup steps come with later updates.
+their own. The hub also says in one sentence why the node last restarted and
+when (a clean shutdown, a power cut, an update applied or undone, a crash, or
+that it cannot tell), from a record a small boot service keeps on the node.
+Its Bitcoin, Lightning and backup steps come with later updates.
 Nothing here is ready to run on a node. The
 [platform and architecture plan](docs/architecture/platform-plan.md) says how
 the node will be built, and which decisions are still the owner's; its
