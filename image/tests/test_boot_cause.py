@@ -192,11 +192,13 @@ class History(Case):
         path = os.path.join(self.node.state, m.HISTORY)
         lines = [json.dumps(entry(A, 1)), "not json", json.dumps({"boot_id": B}), json.dumps(entry(B, 2)),
                  json.dumps(dict(entry(C, 3), image=7)), json.dumps(dict(entry(C, 3), pstore="x")),
-                 json.dumps(dict(entry(C, 3), at=True)), ""]
+                 json.dumps(dict(entry(C, 3), at=True)), json.dumps(dict(entry(C, 3), heartbeat_seen="1")),
+                 json.dumps(dict(entry(C, 3), heartbeat_seen=True)), json.dumps(dict(entry(C, 4), heartbeat_seen=7)),
+                 ""]
         self.node.write(path, "\n".join(lines))
         entries, bad = m.read_history(path)
-        self.assertEqual([e["boot_id"] for e in entries], [A, B])
-        self.assertEqual(bad, 5)
+        self.assertEqual([e["boot_id"] for e in entries], [A, B, C])
+        self.assertEqual(bad, 7)
 
     def test_missing_is_empty(self):
         self.assertEqual(m.read_history(os.path.join(self.node.state, m.HISTORY)), ([], 0))
@@ -270,9 +272,23 @@ class Classify(unittest.TestCase):
 
     def test_no_heartbeat_from_the_last_boot_is_unknown(self):
         self.assertEqual(self.cause([entry(A, 100)])[:2], ("unknown", None))
-        cause, alive, evidence = self.cause([entry(A, 100)], heartbeat=99)
+
+    # Verifier round 1, I-2: a heartbeat belongs to the last boot because each
+    # boot removes the one it read, not because of the clock. Test change, with
+    # its reason (the record, "Repair 2"): a heartbeat older than the last
+    # boot's record (99 < 100) was taken as stale; it now dates the cut, since a
+    # clock corrected back during that boot (time sync after a fast clock) must
+    # not lose the date.
+    def test_a_heartbeat_counts_whatever_the_clock_says(self):
+        self.assertEqual(self.cause([entry(A, 100)], heartbeat=99)[:2], ("power-cut", 99))
+
+    def test_a_heartbeat_seen_at_the_last_boot_is_stale(self):
+        # Its removal failed then: the boot after it must not reuse it.
+        last = dict(entry(A, 100), heartbeat_seen=850)
+        cause, alive, evidence = self.cause([last], heartbeat=850)
         self.assertEqual((cause, alive), ("unknown", None))
-        self.assertIn("older than the last boot", evidence[0])
+        self.assertTrue(any("already read at the last boot" in e for e in evidence), evidence)
+        self.assertEqual(self.cause([last], heartbeat=851)[:2], ("power-cut", 851))
 
     def test_a_mark_naming_another_boot_is_unknown(self):
         cause, alive, evidence = self.cause([entry(A, 100)], mark={"boot_id": B, "at": 900}, heartbeat=850)
@@ -345,6 +361,50 @@ class BootAndShutdown(Case):
         self.node.boot(now=3000)
         self.assertEqual(self.node.history()[-1]["cause"], "update-applied")
         self.assertEqual(self.node.history()[-1]["image"], I2)
+
+    def test_the_heartbeat_is_read_once_and_removed(self):
+        # Verifier round 1, I-2.
+        self.node.boot()
+        self.node.write(self.node.heartbeat, "2600\n")
+        self.node.set_boot(B)
+        self.node.boot(now=3000)
+        self.assertFalse(os.path.lexists(self.node.heartbeat), "the next boot must not find it")
+        self.assertEqual(self.node.history()[-1]["heartbeat_seen"], 2600)
+
+    def test_a_clock_behind_at_boot_does_not_reuse_an_old_heartbeat(self):
+        # Verifier round 1, I-2: a Pi 5 without an RTC battery starts its clock
+        # far behind; boot B is cut before the control plane beats, so boot C
+        # has no heartbeat from B and must record unknown, not boot A's time.
+        self.node.boot(now=1_790_000_000)
+        self.node.write(self.node.heartbeat, "1790050000\n")
+        self.node.set_boot(B)
+        self.node.boot(now=1_700_000_000)
+        self.node.set_boot(C)
+        self.node.boot(now=1_700_000_100)
+        last = self.node.history()[-1]
+        self.assertEqual((last["cause"], last["last_alive"]), ("unknown", None))
+
+    def test_a_heartbeat_link_is_removed_not_followed(self):
+        target = self.node.p("elsewhere")
+        self.node.write(target, "123\n")
+        self.node.boot()
+        os.symlink(target, self.node.heartbeat)
+        self.node.set_boot(B)
+        self.node.boot(now=2000)
+        self.assertFalse(os.path.lexists(self.node.heartbeat))
+        self.assertTrue(os.path.exists(target), "only the link goes")
+
+    def test_an_unreadable_history_records_nothing_and_never_fails(self):
+        # Verifier round 1, I-1: this branch returned 0 untested; returning 1
+        # would fail the unit, and a failed oneshot never runs its ExecStop.
+        path = os.path.join(self.node.state, m.HISTORY)
+        os.mkdir(path)
+        self.assertEqual(self.node.boot(), 0, "a folder")
+        self.assertTrue(os.path.isdir(path), "left as it was")
+        os.rmdir(path)
+        self.node.write(path, "x" * (m.HISTORY_MAX + 1))
+        self.assertEqual(self.node.boot(), 0, "too long")
+        self.assertEqual(os.path.getsize(path), m.HISTORY_MAX + 1, "left as it was")
 
     def test_twice_in_one_boot_records_once_and_drops_the_mark(self):
         self.node.boot()
