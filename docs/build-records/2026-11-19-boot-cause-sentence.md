@@ -5,7 +5,7 @@
 | **Date** | 2026-11-19 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/boot-cause-sentence`, from `main` at `9b4bc2d`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | this contract, then the change |
+| **Commits** | `ea30d54` (contract), `113d082` (change), and this record |
 | **Status** | IN PROGRESS |
 | **Change type** | feature (OS image: the boot service names this boot's cause; control plane: reads it; setup pages: one sentence) |
 
@@ -48,3 +48,20 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Change, `113d082`
+
+- `boot-cause`: `write_this_boot` writes `boot_id`, `at`, `cause` and `last_alive` to `THIS_BOOT` after the history, the mark and the heartbeat, and in the already-recorded branch; a failed write is logged and the boot still exits 0. Nothing is written when the boot id or the history cannot be read.
+- `restart.rs` (new): `RestartCause` (the boot service's eight causes), `LastRestart`, `parse` (exact keys, a boot id of the kernel's form, whole non-negative times; a clean shutdown and a power cut need `last_alive`, a first boot has none; the two times are never compared) and `read` (lstat a regular file, the same device and inode once open, at most 4 KiB). `now` logs why it could not tell.
+- `Config.restart_file` (always `THIS_BOOT`, from no variable), `App`, `boot.rs`; `hub::report` and `status::report` take the restart; `restart` in both replies.
+- Setup pages: `lib/restart.ts` (`parseRestart`, the same rules; `sentence`, the times by `toLocaleString`); `parseHub` refuses a hub whose `restart` is missing or not exactly the node's; `Home.svelte`: a "The last restart" card under the steps; `en.json`: fifteen texts.
+- The VM drill: `boot_cause_told`, right after case 3: the history's last entry is the power cut, this boot's file says the same, and `/api/status` on the node's loopback (a Python script sent in base64, as greenboot's check asks) carries it with the same times.
+- `platform-plan.md` §4.1 and D22's row: the dated clarification; `README.md`: the hub's sentence.
+- On the Mac: `scripts/cargo.sh fmt` and `clippy --all-targets -D warnings` clean; the Python files parse; `git diff --check` clean. The tests run in CI.
+
+### Test changes, with their reasons
+
+- `test_boot_cause.py`: the `Node` helper gains `this_boot` and passes it to `boot()`, so no test writes the real `/run`; four new tests.
+- `hub.rs` and `status.rs` unit tests: the calls gain the new argument (`None`), and the hub's JSON test expects `"restart":null`: the reply has a new field; each gains a case with a restart.
+- `owner.spec.ts`: `HUB` gains a restart (its type requires it). The existing unread-hub cases each gain the node's restart, so that each still fails only for its own reason rather than also for a missing restart; ten new unread cases for the restart.
+- `test_vm_drill.py`: `Verdict`'s expected set gains the new check, as each earlier check did.
