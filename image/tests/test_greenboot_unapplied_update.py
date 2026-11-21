@@ -362,6 +362,30 @@ def finalize(active="inactive", result="success", entered=1500000, left=9000000)
             % (active, result, entered, left))
 
 
+def make_staged_state(tmp, state):
+    """ostree's staged state for a test, under tmp: "file" (staged), None (gone,
+    as finalize leaves it once it applies), "dir" or "link" (not ostree's file),
+    "unreadable" (lstat fails with ENOTDIR, not ENOENT). Returns its path."""
+    base = os.path.join(tmp, "ostree-run")
+    path = os.path.join(base, "staged-deployment")
+    if state == "unreadable":
+        os.makedirs(tmp, exist_ok=True)
+        with open(base, "w") as f:     # a file where the folder goes
+            f.write("")
+        return path
+    os.makedirs(base, exist_ok=True)
+    if state == "file":
+        with open(path, "wb") as f:
+            f.write(b"\0")
+    elif state == "dir":
+        os.mkdir(path)
+    elif state == "link":
+        with open(path + ".real", "wb") as f:
+            f.write(b"\0")
+        os.symlink(path + ".real", path)
+    return path
+
+
 class Note(unittest.TestCase):
     """note(), at the shutdown greenboot sets its trigger in, before ostree's
     finalize: the staged update noted in /run, and nothing armed yet (N1,
@@ -370,9 +394,9 @@ class Note(unittest.TestCase):
     # Run's fixtures, not its tests.
     setUp, tearDown, runner, status = Run.setUp, Run.tearDown, Run.runner, Run.status
 
-    def note(self, run):
+    def note(self, run, staged_state="file"):
         self.path = os.path.join(self.tmp.name, "run", "rikuri-boot-counter", "staged")
-        return m.note(run=run, note_path=self.path)
+        return m.note(run=run, note_path=self.path, staged_state=make_staged_state(self.tmp.name, staged_state))
 
     def noted(self):
         if not os.path.exists(self.path):
@@ -385,6 +409,21 @@ class Note(unittest.TestCase):
 
     def test_the_note_is_in_run(self):
         self.assertEqual(m.NOTE, "/run/rikuri-boot-counter/staged")
+
+    def test_the_staged_state_is_ostree_s(self):
+        # ostree 2026.4, ostree-sysroot-private.h: _OSTREE_SYSROOT_RUNSTATE_STAGED.
+        self.assertEqual(m.STAGED_STATE, "/run/ostree/staged-deployment")
+
+    def test_no_staged_state_from_ostree_notes_nothing(self):
+        # Fails closed: were ostree to keep it elsewhere, nothing is noted, so
+        # nothing is armed and greenboot counts as before the rule.
+        for state in (None, "dir", "link", "unreadable"):
+            with self.subTest(state=state):
+                shutil.rmtree(self.tmp.name)
+                os.makedirs(self.tmp.name)
+                run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, "unused", bootc_json=bootc(NEW))
+                self.assertEqual(self.note(run, staged_state=state), 0)
+                self.assertIsNone(self.noted())
 
     def test_notes_the_staged_update_and_arms_nothing(self):
         run = self.runner("greenboot_next_deployment_id=%s\nboot_success=1\n" % NEW, "unused", bootc_json=bootc(NEW))
@@ -479,13 +518,14 @@ class Arm(unittest.TestCase):
             return inner(argv)
         return run
 
-    def arm(self, run, noted=NEW + "\n", mountinfo=MI_RW):
+    def arm(self, run, noted=NEW + "\n", mountinfo=MI_RW, staged_state=None):
         path = os.path.join(self.tmp.name, "run", "rikuri-boot-counter", "staged")
         if noted is not None:
             os.makedirs(os.path.dirname(path))
             with open(path, "w") as f:
                 f.write(noted)
-        return m.arm(run=run, mountinfo=lambda: mountinfo, note_path=path)
+        return m.arm(run=run, mountinfo=lambda: mountinfo, note_path=path,
+                     staged_state=make_staged_state(self.tmp.name, staged_state))
 
     def sets(self):
         return [c for c in self.calls if len(c) > 2 and c[2] == "set"]
@@ -540,6 +580,23 @@ class Arm(unittest.TestCase):
                 run = self.runner("greenboot_next_deployment_id=%s\n" % NEW)
                 self.assertEqual(self.arm(run, noted=noted), 0)
                 self.assertEqual(self.sets(), [])
+
+    def test_an_update_ostree_kept_staged_arms_nothing(self):
+        # Locked for finalization (bootc --download-only, or ostree's lock
+        # file): finalize returns success and keeps the staged state.
+        for state in ("file", "dir", "link"):
+            with self.subTest(state=state):
+                shutil.rmtree(self.tmp.name)
+                os.makedirs(self.tmp.name)
+                self.calls.clear()
+                run = self.runner("greenboot_next_deployment_id=%s\n" % NEW)
+                self.assertEqual(self.arm(run, staged_state=state), 0)
+                self.assertEqual(self.sets(), [])
+
+    def test_an_unreadable_staged_state_arms_nothing(self):
+        run = self.runner("greenboot_next_deployment_id=%s\n" % NEW)
+        self.assertEqual(self.arm(run, staged_state="unreadable"), 0)
+        self.assertEqual(self.sets(), [])
 
     def test_a_trigger_for_another_update_arms_nothing(self):
         run = self.runner("greenboot_next_deployment_id=%s\n" % OLDER)
