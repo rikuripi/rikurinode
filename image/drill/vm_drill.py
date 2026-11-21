@@ -770,6 +770,14 @@ def causes(entries) -> list:
     return [e["cause"] for e in entries]
 
 
+def grubenv_value_exp(text: str, key: str):
+    """KEY's value in grub2-editenv's list output, or None (experiment branch only)."""
+    for line in (text or "").splitlines():
+        if line.startswith(key + "="):
+            return line.split("=", 1)[1]
+    return None
+
+
 def boot_counter(grubenv: str):
     """boot_counter's value in grub2-editenv's list, or None when it is not set."""
     for line in (grubenv or "").splitlines():
@@ -1932,6 +1940,87 @@ class Drill:
             serial = os.path.join(self.workdir, "serial-%d.log" % i)
             self.keep("serial-%d.log" % i, self.run(["cat", serial], check=False, sudo=True).stdout)
 
+    # --- experiment: branch experiment/grubenv-flush-methods only, never merged -
+    # docs/build-records/2026-11-21-grubenv-flush-methods-experiment.md
+    EXP_GRUBENV = "/boot/grub2/grubenv"
+    EXP_FLUSHES = {
+        "none": "echo none",
+        "checkpoint": ("python3 -I -c 'import os, fcntl, struct; "
+                       "fd = os.open(\"/boot/grub2\", os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC); "
+                       "fcntl.ioctl(fd, 0x4004662B, struct.pack(\"=I\", 0)); os.close(fd); print(\"checkpoint\")'"),
+        "syncfs": "sync -f /boot/grub2 && echo syncfs",
+        "fsfreeze": "fsfreeze -f /boot && fsfreeze -u /boot && echo fsfreeze",
+    }
+    EXP_PLAN = [("fsfreeze", "reboot")] * 2 + [("none", "cut")] * 2 + [("checkpoint", "cut")] * 2 \
+        + [("syncfs", "cut")] * 2 + [("fsfreeze", "cut")] * 2
+    EXP_CUT_S = 3
+
+    def exp_flush(self, how: str) -> str:
+        return (self.vm(self.EXP_FLUSHES[how], check=False) or "failed").strip()
+
+    def exp_editenv(self, args: str, check: bool) -> None:
+        """grub2-editenv as the node's edit_grubenv runs it: /boot remounted writable for the
+        write, then read-only again by a bind remount."""
+        self.vm("mount -o remount,rw /boot && grub2-editenv %s %s; rc=$?; mount -o remount,bind,ro /boot; exit $rc"
+                % (self.EXP_GRUBENV, args), check=check)
+
+    def exp_held_env(self, old_boot) -> str:
+        """At the boot after old_boot, held before the node's pre-check: grubenv as GRUB left it."""
+        wait_until(lambda: (lambda b: b if b and b != old_boot else None)(self.boot_id()),
+                   timeout=900, what="the VM to boot and answer on SSH")
+        wait_until(lambda: (self.vm("systemctl show -p ActiveState --value greenboot-healthcheck.service",
+                                    check=False) or "").strip() == "activating",
+                   timeout=300, what="greenboot's check to start, held before the node's pre-check")
+        env = self.vm("grub2-editenv %s list" % self.EXP_GRUBENV, check=False) or ""
+        self.vm("rm -f %s" % HOLD_FLAG)
+        return env
+
+    def exp_trial(self, n: int, how: str, end: str) -> dict:
+        self.hold_first()
+        self.vm("sync")
+        self.exp_editenv("unset boot_counter boot_success", check=True)
+        base_flush = self.exp_flush("fsfreeze")
+        frag_before = self.vm("filefrag -v %s" % self.EXP_GRUBENV, check=False) or ""
+        old = self.boot_id()
+        self.exp_editenv("set boot_success=1", check=True)
+        written = time.monotonic()
+        flushed = self.exp_flush(how)
+        frag_after = self.vm("filefrag -v %s" % self.EXP_GRUBENV, check=False) or ""
+        if end == "cut":
+            rest = self.EXP_CUT_S - (time.monotonic() - written)
+            if rest > 0:
+                time.sleep(rest)
+            elapsed = round(time.monotonic() - written, 2)
+            self.kill_vm()
+            self.start_vm()
+        else:
+            elapsed = None
+            self.reboot()
+        env = self.exp_held_env(old)
+        self.wait_up(old_boot=old)
+        self.release_first()
+        self.exp_editenv("unset boot_counter boot_success", check=False)
+        success = grubenv_value_exp(env, "boot_success")
+        reading = {"0": "GRUB's save reached the file", "1": "GRUB's save did not reach the file"}.get(
+            success, "other")
+        trial = {"trial": n, "flush": how, "end": end, "elapsed_s": elapsed, "boot_success_after": success,
+                 "boot_counter_after": grubenv_value_exp(env, "boot_counter"), "reading": reading,
+                 "baseline_flush": base_flush, "flush_said": flushed,
+                 "moved": frag_before.splitlines()[3:] != frag_after.splitlines()[3:]}
+        self.keep("exp-%02d.out" % n, "\n".join([json.dumps(trial, indent=1), "--- filefrag before", frag_before,
+                                                 "--- filefrag after", frag_after, "--- at the held boot", env]))
+        self.check("experiment %02d: %s, %s" % (n, how, "a clean reboot" if end == "reboot" else
+                                                "a power cut at %ss" % self.EXP_CUT_S),
+                   success == "0", "%s (boot_success %s; flush said %r; %ss after the write; moved: %s)"
+                   % (reading, success, flushed, elapsed, trial["moved"]))
+        return trial
+
+    def experiment(self) -> None:
+        trials = []
+        for n, (how, end) in enumerate(self.EXP_PLAN, 1):
+            trials.append(self.exp_trial(n, how, end))
+            self.keep("exp-trials.json", json.dumps(trials, indent=1))
+
     def summary(self) -> str:
         lines = ["### Rollback drill (x86_64, KVM)", "", "| Case | Result | Detail |", "|---|---|---|"]
         for case, ok, detail in self.results:
@@ -1952,33 +2041,8 @@ def main(argv=None) -> int:
     try:
         drill.install()
         drill.first_boot()
-        drill.boot_cause_first_boot()
-        drill.boot_automount()
-        drill.control_plane()
-        drill.setup_pages()
-        drill.owner_pages()
-        drill.setup_hub()
-        drill.load_variants()
-        before = len(drill.boot_causes_now())
-        drill.case1()
-        drill.boot_cause_case1(before)
-        drill.case1_power_cuts()
-        drill.case2b()
-        drill.case2d()
-        drill.case2e()
-        drill.case3()
-        # After the cases, so that a --userns=auto run (which may add ID-mapped
-        # layers to the storage bootc switch reads) cannot touch them; run 2
-        # (40057729110) saw case 1's update fail to finalize with it before.
-        drill.subid_after_reboots()
-        drill.userns_auto()
-        drill.mdns_links()
-        # Last: the signed update stays staged, and no reboot follows.
-        drill.serve_registry(a.registry)
-        drill.configure_mirror()
-        drill.case4()
-        drill.case5()
-        drill.rename()
+        # Experiment branch only: the experiment in place of the cases.
+        drill.experiment()
     except (DrillFailure, subprocess.TimeoutExpired) as e:
         error = str(e)
         drill.check("drill", False, error)
