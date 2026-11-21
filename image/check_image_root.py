@@ -178,7 +178,7 @@ BOOT_CAUSE_OVERRIDES = unit_overrides(BOOT_CAUSE_UNIT)
 BOOT_COUNTER_UNIT = "usr/lib/systemd/system/rikuri-boot-counter.service"
 BOOT_COUNTER_WANTS = "usr/lib/systemd/system/sysinit.target.wants/rikuri-boot-counter.service"
 BOOT_COUNTER_KEYS = {"[Unit]": {"Description": None, "DefaultDependencies": "no",
-                                "After": "local-fs.target boot.mount",
+                                "After": "local-fs.target boot.mount sysroot.mount",
                                 "Before": "final.target ostree-finalize-staged.service",
                                 "Conflicts": "final.target"},
                      "[Service]": {"Type": "oneshot", "RemainAfterExit": "yes", "PrivateMounts": "yes",

@@ -4,14 +4,15 @@
 # before ostree-finalize-staged.service, as rikuri-boot-cause.service is, it
 # stops after finalize, and before /boot is unmounted (After=boot.mount, an
 # order only: a Requires= could pull in the EFI partition's generated mount,
-# bootc #2402). An update never applied arms nothing, so it can never roll
+# bootc #2402), and before /sysroot is (After=sysroot.mount, where it finds the
+# update's deployment). An update never applied arms nothing, so it can never roll
 # back the image the node keeps (N1). The remount of /boot for its one write
 # stays in its own mount namespace.
 # Record: docs/build-records/2026-11-20-boot-counter-armed-after-finalize.md
 [Unit]
 Description=Count an applied update's boots from its first
 DefaultDependencies=no
-After=local-fs.target boot.mount
+After=local-fs.target boot.mount sysroot.mount
 Before=final.target ostree-finalize-staged.service
 Conflicts=final.target
 

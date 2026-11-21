@@ -43,15 +43,17 @@ while boot_counter is set and boot_success=0. So:
 
   `note`, an ExecStop=- after greenboot's own in greenboot-set-rollback-trigger,
     before ostree's finalize: when the trigger names the deployment staged at
-    this shutdown, and ostree's STAGED_STATE is there, write its digest to
-    NOTE in /run. Nothing staged (a restart during the trial) notes nothing,
+    this shutdown, and ostree's STAGED_STATE is there, write its digest and
+    its deployment (from bootc status) to NOTE in /run. Nothing staged (a restart during the trial) notes nothing,
     so a countdown is never reset.
 
   `arm`, the ExecStop=- of rikuri-boot-counter.service, which stops after
     ostree's finalize: when NOTE names the update the trigger still names,
     finalize ran in this boot and stopped successfully, and it removed
     STAGED_STATE (it keeps it for an update locked for finalization, staged
-    with bootc --download-only, and returns success all the same), set
+    with bootc --download-only, and returns success all the same), and the
+    noted deployment is still in SYSROOT (a cancel during the shutdown
+    removes it, and finalize then has nothing to do), set
     boot_counter=MAX_BOOT_ATTEMPTS and boot_success=0, so GRUB counts every
     boot of the new image from its first, one that never reaches its checks
     too. A finalize that failed, or a power cut before the arm, arms nothing:
@@ -97,6 +99,14 @@ NOTE = "/run/rikuri-boot-counter/staged"
 # file), returning success all the same. docs/build-records/2026-11-20-boot-
 # counter-download-only.md
 STAGED_STATE = "/run/ostree/staged-deployment"
+# The staged update's deployment, under the sysroot, as ostree keeps it
+# (ostree_sysroot_get_deployment_dirpath): a cancel of the staged update during
+# the shutdown removes it, its .origin first, and finalize then has nothing to
+# do. docs/build-records/2026-11-20-boot-counter-cancelled.md
+SYSROOT = "/sysroot"
+STATEROOT = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*")
+CHECKSUM = re.compile(r"[0-9a-f]{64}")
+DEPLOYMENT = re.compile(r"ostree/deploy/[A-Za-z0-9][A-Za-z0-9_.-]*/deploy/[0-9a-f]{64}\.(0|[1-9][0-9]*)")
 MOUNT = "/usr/bin/mount"
 MOUNTINFO = "/proc/self/mountinfo"
 TRIGGER = "greenboot_next_deployment_id"
@@ -251,6 +261,31 @@ def staged_digest(text: str):
     return digest if isinstance(digest, str) and IMAGE_DIGEST.fullmatch(digest) else None
 
 
+def staged_deployment(text: str):
+    """The staged deployment's path under the sysroot, from bootc status --json
+    (status.staged.ostree: stateroot, checksum, deploySerial), or None."""
+    try:
+        entry = json.loads(text)["status"]["staged"]["ostree"]
+        stateroot, checksum, serial = entry["stateroot"], entry["checksum"], entry["deploySerial"]
+    except (ValueError, KeyError, TypeError):
+        return None
+    if not (isinstance(stateroot, str) and STATEROOT.fullmatch(stateroot)
+            and isinstance(checksum, str) and CHECKSUM.fullmatch(checksum)
+            and type(serial) is int and serial >= 0):
+        return None
+    return "ostree/deploy/%s/deploy/%s.%d" % (stateroot, checksum, serial)
+
+
+def deployment_kept(sysroot: str, rel: str) -> bool:
+    """True when the deployment's folder is a folder and its .origin a regular
+    file, each reached by lstat; anything else, unreadable included, False."""
+    folder = os.path.join(sysroot, rel)
+    try:
+        return stat.S_ISDIR(os.lstat(folder).st_mode) and stat.S_ISREG(os.lstat(folder + ".origin").st_mode)
+    except OSError:
+        return False
+
+
 def ostree_staged(path: str):
     """"staged" when ostree's staged state is its regular file, "gone" when it
     is not there (ENOENT), None for anything else: unknown."""
@@ -282,6 +317,11 @@ def note(run=default_run, note_path: str = NOTE, staged_state: str = STAGED_STAT
     if staged != trigger:
         log("the trigger %s does not name the staged update %s; nothing noted" % (trigger, staged))
         return 0
+    deployment = staged_deployment(text)
+    if deployment is None:
+        log("bootc status names no deployment for the staged update %s; nothing noted, so nothing will be "
+            "armed" % staged)
+        return 0
     if ostree_staged(staged_state) != "staged":
         log("ostree's staged state %s is not its file; nothing noted, so nothing will be armed"
             % staged_state)
@@ -289,7 +329,7 @@ def note(run=default_run, note_path: str = NOTE, staged_state: str = STAGED_STAT
     try:
         os.makedirs(os.path.dirname(note_path), mode=0o755, exist_ok=True)
         with open(note_path, "w", encoding="ascii") as f:
-            f.write(staged + "\n")
+            f.write("%s %s\n" % (staged, deployment))
     except OSError as e:
         log("FAILED to note update %s in %s: %s; nothing will be armed" % (staged, note_path, e))
         return 1
@@ -316,17 +356,18 @@ def finalized(text: str) -> bool:
 
 
 def arm(run=default_run, mountinfo=read_mountinfo, note_path: str = NOTE,
-        staged_state: str = STAGED_STATE) -> int:
+        staged_state: str = STAGED_STATE, sysroot: str = SYSROOT) -> int:
     """At shutdown, after ostree's finalize: count the noted update's boots from
     its first, only once it is applied."""
     noted = read_text(note_path)
     if not noted:
         log("no update noted at this shutdown; nothing to arm")
         return 0
-    if not (noted.endswith("\n") and IMAGE_DIGEST.fullmatch(noted[:-1])):
-        log("unknown: the note %s is not one digest; nothing armed" % note_path)
+    parts = noted[:-1].split(" ") if noted.endswith("\n") else []
+    if not (len(parts) == 2 and IMAGE_DIGEST.fullmatch(parts[0]) and DEPLOYMENT.fullmatch(parts[1])):
+        log("unknown: the note %s is not one digest and its deployment; nothing armed" % note_path)
         return 0
-    digest = noted[:-1]
+    digest, deployment = parts
     rc, text = run([GRUB2_EDITENV, GRUBENV, "list"])
     if rc != 0:
         log("cannot read %s (exit %d); boots counted as greenboot counts them" % (GRUBENV, rc))
@@ -345,6 +386,10 @@ def arm(run=default_run, mountinfo=read_mountinfo, note_path: str = NOTE,
         log("ostree's finalize did not take update %s (%s); nothing armed: the image the node keeps is "
             "not counted" % (digest, "kept staged: locked for finalization, downloaded only" if state == "staged"
                              else "its staged state %s not known" % staged_state))
+        return 0
+    if not deployment_kept(sysroot, deployment):
+        log("the deployment of update %s is not in %s (cancelled during the shutdown, or unreadable); nothing "
+            "armed: the image the node keeps is not counted" % (digest, os.path.join(sysroot, deployment)))
         return 0
     rc = edit_grubenv(run, mountinfo, ["set", "%s=%d" % (COUNTER, MAX_BOOT_ATTEMPTS), "%s=0" % SUCCESS],
                       "arm %s" % COUNTER, "boots counted as greenboot counts them")
