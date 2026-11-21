@@ -105,7 +105,7 @@ STAGED_STATE = "/run/ostree/staged-deployment"
 # do. docs/build-records/2026-11-20-boot-counter-cancelled.md
 SYSROOT = "/sysroot"
 STATEROOT = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*")
-CHECKSUM = re.compile(r"[0-9a-f]{64}")
+OSTREE_CHECKSUM = re.compile(r"[0-9a-f]{64}")
 DEPLOYMENT = re.compile(r"ostree/deploy/[A-Za-z0-9][A-Za-z0-9_.-]*/deploy/[0-9a-f]{64}\.(0|[1-9][0-9]*)")
 MOUNT = "/usr/bin/mount"
 MOUNTINFO = "/proc/self/mountinfo"
@@ -270,7 +270,7 @@ def staged_deployment(text: str):
     except (ValueError, KeyError, TypeError):
         return None
     if not (isinstance(stateroot, str) and STATEROOT.fullmatch(stateroot)
-            and isinstance(checksum, str) and CHECKSUM.fullmatch(checksum)
+            and isinstance(checksum, str) and OSTREE_CHECKSUM.fullmatch(checksum)
             and type(serial) is int and serial >= 0):
         return None
     return "ostree/deploy/%s/deploy/%s.%d" % (stateroot, checksum, serial)
