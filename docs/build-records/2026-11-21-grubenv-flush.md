@@ -88,7 +88,7 @@
 
 ## Evidence log
 
-### Red tests
+### Red tests, `404b14d`
 
 - `test_grubenv_flush.py` (new):
   - the call is Linux's `_IOW('f', 43, __u32)` (`0x4004662b`); the folder is `/boot/grub2`;
@@ -117,3 +117,26 @@
   - The pure helpers (`grubenv_value`, `seconds_since`, `case3b_result`) are unit-tested: GRUB's write must have reached grubenv, the flush must have run with success, no flush failure may be logged, and the cut must come within 20 s.
   - **Reason:** a new case; nothing loosened.
 - On the Mac: every changed Python file parses; `git diff --check` clean; a plain import of the drill evaluated two of its pure helpers (`seconds_since`, `case3b_result`), a smoke check only. The tests run in CI.
+
+### CI on `404b14d` (red): Fail, as expected
+
+- `Full gate (Ubuntu)`, [run 44948838565](https://github.com/rikuripi/rikurinode/actions/runs/44948838565): `FAILED (failures=8, errors=10)`, all in the new or changed tests:
+  - `test_grubenv_flush` does not load (the program does not exist);
+  - `GrubenvFlush` (image check): `check_grubenv_flush` does not exist;
+  - `test_greenboot_unapplied_update`: `GRUBENV_FLUSH` does not exist; the clear, the arm and the give-back are not flushed; the three read-only-/boot tests miss the flush.
+- The OS image, [run 44948838507](https://github.com/rikuripi/rikurinode/actions/runs/44948838507): built and checked; the USB install passed. The VM drill failed on case 3b alone; cases 1, 1b (`['2', '2', '1']`), 2b, 2d, 2e, 3, 4 and 5 Pass:
+  - `case 3b, a power cut seconds after greenboot's grubenv write | **Fail** | GRUB's write reached grubenv: False (boot_success 1 at the check's start); the flush ran: False; no flush failure logged since the install: True; cut 13.8s after greenboot's check: True`
+  - The defect, reproduced on the real image: GRUB's `save_env` after the cut did not reach grubenv, which kept greenboot's `boot_success=1`.
+
+### Fix, `ae10134`
+
+- `grubenv-flush` (new, 0755): `EXT4_IOC_CHECKPOINT` on `/boot/grub2`, as the Design says.
+- `greenboot-unapplied-update`:
+  - `GRUBENV_FLUSH`;
+  - `edit_grubenv` runs it after every write, before /boot's remount back;
+  - a failed flush is logged with the program's own line, and the write's result is unchanged.
+- `rikuri-grubenv-flush.service` and its link in `multi-user.target.wants/`.
+- `check_image_root.py`: `check_grubenv_flush`, in `check_root`.
+- Plan §4.1 and D22's row: dated clarifications.
+- **Clarified against the Design:** the node's failure line carries the program's own line (`default_run` captures its output), so the reason is not lost.
+- On the Mac: every changed Python file parses; `git diff --check` clean. The tests run in CI.
