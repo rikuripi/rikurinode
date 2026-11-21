@@ -711,7 +711,11 @@ class Arm(unittest.TestCase):
         elsewhere = make_deployment(os.path.join(self.tmp.name, "elsewhere"), "applied")
         for rel, why in ((os.path.join(elsewhere, DEPLOY), "an absolute path to a deployment elsewhere"),
                          (DEPLOY.replace("ostree/deploy/default/", "ostree/deploy/../deploy/default/"),
-                          "a path back through '..' to the applied deployment")):
+                          "a path back through '..' to the applied deployment"),
+                         # The deployment tests' verifier, Minor 1: a valid path, then more; only
+                         # fullmatch refuses it (docs/build-records/2026-11-21-boot-counter-pattern-suffix.md).
+                         (DEPLOY + "/../../../../../" + DEPLOY,
+                          "a valid deployment path followed by a suffix back to it")):
             with self.subTest(why=why):
                 if os.path.exists(os.path.join(self.tmp.name, "run")):
                     shutil.rmtree(os.path.join(self.tmp.name, "run"))
