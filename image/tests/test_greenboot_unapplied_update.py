@@ -327,9 +327,47 @@ def history(*causes):
     return "\n".join(lines + [entry(causes[-1])]) + "\n"
 
 
-def bootc(staged_digest):
+# The staged update's deployment, as bootc 1.17.1 reports it (status.staged.ostree)
+# and as ostree keeps it under the sysroot (ostree_sysroot_get_deployment_dirpath).
+STAGED_OSTREE = {"stateroot": "default", "checksum": "d" * 64, "deploySerial": 0}
+DEPLOY = "ostree/deploy/default/deploy/" + "d" * 64 + ".0"
+
+
+def bootc(staged_digest, ostree=STAGED_OSTREE):
     staged = None if staged_digest is None else {"image": {"imageDigest": staged_digest}}
+    if staged is not None and ostree is not None:
+        staged["ostree"] = ostree
     return json.dumps({"status": {"staged": staged, "booted": {"image": {"imageDigest": OLD}}}})
+
+
+class StagedDeployment(unittest.TestCase):
+    """staged_deployment(): the staged update's deployment, from bootc status,
+    as its path under the sysroot (docs/build-records/2026-11-20-boot-counter-cancelled.md)."""
+
+    def test_the_sysroot(self):
+        self.assertEqual(m.SYSROOT, "/sysroot")
+
+    def test_reads_the_staged_deployment(self):
+        self.assertEqual(m.staged_deployment(bootc(NEW)), DEPLOY)
+        other = dict(STAGED_OSTREE, stateroot="fedora-iot.2", deploySerial=12)
+        self.assertEqual(m.staged_deployment(bootc(NEW, other)),
+                         "ostree/deploy/fedora-iot.2/deploy/" + "d" * 64 + ".12")
+
+    def test_anything_else_is_none(self):
+        bad = []
+        for stateroot in ("", ".", "..", "a/b", "a b", ".hidden", "-x", 5, None):
+            bad.append(dict(STAGED_OSTREE, stateroot=stateroot))
+        for checksum in ("d" * 63, "d" * 65, "D" * 64, "g" * 64, "", 5):
+            bad.append(dict(STAGED_OSTREE, checksum=checksum))
+        for serial in (-1, True, "0", 1.5, None):
+            bad.append(dict(STAGED_OSTREE, deploySerial=serial))
+        bad.append({k: v for k, v in STAGED_OSTREE.items() if k != "checksum"})
+        for entry in bad:
+            with self.subTest(entry=entry):
+                self.assertIsNone(m.staged_deployment(bootc(NEW, entry)))
+        for text in (bootc(NEW, None), bootc(None), "", "not json", '{"status": {"staged": {"ostree": 5}}}'):
+            with self.subTest(text=text):
+                self.assertIsNone(m.staged_deployment(text))
 
 
 class MaxAttempts(unittest.TestCase):
@@ -386,6 +424,36 @@ def make_staged_state(tmp, state):
     return path
 
 
+def make_deployment(tmp, state):
+    """The sysroot for a test, under tmp, with the noted deployment DEPLOY:
+    "applied" (its folder and its .origin), "gone", "no origin" (a cancel cut
+    short), "no folder", "folder a link", "origin a link", "origin a folder",
+    or "unreadable" (the sysroot a file: ENOTDIR). Returns the sysroot."""
+    sysroot = os.path.join(tmp, "sysroot")
+    folder = os.path.join(sysroot, DEPLOY)
+    if state == "unreadable":
+        os.makedirs(tmp, exist_ok=True)
+        with open(sysroot, "w") as f:
+            f.write("")
+        return sysroot
+    os.makedirs(os.path.dirname(folder), exist_ok=True)
+    if state in ("applied", "no origin", "origin a link", "origin a folder"):
+        os.mkdir(folder)
+    if state == "folder a link":
+        os.mkdir(folder + ".real")
+        os.symlink(folder + ".real", folder)
+    if state in ("applied", "no folder", "folder a link"):
+        with open(folder + ".origin", "w") as f:
+            f.write("[origin]\n")
+    if state == "origin a link":
+        with open(folder + ".origin.real", "w") as f:
+            f.write("[origin]\n")
+        os.symlink(folder + ".origin.real", folder + ".origin")
+    if state == "origin a folder":
+        os.mkdir(folder + ".origin")
+    return sysroot
+
+
 class Note(unittest.TestCase):
     """note(), at the shutdown greenboot sets its trigger in, before ostree's
     finalize: the staged update noted in /run, and nothing armed yet (N1,
@@ -428,9 +496,18 @@ class Note(unittest.TestCase):
     def test_notes_the_staged_update_and_arms_nothing(self):
         run = self.runner("greenboot_next_deployment_id=%s\nboot_success=1\n" % NEW, "unused", bootc_json=bootc(NEW))
         self.assertEqual(self.note(run), 0)
-        self.assertEqual(self.noted(), NEW + "\n")
+        self.assertEqual(self.noted(), NEW + " " + DEPLOY + "\n")
         self.assertEqual(self.writes(), [])
         self.assertNotIn([m.MOUNT, "-o", "remount,rw", "/boot"], self.calls)
+
+    def test_no_deployment_in_bootc_status_notes_nothing(self):
+        for entry in (None, dict(STAGED_OSTREE, checksum="short")):
+            with self.subTest(entry=entry):
+                if os.path.exists(os.path.join(self.tmp.name, "run")):
+                    shutil.rmtree(os.path.join(self.tmp.name, "run"))
+                run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, "unused", bootc_json=bootc(NEW, entry))
+                self.assertEqual(self.note(run), 0)
+                self.assertIsNone(self.noted())
 
     def test_a_restart_during_the_trial_notes_nothing(self):
         # Nothing staged: the trigger is the update on trial; a reset would let it retry for ever.
@@ -518,14 +595,16 @@ class Arm(unittest.TestCase):
             return inner(argv)
         return run
 
-    def arm(self, run, noted=NEW + "\n", mountinfo=MI_RW, staged_state=None):
+    def arm(self, run, noted=NEW + " " + DEPLOY + "\n", mountinfo=MI_RW, staged_state=None,
+            deployment="applied"):
         path = os.path.join(self.tmp.name, "run", "rikuri-boot-counter", "staged")
         if noted is not None:
             os.makedirs(os.path.dirname(path))
             with open(path, "w") as f:
                 f.write(noted)
         return m.arm(run=run, mountinfo=lambda: mountinfo, note_path=path,
-                     staged_state=make_staged_state(self.tmp.name, staged_state))
+                     staged_state=make_staged_state(self.tmp.name, staged_state),
+                     sysroot=make_deployment(self.tmp.name, deployment))
 
     def sets(self):
         return [c for c in self.calls if len(c) > 2 and c[2] == "set"]
@@ -571,7 +650,13 @@ class Arm(unittest.TestCase):
 
     def test_a_note_not_a_digest_arms_nothing(self):
         for noted in ("", "sha256:short\n", NEW, NEW + "x", NEW + "\n" + NEW + "\n", " " + NEW + "\n",
-                      NEW.upper() + "\n"):
+                      NEW.upper() + "\n",
+                      # The deployment's half (the cancelled-update fix):
+                      NEW + "\n", NEW + " " + DEPLOY, NEW + " " + DEPLOY + "x", NEW + " " + DEPLOY + " \n",
+                      NEW + "  " + DEPLOY + "\n", NEW + " /" + DEPLOY + "\n",
+                      NEW + " " + DEPLOY.replace("/default/", "/../") + "\n",
+                      NEW + " " + DEPLOY.replace("deploy/default", "deploy/default/x") + "\n",
+                      NEW + " " + DEPLOY[:-2] + "\n", NEW + " " + DEPLOY + "\n" + NEW + "\n"):
             with self.subTest(noted=noted):
                 self.calls.clear()
                 path = os.path.join(self.tmp.name, "run")
@@ -591,6 +676,19 @@ class Arm(unittest.TestCase):
                 self.calls.clear()
                 run = self.runner("greenboot_next_deployment_id=%s\n" % NEW)
                 self.assertEqual(self.arm(run, staged_state=state), 0)
+                self.assertEqual(self.sets(), [])
+
+    def test_a_cancelled_update_arms_nothing(self):
+        # ostree dropped the staged deployment after note: its state and its
+        # deployment removed, the origin first (_ostree_sysroot_rmrf_deployment).
+        for deployment in ("gone", "no origin", "no folder", "folder a link", "origin a link",
+                           "origin a folder", "unreadable"):
+            with self.subTest(deployment=deployment):
+                shutil.rmtree(self.tmp.name)
+                os.makedirs(self.tmp.name)
+                self.calls.clear()
+                run = self.runner("greenboot_next_deployment_id=%s\n" % NEW)
+                self.assertEqual(self.arm(run, deployment=deployment), 0)
                 self.assertEqual(self.sets(), [])
 
     def test_an_unreadable_staged_state_arms_nothing(self):

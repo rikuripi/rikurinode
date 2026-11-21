@@ -530,7 +530,8 @@ class BootCauseCase1(unittest.TestCase):
         source = inspect.getsource(d.main)
         order = ["drill.first_boot()", "drill.boot_cause_first_boot()", "drill.boot_automount()",
                  "before = len(drill.boot_causes_now())", "drill.case1()", "drill.boot_cause_case1(before)",
-                 "drill.case1_power_cuts()", "drill.case2b()", "drill.case2d()", "drill.case3()"]
+                 "drill.case1_power_cuts()", "drill.case2b()", "drill.case2d()", "drill.case2e()",
+                 "drill.case3()"]
         at = [source.index(step) for step in order]
         self.assertEqual(at, sorted(at))
 
@@ -561,6 +562,14 @@ class RollbackRule(unittest.TestCase):
         self.assertTrue(d.HOLD_FLAG.startswith("/var/"))
         self.assertEqual(d.GREENBOOT_HOLDS, "[Service]\nExecStartPre=/usr/bin/sh -c 'while [ -e "
                          "/var/lib/rikuri-drill/hold-greenboot ]; do sleep 1; done'\n")
+
+    def test_case_2e_cancels_after_the_node_s_note_for_one_boot(self):
+        # systemd merges drop-ins of every folder in name order: the node's note is 50-, the cancel 99-.
+        self.assertTrue(d.CANCEL_DROPIN.startswith("/run/systemd/system/greenboot-set-rollback-trigger.service.d/"))
+        dropins = os.listdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "rootfs", "usr",
+                                          "lib", "systemd", "system", "greenboot-set-rollback-trigger.service.d"))
+        self.assertTrue(dropins and all(x < os.path.basename(d.CANCEL_DROPIN) for x in dropins), dropins)
+        self.assertEqual(d.CANCELS, "[Service]\nExecStop=/usr/bin/ostree admin undeploy 0\n")
 
     def test_the_pre_check_s_last_line_on_every_path_ends_the_wait(self):
         for line in ("this boot followed a update-applied; it counts", "a second power cut in a row; it counts",
@@ -703,6 +712,7 @@ class Verdict(unittest.TestCase):
         self.assertEqual(d.EXPECTED, {
             "first boot", "the containers range at the first boot", "case 1, a failing update",
             "case 2b, finalize fails", "case 2d, an update downloaded only",
+            "case 2e, an update cancelled during the shutdown",
             "case 3, a power cut during the update",
             "the containers range after reboots", "the containers range",
             "case 4, an unsigned update refused", "case 5, a signed update staged",

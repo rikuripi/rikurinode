@@ -93,6 +93,11 @@ GREENBOOT_HOLDS = "[Service]\nExecStartPre=/usr/bin/sh -c 'while [ -e %s ]; do s
 # before its `50-`), to read the counter GRUB left at an unchanged image's first
 # boot, before the pre-check clears anything.
 HOLD_FIRST_DROPIN = "/etc/systemd/system/greenboot-healthcheck.service.d/10-drill-hold-first.conf"
+# Case 2e: the staged update cancelled in the shutdown, after the node's note
+# (its drop-in is 50-) and before ostree's finalize; in /run, for that boot only.
+# docs/build-records/2026-11-20-boot-counter-cancelled.md
+CANCEL_DROPIN = "/run/systemd/system/greenboot-set-rollback-trigger.service.d/99-drill-cancel.conf"
+CANCELS = "[Service]\nExecStop=/usr/bin/ostree admin undeploy 0\n"
 GIVEN_BACK = "/var/lib/rikuri/boot-count-given-back"
 # The node's pre-check has decided this boot: its last line on each path.
 RULE_DECIDED = re.compile(r"rikuri-unapplied-update: .*(it counts|this boot counts|nothing to give back|"
@@ -837,6 +842,7 @@ def fresh_heartbeat(text: str, now, within: int = HEARTBEAT_FRESH_S) -> bool:
 
 EXPECTED = frozenset({"first boot", "the containers range at the first boot", "case 1, a failing update",
                       "case 2b, finalize fails", "case 2d, an update downloaded only",
+                      "case 2e, an update cancelled during the shutdown",
                       "case 3, a power cut during the update",
                       "the containers range after reboots", "the containers range",
                       "case 4, an unsigned update refused", "case 5, a signed update staged",
@@ -1813,6 +1819,22 @@ class Drill:
         self.release_first()
         self.never_applied("case 2d, an update downloaded only", "03-case2d", lines, first)
 
+    def case2e(self) -> None:
+        """A staged update cancelled in the shutdown, after the node noted it:
+        ostree removes its staged state and its deployment, and finalize has
+        nothing to do; the image the node kept is never counted (N1,
+        docs/build-records/2026-11-20-boot-counter-cancelled.md)."""
+        lines = self.record_lines()
+        self.switch("a")
+        self.write_in_vm(CANCEL_DROPIN, CANCELS)
+        self.vm("systemctl daemon-reload")
+        self.hold_first()
+        old = self.reboot()
+        first = self.counter_held_first(old)
+        self.wait_up(old_boot=old)
+        self.release_first()
+        self.never_applied("case 2e, an update cancelled during the shutdown", "03-case2e", lines, first)
+
     def serial_text(self) -> str:
         serial = os.path.join(self.workdir, "serial-%d.log" % self.starts)
         return self.run(["cat", serial], check=False, sudo=True).stdout or ""
@@ -1943,6 +1965,7 @@ def main(argv=None) -> int:
         drill.case1_power_cuts()
         drill.case2b()
         drill.case2d()
+        drill.case2e()
         drill.case3()
         # After the cases, so that a --userns=auto run (which may add ID-mapped
         # layers to the storage bootc switch reads) cannot touch them; run 2
