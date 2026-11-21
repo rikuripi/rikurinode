@@ -5,7 +5,7 @@
 | **Date** | 2026-11-20 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/boot-counter-download-only`, from `main` at `b66bd8b`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | this contract; the red tests; the fix; the record |
+| **Commits** | `e5bb7b7` (contract), `f49aa52` (red tests), `13b57cc` (fix), and this record |
 | **Status** | IN PROGRESS |
 | **Change type** | defect fix (OS image: when greenboot's counter is armed; the VM drill) |
 
@@ -55,3 +55,29 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Red tests, `f49aa52`
+
+- `test_greenboot_unapplied_update.py`: a helper makes ostree's staged state under the test's folder (a regular file; gone; a folder; a link; unreadable, `ENOTDIR`).
+  - `Note` passes it, as a file, to every case. New: the path is ostree's (`test_the_staged_state_is_ostree_s`), and nothing is noted when it is gone, a folder, a link or unreadable.
+  - `Arm` passes it, gone, to every case. New: nothing is armed while ostree kept the staged state (file, folder or link), or when it is unreadable.
+  - **Reason for the change to the existing cases:** `note` and `arm` now read a path, and each case says what is there: staged before finalize and gone after, as ostree leaves it when it applies the update. Their expectations are unchanged.
+- `vm_drill.py`, `test_vm_drill.py`: case 2d, between 2b and 3. It stages image `a` with `bootc switch --download-only`, requires `bootc status` to say `downloadOnly` (else the drill fails), holds greenboot's check at the next boot, reads `boot_counter`, and requires `never_applied` as cases 2b and 3 do. `staged_download_only` is unit-tested. The check's name is added to `EXPECTED`, and `drill.case2d()` to the order `main` keeps. **Reason:** a new case; nothing loosened.
+
+### CI on `f49aa52` (red): Fail, as expected
+
+- `Full gate (Ubuntu)`, [run 44850813932](https://github.com/rikuripi/rikurinode/actions/runs/44850813932): `FAILED (errors=35)`. 34 `TypeError: note()/arm() got an unexpected keyword argument 'staged_state'`, and `AttributeError: module 'greenboot_unapplied_update' has no attribute 'STAGED_STATE'`. No failure elsewhere.
+- The OS image, [run 44850813997](https://github.com/rikuripi/rikurinode/actions/runs/44850813997): built and checked, and the USB install passed. The VM drill failed on case 2d alone, with the other 47 checks Pass:
+  - `case 2d, an update downloaded only | **Fail** | on the installed image: True, after one more reboot: True; 'never applied' logged: True; trigger cleared: True; no boot counter at its first boot: False (2); no boot counter left: True; a new record line: True`
+  - The defect, reproduced on the real image: greenboot set its trigger for the locked update, finalize returned success, and `arm` set the counter for an update never applied.
+
+### Fix, `13b57cc`
+
+- `greenboot-unapplied-update`:
+  - `STAGED_STATE`, ostree's path, and `ostree_staged` (`lstat`: a regular file is "staged", `ENOENT` is "gone", anything else is unknown).
+  - `note` notes only when it is "staged".
+  - `arm`, after `finalized`, arms only when it is "gone".
+  - The docstring says so.
+- **Clarified against the Design:** the helper is `ostree_staged`, and the keyword is `staged_state`, as the red tests name it.
+- Plan §4.1 (two places) and D22's row: dated clarifications.
+- On the Mac: every changed Python file parses; `git diff --check` clean. The tests run in CI.
