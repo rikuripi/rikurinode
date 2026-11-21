@@ -5,8 +5,8 @@
 | **Date** | 2026-11-20 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/boot-counter-unapplied-clear`, from `main` at `b1f80dc` (#142, merged as `7b3d2c8`); the repair on `stage1/boot-counter-mutants`, from `main` at `7b3d2c8`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `3fcc6d3` (contract), `a36542f` (red tests), `42726ee` (fix), `5fe1dfd` (record); the repair's tests, and this record |
-| **Status** | IN PROGRESS |
+| **Commits** | `3fcc6d3` (contract), `a36542f` (red tests), `42726ee` (fix), `5fe1dfd` (record); the repair: `c7069cc` (tests), `c33681a` (record) (#143); this close-out |
+| **Status** | DONE |
 | **Change type** | defect fix (OS image: where greenboot's counter is armed; the VM drill) |
 
 ## Intent: the owner's words
@@ -108,5 +108,22 @@
 
 - `test_greenboot_unapplied_update.py`, `Finalized.test_anything_else_is_not`: two cases, "a key twice, its last value passing" (I1) and "a key not asked for" (I2). `Arm.test_a_note_not_a_digest_arms_nothing`: the note `NEW + "x"` (I3).
 - `test_check_image_root.py`, `BootCounter.test_a_linked_wants_folder`: the folder replaced by a link to a copy of itself (I4).
-- **Reason for each test change:** each adds a case for a refusal the merged code already makes, so a mutant of that refusal no longer survives (stricter; nothing loosened). No code changes. These are not a red commit: the defect is the missing test, not the code.
+- **Reason for each test change:** each adds a case for a refusal the merged code already makes, so a mutant of that refusal no longer survives (stricter; nothing loosened). The round-2 pass found I2's mutant equivalent (below); its case stays, as a valid refusal. No code changes. These are not a red commit: the defect is the missing test, not the code.
 - On the Mac: both test files parse; `git diff --check` clean. The tests run in CI.
+
+### CI on `c33681a`: Pass
+
+- `Full gate (Ubuntu)`, [run 44846126056](https://github.com/rikuripi/rikurinode/actions/runs/44846126056): `Ran 678 tests … OK` (677 and `test_a_linked_wants_folder`; the new subtests sit in methods that passed).
+- The OS image, [run 44846125959](https://github.com/rikuripi/rikurinode/actions/runs/44846125959): all four jobs passed; the drill's cases 1, 1b, 2b, 3, 4 and 5 Pass.
+- The owner merged #143.
+
+### Verifier, the corrections only: PASS (round 2)
+
+- Scope: only the two test files and this record; nothing loosened, every reason given.
+- **By reading, not run:** I1, I3 and I4 are now killed by the new cases. I2 is an **equivalent** mutant: an unknown key still fails the later check that all four keys are present, so no input tells it apart (round 1's "none equivalent" corrected). No untested refusal is left.
+- No new Important finding.
+
+## Outcome
+
+- **DONE.** An update ostree did not apply no longer sets greenboot's counter against the image the node keeps: shown on the real image by the drill's cases 2b and 3 (no counter at the first boot), with cases 1 and 1b still rolled back after three boots.
+- **Backlog, not started:** a staged deployment locked for download only (finalize exits 0 without applying it, and `arm` would set the counter) must be refused by `note` before the control plane stages updates; round 1's other minor findings (2 to 4) above.
