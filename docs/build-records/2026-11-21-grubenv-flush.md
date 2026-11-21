@@ -140,3 +140,36 @@
 - Plan §4.1 and D22's row: dated clarifications.
 - **Clarified against the Design:** the node's failure line carries the program's own line (`default_run` captures its output), so the reason is not lost.
 - On the Mac: every changed Python file parses; `git diff --check` clean. The tests run in CI.
+
+### CI on `2ff8e33`
+
+- `Full gate (Ubuntu)`, [run 44950453865](https://github.com/rikuripi/rikurinode/actions/runs/44950453865): success (seen by the verifier).
+- The OS image, [run 44950453875](https://github.com/rikuripi/rikurinode/actions/runs/44950453875): the build and check, and the USB install, passed; the VM drill **failed on case 3b alone**; cases 1, 1b (`['2', '2', '1']`), 2b, 2d, 2e, 3, 4 and 5 Pass:
+  - `case 3b, a power cut seconds after greenboot's grubenv write | **Fail** | GRUB's write reached grubenv: False (boot_success 1 at the check's start); the flush ran: True; no flush failure logged since the install: True; cut 3.8s after greenboot's check: True`
+- Evidence: the run's `drill-evidence` artifact (`04-case3b.out`, `serial-4.log`, `serial-5.log`), downloaded with the owner's yes, read as data, then deleted.
+  - The boot before the cut (end of `serial-4.log`): greenboot's check finished, then `rikuri-grubenv-flush.service` started and finished; nothing else started between them.
+  - The boot after it (`04-case3b.out`): the probe read `boot_success=1` at 7.20 s; greenboot wrote `boot_success=1` and cleared `boot_counter` at 7.44 s; the flush logged "the journal of /boot/grub2 written home" at 7.49 s.
+- **Diagnosis: Not yet proven.** The checkpoint call ran after greenboot's writes and succeeded, and GRUB's write still did not reach grubenv. Two causes fit, and they need different repairs:
+  1. `EXT4_IOC_CHECKPOINT` is not enough where `fsfreeze` was (the experiment, 2 of 2). `fsfreeze` also writes back the block device's own dirty buffers (`sync_blockdev`), which the checkpoint call does not. Read in Linux v6.12, the checkpoint alone was expected to suffice.
+  2. Case 3b's probe is wrong: it assumes GRUB saves `boot_success=0` at every boot (greenboot's `08_greenboot.cfg`, as read). If the image's GRUB does not, the probe reads greenboot's 1 whatever the flush does, and the red run's Fail was not evidence of the defect either. The experiment saw GRUB's write only through the counter.
+- No repair made yet (none of the two used): the owner decides how to tell them apart.
+
+### Verifier, `2ff8e33`: no Important finding; NOT YET PROVEN, and the drill then failed case 3b (round 1)
+
+- Red to green:
+  - `git diff 404b14d ae10134 -- image/tests image/drill` is empty;
+  - the red gate's 18 failures are exactly the new or changed tests, and the red drill failed on case 3b alone;
+  - every change to an existing test has its reason, and nothing is loosened.
+- Read in source:
+  - Linux `v6.12`: `0x4004662b` with 4 zero bytes is right, and `ext4_ioctl_checkpoint` takes no write access, so /boot's read-only bind mount serves;
+  - greenboot-rs `v0.16.4`: every grubenv write is in the check's `ExecStart`, so `After=` alone runs the flush after them, pass or fail;
+  - case 3b cannot pass falsely: the red run read 1 with the same sequence.
+- **Hand mutations: Not yet proven by running**; worked through by reading. 13 mutants and variants, all caught:
+  - by named tests: the flush removed, moved after the remount, or only on success; a failed flush changing the result; the call's number, flags or folder; `RemainAfterExit`; `Requires=`; the `-`; `check_grubenv_flush` dropped from `check_root`; `case3b_result`'s logic;
+  - the unit's link removed from the image: not by the gate (the `Root` fixture makes the link itself, as for the boot counter), but by `check_image_root.py` on the built image and by the drill;
+  - the flush removed from `edit_grubenv`: by the unit tests only. Case 3b exercises greenboot's path.
+- **Important: none.** Minor:
+  1. Survivors: `hit is None or` in `check_grubenv_flush` (no linked-wants-folder test, which BootCounter has; masked in `check_root` by the control plane's own check of the same folder); `flushed != 0` → `> 0` (a flush killed by a signal would go unlogged); `0 <= since` → `0 < since` (equivalent in practice).
+  2. `check_grubenv_flush` re-implements `_enabled_problem` and `_unit_found` instead of calling them.
+  3. Case 3b's "no flush failure logged" passes when the `journalctl` query itself fails; the node's own flush on the image is shown only by the absence of a failure line.
+  4. Outside scope, for the backlog: other grubenv writers (for example Fedora's `grub2-set-bootflag`, if the image ships it), not inventoried; `default_run`'s 60 s timeout around a slow flush, untested.
