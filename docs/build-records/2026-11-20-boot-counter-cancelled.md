@@ -5,7 +5,7 @@
 | **Date** | 2026-11-20 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/boot-counter-cancelled`, from `main` at `d738182`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `4aa8baf` (contract), `ce82d34` (red tests), `d4fd066` (the red tests' fixture), `b4c4d3f` (fix), and this record |
+| **Commits** | `4aa8baf` (contract), `ce82d34` (red tests), `d4fd066` (the red tests' fixture), `b4c4d3f` (fix), `494329d` (repair 1), and this record |
 | **Status** | IN PROGRESS |
 | **Change type** | defect fix (OS image: when greenboot's counter is armed; its unit's order; the VM drill) |
 
@@ -114,3 +114,18 @@
 - `rikuri-boot-counter.service`: `After=local-fs.target boot.mount sysroot.mount`, with its comment. `check_image_root.py`: the same in `BOOT_COUNTER_KEYS`.
 - Plan §4.1 (two places) and D22's row: dated clarifications.
 - On the Mac: every changed Python file parses; `git diff --check` clean. The tests run in CI.
+
+### CI on `f8cd845`: Fail (repair 1 of 2)
+
+- `Full gate (Ubuntu)`, [run 44866156166](https://github.com/rikuripi/rikurinode/actions/runs/44866156166): `FAILED (errors=18)`, every one `AttributeError: 'str' object has no attribute 'fullmatch'` at `CHECKSUM.fullmatch(checksum)` in `staged_deployment`.
+- The OS image, [run 44866156154](https://github.com/rikuripi/rikurinode/actions/runs/44866156154): the VM drill failed two checks, with 47 Pass:
+  - `the new image counted from its first boot | **Fail** | three boots of the broken image, then the rollback: ['update-applied', 'clean', 'clean', 'clean', 'rolled-back']`
+  - `case 1b, power cuts in a new image's trial | **Fail** | rolled back; boot_counter at each held boot: [None, None, None]; given back: []; …`
+- **Cause:** the fix's new pattern `CHECKSUM` was bound again six lines on by the script's `CHECKSUM = "checksum"`, the key the boot-time check reads. So `note` raised for every staged update. Its `ExecStop=-` ignored the failure, and nothing was noted. Applied updates then got no counter, and greenboot counted as it does alone (four boots).
+- That failed closed: no counter for the image the node keeps. But the rule was lost for applied updates, as the drill shows.
+
+### Repair 1, `494329d`
+
+- The pattern renamed `OSTREE_CHECKSUM`; nothing else changed.
+- Checked on the Mac by parsing the script (`ast`): no other top-level name is bound twice.
+- No test changed.
