@@ -5,7 +5,7 @@
 | **Date** | 2026-11-21 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/boot-counter-pattern-suffix`, from `main` at `657aaf5`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | this contract; the test; the record |
+| **Commits** | `afc1c75` (contract), `58f7fec` (test), and this record |
 | **Status** | IN PROGRESS |
 | **Change type** | tests (OS image: `greenboot-unapplied-update`'s tests) |
 
@@ -33,3 +33,12 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Test, `58f7fec`
+
+- `Arm.test_a_deployment_the_pattern_alone_refuses`: a third subtest, the note `<digest> ` + `DEPLOY + "/../../../../../" + DEPLOY`.
+  - The five `..` climb from the applied deployment's folder back to the sysroot, so the path names that deployment, and `deployment_kept` is True (asserted).
+  - `DEPLOYMENT.fullmatch` refuses it; `DEPLOYMENT.match` matches the valid prefix, and `arm` would set the counter.
+- **Reason:** a new case in an existing test, stricter; nothing else changed, no code changed.
+- Checked by reading against the code as it is: it passes. Under `.match` it fails.
+- On the Mac: the file parses; `git diff --check` clean. The tests run in CI.
