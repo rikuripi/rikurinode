@@ -1819,6 +1819,13 @@ class BootCounter(unittest.TestCase):
         self.root.link(BOOT_COUNTER_WANTS, "/" + BOOT_COUNTER_UNIT)
         self.assertEqual(cir.check_boot_counter(self.root.path), [])
 
+    def test_a_linked_wants_folder(self):
+        wants = os.path.dirname(BOOT_COUNTER_WANTS)
+        elsewhere = os.path.join(os.path.dirname(wants), "elsewhere.wants")
+        os.rename(os.path.join(self.root.path, wants), os.path.join(self.root.path, elsewhere))
+        self.root.link(wants, os.path.basename(elsewhere))
+        self.finds(BOOT_COUNTER_WANTS + ": not a link")
+
     def test_the_unit_is_a_closed_world(self):
         good = shipped_file(BOOT_COUNTER_UNIT).decode("ascii")
         arm = "ExecStop=-/usr/libexec/rikuri/greenboot-unapplied-update arm\n"
