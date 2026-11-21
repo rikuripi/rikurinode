@@ -1932,6 +1932,63 @@ class Drill:
             serial = os.path.join(self.workdir, "serial-%d.log" % i)
             self.keep("serial-%d.log" % i, self.run(["cat", serial], check=False, sudo=True).stdout)
 
+    # --- experiment: branch experiment/grubenv-power-cut only, never merged ----
+    # docs/build-records/2026-11-21-grubenv-power-cut-experiment.md
+    EXP_GAPS = (1, 3, 5, 10, 20, 30)
+    EXP_GRUBENV = "/boot/grub2/grubenv"
+
+    def flush_boot(self) -> str:
+        """Push /boot's journal to its home blocks: fsfreeze, else a remount read-only and back."""
+        return (self.vm("if command -v fsfreeze >/dev/null; then fsfreeze -f /boot && fsfreeze -u /boot && echo fsfreeze; "
+                        "else mount -o remount,ro /boot && mount -o remount,rw /boot && echo remount; fi",
+                        check=False) or "failed").strip()
+
+    def exp_trial(self, n: int, gap: int, flush_after: bool) -> dict:
+        self.hold_first()
+        self.vm("sync")
+        self.vm("grub2-editenv %s unset boot_counter boot_success" % self.EXP_GRUBENV, check=False)
+        base_flush = self.flush_boot()
+        base_env = self.vm("grub2-editenv %s list" % self.EXP_GRUBENV, check=False) or ""
+        frag_before = self.vm("filefrag -v %s" % self.EXP_GRUBENV, check=False) or ""
+        old = self.boot_id()
+        self.vm("grub2-editenv %s set boot_counter=3 boot_success=0" % self.EXP_GRUBENV)
+        written = time.monotonic()
+        after_flush = self.flush_boot() if flush_after else ""
+        frag_after = self.vm("filefrag -v %s" % self.EXP_GRUBENV, check=False) or ""
+        rest = gap - (time.monotonic() - written)
+        if rest > 0:
+            time.sleep(rest)
+        elapsed = round(time.monotonic() - written, 2)
+        self.kill_vm()
+        self.start_vm()
+        counter = self.counter_held_first(old)
+        env = self.vm("grub2-editenv %s list" % self.EXP_GRUBENV, check=False) or ""
+        kernel = self.journal("-b -k --grep 'EXT4-fs|vda'")
+        mount = self.vm("findmnt -no SOURCE,FSTYPE,OPTIONS /boot", check=False) or ""
+        self.wait_up(old_boot=old)
+        self.release_first()
+        self.vm("grub2-editenv %s unset boot_counter boot_success" % self.EXP_GRUBENV, check=False)
+        reading = {"2": "GRUB read the write", "3": "GRUB read the old grubenv"}.get(counter, "other")
+        trial = {"trial": n, "gap_s": gap, "flush_after": flush_after, "elapsed_s": elapsed,
+                 "counter_after": counter, "reading": reading, "baseline_flush": base_flush,
+                 "after_flush": after_flush, "moved": frag_before.splitlines()[3:] != frag_after.splitlines()[3:],
+                 "recovery": [ln for ln in kernel.splitlines() if "recover" in ln.lower()],
+                 "mount": mount.strip()}
+        self.keep("exp-%02d.out" % n, "\n".join([json.dumps(trial, indent=1), "--- baseline", base_env,
+                                                 "--- filefrag before", frag_before, "--- filefrag after", frag_after,
+                                                 "--- after the cut", env, "--- kernel", kernel]))
+        self.check("experiment %02d: gap %ss%s" % (n, gap, ", flushed after" if flush_after else ""),
+                   counter == "2", "%s (boot_counter %s, %ss after the write; moved: %s; recovery lines: %d)"
+                   % (reading, counter, elapsed, trial["moved"], len(trial["recovery"])))
+        return trial
+
+    def experiment(self) -> None:
+        plan = [(gap, False) for gap in self.EXP_GAPS for _ in range(2)] + [(1, True), (1, True)]
+        trials = []
+        for n, (gap, flush_after) in enumerate(plan, 1):
+            trials.append(self.exp_trial(n, gap, flush_after))
+            self.keep("exp-trials.json", json.dumps(trials, indent=1))
+
     def summary(self) -> str:
         lines = ["### Rollback drill (x86_64, KVM)", "", "| Case | Result | Detail |", "|---|---|---|"]
         for case, ok, detail in self.results:
@@ -1952,33 +2009,8 @@ def main(argv=None) -> int:
     try:
         drill.install()
         drill.first_boot()
-        drill.boot_cause_first_boot()
-        drill.boot_automount()
-        drill.control_plane()
-        drill.setup_pages()
-        drill.owner_pages()
-        drill.setup_hub()
-        drill.load_variants()
-        before = len(drill.boot_causes_now())
-        drill.case1()
-        drill.boot_cause_case1(before)
-        drill.case1_power_cuts()
-        drill.case2b()
-        drill.case2d()
-        drill.case2e()
-        drill.case3()
-        # After the cases, so that a --userns=auto run (which may add ID-mapped
-        # layers to the storage bootc switch reads) cannot touch them; run 2
-        # (40057729110) saw case 1's update fail to finalize with it before.
-        drill.subid_after_reboots()
-        drill.userns_auto()
-        drill.mdns_links()
-        # Last: the signed update stays staged, and no reboot follows.
-        drill.serve_registry(a.registry)
-        drill.configure_mirror()
-        drill.case4()
-        drill.case5()
-        drill.rename()
+        # Experiment branch only: the experiment in place of the cases.
+        drill.experiment()
     except (DrillFailure, subprocess.TimeoutExpired) as e:
         error = str(e)
         drill.check("drill", False, error)
