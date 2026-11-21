@@ -5,7 +5,7 @@
 | **Date** | 2026-11-20 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/boot-counter-cancelled`, from `main` at `d738182`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | this contract; the red tests; the fix; the record |
+| **Commits** | `4aa8baf` (contract), `ce82d34` (red tests), `d4fd066` (the red tests' fixture), `b4c4d3f` (fix), and this record |
 | **Status** | IN PROGRESS |
 | **Change type** | defect fix (OS image: when greenboot's counter is armed; its unit's order; the VM drill) |
 
@@ -65,3 +65,52 @@
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Red tests, `ce82d34`
+
+- `test_greenboot_unapplied_update.py`:
+  - `bootc()` carries the staged update's `ostree` entry, and `DEPLOY` is its path.
+  - A new class, `StagedDeployment`: `SYSROOT`, the path read, and 28 malformed entries or texts that give none.
+  - `Note`: the note now holds the digest and the deployment. A new test: no deployment in bootc's status notes nothing.
+  - `Arm`: `make_deployment` makes the sysroot, with the deployment applied by default. The malformed-note cases gain 10 for the deployment's half. A new test: a cancelled update arms nothing (gone; the origin removed, a cancel cut short; the folder gone; a link or a folder where a file goes; unreadable).
+  - **Reasons:**
+    - The happy note's expectation changes from `NEW + "\n"` to `NEW + " " + DEPLOY + "\n"`, because the note now carries the deployment; `NEW + "\n"` joins the malformed notes, stricter.
+    - Every `Arm` case is given the applied deployment, as ostree leaves it once it applies the update; their expectations are unchanged.
+    - `bootc()`'s new `ostree` entry is ignored by every other reader.
+- `test_check_image_root.py`, `BootCounter.test_the_unit_is_a_closed_world`: the `After=` cases name the new line, `local-fs.target boot.mount sysroot.mount`. A new case removes `sysroot.mount`. **Reason:** the unit's `After=` changes, and the old cases are kept for it; nothing loosened.
+- `vm_drill.py`, `test_vm_drill.py`: case 2e, between 2d and 3, added to `EXPECTED` and to the order `main` keeps.
+  - It stages image `a`, writes `CANCEL_DROPIN` (in `/run`, so for one boot only), which adds `ExecStop=/usr/bin/ostree admin undeploy 0` to greenboot's trigger unit after the node's `note`.
+  - It reboots, holds greenboot's check, reads `boot_counter`, and requires `never_applied`.
+  - A test holds the drop-in's name after every shipped drop-in of that unit. **Reason:** a new case.
+
+### CI on `ce82d34` (red): Fail, as expected, and one fault of the red tests
+
+- `Full gate (Ubuntu)`, [run 44864604066](https://github.com/rikuripi/rikurinode/actions/runs/44864604066): `FAILED (failures=6, errors=67)`.
+  - Expected:
+    - `AttributeError: module 'greenboot_unapplied_update' has no attribute 'staged_deployment'` (27) and `… 'SYSROOT'` (1);
+    - `TypeError: arm() got an unexpected keyword argument` (21);
+    - the note's format (`'sha2[62 chars]aaaaa\n' != 'sha2[62 chars]aaaaa ostree/deploy/default/deploy/ddddddddddd[53 chars].0\n'`, and twice `… is not None` for a status with no deployment);
+    - the closed world (`'After=local-fs.target boot.mount sysroot.mount\n' not found in …`, three cases).
+  - **Not expected, a fault of the red tests:** `FileExistsError: [Errno 17] File exists: '/tmp/…/sysroot/ostree/deploy/default/deploy/dddd….0'` (18). `test_a_note_not_a_digest_arms_nothing`'s subtests clear only `run/`, and `make_deployment` made the deployment's folder a second time.
+- The OS image, [run 44864604079](https://github.com/rikuripi/rikurinode/actions/runs/44864604079): built and checked, and the USB install passed. The VM drill failed on case 2e alone, with the other 48 checks Pass:
+  - `case 2e, an update cancelled during the shutdown | **Fail** | on the installed image: True, after one more reboot: True; 'never applied' logged: True; trigger cleared: True; no boot counter at its first boot: False (2); no boot counter left: True; a new record line: True`
+  - The defect, reproduced on the real image: the cancel ran (the node stayed on its image), and `arm` set the counter for it.
+
+### The red tests' fixture, `d4fd066`
+
+- `make_deployment` removes the sysroot it made before, so each call is fresh.
+- **Reason:** the fault above, in the fixture and not in what the tests assert; no expectation changes.
+- In its own commit, before the fix, so the fix commit touches no test.
+
+### Fix, `b4c4d3f`
+
+- `greenboot-unapplied-update`:
+  - `SYSROOT`, `STATEROOT`, `CHECKSUM` and `DEPLOYMENT`;
+  - `staged_deployment` (bootc's `staged.ostree`, each field checked: a stateroot name, 64 lowercase hex, an `int`, not a `bool`, of at least 0);
+  - `deployment_kept` (`lstat`: a folder and a regular `.origin`; any error is False);
+  - `note` notes nothing without a deployment, and writes `<digest> <deployment>`;
+  - `arm` reads the note as exactly those two parts, and after the staged-state check arms only when `deployment_kept`;
+  - the docstring says so.
+- `rikuri-boot-counter.service`: `After=local-fs.target boot.mount sysroot.mount`, with its comment. `check_image_root.py`: the same in `BOOT_COUNTER_KEYS`.
+- Plan §4.1 (two places) and D22's row: dated clarifications.
+- On the Mac: every changed Python file parses; `git diff --check` clean. The tests run in CI.
