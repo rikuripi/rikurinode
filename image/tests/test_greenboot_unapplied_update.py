@@ -454,6 +454,9 @@ class Finalized(unittest.TestCase):
                           (finalize(left=""), "a time missing"),
                           (finalize().replace("Result=success\n", ""), "no result"),
                           (finalize() + "Result=exit-code\n", "a key twice"),
+                          (finalize(result="exit-code") + "Result=success\n",
+                           "a key twice, its last value passing"),
+                          (finalize() + "Foo=bar\n", "a key not asked for"),
                           ("", "nothing read")):
             with self.subTest(why=why):
                 self.assertFalse(m.finalized(text))
@@ -527,7 +530,8 @@ class Arm(unittest.TestCase):
         self.assertEqual(self.calls, [])
 
     def test_a_note_not_a_digest_arms_nothing(self):
-        for noted in ("", "sha256:short\n", NEW, NEW + "\n" + NEW + "\n", " " + NEW + "\n", NEW.upper() + "\n"):
+        for noted in ("", "sha256:short\n", NEW, NEW + "x", NEW + "\n" + NEW + "\n", " " + NEW + "\n",
+                      NEW.upper() + "\n"):
             with self.subTest(noted=noted):
                 self.calls.clear()
                 path = os.path.join(self.tmp.name, "run")
