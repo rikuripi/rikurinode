@@ -1938,20 +1938,28 @@ class Drill:
     EXP_GRUBENV = "/boot/grub2/grubenv"
 
     def flush_boot(self) -> str:
-        """Push /boot's journal to its home blocks: fsfreeze, else a remount read-only and back."""
+        """Push /boot's journal to its home blocks: fsfreeze, else a remount read-only, with
+        /boot left as the node leaves it (read-only by a bind remount)."""
         return (self.vm("if command -v fsfreeze >/dev/null; then fsfreeze -f /boot && fsfreeze -u /boot && echo fsfreeze; "
-                        "else mount -o remount,ro /boot && mount -o remount,rw /boot && echo remount; fi",
+                        "else mount -o remount,ro /boot && echo remount; fi",
                         check=False) or "failed").strip()
+
+    def exp_editenv(self, args: str, check: bool) -> None:
+        """grub2-editenv as the node's edit_grubenv runs it: /boot remounted writable for the
+        write, then read-only again by a bind remount."""
+        self.vm("mount -o remount,rw /boot && grub2-editenv %s %s; rc=$?; mount -o remount,bind,ro /boot; exit $rc"
+                % (self.EXP_GRUBENV, args), check=check)
 
     def exp_trial(self, n: int, gap: int, flush_after: bool) -> dict:
         self.hold_first()
         self.vm("sync")
-        self.vm("grub2-editenv %s unset boot_counter boot_success" % self.EXP_GRUBENV, check=False)
+        self.exp_editenv("unset boot_counter boot_success", check=True)
         base_flush = self.flush_boot()
         base_env = self.vm("grub2-editenv %s list" % self.EXP_GRUBENV, check=False) or ""
         frag_before = self.vm("filefrag -v %s" % self.EXP_GRUBENV, check=False) or ""
         old = self.boot_id()
-        self.vm("grub2-editenv %s set boot_counter=3 boot_success=0" % self.EXP_GRUBENV)
+        mount_before = self.vm("findmnt -no SOURCE,FSTYPE,OPTIONS /boot", check=False) or ""
+        self.exp_editenv("set boot_counter=3 boot_success=0", check=True)
         written = time.monotonic()
         after_flush = self.flush_boot() if flush_after else ""
         frag_after = self.vm("filefrag -v %s" % self.EXP_GRUBENV, check=False) or ""
@@ -1967,13 +1975,13 @@ class Drill:
         mount = self.vm("findmnt -no SOURCE,FSTYPE,OPTIONS /boot", check=False) or ""
         self.wait_up(old_boot=old)
         self.release_first()
-        self.vm("grub2-editenv %s unset boot_counter boot_success" % self.EXP_GRUBENV, check=False)
+        self.exp_editenv("unset boot_counter boot_success", check=False)
         reading = {"2": "GRUB read the write", "3": "GRUB read the old grubenv"}.get(counter, "other")
         trial = {"trial": n, "gap_s": gap, "flush_after": flush_after, "elapsed_s": elapsed,
                  "counter_after": counter, "reading": reading, "baseline_flush": base_flush,
                  "after_flush": after_flush, "moved": frag_before.splitlines()[3:] != frag_after.splitlines()[3:],
                  "recovery": [ln for ln in kernel.splitlines() if "recover" in ln.lower()],
-                 "mount": mount.strip()}
+                 "mount_before": mount_before.strip(), "mount": mount.strip()}
         self.keep("exp-%02d.out" % n, "\n".join([json.dumps(trial, indent=1), "--- baseline", base_env,
                                                  "--- filefrag before", frag_before, "--- filefrag after", frag_after,
                                                  "--- after the cut", env, "--- kernel", kernel]))

@@ -59,4 +59,13 @@ After `grub2-editenv` writes `/boot/grub2/grubenv`, does a power cut N seconds l
 
 ## Evidence log
 
-(to come)
+### Run 1, the experiment's first commit: Fail before any trial (an experiment bug)
+
+- The image workflow, [run 44932985081](https://github.com/rikuripi/rikurinode/actions/runs/44932985081): the first boot passed; then `grub2-editenv: error: cannot open '/boot/grub2/grubenv': Read-only file system`. The experiment wrote grubenv directly, but /boot is mounted read-only.
+- `Full gate (Ubuntu)`, [run 44932985087](https://github.com/rikuripi/rikurinode/actions/runs/44932985087): failed as expected on this branch: `test_vm_drill.BootCauseCase1.test_main_reads_the_record_right_after_its_step` (`ValueError: substring not found`), because `main` runs the experiment in place of the cases.
+
+### Repair 1 (the second and last run)
+
+- Every grubenv write in the experiment now runs as the node's `edit_grubenv` runs it: `mount -o remount,rw /boot`, the write, then `mount -o remount,bind,ro /boot`.
+- **Why this matters for the question:** a bind remount read-only flags only this mount. ext4 itself stays writable and keeps its journal, so the node's own writes leave the same window. A plain `remount,ro` would flush the journal.
+- Each trial also keeps /boot's mount line before the write. The fsfreeze fallback (`remount,ro`) leaves /boot read-only, as the node does.
