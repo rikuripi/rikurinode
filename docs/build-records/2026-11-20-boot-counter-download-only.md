@@ -5,8 +5,8 @@
 | **Date** | 2026-11-20 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/boot-counter-download-only`, from `main` at `b66bd8b`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `e5bb7b7` (contract), `f49aa52` (red tests), `13b57cc` (fix), and this record |
-| **Status** | IN PROGRESS |
+| **Commits** | `e5bb7b7` (contract), `f49aa52` (red tests), `13b57cc` (fix), `a327822` (record) (#145); this close-out |
+| **Status** | DONE |
 | **Change type** | defect fix (OS image: when greenboot's counter is armed; the VM drill) |
 
 ## Intent: the owner's words
@@ -27,7 +27,7 @@
   - locked when the staged state's `locked` key is true (bootc's `--download-only`) **or** `/run/ostree/staged-deployment-locked` exists;
   - locked: "Not finalizing; …" and `return TRUE`;
   - otherwise it unlinks `/run/ostree/staged-deployment` **before** writing the deployment ("Unlink the staged state now"), then "Finalized deployment".
-  - The file is written only by staging and by `ostree_sysroot_deployment_set_kargs_in_place`, neither run at shutdown.
+  - The file is written only by staging, `ostree_sysroot_deployment_set_kargs_in_place` and `ostree_sysroot_change_finalization` (the lock toggle), none run at shutdown (the last added at the close-out, from the verifier's Minor 2).
 - bootc `v1.17.1`, `crates/lib/src/status.rs`: `download_only = deployment.is_staged() && deployment.is_finalization_locked()`. That is the `locked` key alone, and misses the lock file.
 - greenboot-rs `v0.16.4`, `src/lib/handler.rs`: the trigger names the staged deployment from `bootc status`, with no check of its lock.
 
@@ -81,3 +81,28 @@
 - **Clarified against the Design:** the helper is `ostree_staged`, and the keyword is `staged_state`, as the red tests name it.
 - Plan §4.1 (two places) and D22's row: dated clarifications.
 - On the Mac: every changed Python file parses; `git diff --check` clean. The tests run in CI.
+
+### CI on `a327822`: Pass
+
+- `Full gate (Ubuntu)`, [run 44860615708](https://github.com/rikuripi/rikurinode/actions/runs/44860615708): success; `Ran 683 tests … OK`.
+- The OS image, [run 44860615691](https://github.com/rikuripi/rikurinode/actions/runs/44860615691): all four jobs passed; the VM drill's 48 checks Pass, among them:
+  - `case 2d, an update downloaded only | Pass | … no boot counter at its first boot: True (None); no boot counter left: True; …`
+  - case 1 rolled back; case 1b `['2', '2', '1']`; cases 2b and 3 with no counter at the first boot.
+- The owner merged #145.
+
+### Verifier, `a327822`: PASS (round 1)
+
+- Red-to-green: the red commit's 35 errors are the cases the fix makes pass; `git diff f49aa52 a327822 -- image/tests image/drill` is empty; every reason given; the scope holds.
+- Read in ostree `v2026.4`'s source: a locked finalize returns before it removes the staged state; any failure after the removal fails the unit. The check fails closed if the path moves (nothing noted) or ostree stops removing it (nothing armed). `/run/ostree` is the same tmpfs in every unit's mount namespace; `note` runs before finalize and `arm` after.
+- **Hand mutations: Not yet proven by running**; worked through by reading. 17 mutants plus 2 variants:
+  - All caught by named tests, three of them by the drill alone: the two default paths (case 2d, case 1b) and case 2d staged without `--download-only` (its precondition).
+  - Two survivors: the staged-state check moved before `finalized` (equivalent: every refusal returns 0 with no write, and the one write follows every check), and the log text's two branches swapped (a log line only).
+- **Important: none.** Minor:
+  1. **A cancelled staged update.** ostree also removes the staged state when a staged deployment is cancelled (`ostree-sysroot-deploy.c`, the write of deployments without it), and finalize then returns success with nothing to do. A cancel between `note` and finalize, at the end of a shutdown, would arm the counter for an update not applied. The plan's wording ("removed only when finalize applies") was corrected at the close-out; the gap is for the backlog.
+  2. The list of writers of the staged state missed the lock toggle: corrected above. The result is unaffected.
+  3. The log message's branches have no test (a log line only).
+
+## Outcome
+
+- **DONE.** An update staged download-only no longer sets greenboot's counter against the image the node kept: shown on the real image by the drill's case 2d, red then green, with cases 1, 1b, 2b and 3 as before.
+- **Backlog, not started:** Minor 1, a staged update cancelled during the shutdown. A candidate check: `note` also records the staged deployment's checksum, and `arm` requires the booted-next deployment to be it.
