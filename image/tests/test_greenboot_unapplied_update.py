@@ -431,6 +431,11 @@ def make_deployment(tmp, state):
     or "unreadable" (the sysroot a file: ENOTDIR). Returns the sysroot."""
     sysroot = os.path.join(tmp, "sysroot")
     folder = os.path.join(sysroot, DEPLOY)
+    # Fresh for each call: a test's subtests each make their own.
+    if os.path.isdir(sysroot) and not os.path.islink(sysroot):
+        shutil.rmtree(sysroot)
+    elif os.path.lexists(sysroot):
+        os.remove(sysroot)
     if state == "unreadable":
         os.makedirs(tmp, exist_ok=True)
         with open(sysroot, "w") as f:
