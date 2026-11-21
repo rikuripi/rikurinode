@@ -4,8 +4,8 @@
 |---|---|
 | **Date** | 2026-11-20 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
-| **Branch** | `stage1/boot-counter-unapplied-clear`, from `main` at `b1f80dc`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `3fcc6d3` (contract), `a36542f` (red tests), `42726ee` (fix), and this record |
+| **Branch** | `stage1/boot-counter-unapplied-clear`, from `main` at `b1f80dc` (#142, merged as `7b3d2c8`); the repair on `stage1/boot-counter-mutants`, from `main` at `7b3d2c8`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
+| **Commits** | `3fcc6d3` (contract), `a36542f` (red tests), `42726ee` (fix), `5fe1dfd` (record); the repair's tests, and this record |
 | **Status** | IN PROGRESS |
 | **Change type** | defect fix (OS image: where greenboot's counter is armed; the VM drill) |
 
@@ -72,3 +72,41 @@
 - Plan §4.1 and D22's row: dated clarifications.
 - **Clarified against the Design:** the unit is ordered `After=local-fs.target boot.mount`, not `RequiresMountsFor=/boot`. A `Requires=` on `/boot` could pull in the EFI partition's generated mount, the failure the image masks `boot.automount` for (bootc #2402); an order alone stops the unit before `/boot` is unmounted without starting anything. **Test change, with its reason:** `BootCounter.test_the_unit_is_a_closed_world`'s case for `/boot` now removes `boot.mount` from `After=`, and a new case finds `RequiresMountsFor=/boot` (stricter).
 - On the Mac: every changed Python file parses; `git diff --check` clean. The tests run in CI.
+
+### CI on `5fe1dfd`: Pass
+
+- `Full gate (Ubuntu)`, [run 44823160006](https://github.com/rikuripi/rikurinode/actions/runs/44823160006): `Ran 677 tests … OK`, all 11 steps passed.
+- The OS image, [run 44823159989](https://github.com/rikuripi/rikurinode/actions/runs/44823159989): built and checked, the USB install passed, and the VM drill passed:
+  - `case 1, a failing update | Pass | rolled back: True; marker intact: True`
+  - `case 1b, power cuts in a new image's trial | Pass | … boot_counter at each held boot: ['2', '2', '1']; given back: [[1, 2]]; …`
+  - `case 2b, finalize fails | Pass | … no boot counter at its first boot: True (None); no boot counter left: True; …`
+  - `case 3, a power cut during the update | Pass | … no boot counter at its first boot: True (None); no boot counter left: True; …`
+  - cases 4 and 5 Pass.
+- The owner merged #142 as `7b3d2c8` (2026-11-20, 22:00 UTC) while the verifier was running.
+
+### Verifier, `5fe1dfd`: FAIL (round 1)
+
+- Gate, red-to-green and drill evidence: Pass. The red checks are untouched by the fix, every test change has its reason, and the scope holds.
+- At the real entry point, the drill's journal shows `noted update …` and, after finalize, `armed boot_counter=3 for update … applied`. The serial console shows `Stopped ostree-finalize-staged` before `Stopping rikuri-boot-counter`, and `/boot` unmounted after both.
+- Its questions:
+  - nothing on a path this node uses arms the counter for an update not applied;
+  - the stop order is right, since `Before=` reverses at stop and `After=boot.mount` holds `/boot`;
+  - `systemctl show` answers at that point, over PID 1's private socket.
+- **Hand mutations: Not yet proven by running**; worked through by reading. 25 mutants: 21 caught (the CI drill catches the `__main__` dispatch and the drill's own checks), 4 survivors, none equivalent.
+- **Important** (REVIEW.md: a surviving mutant in a high-risk refusal or validation check). None can be reached on a node today:
+  1. (I1) `finalized`'s refusal of a key given twice: `Result=exit-code` then `Result=success` would pass.
+  2. (I2) `finalized`'s refusal of a key not asked for.
+  3. (I3) `arm`'s refusal of a note without its newline: `NEW+"x"` would arm.
+  4. (I4) `check_boot_counter`'s refusal of a `sysinit.target.wants` folder that is a link.
+- **Minor**, for the backlog:
+  1. A staged deployment locked for download only: ostree's finalize then exits 0 without applying it, and `arm` would set the counter (N1 again). `note` should refuse a `downloadOnly` staged deployment. Nothing here stages that way today; this must be settled before the control plane stages updates.
+  2. Applied updates left with no counter, as greenboot counted before the rule: finalize applying and then failing a later step; an `isolate` to a target outside `sysinit.target`; a failed `systemctl show` or grubenv write (logged).
+  3. The drill's `counter_held_first` reads an unreadable grubenv as "unset".
+  4. `__main__`'s dispatch has no unit test; the drill covers it.
+
+### Repair 1 of 2 (the owner: "Repair PR from main")
+
+- `test_greenboot_unapplied_update.py`, `Finalized.test_anything_else_is_not`: two cases, "a key twice, its last value passing" (I1) and "a key not asked for" (I2). `Arm.test_a_note_not_a_digest_arms_nothing`: the note `NEW + "x"` (I3).
+- `test_check_image_root.py`, `BootCounter.test_a_linked_wants_folder`: the folder replaced by a link to a copy of itself (I4).
+- **Reason for each test change:** each adds a case for a refusal the merged code already makes, so a mutant of that refusal no longer survives (stricter; nothing loosened). No code changes. These are not a red commit: the defect is the missing test, not the code.
+- On the Mac: both test files parse; `git diff --check` clean. The tests run in CI.
