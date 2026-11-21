@@ -62,4 +62,32 @@
 
 ## Evidence log
 
-(to come)
+### Run 1: question 1 answered; question 2 not readable
+
+- The image workflow, [run 44957539989](https://github.com/rikuripi/rikurinode/actions/runs/44957539989), from the job's log; the artifact was not downloaded:
+
+| Trials | Flush | End | `boot_success` at the held boot |
+|---|---|---|---|
+| 01, 02 | `fsfreeze` | clean reboot | 1, 1 |
+| 03, 04 | none | cut at 3 s | 1, 1 |
+| 05, 06 | the checkpoint call | cut at 3 s | 1, 1 |
+| 07, 08 | `sync -f` | cut at 3 s | 1, 1 |
+| 09, 10 | `fsfreeze` | cut at 3 s | 1, 1 |
+
+- Every flush ran (it said its name), and every write moved grubenv to a new block.
+- **Question 1, observed:** GRUB does not save `boot_success=0` at a boot with no `boot_counter`. Even after a clean reboot, which writes everything home, the file kept the 1.
+- **So:**
+  - question 2 cannot be read from `boot_success`;
+  - case 3b's probe in #155 cannot see GRUB's write, and its red run's Fail was not evidence of the defect.
+
+### Repair 1 (the second and last run)
+
+- The trials read GRUB's countdown, which the first experiment showed GRUB saves:
+  - write `boot_counter=3 boot_success=0`;
+  - 2 at the held boot means GRUB read the write, 3 that it read the old grubenv.
+- **Trials (9):**
+  - 01: no flush, clean reboot (the probe's control: must read 2);
+  - 02, 03: no flush, cut at 3 s;
+  - 04, 05: the checkpoint call, cut at 3 s;
+  - 06, 07: `sync -f`, cut at 3 s;
+  - 08, 09: `fsfreeze`, cut at 3 s.

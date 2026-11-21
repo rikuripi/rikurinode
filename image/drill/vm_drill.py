@@ -1951,7 +1951,9 @@ class Drill:
         "syncfs": "sync -f /boot/grub2 && echo syncfs",
         "fsfreeze": "fsfreeze -f /boot && fsfreeze -u /boot && echo fsfreeze",
     }
-    EXP_PLAN = [("fsfreeze", "reboot")] * 2 + [("none", "cut")] * 2 + [("checkpoint", "cut")] * 2 \
+    # Repair 1: run 1 (44957539989) showed GRUB never saves boot_success on a boot with
+    # no counter, so the trials read GRUB's countdown instead: 2 reached the file, 3 did not.
+    EXP_PLAN = [("none", "reboot")] + [("none", "cut")] * 2 + [("checkpoint", "cut")] * 2 \
         + [("syncfs", "cut")] * 2 + [("fsfreeze", "cut")] * 2
     EXP_CUT_S = 3
 
@@ -1982,7 +1984,7 @@ class Drill:
         base_flush = self.exp_flush("fsfreeze")
         frag_before = self.vm("filefrag -v %s" % self.EXP_GRUBENV, check=False) or ""
         old = self.boot_id()
-        self.exp_editenv("set boot_success=1", check=True)
+        self.exp_editenv("set boot_counter=3 boot_success=0", check=True)
         written = time.monotonic()
         flushed = self.exp_flush(how)
         frag_after = self.vm("filefrag -v %s" % self.EXP_GRUBENV, check=False) or ""
@@ -2000,19 +2002,18 @@ class Drill:
         self.wait_up(old_boot=old)
         self.release_first()
         self.exp_editenv("unset boot_counter boot_success", check=False)
-        success = grubenv_value_exp(env, "boot_success")
-        reading = {"0": "GRUB's save reached the file", "1": "GRUB's save did not reach the file"}.get(
-            success, "other")
-        trial = {"trial": n, "flush": how, "end": end, "elapsed_s": elapsed, "boot_success_after": success,
-                 "boot_counter_after": grubenv_value_exp(env, "boot_counter"), "reading": reading,
+        counter = grubenv_value_exp(env, "boot_counter")
+        reading = {"2": "GRUB read the write", "3": "GRUB read the old grubenv"}.get(counter, "other")
+        trial = {"trial": n, "flush": how, "end": end, "elapsed_s": elapsed, "boot_counter_after": counter,
+                 "boot_success_after": grubenv_value_exp(env, "boot_success"), "reading": reading,
                  "baseline_flush": base_flush, "flush_said": flushed,
                  "moved": frag_before.splitlines()[3:] != frag_after.splitlines()[3:]}
         self.keep("exp-%02d.out" % n, "\n".join([json.dumps(trial, indent=1), "--- filefrag before", frag_before,
                                                  "--- filefrag after", frag_after, "--- at the held boot", env]))
         self.check("experiment %02d: %s, %s" % (n, how, "a clean reboot" if end == "reboot" else
                                                 "a power cut at %ss" % self.EXP_CUT_S),
-                   success == "0", "%s (boot_success %s; flush said %r; %ss after the write; moved: %s)"
-                   % (reading, success, flushed, elapsed, trial["moved"]))
+                   counter == "2", "%s (boot_counter %s; flush said %r; %ss after the write; moved: %s)"
+                   % (reading, counter, flushed, elapsed, trial["moved"]))
         return trial
 
     def experiment(self) -> None:
