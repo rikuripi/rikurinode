@@ -5,8 +5,8 @@
 | **Date** | 2026-11-21 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/boot-counter-pattern-suffix`, from `main` at `657aaf5`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `afc1c75` (contract), `58f7fec` (test), and this record |
-| **Status** | IN PROGRESS |
+| **Commits** | `afc1c75` (contract), `58f7fec` (test), `5e34791` (record) (#151, merged as `5d15b23`); this close-out |
+| **Status** | DONE |
 | **Change type** | tests (OS image: `greenboot-unapplied-update`'s tests) |
 
 ## Intent: the owner's words
@@ -42,3 +42,32 @@
 - **Reason:** a new case in an existing test, stricter; nothing else changed, no code changed.
 - Checked by reading against the code as it is: it passes. Under `.match` it fails.
 - On the Mac: the file parses; `git diff --check` clean. The tests run in CI.
+
+### CI on `5e34791`: Pass
+
+- `Full gate (Ubuntu)`, [run 44924362489](https://github.com/rikuripi/rikurinode/actions/runs/44924362489): success; `Ran 691 tests … OK`. The same count as #149, because the new case is a subtest.
+- The OS image, [run 44924362508](https://github.com/rikuripi/rikurinode/actions/runs/44924362508): success.
+- The owner merged #151 as `5d15b23`.
+
+### Verifier, `5e34791`: PASS (round 1)
+
+- The diff changes no code and loosens no case; the reason is given.
+- By reading:
+  - the path climbs exactly five levels back to the sysroot, so `deployment_kept` is True;
+  - `fullmatch` refuses the note, so the case passes;
+  - under `.match`, `arm` sets the counter, so the case fails.
+- **Hand mutations: Not yet proven by running**; worked through by reading.
+  - **Caught:** dropping the newline check, `split()` for `split(" ")`, dropping `0|`, a serial of one digit, and each narrowing of the stateroot class.
+  - **Equivalent for every note `note` writes:** `>= 2` parts, `IMAGE_DIGEST.match` or no digest check (the trigger must equal the digest), and any loosening of `DEPLOYMENT` (the `..` cases rest on `deployment_kept`).
+- **Important: none.** Minor:
+  1. Two stricter mutants on lines this change did not touch survive, both failing closed (nothing armed, greenboot counting as alone):
+     - `DEPLOYMENT`'s checksum class without digits (every `arm` test's checksum is `d` × 64);
+     - the stateroot's first character without digits.
+     - The fix: an `arm` case whose checksum mixes digits and letters and whose stateroot starts with a digit.
+  2. The risk tier: routine, for a test on high-risk code; the review went to high-risk depth.
+  3. This record's status and CI evidence, added here.
+
+## Outcome
+
+- **DONE.** `arm`'s note pattern must match the whole deployment path: a valid path with a suffix now fails the gate if accepted.
+- **Backlog, not started:** Minor 1, one positive `arm` case with digits in the checksum and a stateroot starting with a digit.
