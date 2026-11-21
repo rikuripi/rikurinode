@@ -5,8 +5,8 @@
 | **Date** | 2026-11-20 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/boot-counter-cancelled`, from `main` at `d738182`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `4aa8baf` (contract), `ce82d34` (red tests), `d4fd066` (the red tests' fixture), `b4c4d3f` (fix), `494329d` (repair 1), and this record |
-| **Status** | IN PROGRESS |
+| **Commits** | `4aa8baf` (contract), `ce82d34` (red tests), `d4fd066` (the red tests' fixture), `b4c4d3f` (fix), `494329d` (repair 1), `df1ef62`, `f8cd845`, `d89142c` (record) (#147, merged as `ea7e26b`); this close-out, repair 2 |
+| **Status** | DONE |
 | **Change type** | defect fix (OS image: when greenboot's counter is armed; its unit's order; the VM drill) |
 
 ## Intent: the owner's words
@@ -39,7 +39,8 @@
 - **Check the deployment** (the owner's choice).
   - `note` records the staged update's deployment alongside its digest. That is `status.staged.ostree` from `bootc status --json`, checked strictly (a stateroot name, a 64-hex checksum, a serial), written as `<digest> ostree/deploy/<stateroot>/deploy/<checksum>.<serial>`.
   - `arm`, besides its checks today, requires that deployment to exist under `/sysroot`: its folder a folder and its `.origin` a regular file, each by `lstat`.
-  - A cancel removes the origin before the folder, so a cancel cut short still arms nothing. Anything unreadable or malformed arms nothing.
+  - A cancel removes the origin before the folder, so a cancel cut short after the origin's removal still arms nothing. Anything unreadable or malformed arms nothing.
+  - **Corrected at the close-out (repair 2; the verifier's Important 1):** ostree unlinks the staged state *before* it removes the deployment, so a cancel killed between the two leaves the deployment whole with the staged state gone, and `arm` sets the counter. The residual and its acceptance are under "Repair 2" below.
 - **Order.** `arm` now reads `/sysroot`. `rikuri-boot-counter.service` gains `sysroot.mount` in `After=`, as it has `boot.mount`: an order alone, which starts nothing.
 - **Fails closed.** No `ostree` entry in bootc's status, or a stateroot or checksum not of the expected form: nothing is noted. A path ostree no longer uses: nothing is armed. greenboot then counts as it did before the rule.
 - **Rejected:** a recorded rule with no code (the owner chose the check), and reading the bootloader's entries (more parsing on the rollback path, for the same answer).
@@ -129,3 +130,52 @@
 - The pattern renamed `OSTREE_CHECKSUM`; nothing else changed.
 - Checked on the Mac by parsing the script (`ast`): no other top-level name is bound twice.
 - No test changed.
+
+### CI on `d89142c`: Pass
+
+- `Full gate (Ubuntu)`, [run 44867682215](https://github.com/rikuripi/rikurinode/actions/runs/44867682215): success.
+- The OS image, [run 44867682216](https://github.com/rikuripi/rikurinode/actions/runs/44867682216): all four jobs passed. The VM drill's 49 checks Pass, among them:
+  - `case 2e, an update cancelled during the shutdown | Pass | … no boot counter at its first boot: True (None); no boot counter left: True; …`
+  - cases 1, 1b (`['2', '2', '1']`, one boot given back), 2b, 2d and 3 as before.
+- The owner merged #147 as `ea7e26b`.
+
+### Verifier, `d89142c`: FAIL (round 1)
+
+- Pass on every check:
+  - the red, failed and green runs match the record;
+  - the only test change after red is `d4fd066`, with its reason recorded;
+  - the fix and repair commits touch no test;
+  - the scope holds;
+  - no top-level name is bound twice.
+- Read in source:
+  - ostree `v2026.4`: the cancel path, `_ostree_sysroot_rmrf_deployment`'s order (backing, then `.origin`, then the folder), the deployment's path, and `undeploy`;
+  - bootc `v1.17.1`: the `ostree` entry, which `boot_entry_from_deployment` always sets;
+  - `/sysroot` is readable and ordered at the arm, as cases 1 and 1b show;
+  - case 2e cancels between `note` and finalize.
+- **Hand mutations: Not yet proven by running**; worked through by reading. 21 mutants:
+  - 16 caught by named tests or the drill.
+  - Two equivalent: `%d` for `%s` on an `int`, and the order of `note`'s two refusals.
+  - Three surviving, all failing closed or equivalent for every note `note` writes. See Minor 1 and 2.
+- **Important 1: a claim the source contradicts.** The Design said a cancel cut short arms nothing. ostree unlinks the staged state before `_ostree_sysroot_rmrf_deployment`, so a cancel killed or failing before the `.origin` goes leaves the deployment whole, and `arm` sets the counter for an update never applied (N1).
+- **Minor:**
+  1. Deleting `DEPLOYMENT.fullmatch` in `arm` survives the unit tests: the malformed paths are refused by `deployment_kept` anyway, since none exists. It is equivalent for every note `note` writes, but not for an absolute path to an existing deployment written by anything else. The fix: those cases with a fixture where the named path exists.
+  2. Stricter patterns survive, all failing closed: `STATEROOT` without `_` or `A-Z`, or `DEPLOYMENT` with serial `0` only. The drill's case 1b probably catches the last, since it re-stages with serial 1, but the log does not show the serial. The fix: a unit test where `note` and `arm` round-trip a serial of at least 1.
+  3. The record's status.
+
+### Repair 2 of 2 (the owner: "Correct the record")
+
+- Docs only:
+  - the Design's sentence corrected above;
+  - Plan §4.1's clarification names the residual;
+  - this section. No code or test changes.
+- **The residual, accepted by the owner.** A staged update cancelled during the shutdown, and killed or failing in ostree's window between unlinking `/run/ostree/staged-deployment` and removing the deployment's `.origin`, still gets greenboot's counter set against the image the node keeps. All three of these are needed for it to cost a rollback:
+  - a cancel during the shutdown, which nothing on the node does;
+  - that cancel cut short in a window of a few system calls;
+  - the unchanged image then failing three boots in a row before the node's pre-check, which clears a counter left for an update never applied.
+
+  Closing it needs the bootloader-entry check rejected in the Design: a task of its own if ever wanted.
+- **Backlog, not started:** Minor 1 and 2, two unit tests and no code.
+
+## Outcome
+
+- **DONE**, with one residual the owner accepted (Repair 2). A staged update cancelled during the shutdown no longer sets greenboot's counter against the image the node kept. The drill's case 2e shows it on the real image, red then green, with cases 1, 1b, 2b, 2d and 3 as before.
