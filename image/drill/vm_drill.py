@@ -98,6 +98,16 @@ HOLD_FIRST_DROPIN = "/etc/systemd/system/greenboot-healthcheck.service.d/10-dril
 # docs/build-records/2026-11-20-boot-counter-cancelled.md
 CANCEL_DROPIN = "/run/systemd/system/greenboot-set-rollback-trigger.service.d/99-drill-cancel.conf"
 CANCELS = "[Service]\nExecStop=/usr/bin/ostree admin undeploy 0\n"
+# Case 3b: a power cut seconds after greenboot's own grubenv write, at the end of
+# its passed check. GRUB ignores ext4's journal; it sets boot_success=0 at every
+# boot, so a probe at the start of the next check reads 0 only if GRUB's write
+# reached the file (docs/build-records/2026-11-21-grubenv-flush.md). The probe
+# lives in /etc, made durable by a clean reboot, and its "-" never fails the check.
+PROBE_DROPIN = "/etc/systemd/system/greenboot-healthcheck.service.d/05-drill-grubenv-probe.conf"
+PROBE = "[Service]\nExecStartPre=-/usr/bin/grub2-editenv /boot/grub2/grubenv list\n"
+FLUSH_UNIT = "rikuri-grubenv-flush.service"
+FLUSH_FAILED = "grubenv-flush: FAILED|FAILED to write grubenv's journal home"
+CUT_WITHIN_S = 20   # well inside the 30 s the experiment measured (run 44944602844)
 GIVEN_BACK = "/var/lib/rikuri/boot-count-given-back"
 # The node's pre-check has decided this boot: its last line on each path.
 RULE_DECIDED = re.compile(r"rikuri-unapplied-update: .*(it counts|this boot counts|nothing to give back|"
@@ -778,6 +788,36 @@ def boot_counter(grubenv: str):
     return None
 
 
+def grubenv_value(text: str, key: str):
+    """KEY's value in grub2-editenv's list output, or None when it is not set."""
+    for line in (text or "").splitlines():
+        if line.startswith(key + "="):
+            return line.split("=", 1)[1]
+    return None
+
+
+def seconds_since(exit_us: str, uptime: str):
+    """Seconds from a unit's exit (systemd's monotonic microseconds) to now (/proc/uptime), or None."""
+    try:
+        exited, now = int(exit_us.strip()), float(uptime.split()[0])
+    except (ValueError, IndexError, AttributeError):
+        return None
+    return round(now - exited / 1e6, 1) if exited > 0 else None
+
+
+def case3b_result(probe: str, flush_state: str, failures: str, since) -> tuple:
+    """(ok, detail) for case 3b: GRUB's write reached grubenv after the cut, the
+    flush ran at this boot, no flush ever failed, and the cut came in time."""
+    written = grubenv_value(probe, "boot_success") == "0"
+    ran = "ActiveState=active" in flush_state.split() and "Result=success" in flush_state.split()
+    quiet = not (failures or "").strip()
+    on_time = since is not None and 0 <= since <= CUT_WITHIN_S
+    return (written and ran and quiet and on_time,
+            "GRUB's write reached grubenv: %s (boot_success %s at the check's start); the flush ran: %s; "
+            "no flush failure logged since the install: %s; cut %ss after greenboot's check: %s"
+            % (written, grubenv_value(probe, "boot_success"), ran, quiet, since, on_time))
+
+
 def counted_from_first_boot(entries) -> bool:
     """Case 1's boots with the counter armed at the update's shutdown: three
     boots of the broken image (its first, then greenboot's two restarts), then
@@ -844,6 +884,7 @@ EXPECTED = frozenset({"first boot", "the containers range at the first boot", "c
                       "case 2b, finalize fails", "case 2d, an update downloaded only",
                       "case 2e, an update cancelled during the shutdown",
                       "case 3, a power cut during the update",
+                      "case 3b, a power cut seconds after greenboot's grubenv write",
                       "the containers range after reboots", "the containers range",
                       "case 4, an unsigned update refused", "case 5, a signed update staged",
                       "the control plane runs as its own user", "the CA certificate over HTTP",
@@ -1839,6 +1880,36 @@ class Drill:
         serial = os.path.join(self.workdir, "serial-%d.log" % self.starts)
         return self.run(["cat", serial], check=False, sudo=True).stdout or ""
 
+    def case3b(self) -> None:
+        """A power cut seconds after greenboot's check passed and wrote grubenv:
+        GRUB must read what greenboot wrote (docs/build-records/2026-11-21-grubenv-flush.md)."""
+        self.write_in_vm(PROBE_DROPIN, PROBE)
+        self.vm("systemctl daemon-reload")
+        old = self.reboot()
+        bid = self.wait_up(old_boot=old)
+        # greenboot's check passed and wrote grubenv; the flush, ordered after it, runs next.
+        for _ in range(10):
+            if (self.vm("systemctl show -p ActiveState --value %s" % FLUSH_UNIT, check=False)
+                    or "").strip() in ("active", "failed"):
+                break
+            time.sleep(1)
+        since = seconds_since(self.vm("systemctl show -p ExecMainExitTimestampMonotonic --value "
+                                      "greenboot-healthcheck.service", check=False) or "",
+                              self.vm("cat /proc/uptime", check=False) or "")
+        self.log("greenboot's check ended %ss ago; cutting the power" % since)
+        self.kill_vm()
+        self.start_vm()
+        self.wait_up(old_boot=bid)
+        probe = self.vm("journalctl -q --no-pager -o cat -b -t grub2-editenv", check=False) or ""
+        state = self.vm("systemctl show -p ActiveState -p Result %s" % FLUSH_UNIT, check=False) or ""
+        failures = self.vm("journalctl -q --no-pager -o cat --grep \"%s\"" % FLUSH_FAILED, check=False) or ""
+        self.vm("rm -f %s && systemctl daemon-reload" % PROBE_DROPIN)
+        self.keep("04-case3b.out", "\n".join(["cut %ss after greenboot's check" % since, "--- probe", probe,
+                                                "--- %s" % FLUSH_UNIT, state, "--- flush failures", failures,
+                                                self.journal("-b -u %s -u greenboot-healthcheck" % FLUSH_UNIT)]))
+        ok, detail = case3b_result(probe, state, failures, since)
+        self.check("case 3b, a power cut seconds after greenboot's grubenv write", ok, detail)
+
     def case3(self) -> None:
         lines = self.record_lines()
         before = len(self.boot_causes_now())
@@ -1967,6 +2038,7 @@ def main(argv=None) -> int:
         drill.case2d()
         drill.case2e()
         drill.case3()
+        drill.case3b()
         # After the cases, so that a --userns=auto run (which may add ID-mapped
         # layers to the storage bootc switch reads) cannot touch them; run 2
         # (40057729110) saw case 1's update fail to finalize with it before.

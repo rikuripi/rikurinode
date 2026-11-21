@@ -88,4 +88,32 @@
 
 ## Evidence log
 
-(to come)
+### Red tests
+
+- `test_grubenv_flush.py` (new):
+  - the call is Linux's `_IOW('f', 43, __u32)` (`0x4004662b`); the folder is `/boot/grub2`;
+  - it opens the folder read-only as a directory, makes the call with flags 0, and closes it;
+  - a failed open makes no call; a refused call (`EPERM`, `ENOTTY`, `ENODEV`, `EIO`) is logged with what it leaves open, the folder closed, and exit 1;
+  - `main` flushes with no arguments, exits with the flush's result, and does nothing given an argument.
+- `test_greenboot_unapplied_update.py`:
+  - **New:**
+    - the program's path;
+    - the clear, the arm and the give-back each followed by the flush;
+    - a failed write flushed too;
+    - a failed flush logged, the write's result kept and /boot restored;
+    - no write, no flush (on trial, no trigger, the remount failed).
+  - **Reason for the changes to existing tests:**
+    - the fake runner answers the flush command (a fixture; any other command still fails a test);
+    - the three read-only-/boot tests now expect the flush between the write and the remount back (`calls[-3:]` → `calls[-4:]`): that order is the new behaviour, and it pins the flush before /boot is read-only again;
+    - `test_a_boot_that_counts_writes_nothing` also requires no flush: a tightening.
+- `test_check_image_root.py`:
+  - the `Root` fixture writes the program, the unit and its link once they ship, as it does the boot counter's;
+  - a new class `GrubenvFlush`:
+    - the shipped files pass, and the whole check runs it;
+    - the program missing, not executable or a link; the unit missing; the link missing or elsewhere;
+    - the unit is a closed world (9 cases); an override is a finding.
+- `vm_drill.py`, `test_vm_drill.py`: case 3b, after case 3, with its check in `EXPECTED` and its place in `main`'s order.
+  - The probe drop-in sorts before every other drop-in of greenboot's check.
+  - The pure helpers (`grubenv_value`, `seconds_since`, `case3b_result`) are unit-tested: GRUB's write must have reached grubenv, the flush must have run with success, no flush failure may be logged, and the cut must come within 20 s.
+  - **Reason:** a new case; nothing loosened.
+- On the Mac: every changed Python file parses; `git diff --check` clean; a plain import of the drill evaluated two of its pure helpers (`seconds_since`, `case3b_result`), a smoke check only. The tests run in CI.

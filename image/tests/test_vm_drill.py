@@ -531,7 +531,7 @@ class BootCauseCase1(unittest.TestCase):
         order = ["drill.first_boot()", "drill.boot_cause_first_boot()", "drill.boot_automount()",
                  "before = len(drill.boot_causes_now())", "drill.case1()", "drill.boot_cause_case1(before)",
                  "drill.case1_power_cuts()", "drill.case2b()", "drill.case2d()", "drill.case2e()",
-                 "drill.case3()"]
+                 "drill.case3()", "drill.case3b()"]
         at = [source.index(step) for step in order]
         self.assertEqual(at, sorted(at))
 
@@ -570,6 +570,18 @@ class RollbackRule(unittest.TestCase):
                                           "lib", "systemd", "system", "greenboot-set-rollback-trigger.service.d"))
         self.assertTrue(dropins and all(x < os.path.basename(d.CANCEL_DROPIN) for x in dropins), dropins)
         self.assertEqual(d.CANCELS, "[Service]\nExecStop=/usr/bin/ostree admin undeploy 0\n")
+
+    def test_case_3b_probes_grubenv_before_anything_writes_it(self):
+        # In name order the probe comes first: before the hold (10-) and the node's pre-check (50-), which can
+        # write grubenv. In /etc, so a clean reboot makes it durable before the cut; "-" never fails the check.
+        self.assertTrue(d.PROBE_DROPIN.startswith("/etc/systemd/system/greenboot-healthcheck.service.d/"))
+        dropins = os.listdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "rootfs", "usr",
+                                          "lib", "systemd", "system", "greenboot-healthcheck.service.d"))
+        names = dropins + [os.path.basename(d.HOLD_FIRST_DROPIN), os.path.basename(d.HOLD_DROPIN)]
+        self.assertTrue(dropins and all(os.path.basename(d.PROBE_DROPIN) < x for x in names), names)
+        self.assertEqual(d.PROBE, "[Service]\nExecStartPre=-/usr/bin/grub2-editenv /boot/grub2/grubenv list\n")
+        self.assertEqual(d.FLUSH_UNIT, "rikuri-grubenv-flush.service")
+        self.assertLess(d.CUT_WITHIN_S, 30)
 
     def test_the_pre_check_s_last_line_on_every_path_ends_the_wait(self):
         for line in ("this boot followed a update-applied; it counts", "a second power cut in a row; it counts",
@@ -714,6 +726,7 @@ class Verdict(unittest.TestCase):
             "case 2b, finalize fails", "case 2d, an update downloaded only",
             "case 2e, an update cancelled during the shutdown",
             "case 3, a power cut during the update",
+            "case 3b, a power cut seconds after greenboot's grubenv write",
             "the containers range after reboots", "the containers range",
             "case 4, an unsigned update refused", "case 5, a signed update staged",
             "the control plane runs as its own user", "the CA certificate over HTTP",
@@ -2606,6 +2619,59 @@ class RenameSetupReads(unittest.TestCase):
                              (409, b"not json")):
             with self.subTest(status=status, body=body):
                 self.assertFalse(d.again_refused(status, body))
+
+
+
+class Case3b(unittest.TestCase):
+    """Case 3b's reading of the boot after the cut (docs/build-records/2026-11-21-grubenv-flush.md)."""
+
+    PROBE = "saved_entry=x\nboot_success=0\n"
+    STATE = "ActiveState=active\nResult=success\n"
+
+    def test_grubenv_value(self):
+        self.assertEqual(d.grubenv_value("a=1\nboot_success=0\n", "boot_success"), "0")
+        self.assertIsNone(d.grubenv_value("boot_successful=1\n", "boot_success"))
+        self.assertIsNone(d.grubenv_value("", "boot_success"))
+        self.assertIsNone(d.grubenv_value(None, "boot_success"))
+
+    def test_seconds_since(self):
+        self.assertEqual(d.seconds_since("40000000\n", "45.25 80.00\n"), 5.2)
+        for exit_us, uptime in (("0", "45.0 1"), ("", "45.0 1"), ("x", "45.0 1"), ("40000000", ""),
+                                ("40000000", "x y")):
+            with self.subTest(exit_us=exit_us, uptime=uptime):
+                self.assertIsNone(d.seconds_since(exit_us, uptime))
+
+    def test_passes_when_grub_s_write_reached_grubenv(self):
+        ok, detail = d.case3b_result(self.PROBE, self.STATE, "", 4.0)
+        self.assertTrue(ok, detail)
+        self.assertIn("boot_success 0", detail)
+
+    def test_grub_s_write_elsewhere_fails(self):
+        # boot_success=1 is greenboot's write: GRUB's own write, of 0, went to the file's old block.
+        for probe in ("boot_success=1\n", "", "boot_counter=2\n"):
+            with self.subTest(probe=probe):
+                self.assertFalse(d.case3b_result(probe, self.STATE, "", 4.0)[0])
+
+    def test_the_flush_must_have_run(self):
+        for state in ("", "ActiveState=inactive\nResult=success\n", "ActiveState=failed\nResult=exit-code\n",
+                      "ActiveState=active\nResult=exit-code\n"):
+            with self.subTest(state=state):
+                self.assertFalse(d.case3b_result(self.PROBE, state, "", 4.0)[0])
+
+    def test_any_flush_failure_fails(self):
+        self.assertFalse(d.case3b_result(self.PROBE, self.STATE, "rikuri-grubenv-flush: FAILED ...\n", 4.0)[0])
+        self.assertTrue(d.case3b_result(self.PROBE, self.STATE, " \n", 4.0)[0])
+
+    def test_a_late_or_unknown_cut_proves_nothing(self):
+        for since in (None, -1.0, 20.1, 45.0):
+            with self.subTest(since=since):
+                self.assertFalse(d.case3b_result(self.PROBE, self.STATE, "", since)[0])
+        self.assertTrue(d.case3b_result(self.PROBE, self.STATE, "", 20.0)[0])
+
+    def test_the_failures_it_greps_are_both_programs(self):
+        # The flush program's own line, and the node's when the flush after its write failed.
+        self.assertIn("grubenv-flush: FAILED", d.FLUSH_FAILED)
+        self.assertIn("FAILED to write grubenv's journal home", d.FLUSH_FAILED)
 
 
 if __name__ == "__main__":

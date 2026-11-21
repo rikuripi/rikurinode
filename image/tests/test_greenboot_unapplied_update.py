@@ -8,8 +8,10 @@ Record: docs/build-records/2026-10-22-d22-unapplied-update.md
 """
 from __future__ import annotations
 
+import contextlib
 import importlib.machinery
 import importlib.util
+import io
 import json
 import os
 import shutil
@@ -33,6 +35,8 @@ m = load()
 NEW = "sha256:" + "a" * 64
 OLD = "sha256:" + "b" * 64
 OLDER = "sha256:" + "c" * 64
+# grubenv's journal written home after each write (docs/build-records/2026-11-21-grubenv-flush.md).
+FLUSH = "/usr/libexec/rikuri/grubenv-flush"
 
 
 def dep(digest, booted=False):
@@ -182,7 +186,8 @@ class Run(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def runner(self, grubenv_text, status_json, unset_rc=0, rw_rc=0, ro_rc=0, set_rc=0, bootc_json=None, bootc_rc=0):
+    def runner(self, grubenv_text, status_json, unset_rc=0, rw_rc=0, ro_rc=0, set_rc=0, bootc_json=None, bootc_rc=0,
+               flush_rc=0):
         def run(argv):
             self.calls.append(argv)
             if argv[:2] == [m.GRUB2_EDITENV, m.GRUBENV] and argv[2] == "list":
@@ -199,6 +204,8 @@ class Run(unittest.TestCase):
                 return rw_rc, ""
             if argv == [m.MOUNT, "-o", "remount,bind,ro", "/boot"]:
                 return ro_rc, ""
+            if argv == [FLUSH]:
+                return flush_rc, ""
             raise AssertionError("unexpected command %r" % (argv,))
         return run
 
@@ -274,9 +281,10 @@ class Run(unittest.TestCase):
     def test_read_only_boot_is_remounted_around_the_one_write(self):
         run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, self.status(dep(OLD, booted=True)))
         self.assertEqual(self.main(run, mountinfo=MI_RO), 0)
-        tail = self.calls[-3:]
+        tail = self.calls[-4:]
         self.assertEqual(tail, [[m.MOUNT, "-o", "remount,rw", "/boot"],
                                 [m.GRUB2_EDITENV, m.GRUBENV, "unset", "greenboot_next_deployment_id", "boot_counter"],
+                                [FLUSH],
                                 [m.MOUNT, "-o", "remount,bind,ro", "/boot"]])
         self.assertTrue(os.path.exists(self.record))
 
@@ -306,6 +314,46 @@ class Run(unittest.TestCase):
         self.assertEqual(self.main(run, mountinfo=MI_RO), 1)
         self.assertEqual(self.calls[-1], [m.MOUNT, "-o", "remount,bind,ro", "/boot"])
         self.assertFalse(os.path.exists(self.record))
+
+    def test_the_flush_is_grubenv_flush(self):
+        self.assertEqual(m.GRUBENV_FLUSH, FLUSH)
+
+    def test_the_clear_is_flushed(self):
+        # GRUB ignores ext4's journal: after a power cut within some 30 s of a
+        # write, it would read grubenv as it was before it (the experiment,
+        # docs/build-records/2026-11-21-grubenv-power-cut-experiment.md).
+        run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, self.status(dep(OLD, booted=True)))
+        self.assertEqual(self.main(run, mountinfo=MI_RW), 0)
+        self.assertEqual(self.calls[-2:], [[m.GRUB2_EDITENV, m.GRUBENV, "unset", "greenboot_next_deployment_id",
+                                            "boot_counter"], [FLUSH]])
+
+    def test_a_failed_write_is_flushed_too(self):
+        # A failed grub2-editenv may still have rewritten the file.
+        run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, self.status(dep(OLD, booted=True)), unset_rc=1)
+        self.assertEqual(self.main(run, mountinfo=MI_RW), 1)
+        self.assertEqual(self.calls[-1], [FLUSH])
+
+    def test_a_failed_flush_is_logged_and_keeps_the_write_s_result(self):
+        run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, self.status(dep(OLD, booted=True)), flush_rc=1)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(self.main(run, mountinfo=MI_RO), 0)
+        self.assertTrue(os.path.exists(self.record))
+        self.assertEqual(self.calls[-1], [m.MOUNT, "-o", "remount,bind,ro", "/boot"])
+        self.assertIn("FAILED to write grubenv's journal home (exit 1)", out.getvalue())
+        self.assertIn("power cut", out.getvalue())
+
+    def test_no_write_no_flush(self):
+        for why, run, mi in (
+                ("on trial", self.runner("greenboot_next_deployment_id=%s\n" % NEW,
+                                         self.status(dep(NEW, booted=True), dep(OLD))), MI_RO),
+                ("no trigger", self.runner("boot_success=1\n", "unused"), MI_RO),
+                ("the remount failed", self.runner("greenboot_next_deployment_id=%s\n" % NEW,
+                                                   self.status(dep(OLD, booted=True)), rw_rc=32), MI_RO)):
+            with self.subTest(why=why):
+                self.calls.clear()
+                self.main(run, mountinfo=mi)
+                self.assertNotIn([FLUSH], self.calls)
 
     def test_failed_unset_is_reported_and_not_recorded(self):
         run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, self.status(dep(OLD, booted=True)), unset_rc=1)
@@ -623,9 +671,16 @@ class Arm(unittest.TestCase):
     def test_read_only_boot_is_remounted_around_the_arm(self):
         run = self.runner("greenboot_next_deployment_id=%s\n" % NEW)
         self.assertEqual(self.arm(run, mountinfo=MI_RO), 0)
-        self.assertEqual(self.calls[-3:], [[m.MOUNT, "-o", "remount,rw", "/boot"],
+        self.assertEqual(self.calls[-4:], [[m.MOUNT, "-o", "remount,rw", "/boot"],
                                            [m.GRUB2_EDITENV, m.GRUBENV, "set", "boot_counter=3", "boot_success=0"],
+                                           [FLUSH],
                                            [m.MOUNT, "-o", "remount,bind,ro", "/boot"]])
+
+    def test_the_arm_is_flushed(self):
+        run = self.runner("greenboot_next_deployment_id=%s\n" % NEW)
+        self.assertEqual(self.arm(run), 0)
+        self.assertEqual(self.calls[-2:], [[m.GRUB2_EDITENV, m.GRUBENV, "set", "boot_counter=3", "boot_success=0"],
+                                           [FLUSH]])
 
     def test_an_update_never_applied_arms_nothing(self):
         # N1: finalize failed, so the node boots the image it kept; a counter
@@ -858,15 +913,21 @@ class RunOnTrial(unittest.TestCase):
 
     def test_read_only_boot_is_remounted_around_the_give_back(self):
         self.assertEqual(self.trial("boot_counter=0\n", history("update-applied", "power-cut"), mountinfo=MI_RO), 0)
-        self.assertEqual(self.calls[-3:], [[m.MOUNT, "-o", "remount,rw", "/boot"],
+        self.assertEqual(self.calls[-4:], [[m.MOUNT, "-o", "remount,rw", "/boot"],
                                            [m.GRUB2_EDITENV, m.GRUBENV, "set", "boot_counter=1"],
+                                           [FLUSH],
                                            [m.MOUNT, "-o", "remount,bind,ro", "/boot"]])
+
+    def test_the_give_back_is_flushed(self):
+        self.assertEqual(self.trial("boot_counter=1\n", history("update-applied", "power-cut")), 0)
+        self.assertEqual(self.calls[-2:], [[m.GRUB2_EDITENV, m.GRUBENV, "set", "boot_counter=2"], [FLUSH]])
 
     def test_a_boot_that_counts_writes_nothing(self):
         self.assertEqual(self.trial("boot_counter=1\n", history("update-applied", "clean")), 0)
         self.assertEqual(self.sets(), [])
         self.assertFalse(os.path.exists(self.given))
         self.assertFalse(any(c[0] == m.MOUNT for c in self.calls))
+        self.assertNotIn([FLUSH], self.calls)
 
     def test_no_counter_reads_no_history(self):
         self.assertEqual(self.trial("", history("update-applied", "power-cut")), 0)
