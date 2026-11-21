@@ -5,7 +5,7 @@
 | **Date** | 2026-11-21 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/boot-counter-deployment-tests`, from `main` at `771c7cd`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | this contract; the tests; the record |
+| **Commits** | `265c0fc` (contract), `04f48f4` (tests), and this record |
 | **Status** | IN PROGRESS |
 | **Change type** | tests (OS image: `greenboot-unapplied-update`'s tests) |
 
@@ -39,3 +39,15 @@ The cancelled-update fix's verifier (`docs/build-records/2026-11-20-boot-counter
 5. **Limits:** one task; two repair cycles; two review rounds. No budget is configured.
 
 ## Evidence log
+
+### Tests, `04f48f4`
+
+- `Arm.test_a_note_and_its_arm_for_any_stateroot_and_serial`:
+  - `note` writes `<digest> ostree/deploy/Fedora_IoT-2.x/deploy/<checksum>.12` from bootc's status;
+  - the staged state is then removed and the deployment is made, as finalize leaves it;
+  - `arm`, reading that very file, sets `boot_counter=3 boot_success=0`.
+  - Catches: `STATEROOT` without `A-Z` or `_` (nothing noted), and `DEPLOYMENT` without them or with only serial `0` (nothing armed).
+- `Arm.test_a_deployment_the_pattern_alone_refuses`: two notes, each naming a deployment that is there (asserted with `deployment_kept`), so only `DEPLOYMENT` refuses them: an absolute path to a deployment elsewhere, and a path back through `..` to the applied one. Catches: `arm` without `DEPLOYMENT.fullmatch`.
+- **Reason:** new tests only; no existing test changed, no code changed.
+- Checked by reading against the code as it is: both pass. Each mutant above fails one of them.
+- On the Mac: the file parses; `git diff --check` clean. The tests run in CI.
