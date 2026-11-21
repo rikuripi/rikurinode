@@ -70,7 +70,7 @@
 
 - `test_greenboot_unapplied_update.py`:
   - `bootc()` carries the staged update's `ostree` entry, and `DEPLOY` is its path.
-  - A new class, `StagedDeployment`: `SYSROOT`, the path read, and 28 malformed entries or texts that give none.
+  - A new class, `StagedDeployment`: `SYSROOT`, the path read, and 26 malformed cases that give none (21 entries, 5 texts).
   - `Note`: the note now holds the digest and the deployment. A new test: no deployment in bootc's status notes nothing.
   - `Arm`: `make_deployment` makes the sysroot, with the deployment applied by default. The malformed-note cases gain 10 for the deployment's half. A new test: a cancelled update arms nothing (gone; the origin removed, a cancel cut short; the folder gone; a link or a folder where a file goes; unreadable).
   - **Reasons:**
