@@ -683,6 +683,44 @@ class Arm(unittest.TestCase):
                 self.assertEqual(self.arm(run, staged_state=state), 0)
                 self.assertEqual(self.sets(), [])
 
+    def test_a_note_and_its_arm_for_any_stateroot_and_serial(self):
+        # Verifier Minor 2 (docs/build-records/2026-11-21-boot-counter-deployment-tests.md):
+        # a re-staged image has a serial of 1 or more, and a stateroot may hold
+        # capitals and '_'; note's note must arm, read back as note wrote it.
+        entry = dict(STAGED_OSTREE, stateroot="Fedora_IoT-2.x", deploySerial=12)
+        rel = "ostree/deploy/Fedora_IoT-2.x/deploy/" + "d" * 64 + ".12"
+        note_path = os.path.join(self.tmp.name, "run", "rikuri-boot-counter", "staged")
+        state = make_staged_state(self.tmp.name, "file")
+        run = self.runner("greenboot_next_deployment_id=%s\n" % NEW, bootc_json=bootc(NEW, entry))
+        self.assertEqual(m.note(run=run, note_path=note_path, staged_state=state), 0)
+        with open(note_path) as f:
+            self.assertEqual(f.read(), NEW + " " + rel + "\n")
+        # ostree's finalize applies it: the staged state gone, the deployment kept.
+        os.remove(state)
+        sysroot = os.path.join(self.tmp.name, "sysroot")
+        os.makedirs(os.path.join(sysroot, rel))
+        with open(os.path.join(sysroot, rel + ".origin"), "w") as f:
+            f.write("[origin]\n")
+        self.assertEqual(m.arm(run=run, mountinfo=lambda: MI_RW, note_path=note_path, staged_state=state,
+                               sysroot=sysroot), 0)
+        self.assertEqual(self.sets(), [[m.GRUB2_EDITENV, m.GRUBENV, "set", "boot_counter=3", "boot_success=0"]])
+
+    def test_a_deployment_the_pattern_alone_refuses(self):
+        # Verifier Minor 1: each note names a deployment that is there, so only
+        # DEPLOYMENT refuses it, not deployment_kept.
+        elsewhere = make_deployment(os.path.join(self.tmp.name, "elsewhere"), "applied")
+        for rel, why in ((os.path.join(elsewhere, DEPLOY), "an absolute path to a deployment elsewhere"),
+                         (DEPLOY.replace("ostree/deploy/default/", "ostree/deploy/../deploy/default/"),
+                          "a path back through '..' to the applied deployment")):
+            with self.subTest(why=why):
+                if os.path.exists(os.path.join(self.tmp.name, "run")):
+                    shutil.rmtree(os.path.join(self.tmp.name, "run"))
+                self.calls.clear()
+                run = self.runner("greenboot_next_deployment_id=%s\n" % NEW)
+                self.assertEqual(self.arm(run, noted=NEW + " " + rel + "\n"), 0)
+                self.assertTrue(m.deployment_kept(os.path.join(self.tmp.name, "sysroot"), rel))
+                self.assertEqual(self.sets(), [])
+
     def test_a_cancelled_update_arms_nothing(self):
         # ostree dropped the staged deployment after note: its state and its
         # deployment removed, the origin first (_ostree_sysroot_rmrf_deployment).
