@@ -530,7 +530,7 @@ class BootCauseCase1(unittest.TestCase):
         source = inspect.getsource(d.main)
         order = ["drill.first_boot()", "drill.boot_cause_first_boot()", "drill.boot_automount()",
                  "before = len(drill.boot_causes_now())", "drill.case1()", "drill.boot_cause_case1(before)",
-                 "drill.case1_power_cuts()", "drill.case2b()", "drill.case3()"]
+                 "drill.case1_power_cuts()", "drill.case2b()", "drill.case2d()", "drill.case3()"]
         at = [source.index(step) for step in order]
         self.assertEqual(at, sorted(at))
 
@@ -702,7 +702,8 @@ class Verdict(unittest.TestCase):
     def test_every_check_names_a_step(self):
         self.assertEqual(d.EXPECTED, {
             "first boot", "the containers range at the first boot", "case 1, a failing update",
-            "case 2b, finalize fails", "case 3, a power cut during the update",
+            "case 2b, finalize fails", "case 2d, an update downloaded only",
+            "case 3, a power cut during the update",
             "the containers range after reboots", "the containers range",
             "case 4, an unsigned update refused", "case 5, a signed update staged",
             "the control plane runs as its own user", "the CA certificate over HTTP",
@@ -893,6 +894,17 @@ class StagedStatus(unittest.TestCase):
         self.assertIsNone(d.staged(status_json()))
         self.assertIsNone(d.staged(""))
         self.assertIsNone(d.spec_image(""))
+
+    def test_a_staged_deployment_downloaded_only(self):
+        # Case 2d's precondition (docs/build-records/2026-11-20-boot-counter-download-only.md).
+        doc = json.loads(status_json(staged=SIGNED))
+        self.assertFalse(d.staged_download_only(json.dumps(doc)))
+        for value, want in ((True, True), (False, False), ("true", False), (1, False)):
+            with self.subTest(value=value):
+                doc["status"]["staged"]["downloadOnly"] = value
+                self.assertEqual(d.staged_download_only(json.dumps(doc)), want)
+        self.assertFalse(d.staged_download_only(status_json()))
+        self.assertFalse(d.staged_download_only(""))
 
 
 class SignatureRules(unittest.TestCase):

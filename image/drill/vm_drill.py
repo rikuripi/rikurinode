@@ -286,6 +286,15 @@ def staged(text: str):
     return _deployment(text, "staged")
 
 
+def staged_download_only(text: str) -> bool:
+    """True when bootc status --json says the staged deployment is locked for
+    finalization (bootc 1.17.1, status.staged.downloadOnly)."""
+    try:
+        return json.loads(text)["status"]["staged"]["downloadOnly"] is True
+    except (ValueError, KeyError, TypeError):
+        return False
+
+
 def case1_outcome(text: str, installed_digest: str):
     """Case 1 after its switch to the broken image: "rolled back" (greenboot
     did, and the installed image is booted), "never applied" (the installed
@@ -827,7 +836,8 @@ def fresh_heartbeat(text: str, now, within: int = HEARTBEAT_FRESH_S) -> bool:
 
 
 EXPECTED = frozenset({"first boot", "the containers range at the first boot", "case 1, a failing update",
-                      "case 2b, finalize fails", "case 3, a power cut during the update",
+                      "case 2b, finalize fails", "case 2d, an update downloaded only",
+                      "case 3, a power cut during the update",
                       "the containers range after reboots", "the containers range",
                       "case 4, an unsigned update refused", "case 5, a signed update staged",
                       "the control plane runs as its own user", "the CA certificate over HTTP",
@@ -1629,8 +1639,9 @@ class Drill:
         self.check("the containers range after reboots", same,
                    "both files as at the first boot, with the range once, after every case's reboots: %s" % same)
 
-    def switch(self, name: str) -> None:
-        self.vm("bootc switch --transport containers-storage localhost/rikuri-os:%s" % name, timeout=900)
+    def switch(self, name: str, download_only: bool = False) -> None:
+        self.vm("bootc switch %s--transport containers-storage localhost/rikuri-os:%s"
+                % ("--download-only " if download_only else "", name), timeout=900)
 
     def boot_cause_case1(self, before: int) -> None:
         """After case1, which ends on the boot it waited for: the record since `before`."""
@@ -1785,6 +1796,23 @@ class Drill:
                    "recorded for the shutdown whose finalize failed: %s" % causes(entries))
         self.never_applied("case 2b, finalize fails", "03-case2b", lines, first)
 
+    def case2d(self) -> None:
+        """An update staged download-only: ostree's finalize keeps it, and
+        returns success; the image the node kept is never counted (N1,
+        docs/build-records/2026-11-20-boot-counter-download-only.md)."""
+        lines = self.record_lines()
+        self.switch("a", download_only=True)
+        status = self.status_quiet()
+        self.keep("03-case2d-staged.out", status)
+        if not staged_download_only(status):
+            raise DrillFailure("case 2d: bootc did not stage the update download-only")
+        self.hold_first()
+        old = self.reboot()
+        first = self.counter_held_first(old)
+        self.wait_up(old_boot=old)
+        self.release_first()
+        self.never_applied("case 2d, an update downloaded only", "03-case2d", lines, first)
+
     def serial_text(self) -> str:
         serial = os.path.join(self.workdir, "serial-%d.log" % self.starts)
         return self.run(["cat", serial], check=False, sudo=True).stdout or ""
@@ -1914,6 +1942,7 @@ def main(argv=None) -> int:
         drill.boot_cause_case1(before)
         drill.case1_power_cuts()
         drill.case2b()
+        drill.case2d()
         drill.case3()
         # After the cases, so that a --userns=auto run (which may add ID-mapped
         # layers to the storage bootc switch reads) cannot touch them; run 2
