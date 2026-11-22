@@ -5,8 +5,8 @@
 | **Date** | 2026-11-22 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/case3b-own-flush-failure`, from `b8e6d1a`, the head of PR #155, which the owner merged into `main` (`40b128e`) while this contract was being written; a draft PR; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled at the end) |
-| **Status** | IN PROGRESS |
+| **Commits** | `7b07f96` (contract), `c80e9f9` (red), `c93978d` (record), `e467220` (the fix), `c25ced8` (record, test comment): PR #157, merged by the owner at `c25ced8` (`b89dc86`) before the verifier's pass; this record's last two commits on `docs/case3b-own-flush-failure-record`, a docs-only PR |
+| **Status** | DONE |
 | **Change type** | defect fix in the drill (test tooling) |
 
 ## Intent: the owner's words
@@ -58,3 +58,21 @@
 - `CI`, [run 44999474009](https://github.com/rikuripi/rikurinode/actions/runs/44999474009): `Full gate (Ubuntu)` Pass, the new test included.
 - The image workflow, [run 44999474006](https://github.com/rikuripi/rikurinode/actions/runs/44999474006): every job Pass; the drill took about 12 minutes of VM time. Case 3b, from the job's log (the artifact was not downloaded): `GRUB read the node's write: True (boot_counter 2 …); the write returned 0: True; no FAILED line from the node's write: True; greenboot's flush ran before the cut: True; no flush failure logged since the install: True; cut 0.2s after the node's write: True`.
 - So the flush after the case's own write is now seen to have worked, not only implied by the 2.
+
+## Verification
+
+- **The verifier**, one pass on `b8e6d1a..507bd32` (routine): **Pass**, no Important findings.
+  - The defect confirmed in the code: `log()` prints to stdout; `edit_grubenv` returns the write's 0 after a failed flush; over SSH that line is `said`, which only `rc=0` was checked in.
+  - The fix: `clean` in the conjunction and the detail, nothing else changed in behaviour; nothing the node prints on a successful write holds `FAILED`.
+  - Red first: `c80e9f9` the test alone, `e467220` `vm_drill.py` alone, the later test-file change a comment only; the red state re-run in a scratch copy: `FAILED (failures=1)`.
+  - Hand mutations in a scratch copy (`Case3b` only, no `PATH`, no Docker socket): 8 of 9 killed by the new test. **Survivor:** a check of the first line only, because the test's `FAILED` line is its first.
+  - The CI quotes confirmed.
+- **The PR:** #157 was merged by the owner at `c25ced8` (2026-11-22, 08:23 UTC) while this pass ran. The pass found nothing to change in what was merged; this record's result lands by a docs-only PR.
+- **Minor findings, for the backlog, not fixed here:**
+  1. The first-line survivor: a test with another line before the `FAILED` one would kill it. Low risk: the node prints the flush's line before any other.
+  2. `edit_grubenv`'s `/boot left writable in this unit's mount namespace` line has no `FAILED`, so neither case 3b nor `FLUSH_FAILED` sees a failed remount back to read-only.
+  3. The record's state: corrected here.
+
+## Result
+
+- **Pass (observed):** case 3b fails on a `FAILED` line from the node's own write (red: gate run 44996441795) and passes with the fix, its detail showing the flush after that write reported no failure (gate 44999474009, drill 44999474006).
