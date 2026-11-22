@@ -30,7 +30,8 @@
 3. **Done when:**
    - Red: the test committed alone and seen failing in CI's full gate on exactly that test.
    - Then the fix in its own commit; the full gate passes in CI; the image workflow's drill passes, case 3b included.
-4. **Authority:** the files above. On the Mac: `ast` parse checks and `git diff --check`. The tests run in CI only. Commit and push this branch; a draft PR to `main`; the owner merges. No verifier pass required (routine tier; REVIEW.md), unless the owner asks.
+   - One verifier pass on the test and the fix.
+4. **Authority:** the files above. On the Mac: `ast` parse checks and `git diff --check`. The tests run in CI only. Commit and push this branch; a draft PR to `main`; the owner merges. One `verifier` pass, required for code by AGENTS.md §5 (corrected 2026-11-22: this contract first said none was required, which §5 does not allow).
 5. **Limits:** one task; two repair cycles and two review rounds. No budget is configured; VM time is reported.
 
 ## Evidence log
@@ -39,3 +40,15 @@
 
 - `Case3b.test_a_failed_flush_after_the_write_fails`: `said` with the node's `FAILED to write grubenv's journal home` line, then `rc=0`, must fail, and the detail must say so.
 - **Reason for the test change:** a new test for the defect; no existing test changes. Expected in CI: the full gate fails on this test alone.
+
+### The red run, `c93978d`: Fail on that test alone, as expected
+
+- `CI`, [run 44996441795](https://github.com/rikuripi/rikurinode/actions/runs/44996441795): `Full gate (Ubuntu)` failed with `FAILED (failures=1)`, in `test_a_failed_flush_after_the_write_fails` alone:
+  `AssertionError: True is not false : GRUB read the node's write: True (boot_counter 2 …); the write returned 0: True; …`: the case passed with the node's failed-flush line in `said`, the defect.
+- The image workflow, [run 44996441759](https://github.com/rikuripi/rikurinode/actions/runs/44996441759): every job Pass, case 3b included (nothing in the VM changed).
+
+### The fix
+
+- `case3b_result` (`image/drill/vm_drill.py`) also requires no line of `said` to hold `FAILED` (`clean`), and its detail says `no FAILED line from the node's write: …`. Its docstring says why the journal cannot show that line over SSH.
+- Nothing else in the drill changes: `said` was already captured and kept.
+- **Reason for the test change (`test_vm_drill.py`):** the comment on `test_the_failures_it_greps_are_both_programs` said the journal holds the node's failed-flush line; it does only when the node runs as a service. Comment only; the test is unchanged.

@@ -2701,7 +2701,8 @@ class Case3b(unittest.TestCase):
         self.assertTrue(self.ok(since=0.0)[0])
 
     def test_the_failures_it_greps_are_both_programs(self):
-        # The flush program's own line, and the node's when the flush after its write failed.
+        # The flush program's own line, and the node's when the flush after its write failed and the node ran
+        # as a service (its stdout is the journal); over SSH the node's line is in `said` instead.
         self.assertIn("grubenv-flush: FAILED", d.FLUSH_FAILED)
         self.assertIn("FAILED to write grubenv's journal home", d.FLUSH_FAILED)
 
