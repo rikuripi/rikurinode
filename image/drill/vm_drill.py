@@ -2038,6 +2038,44 @@ class Drill:
             serial = os.path.join(self.workdir, "serial-%d.log" % i)
             self.keep("serial-%d.log" % i, self.run(["cat", serial], check=False, sudo=True).stdout)
 
+    # Experiment branch only (docs/build-records/2026-11-22-grubenv-writers-inventory.md):
+    # read-only listings of the image's grubenv writers, in the VM after its first boot.
+    EXP_LISTINGS = (
+        ("packages", "rpm -q grub2-tools grub2-tools-minimal grub2-common grubby greenboot bootupd bootc ostree"),
+        ("set-bootflag", "ls -l /usr/sbin/grub2-set-bootflag /usr/bin/grub2-set-bootflag; "
+                         "rpm -qf /usr/sbin/grub2-set-bootflag"),
+        ("grubby", "ls -l /usr/bin/grubby /usr/sbin/grubby /usr/libexec/grubby 2>&1; command -v grubby"),
+        ("grub tools", "ls -l /usr/bin/grub2-* /usr/sbin/grub2-* 2>&1"),
+        ("unit files", "systemctl list-unit-files --no-pager '*grub*' '*greenboot*' '*bootloader*' '*bootupd*' "
+                       "'*system-update*'"),
+        ("user unit files", "systemctl --global list-unit-files --no-pager '*grub*'"),
+        ("boot-success timer", "systemctl --global is-enabled grub-boot-success.timer; "
+                               "systemctl --global cat grub-boot-success.timer grub-boot-success.service"),
+        ("indeterminate", "systemctl is-enabled grub-boot-indeterminate.service; "
+                          "systemctl cat grub-boot-indeterminate.service"),
+        ("systemd-integration", "systemctl is-enabled grub2-systemd-integration.service; "
+                                "systemctl cat grub2-systemd-integration.service; "
+                                "ls -l /usr/lib/systemd/system/systemd-logind.service.d/ 2>&1"),
+        ("bootloader-update", "systemctl is-enabled bootloader-update.service; "
+                              "systemctl cat bootloader-update.service"),
+        ("human users", "getent passwd | awk -F: '$3 >= 1000 && $3 < 60000'; echo end"),
+        ("names grubenv", "grep -rl -e grub2-editenv -e grubenv -e grub2-set-bootflag /usr/bin /usr/sbin "
+                          "/usr/libexec /usr/lib/systemd /usr/lib/kernel /usr/lib/dracut /usr/lib/bootupd /etc "
+                          "2>/dev/null | sort"),
+        ("grubenv now", "ls -l /boot/grub2/; grub2-editenv /boot/grub2/grubenv list"),
+    )
+
+    def experiment(self) -> None:
+        out = []
+        for name, command in self.EXP_LISTINGS:
+            p = self.run(ssh_argv(self.key, PORT, command), check=False, timeout=300)
+            text = ((p.stdout or "") + "".join("stderr: %s\n" % line for line in (p.stderr or "").splitlines())
+                    + "exit %d\n" % p.returncode)[:6000]
+            out.append("=== %s: %s\n%s" % (name, command, text))
+            for line in text.splitlines() or ["(nothing)"]:
+                self.log("exp: %s: %s" % (name, line))
+        self.keep("exp-inventory.txt", "\n".join(out))
+
     def summary(self) -> str:
         lines = ["### Rollback drill (x86_64, KVM)", "", "| Case | Result | Detail |", "|---|---|---|"]
         for case, ok, detail in self.results:
@@ -2058,34 +2096,8 @@ def main(argv=None) -> int:
     try:
         drill.install()
         drill.first_boot()
-        drill.boot_cause_first_boot()
-        drill.boot_automount()
-        drill.control_plane()
-        drill.setup_pages()
-        drill.owner_pages()
-        drill.setup_hub()
-        drill.load_variants()
-        before = len(drill.boot_causes_now())
-        drill.case1()
-        drill.boot_cause_case1(before)
-        drill.case1_power_cuts()
-        drill.case2b()
-        drill.case2d()
-        drill.case2e()
-        drill.case3()
-        drill.case3b()
-        # After the cases, so that a --userns=auto run (which may add ID-mapped
-        # layers to the storage bootc switch reads) cannot touch them; run 2
-        # (40057729110) saw case 1's update fail to finalize with it before.
-        drill.subid_after_reboots()
-        drill.userns_auto()
-        drill.mdns_links()
-        # Last: the signed update stays staged, and no reboot follows.
-        drill.serve_registry(a.registry)
-        drill.configure_mirror()
-        drill.case4()
-        drill.case5()
-        drill.rename()
+        # Experiment branch only: the experiment in place of the cases.
+        drill.experiment()
     except (DrillFailure, subprocess.TimeoutExpired) as e:
         error = str(e)
         drill.check("drill", False, error)
