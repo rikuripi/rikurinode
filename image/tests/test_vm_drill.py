@@ -2706,6 +2706,27 @@ class Case3b(unittest.TestCase):
         self.assertIn("grubenv-flush: FAILED", d.FLUSH_FAILED)
         self.assertIn("FAILED to write grubenv's journal home", d.FLUSH_FAILED)
 
+    LEFT = "rikuri-unapplied-update: /boot left writable in this unit's mount namespace (remount exit 32)\n"
+
+    def test_boot_left_writable_by_the_node_s_write_fails(self):
+        # The line holds no FAILED; another line before it, so a check of the first line alone fails too.
+        ok, detail = self.ok(said="rikuri-unapplied-update: something\n" + self.LEFT + "rc=0\n")
+        self.assertFalse(ok, detail)
+        self.assertIn("/boot read-only again after every write: False", detail)
+        self.assertIn("/boot read-only again after every write: True", self.ok()[1])
+
+    def test_boot_left_writable_in_the_journal_fails(self):
+        ok, detail = self.ok(failures=self.LEFT)
+        self.assertFalse(ok, detail)
+        self.assertIn("/boot read-only again after every write: False", detail)
+        self.assertIn("no flush failure logged since the install: True", detail)
+
+    def test_the_case_s_journal_search_holds_both(self):
+        self.assertEqual(d.CASE3B_JOURNAL.split("|"), d.FLUSH_FAILED.split("|") + [d.LEFT_WRITABLE])
+        source = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "rootfs", "usr", "libexec",
+                                   "rikuri", "greenboot-unapplied-update"), encoding="utf-8").read()
+        self.assertIn('log("%s in this unit' % d.LEFT_WRITABLE, source)
+
 
 if __name__ == "__main__":
     unittest.main()
