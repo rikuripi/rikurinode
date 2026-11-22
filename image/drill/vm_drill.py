@@ -808,18 +808,18 @@ def boot_counter(grubenv: str):
 
 
 def journal_search(out):
-    """(matches, searched) from CASE3B_SEARCH's output: searched only when it ends with
-    journalctl's rc=0 or rc=1 and nothing on its standard error; the matches are the
-    lines before that rc= line. No output, no rc= line, another code, or a stderr line
-    after it: not searched, and no matches."""
+    """The matches in CASE3B_SEARCH's output ("" for none), or None when the search did
+    not run, which case3b_result fails on: searched only when it ends with journalctl's
+    rc=0 or rc=1 and nothing on its standard error; the matches are the lines before
+    that rc= line. No output, no rc= line, another code, or a stderr line after it: None."""
     lines = (out or "").splitlines()
     ends = [i for i, line in enumerate(lines) if re.fullmatch(r"rc=[0-9]+", line)]
     if not ends:
-        return "", False
+        return None
     last = ends[-1]
     if int(lines[last][3:]) not in (0, 1) or lines[last + 1:]:
-        return "", False
-    return "\n".join(lines[:last]), True
+        return None
+    return "\n".join(lines[:last])
 
 
 def case3b_result(held: str, said: str, flush_state: str, failures, since) -> tuple:
@@ -829,7 +829,7 @@ def case3b_result(held: str, said: str, flush_state: str, failures, since) -> tu
     not the journal), greenboot's flush had run at the boot before the cut, no flush
     failure was logged, /boot was read-only again after every write (LEFT_WRITABLE, in
     `said` or the journal: the line holds no FAILED), the journal search ran (`failures`
-    None: it did not; journal_search), and the cut came within CUT_WITHIN_S."""
+    None, as journal_search returns it: it did not), and the cut came within CUT_WITHIN_S."""
     counter = boot_counter(held)
     counted = counter == "2"
     lines = (said or "").strip().splitlines()
@@ -1935,14 +1935,14 @@ class Drill:
         held = self.grubenv_held(bid)
         self.release_first()
         searched_out = self.vm(CASE3B_SEARCH, check=False)
-        failures, searched = journal_search(searched_out)
+        failures = journal_search(searched_out)
         self.keep("04-case3b.out", "\n".join([
             "cut %ss after the node's write" % since, "--- %s at the boot before the cut" % FLUSH_UNIT, state,
             "--- grubenv's blocks before the write", before, "--- the node's write", said,
             "--- grubenv's blocks after it", moved, "--- grubenv at the held boot", held,
             "--- the journal search (matches, rc=, stderr:)", searched_out or "(no output: the search did not run)",
             self.journal("-b -u greenboot-healthcheck")]))
-        ok, detail = case3b_result(held, said, state, failures if searched else None, since)
+        ok, detail = case3b_result(held, said, state, failures, since)
         self.check("case 3b, a power cut seconds after the node's grubenv write", ok, detail)
 
     def case3(self) -> None:
