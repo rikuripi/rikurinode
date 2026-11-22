@@ -52,3 +52,9 @@
 - `case3b_result` (`image/drill/vm_drill.py`) also requires no line of `said` to hold `FAILED` (`clean`), and its detail says `no FAILED line from the node's write: …`. Its docstring says why the journal cannot show that line over SSH.
 - Nothing else in the drill changes: `said` was already captured and kept.
 - **Reason for the test change (`test_vm_drill.py`):** the comment on `test_the_failures_it_greps_are_both_programs` said the journal holds the node's failed-flush line; it does only when the node runs as a service. Comment only; the test is unchanged.
+
+### The fix, `c25ced8`: Pass
+
+- `CI`, [run 44999474009](https://github.com/rikuripi/rikurinode/actions/runs/44999474009): `Full gate (Ubuntu)` Pass, the new test included.
+- The image workflow, [run 44999474006](https://github.com/rikuripi/rikurinode/actions/runs/44999474006): every job Pass; the drill took about 12 minutes of VM time. Case 3b, from the job's log (the artifact was not downloaded): `GRUB read the node's write: True (boot_counter 2 …); the write returned 0: True; no FAILED line from the node's write: True; greenboot's flush ran before the cut: True; no flush failure logged since the install: True; cut 0.2s after the node's write: True`.
+- So the flush after the case's own write is now seen to have worked, not only implied by the 2.
