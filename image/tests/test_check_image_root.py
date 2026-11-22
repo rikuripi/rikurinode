@@ -44,6 +44,11 @@ BOOT_CAUSE_WANTS = "usr/lib/systemd/system/sysinit.target.wants/rikuri-boot-caus
 # (docs/build-records/2026-11-20-boot-counter-armed-after-finalize.md).
 BOOT_COUNTER_UNIT = "usr/lib/systemd/system/rikuri-boot-counter.service"
 BOOT_COUNTER_WANTS = "usr/lib/systemd/system/sysinit.target.wants/rikuri-boot-counter.service"
+# grubenv's journal written home after greenboot's boot-time writes
+# (docs/build-records/2026-11-21-grubenv-flush.md).
+GRUBENV_FLUSH = "usr/libexec/rikuri/grubenv-flush"
+GRUBENV_FLUSH_UNIT = "usr/lib/systemd/system/rikuri-grubenv-flush.service"
+GRUBENV_FLUSH_WANTS = "usr/lib/systemd/system/multi-user.target.wants/rikuri-grubenv-flush.service"
 CONTAINERS_USER = "usr/lib/sysusers.d/rikuri-containers.conf"
 # The signature policy for the node's OS image (docs/build-records/2026-10-25-signature-policy.md).
 POLICY = "etc/containers/policy.json"
@@ -182,6 +187,10 @@ class Root:
         if os.path.exists(os.path.join(HERE, "..", "rootfs", BOOT_COUNTER_UNIT)):
             self.write_bytes(BOOT_COUNTER_UNIT, shipped_file(BOOT_COUNTER_UNIT))
             self.link(BOOT_COUNTER_WANTS, "../rikuri-boot-counter.service")
+        if os.path.exists(os.path.join(HERE, "..", "rootfs", GRUBENV_FLUSH_UNIT)):
+            self.write_bytes(GRUBENV_FLUSH, shipped_file(GRUBENV_FLUSH), mode=0o755)
+            self.write_bytes(GRUBENV_FLUSH_UNIT, shipped_file(GRUBENV_FLUSH_UNIT))
+            self.link(GRUBENV_FLUSH_WANTS, "../rikuri-grubenv-flush.service")
         if os.path.exists(os.path.join(HERE, "..", "rootfs", CONTAINERS_USER)):
             self.write_bytes(CONTAINERS_USER, shipped_file(CONTAINERS_USER))
         for rel in SIGNATURE_FILES:
@@ -1862,6 +1871,78 @@ class BootCounter(unittest.TestCase):
         for rel in ("etc/systemd/system/rikuri-boot-counter.service.d", "etc/systemd/system/rikuri-boot-counter.service"):
             with self.subTest(rel=rel):
                 self.root.write(rel + "/50-x.conf" if rel.endswith(".d") else rel, "[Service]\nExecStop=\n")
+                self.finds(rel + ": overrides the unit")
+
+
+class GrubenvFlush(unittest.TestCase):
+    """The program that writes grubenv's journal home, the unit that runs it after
+    greenboot's check, and its link (docs/build-records/2026-11-21-grubenv-flush.md)."""
+
+    def setUp(self):
+        self.root = Root()
+        self.addCleanup(self.root.cleanup)
+
+    def finds(self, fragment):
+        found = cir.check_grubenv_flush(self.root.path)
+        self.assertTrue(any(fragment in f for f in found),
+                        "expected a finding with %r, got %r" % (fragment, found))
+
+    def test_the_shipped_files_pass(self):
+        self.assertEqual(cir.check_grubenv_flush(self.root.path), [])
+        self.assertEqual(self.root.check(), [])
+
+    def test_the_whole_check_runs_it(self):
+        self.root.remove(GRUBENV_FLUSH_UNIT)
+        self.assertTrue(any(GRUBENV_FLUSH_UNIT + ": missing" in f for f in self.root.check()))
+
+    def test_the_program_missing_not_executable_or_a_link(self):
+        self.root.remove(GRUBENV_FLUSH)
+        self.finds(GRUBENV_FLUSH + ": missing")
+        self.root.write_bytes(GRUBENV_FLUSH, shipped_file(GRUBENV_FLUSH), mode=0o644)
+        self.finds(GRUBENV_FLUSH + ": not executable")
+        self.root.remove(GRUBENV_FLUSH)
+        self.root.link(GRUBENV_FLUSH, "/bin/true")
+        self.finds(GRUBENV_FLUSH + ": missing")
+
+    def test_the_unit_missing(self):
+        self.root.remove(GRUBENV_FLUSH_UNIT)
+        self.finds(GRUBENV_FLUSH_UNIT + ": missing")
+
+    def test_the_link_missing_or_elsewhere(self):
+        self.root.remove(GRUBENV_FLUSH_WANTS)
+        self.finds(GRUBENV_FLUSH_WANTS + ": not a link")
+        self.root.link(GRUBENV_FLUSH_WANTS, "../rikuri-boot-cause.service")
+        self.finds(GRUBENV_FLUSH_WANTS + ": points to ../rikuri-boot-cause.service")
+        self.root.link(GRUBENV_FLUSH_WANTS, "/" + GRUBENV_FLUSH_UNIT)
+        self.assertEqual(cir.check_grubenv_flush(self.root.path), [])
+
+    def test_the_unit_is_a_closed_world(self):
+        good = shipped_file(GRUBENV_FLUSH_UNIT).decode("ascii")
+        start = "ExecStart=/usr/libexec/rikuri/grubenv-flush\n"
+        cases = (
+            (start, "", "never flushed"),
+            (start, start.replace("=/", "=-/"), "a failed flush hidden by '-'"),
+            (start, start.replace("\n", " /sysroot\n"), "an argument"),
+            (start, start + "ExecStart=/bin/true\n", "a second command"),
+            ("After=greenboot-healthcheck.service\n", "", "flushed before greenboot's writes"),
+            ("After=greenboot-healthcheck.service\n",
+             "After=greenboot-healthcheck.service\nRequires=greenboot-healthcheck.service\n",
+             "a dependency: greenboot's failure would skip the flush"),
+            ("RemainAfterExit=yes\n", "", "no state that says it ran"),
+            ("Type=oneshot\n", "Type=simple\n", "not waited for"),
+            ("WantedBy=multi-user.target", "WantedBy=sysinit.target", "enabled for another target"),
+        )
+        for old, new, why in cases:
+            with self.subTest(why=why):
+                self.assertIn(old, good)
+                self.root.write_bytes(GRUBENV_FLUSH_UNIT, good.replace(old, new, 1).encode("utf-8"))
+                self.finds(GRUBENV_FLUSH_UNIT + ": ")
+
+    def test_an_override_is_a_finding(self):
+        for rel in ("etc/systemd/system/rikuri-grubenv-flush.service.d",
+                    "etc/systemd/system/rikuri-grubenv-flush.service"):
+            with self.subTest(rel=rel):
+                self.root.write(rel + "/50-x.conf" if rel.endswith(".d") else rel, "[Service]\nExecStart=\n")
                 self.finds(rel + ": overrides the unit")
 
 

@@ -98,6 +98,28 @@ HOLD_FIRST_DROPIN = "/etc/systemd/system/greenboot-healthcheck.service.d/10-dril
 # docs/build-records/2026-11-20-boot-counter-cancelled.md
 CANCEL_DROPIN = "/run/systemd/system/greenboot-set-rollback-trigger.service.d/99-drill-cancel.conf"
 CANCELS = "[Service]\nExecStop=/usr/bin/ostree admin undeploy 0\n"
+# Case 3b: a power cut seconds after the node's own grubenv write, made by its
+# edit_grubenv (the clear's, the arm's and the give-back's) with the flush the fix
+# adds. GRUB ignores ext4's journal, and after the cut Linux reads the new grubenv
+# (e2fsck replays the journal): a stale read shows only when the write sets the
+# counter, as here. GRUB counted (boot_counter 2) only if it read the write; 3 is
+# grubenv as before it, read by Linux after GRUB found no counter to count
+# (docs/build-records/2026-11-22-grubenv-flush-node-write.md; the experiment, run
+# 44944602844: a lone write read stale after a cut at 1-30 s, 12 of 12).
+BASELINE_3B = ("mount -o remount,rw /boot && grub2-editenv /boot/grub2/grubenv unset boot_counter boot_success; "
+               "rc=$?; mount -o remount,bind,ro /boot; exit $rc")
+FREEZE = "fsfreeze -f /boot; fsfreeze -u /boot"
+FILEFRAG = "filefrag -v /boot/grub2/grubenv"
+NODE_PROGRAM = "/usr/libexec/rikuri/greenboot-unapplied-update"
+# The node's own write, loaded from its program (its __main__ block does not run).
+NODE_WRITE = ("python3 -I -c 'import importlib.machinery as m, importlib.util as u; "
+              "l = m.SourceFileLoader(\"node\", \"%s\"); n = u.module_from_spec(u.spec_from_loader(\"node\", l)); "
+              "l.exec_module(n); raise SystemExit(n.edit_grubenv(n.default_run, n.read_mountinfo, "
+              "[\"set\", \"boot_counter=3\", \"boot_success=0\"], \"set boot_counter (drill)\", \"case 3b\"))'"
+              "; echo \"rc=$?\"" % NODE_PROGRAM)
+FLUSH_UNIT = "rikuri-grubenv-flush.service"
+FLUSH_FAILED = "grubenv-flush: FAILED|FAILED to write grubenv's journal home"
+CUT_WITHIN_S = 8    # well inside the 1-30 s the experiment read stale (run 44944602844)
 GIVEN_BACK = "/var/lib/rikuri/boot-count-given-back"
 # The node's pre-check has decided this boot: its last line on each path.
 RULE_DECIDED = re.compile(r"rikuri-unapplied-update: .*(it counts|this boot counts|nothing to give back|"
@@ -778,6 +800,24 @@ def boot_counter(grubenv: str):
     return None
 
 
+def case3b_result(held: str, said: str, flush_state: str, failures: str, since) -> tuple:
+    """(ok, detail) for case 3b: GRUB read the node's write and counted it (boot_counter
+    2 at the held boot), the write returned 0, greenboot's flush had run at the boot
+    before the cut, no flush ever failed, and the cut came within CUT_WITHIN_S."""
+    counter = boot_counter(held)
+    counted = counter == "2"
+    lines = (said or "").strip().splitlines()
+    wrote = bool(lines) and lines[-1] == "rc=0"
+    ran = "ActiveState=active" in flush_state.split() and "Result=success" in flush_state.split()
+    quiet = not (failures or "").strip()
+    on_time = since is not None and 0 <= since <= CUT_WITHIN_S
+    return (counted and wrote and ran and quiet and on_time,
+            "GRUB read the node's write: %s (boot_counter %s at the held boot; 3: GRUB read grubenv as before "
+            "the write); the write returned 0: %s; greenboot's flush ran before the cut: %s; no flush failure "
+            "logged since the install: %s; cut %ss after the node's write: %s"
+            % (counted, counter, wrote, ran, quiet, since, on_time))
+
+
 def counted_from_first_boot(entries) -> bool:
     """Case 1's boots with the counter armed at the update's shutdown: three
     boots of the broken image (its first, then greenboot's two restarts), then
@@ -844,6 +884,7 @@ EXPECTED = frozenset({"first boot", "the containers range at the first boot", "c
                       "case 2b, finalize fails", "case 2d, an update downloaded only",
                       "case 2e, an update cancelled during the shutdown",
                       "case 3, a power cut during the update",
+                      "case 3b, a power cut seconds after the node's grubenv write",
                       "the containers range after reboots", "the containers range",
                       "case 4, an unsigned update refused", "case 5, a signed update staged",
                       "the control plane runs as its own user", "the CA certificate over HTTP",
@@ -1740,15 +1781,20 @@ class Drill:
 
     def counter_held_first(self, old_boot):
         """At the boot after old_boot, held before the node's pre-check: boot_counter
-        as GRUB left it (None: unset), then the hold released and removed."""
+        as GRUB left it (None: unset), then the hold released."""
+        return boot_counter(self.grubenv_held(old_boot))
+
+    def grubenv_held(self, old_boot) -> str:
+        """At the boot after old_boot, held before the node's pre-check: grubenv as GRUB
+        left it (grub2-editenv's list), then the hold released."""
         wait_until(lambda: (lambda b: b if b and b != old_boot else None)(self.boot_id()),
                    timeout=900, what="the VM to boot and answer on SSH")
         wait_until(lambda: (self.vm("systemctl show -p ActiveState --value greenboot-healthcheck.service",
                                     check=False) or "").strip() == "activating",
                    timeout=300, what="greenboot's check to start, held before the node's pre-check")
-        counter = boot_counter(self.vm("grub2-editenv /boot/grub2/grubenv list", check=False) or "")
+        grubenv = self.vm("grub2-editenv /boot/grub2/grubenv list", check=False) or ""
         self.vm("rm -f %s" % HOLD_FLAG)
-        return counter
+        return grubenv
 
     def release_first(self) -> None:
         self.vm("rm -f %s && systemctl daemon-reload" % HOLD_FIRST_DROPIN)
@@ -1838,6 +1884,33 @@ class Drill:
     def serial_text(self) -> str:
         serial = os.path.join(self.workdir, "serial-%d.log" % self.starts)
         return self.run(["cat", serial], check=False, sudo=True).stdout or ""
+
+    def case3b(self) -> None:
+        """A power cut seconds after the node's own grubenv write: GRUB must read it
+        (docs/build-records/2026-11-22-grubenv-flush-node-write.md)."""
+        state = self.vm("systemctl show -p ActiveState -p Result %s" % FLUSH_UNIT, check=False) or ""
+        self.hold_first()
+        self.vm(BASELINE_3B)
+        self.vm(FREEZE)
+        before = self.vm(FILEFRAG, check=False) or ""
+        bid = self.boot_id()
+        said = self.vm(NODE_WRITE, check=False) or ""
+        written = time.monotonic()
+        moved = self.vm(FILEFRAG, check=False) or ""
+        since = round(time.monotonic() - written, 1)
+        self.kill_vm()
+        self.log("the node's write was made %ss before the power was cut" % since)
+        self.start_vm()
+        held = self.grubenv_held(bid)
+        self.release_first()
+        failures = self.vm("journalctl -q --no-pager -o cat --grep \"%s\"" % FLUSH_FAILED, check=False) or ""
+        self.keep("04-case3b.out", "\n".join([
+            "cut %ss after the node's write" % since, "--- %s at the boot before the cut" % FLUSH_UNIT, state,
+            "--- grubenv's blocks before the write", before, "--- the node's write", said,
+            "--- grubenv's blocks after it", moved, "--- grubenv at the held boot", held,
+            "--- flush failures", failures, self.journal("-b -u greenboot-healthcheck")]))
+        ok, detail = case3b_result(held, said, state, failures, since)
+        self.check("case 3b, a power cut seconds after the node's grubenv write", ok, detail)
 
     def case3(self) -> None:
         lines = self.record_lines()
@@ -1967,6 +2040,7 @@ def main(argv=None) -> int:
         drill.case2d()
         drill.case2e()
         drill.case3()
+        drill.case3b()
         # After the cases, so that a --userns=auto run (which may add ID-mapped
         # layers to the storage bootc switch reads) cannot touch them; run 2
         # (40057729110) saw case 1's update fail to finalize with it before.
