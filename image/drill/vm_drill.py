@@ -802,20 +802,24 @@ def boot_counter(grubenv: str):
 
 def case3b_result(held: str, said: str, flush_state: str, failures: str, since) -> tuple:
     """(ok, detail) for case 3b: GRUB read the node's write and counted it (boot_counter
-    2 at the held boot), the write returned 0, greenboot's flush had run at the boot
-    before the cut, no flush ever failed, and the cut came within CUT_WITHIN_S."""
+    2 at the held boot), the write returned 0 and said no FAILED line (edit_grubenv keeps
+    the write's 0 when its flush fails, and says so on stdout, which over SSH is `said`,
+    not the journal), greenboot's flush had run at the boot before the cut, no flush
+    failure was logged, and the cut came within CUT_WITHIN_S."""
     counter = boot_counter(held)
     counted = counter == "2"
     lines = (said or "").strip().splitlines()
     wrote = bool(lines) and lines[-1] == "rc=0"
+    clean = not any("FAILED" in line for line in lines)
     ran = "ActiveState=active" in flush_state.split() and "Result=success" in flush_state.split()
     quiet = not (failures or "").strip()
     on_time = since is not None and 0 <= since <= CUT_WITHIN_S
-    return (counted and wrote and ran and quiet and on_time,
+    return (counted and wrote and clean and ran and quiet and on_time,
             "GRUB read the node's write: %s (boot_counter %s at the held boot; 3: GRUB read grubenv as before "
-            "the write); the write returned 0: %s; greenboot's flush ran before the cut: %s; no flush failure "
-            "logged since the install: %s; cut %ss after the node's write: %s"
-            % (counted, counter, wrote, ran, quiet, since, on_time))
+            "the write); the write returned 0: %s; no FAILED line from the node's write: %s; greenboot's flush "
+            "ran before the cut: %s; no flush failure logged since the install: %s; cut %ss after the node's "
+            "write: %s"
+            % (counted, counter, wrote, clean, ran, quiet, since, on_time))
 
 
 def counted_from_first_boot(entries) -> bool:
