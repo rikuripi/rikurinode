@@ -5,8 +5,8 @@
 | **Date** | 2026-11-22 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/case3b-journal-search`, from `main` at `41ab20d`; a draft PR; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled at the end) |
-| **Status** | IN PROGRESS |
+| **Commits** | `2f7dd74` (contract), `3154ced` (red), `77f8de0` (the fix), `e96ef03` (record): PR #161, merged by the owner at `e96ef03` (`64e373f`) before the verifier's pass; this record's last commit on `docs/case3b-journal-search-record`, a docs-only PR |
+| **Status** | DONE |
 | **Change type** | defect fix in the drill (test tooling) |
 
 ## Intent: the owner's words
@@ -21,7 +21,7 @@
 
 ## Design
 
-- `CASE3B_SEARCH`, the case's command: the same `journalctl -q --no-pager -o cat --grep "<CASE3B_JOURNAL>"`, its standard error to a temporary file, then `rc=N` and each standard-error line as `stderr: …`, the file removed. Its own exit is the `echo`'s, so `vm()` returns the output whenever SSH worked.
+- `CASE3B_SEARCH`, the case's command: the same `journalctl -q --no-pager -o cat --grep "<CASE3B_JOURNAL>"`, its standard error to a temporary file, then `rc=N` and each standard-error line as `stderr: …`, the file removed. Its own exit is that of `sed … && rm` (corrected after the verifier's nit 2; this line first said the `echo`'s): 0 when the copy and the removal worked, so `vm()` returns the output then; otherwise nothing, and the search counts as not run.
 - `journal_search(out) -> (text, searched)`, a pure function:
   - `searched` only when the output holds an `rc=` line, that code is 0 or 1, and no `stderr:` line follows it;
   - `text`: the lines before the `rc=` line, the matches.
@@ -70,3 +70,28 @@
   - `journal_search`; `case3b_result` with `failures=None` failing, its detail `the journal searched: …`; `Drill.case3b` passing `None` when the search did not run, and keeping the search's raw output in `04-case3b.out`.
 - No test changes after the red.
 - **On the Mac, beyond the contract's parse checks:** `journal_search` alone, lifted out of the file with `ast`, was called on the tests' inputs in a Python process that started nothing else; and the rendered `CASE3B_SEARCH` was checked with `bash -n` (syntax only, not run). Both passed. Recorded because the contract named only `ast` parse checks; neither is evidence the gate relies on.
+
+### The fix, `e96ef03`: Pass
+
+- `CI`, [run 45057045407](https://github.com/rikuripi/rikurinode/actions/runs/45057045407): `Full gate (Ubuntu)` Pass, `full-gate: all 11 steps passed`.
+- The image workflow, [run 45057045456](https://github.com/rikuripi/rikurinode/actions/runs/45057045456): every job Pass; the drill took about 14 minutes of VM time. Case 3b, from the job's log (the artifact was not downloaded): `… greenboot's flush ran before the cut: True; the journal searched: True; no flush failure logged since the install: True; /boot read-only again after every write: True; cut 0.2s after the node's write: True`.
+- The Design's risk did not occur in this run: after the power cut `journalctl` wrote nothing on standard error.
+
+## Verification
+
+- **The verifier**, one pass on `41ab20d..e96ef03` (routine), after the merge: **Pass**, no Important findings.
+  - The defect confirmed in the code; every failure of the command (`mktemp`, SSH, `journalctl`'s codes and standard error, `sed`, `rm`) ends "not searched" or errors the drill, except one held unreachable (below); no match can be misparsed as an `rc=` line; root's shell parses the command as intended (`bash -n`, `sh -n`).
+  - Red first: `3154ced` the tests alone, `77f8de0` `vm_drill.py` alone, no test changed after the red.
+  - Hand mutations in a scratch copy (`Case3b` and `JournalSearch` only, no `PATH`, no Docker socket): 13 killed, 5 survived.
+  - The CI quotes confirmed; the Mac checks beyond the contract judged honestly reported.
+- **Minor findings, for the backlog, not fixed here:**
+  1. **The call site is untested:** `Drill.case3b`'s `failures if searched else None` is the one place that turns "not searched" into a Fail; changing it to `failures` brings the defect back and no test fails. Suggested: `journal_search` returns `None` when not searched, so no call site has to. The other survivors: `&&` to `;` before `rm`, `|| exit 1` dropped, `ends[0]`, `re.search` (the last two equivalent on reachable input).
+  2. The Design's exit sentence: corrected above.
+  3. When `vm()` returns nothing, the kept output says "the search did not run", though a search whose `sed` or `rm` failed did run; `vm()` drops its output.
+  4. The Mac checks beyond the contract: disclosed, harmless, not relied on.
+  5. Residual: a failed `2>"$e"` redirect after `mktemp` worked would read as a clean search; unreachable in practice (root, a file just made).
+
+## Result
+
+- **Pass (observed):** case 3b fails when its journal search did not run (red: gate run 45054978851) and passes with the search seen to run (gate 45057045407, drill 45057045456).
+- **Not yet proven:** the not-searched path in the VM (no run has had a failed search); `journalctl` without standard-error warnings after a power cut on the N150's and the Pi's disks.
