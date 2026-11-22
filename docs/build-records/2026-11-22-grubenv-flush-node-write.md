@@ -71,3 +71,13 @@
   - The check's name in `EXPECTED` changes with the case.
 - On the Mac: both files parse; the inner Python of `NODE_WRITE` parses; `git diff --check` clean. The tests run in CI.
 - **Expected in CI on this commit:** the full gate fails the 18 flush tests, as at `404b14d` (the fix is reverted); the drill fails case 3b on `boot_counter 3`.
+
+### The red run, `0969b30`: Fail on `boot_counter 3`, as expected
+
+- The image workflow, [run 44980095991](https://github.com/rikuripi/rikurinode/actions/runs/44980095991), from the job's log; the artifact was not downloaded. Case 3b, the drill's only Fail:
+  - `GRUB read the node's write: False (boot_counter 3 at the held boot; 3: GRUB read grubenv as before the write)`;
+  - `the write returned 0: True`; `no flush failure logged since the install: True`; `cut 0.2s after the node's write: True`;
+  - `greenboot's flush ran before the cut: False`: the fix's unit is not in this image (reverted), as expected.
+  - Cases 1, 1b, 2b, 2d, 2e and 3 passed, as did every other check.
+- `CI`, [run 44980096048](https://github.com/rikuripi/rikurinode/actions/runs/44980096048): `Full gate (Ubuntu)` failed with `FAILED (failures=8, errors=10)`, the 18 flush tests, as at `404b14d`; nothing else failed.
+- **So the red is observed:** without the flush, GRUB read grubenv as it was before the node's own write, after a power cut 0.2 s later. This is the defect, seen through the node's real code.
