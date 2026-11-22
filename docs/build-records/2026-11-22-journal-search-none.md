@@ -50,3 +50,16 @@
   - `test_case_3b_runs_its_search_through_journal_search`: tightened. It also requires `failures = journal_search(searched_out)` and `case3b_result(held, said, state, failures, since)`, so the call site cannot add a fallback or a condition.
   - New, `Case3b.test_a_search_that_did_not_run_fails_the_case_end_to_end`: for each not-searched output, `case3b_result(…, journal_search(out), …)` fails, with `the journal searched: False`; and `rc=1` alone passes.
 - Expected in CI: the full gate fails on these tests alone, with the old code's tuple.
+
+### The red run, `3e07de7`: Fail on the changed and new tests alone, as expected
+
+- `CI`, [run 45061623521](https://github.com/rikuripi/rikurinode/actions/runs/45061623521): `Full gate (Ubuntu)` failed with `FAILED (failures=11, errors=6)`, nothing else:
+  - `JournalSearch`: the old tuple, e.g. `AssertionError: ('', False) is not None` and `('a FAILED line\nanother', True) != 'a FAILED line\nanother'`;
+  - the source check: `'failures = journal_search(searched_out)\n' not found`;
+  - `Case3b.test_a_search_that_did_not_run_fails_the_case_end_to_end`: `AttributeError: 'tuple' object has no attribute 'splitlines'`, the old tuple given to `case3b_result`.
+- The image workflow, [run 45061623539](https://github.com/rikuripi/rikurinode/actions/runs/45061623539): Pass (nothing in the VM changed).
+
+### The change
+
+- `image/drill/vm_drill.py`: `journal_search` returns the matches or `None`; `Drill.case3b` assigns `failures = journal_search(searched_out)` and passes it on as it is; both docstrings say so. The command, `case3b_result`'s logic and the kept output are unchanged.
+- No test changes after the red.
