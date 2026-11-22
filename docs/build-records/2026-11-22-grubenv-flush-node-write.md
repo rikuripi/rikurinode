@@ -5,8 +5,8 @@
 | **Date** | 2026-11-22 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/grubenv-flush` (draft PR #155), the fix's branch: the case proves that fix and lands with it; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled at the end) |
-| **Status** | IN PROGRESS |
+| **Commits** | `8f26e3a` (contract), `0969b30` (the case, red), `ae746e9` (record), `f2aa2a5` (the fix restored), `9dc115c` and this record's last commit |
+| **Status** | DONE |
 | **Change type** | test (the drill), then the fix restored |
 
 ## Intent: the owner's words
@@ -25,7 +25,7 @@
 - **Case 3b, new:** a power cut seconds after a grubenv write made by the node's own `edit_grubenv`, the function its clear, arm and give-back use, loaded from the node's program and called over SSH, with the flush the fix adds:
   1. greenboot's check held at the next boot (`hold_first`);
   2. a baseline written as the node writes (`remount,rw`, the write, `remount,bind,ro`): `boot_counter` and `boot_success` unset;
-  3. the baseline and the hold made durable: `fsfreeze -f /boot; fsfreeze -u /boot` (the first experiment's baseline flush);
+  3. the baseline made durable: `fsfreeze -f /boot; fsfreeze -u /boot` (the first experiment's baseline flush). The hold's files are on the root filesystem, which this does not freeze (clarified after the verifier's nit 3); a lost hold could only make the case fail, never pass;
   4. `filefrag -v` of grubenv;
   5. `edit_grubenv` sets `boot_counter=3 boot_success=0`, as the arm writes it;
   6. `filefrag -v` again, then the power cut at once;
@@ -90,3 +90,24 @@
   - case 3b: `GRUB read the node's write: True (boot_counter 2 at the held boot …)`; the write returned 0; greenboot's flush ran before the cut; no flush failure logged since the install; the cut 0.2 s after the write;
   - cases 1, 1b, 2b, 2d, 2e, 3, 4 and 5 Pass, as before.
 - **So:** with the same cut 0.2 s after the same write, the read moved from 3 (no fix) to 2 (the fix). One run each: the method's experiment had 2 of 2 per flush, the first experiment 12 of 12 stale without one.
+
+## Verification
+
+- **The verifier**, one pass on `e905cfb..9dc115c`, high-risk with hand mutations: **Pass**, no Important findings.
+  - `f2aa2a5` restores `ae10134` exactly (empty diff on its six files, nothing else).
+  - The stale/fresh reasoning holds: nothing but GRUB reading the write lowers the counter to 2 before the held boot's read.
+  - `NODE_WRITE` calls the node's real `edit_grubenv` with its signature, without its `__main__` block (run against a stand-in in a scratch copy: `rc=0` and `rc=3` reported, the main block never ran).
+  - `counter_held_first`'s split changes nothing for case 1b.
+  - Hand mutations, in a scratch copy with no `PATH` and no Docker socket: 24 of 24 in `case3b_result` and the case's commands killed by a named test. Six in `Drill.case3b`'s orchestration survive, as for every case method, which runs only in the VM.
+  - The CI runs are quoted accurately.
+- **Minor findings, kept for the backlog, not fixed here:**
+  1. A failure of the flush after the case's own write is logged to the SSH output (`said`), not the journal, so the case's "no flush failure" check cannot see it; the 2 is the only evidence that flush worked. Suggested: also fail when `said` holds `FAILED`.
+  2. `since` stops before `kill_vm`'s two commands, so "0.2 s" slightly understates the gap; immaterial against the 8 s bound.
+  3. The Design overstated what `fsfreeze /boot` covers: corrected above.
+  4. The orchestration mutants above.
+  5. `Case3b.ok()`'s default `since` changed from 4.0 to 1.0: any value within the bound would do; 1.0 is nearer the observed cut. The Commits field: now filled.
+
+## Result
+
+- **Pass (observed):** after a power cut 0.2 s after the node's own grubenv write, GRUB read grubenv as it was before the write without the fix (`boot_counter 3`, run 44980095991), and read the write with the fix (`boot_counter 2`, run 44986918042). The full gate passes with the fix (run 44986918090).
+- **Not yet proven:** whether greenboot's own writes are read after a cut; one run each way; the VM's virtio disk, not the N150's or the Pi's.
