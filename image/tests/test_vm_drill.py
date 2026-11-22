@@ -2727,6 +2727,17 @@ class Case3b(unittest.TestCase):
                                    "rikuri", "greenboot-unapplied-update"), encoding="utf-8").read()
         self.assertIn('log("%s in this unit' % d.LEFT_WRITABLE, source)
 
+    NOT_SEARCHED = ("rc=2\n", "rc=1\nstderr: Failed to compile pattern\n", "a line\n", "", None)
+
+    def test_a_search_that_did_not_run_fails_the_case_end_to_end(self):
+        # journal_search's reading of the search, given to case3b_result as Drill.case3b gives it.
+        for out in self.NOT_SEARCHED:
+            with self.subTest(out=out):
+                ok, detail = self.ok(failures=d.journal_search(out))
+                self.assertFalse(ok, detail)
+                self.assertIn("the journal searched: False", detail)
+        self.assertTrue(self.ok(failures=d.journal_search("rc=1\n"))[0])
+
     def test_a_journal_search_that_did_not_run_fails(self):
         # None: the search did not run (docs/build-records/2026-11-22-case3b-journal-search.md).
         ok, detail = self.ok(failures=None)
@@ -2739,18 +2750,18 @@ class JournalSearch(unittest.TestCase):
     """Case 3b's journal search: matches, nothing found, or a search that did not run."""
 
     def test_matches_then_rc_0(self):
-        self.assertEqual(d.journal_search("a FAILED line\nanother\nrc=0\n"), ("a FAILED line\nanother", True))
+        self.assertEqual(d.journal_search("a FAILED line\nanother\nrc=0\n"), "a FAILED line\nanother")
 
     def test_nothing_found(self):
-        self.assertEqual(d.journal_search("rc=1\n"), ("", True))
-        self.assertEqual(d.journal_search("rc=0\n"), ("", True))
+        self.assertEqual(d.journal_search("rc=1\n"), "")
+        self.assertEqual(d.journal_search("rc=0\n"), "")
 
     def test_an_error_is_not_a_search(self):
         for out in ("rc=2\n", "rc=1\nstderr: Failed to compile pattern\n",
                     "rc=0\nstderr: Journal file x.journal corrupted, ignoring\n", "a line\n", "", None, "rc=\n",
                     "rc=x\n"):
             with self.subTest(out=out):
-                self.assertFalse(d.journal_search(out)[1])
+                self.assertIsNone(d.journal_search(out))
 
     def test_case_3b_runs_its_search_through_journal_search(self):
         import inspect
@@ -2760,6 +2771,9 @@ class JournalSearch(unittest.TestCase):
         source = inspect.getsource(d.Drill.case3b)
         self.assertIn("self.vm(CASE3B_SEARCH", source)
         self.assertIn("journal_search(", source)
+        # journal_search's result straight on: no fallback, no condition at the call site.
+        self.assertIn("failures = journal_search(searched_out)\n", source)
+        self.assertIn("case3b_result(held, said, state, failures, since)", source)
 
 
 if __name__ == "__main__":
