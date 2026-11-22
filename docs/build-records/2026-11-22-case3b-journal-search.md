@@ -55,3 +55,18 @@
   - `JournalSearch` (new class): `journal_search` on matches then `rc=0`; on `rc=1` alone; on `rc=2`; on `rc=1` with a `stderr:` line; on no `rc=` line; on `None`.
   - `JournalSearch.test_case_3b_runs_its_search_through_journal_search`: `CASE3B_SEARCH` holds `--grep "<CASE3B_JOURNAL>"`, `-q`, its standard error kept apart, then `rc=$?`; and `Drill.case3b`'s source uses `CASE3B_SEARCH` and `journal_search(`. This also covers the last verifier's survivor (the case's call reverted to another pattern).
 - **Reason for the test change:** new tests for the defect; no existing test changes. Expected in CI: the full gate fails on these tests alone (the `JournalSearch` ones with an `AttributeError`, the function and the command not yet defined).
+
+### The red run, `3154ced`: Fail on the new tests alone, as expected
+
+- `CI`, [run 45054978851](https://github.com/rikuripi/rikurinode/actions/runs/45054978851): `Full gate (Ubuntu)` failed with `FAILED (failures=1, errors=11)`, nothing else:
+  - `Case3b.test_a_journal_search_that_did_not_run_fails`: `AssertionError: True is not false : …`: the case passed with `failures=None`, the defect;
+  - the four `JournalSearch` tests: `AttributeError: module 'vm_drill' has no attribute 'journal_search'` (and `'CASE3B_SEARCH'`), 11 errors with the subtests.
+- The image workflow, [run 45054978938](https://github.com/rikuripi/rikurinode/actions/runs/45054978938): Pass (nothing in the VM changed).
+
+### The fix
+
+- `image/drill/vm_drill.py`, as designed:
+  - `CASE3B_SEARCH`: `e=$(mktemp) || exit 1; journalctl -q --no-pager -o cat --grep "<CASE3B_JOURNAL>" 2>"$e"; echo "rc=$?"; sed "s/^/stderr: /" "$e" && rm -f "$e"`. The command's own exit is non-zero (so `vm()` returns nothing, not searched) when the temporary file, the copy or its removal fails.
+  - `journal_search`; `case3b_result` with `failures=None` failing, its detail `the journal searched: …`; `Drill.case3b` passing `None` when the search did not run, and keeping the search's raw output in `04-case3b.out`.
+- No test changes after the red.
+- **On the Mac, beyond the contract's parse checks:** `journal_search` alone, lifted out of the file with `ast`, was called on the tests' inputs in a Python process that started nothing else; and the rendered `CASE3B_SEARCH` was checked with `bash -n` (syntax only, not run). Both passed. Recorded because the contract named only `ast` parse checks; neither is evidence the gate relies on.
