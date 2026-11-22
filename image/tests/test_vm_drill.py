@@ -2727,6 +2727,40 @@ class Case3b(unittest.TestCase):
                                    "rikuri", "greenboot-unapplied-update"), encoding="utf-8").read()
         self.assertIn('log("%s in this unit' % d.LEFT_WRITABLE, source)
 
+    def test_a_journal_search_that_did_not_run_fails(self):
+        # None: the search did not run (docs/build-records/2026-11-22-case3b-journal-search.md).
+        ok, detail = self.ok(failures=None)
+        self.assertFalse(ok, detail)
+        self.assertIn("the journal searched: False", detail)
+        self.assertIn("the journal searched: True", self.ok()[1])
+
+
+class JournalSearch(unittest.TestCase):
+    """Case 3b's journal search: matches, nothing found, or a search that did not run."""
+
+    def test_matches_then_rc_0(self):
+        self.assertEqual(d.journal_search("a FAILED line\nanother\nrc=0\n"), ("a FAILED line\nanother", True))
+
+    def test_nothing_found(self):
+        self.assertEqual(d.journal_search("rc=1\n"), ("", True))
+        self.assertEqual(d.journal_search("rc=0\n"), ("", True))
+
+    def test_an_error_is_not_a_search(self):
+        for out in ("rc=2\n", "rc=1\nstderr: Failed to compile pattern\n",
+                    "rc=0\nstderr: Journal file x.journal corrupted, ignoring\n", "a line\n", "", None, "rc=\n",
+                    "rc=x\n"):
+            with self.subTest(out=out):
+                self.assertFalse(d.journal_search(out)[1])
+
+    def test_case_3b_runs_its_search_through_journal_search(self):
+        import inspect
+        self.assertIn('journalctl -q --no-pager -o cat --grep "%s"' % d.CASE3B_JOURNAL, d.CASE3B_SEARCH)
+        self.assertIn('2>"$e"', d.CASE3B_SEARCH)
+        self.assertIn('echo "rc=$?"', d.CASE3B_SEARCH)
+        source = inspect.getsource(d.Drill.case3b)
+        self.assertIn("self.vm(CASE3B_SEARCH", source)
+        self.assertIn("journal_search(", source)
+
 
 if __name__ == "__main__":
     unittest.main()
