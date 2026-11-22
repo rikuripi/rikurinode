@@ -1,0 +1,18 @@
+# Once greenboot's check has ended, pass or fail, write grubenv's journal home:
+# greenboot rewrites grubenv at boot (boot_success, its counter, its trigger),
+# and GRUB ignores ext4's journal, so after a power cut within some 30 s of
+# that write GRUB would read grubenv as it was before it (D22, N1). After= is
+# an order only: greenboot's failure must not skip the flush. Its state says
+# whether it ran; its failure is the program's exit, never hidden by a "-".
+# Record: docs/build-records/2026-11-21-grubenv-flush.md
+[Unit]
+Description=Write grubenv's journal home after greenboot's check
+After=greenboot-healthcheck.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/rikuri/grubenv-flush
+
+[Install]
+WantedBy=multi-user.target

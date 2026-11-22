@@ -87,6 +87,9 @@ import sys
 
 GRUB2_EDITENV = "/usr/bin/grub2-editenv"
 GRUBENV = "/boot/grub2/grubenv"
+# After each write: its journal written home, so GRUB reads it even after a power cut
+# (docs/build-records/2026-11-21-grubenv-flush.md).
+GRUBENV_FLUSH = "/usr/libexec/rikuri/grubenv-flush"
 RPM_OSTREE = "/usr/bin/rpm-ostree"
 BOOTC = "/usr/bin/bootc"
 SYSTEMCTL = "/usr/bin/systemctl"
@@ -225,7 +228,10 @@ def append_record(path: str, entry: dict) -> None:
 
 
 def edit_grubenv(run, mountinfo, args, what: str, otherwise: str) -> int:
-    """One grub2-editenv write, with /boot writable for it if it is mounted read-only."""
+    """One grub2-editenv write, with /boot writable for it if it is mounted read-only,
+    then its journal written home: GRUB ignores ext4's journal. The flush follows a
+    failed write too (it may have rewritten the file), and a failed flush is logged
+    without changing the write's result."""
     readonly = boot_is_readonly(mountinfo())
     if readonly:
         rc, _ = run([MOUNT, "-o", "remount,rw", "/boot"])
@@ -234,6 +240,10 @@ def edit_grubenv(run, mountinfo, args, what: str, otherwise: str) -> int:
             return rc or 1
     try:
         rc, _ = run([GRUB2_EDITENV, GRUBENV] + args)
+        flushed, said = run([GRUBENV_FLUSH])
+        if flushed != 0:
+            log("FAILED to write grubenv's journal home (exit %d)%s; after a power cut in the next 30 s GRUB may "
+                "read grubenv as it was before this write" % (flushed, ": " + said.strip() if said.strip() else ""))
     finally:
         if readonly:
             back, _ = run([MOUNT, "-o", "remount,bind,ro", "/boot"])

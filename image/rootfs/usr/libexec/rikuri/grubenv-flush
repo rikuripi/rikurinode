@@ -1,0 +1,67 @@
+#!/usr/bin/python3 -I
+"""Write grubenv's journal home, so GRUB reads what Linux wrote (D22, N1).
+
+    grubenv-flush        after each grubenv write: the node's (edit_grubenv in
+                         greenboot-unapplied-update) and, once greenboot's check
+                         has ended, greenboot's (rikuri-grubenv-flush.service)
+
+grub2-editenv rewrites /boot/grub2/grubenv, which moves it to a new block, and
+ext4 holds the change in its journal until it is written home: some 30 s
+later, as dirty buffers expire. GRUB's ext2 driver ignores the journal. After a
+power cut in that window, GRUB reads grubenv as it was before the write, and
+its save_env, at every boot, writes into the file's old block, which ext4 has
+freed (the experiment, docs/build-records/2026-11-21-grubenv-power-cut-experiment.md).
+
+EXT4_IOC_CHECKPOINT (Linux 5.13) writes the journal of the filesystem that
+holds the folder home at once: jbd2_journal_flush, with the filesystem's
+updates held meanwhile. It needs CAP_SYS_ADMIN, and no write access to the
+mount, so /boot's read-only bind mount serves. Any error is logged with what it
+leaves open, and exits 1; nothing is retried, and grubenv is never written here.
+Record: docs/build-records/2026-11-21-grubenv-flush.md
+"""
+from __future__ import annotations
+
+import fcntl
+import os
+import struct
+import sys
+
+FOLDER = "/boot/grub2"
+# include/uapi/linux/ext4.h: _IOW('f', 43, __u32), the same on x86_64 and aarch64.
+EXT4_IOC_CHECKPOINT = 0x4004662B
+NO_FLAGS = struct.pack("=I", 0)
+
+
+def log(message: str) -> None:
+    print("rikuri-grubenv-flush: " + message, flush=True)
+
+
+def flush(opener=os.open, ioctl=fcntl.ioctl, closer=os.close) -> int:
+    """0 when the journal of the filesystem that holds FOLDER is written home; 1 otherwise."""
+    try:
+        fd = opener(FOLDER, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+    except OSError as e:
+        log("FAILED to open %s: %s; after a power cut in the next 30 s GRUB may read grubenv as it was "
+            "before its last write" % (FOLDER, e.strerror or e))
+        return 1
+    try:
+        ioctl(fd, EXT4_IOC_CHECKPOINT, NO_FLAGS)
+    except OSError as e:
+        log("FAILED to write the journal of %s home: %s; after a power cut in the next 30 s GRUB may read "
+            "grubenv as it was before its last write" % (FOLDER, e.strerror or e))
+        return 1
+    finally:
+        closer(fd)
+    log("the journal of %s written home; GRUB reads grubenv as Linux wrote it" % FOLDER)
+    return 0
+
+
+def main(argv, flush=flush) -> int:
+    if argv:
+        log("unknown arguments %r; nothing done" % (argv,))
+        return 1
+    return flush()
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
