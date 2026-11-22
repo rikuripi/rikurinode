@@ -212,3 +212,18 @@
   - Linux v6.12: a remount syncs the filesystem only when it goes read-only (`__ext4_remount`, `reconfigure_super`), so greenboot's remount does not explain it.
 - **Why GRUB read it: Not yet proven.** One difference is known: case 3b waits up to 10 s for the flush unit before it cuts. Without the unit it waits the whole 10 s, so this run cut at 14.2 s against 3.8 s with the fix, while the first experiment cut a lone write at 1–30 s from an idle, held boot.
 - Repair 1 is in progress (one red run used); the fix is not yet restored. NEEDS_OWNER_DECISION.
+- **Evidence:** the run's `drill-evidence` artifact, downloaded with the owner's yes, read as data, then deleted:
+  - the boot before the cut (the last in `serial-4.log`): greenboot's check finished at 9.2 s uptime; the last line is at 23.4 s, the cut; nothing between them remounted the root read-only or synced it (ext4 logged no `re-mounted … ro`; the two it logged in that file are the clean reboots' shutdowns);
+  - the boot after (`04-case3b.out`): the probe read `boot_success=1` and no counter at 8.46 s, before greenboot wrote anything.
+  - So GRUB read greenboot's write 14.2 s after it, unflushed; why is **Not yet proven**.
+
+### Repair 2 (the last): the cut at once, the flush read before it
+
+- The owner chose **"Cut at a fixed 3 s"**: red and green cut alike, a red run first, then the fix restored; if the red still does not fail, #155 ends BLOCKED with that evidence.
+- `vm_drill.py`, case 3b:
+  - nothing waits for the flush unit: the case reads its state, the probe and the time since greenboot's check, then cuts. With SSH's start-up that is about 3–4 s after the check (3.8 s in run 44950453875), with the fix or without it;
+  - the flush unit's state is read **before** the cut. Before, it was read at the boot after the cut, which proved a flush ran at the wrong boot.
+- **Reasons for the test changes:**
+  - `CUT_WITHIN_S` 20 → 8, and the timing test's bounds follow (8.0 passes; 8.1 and 14.2 fail). A tightening: a cut at 14.2 s passed the old bound while it was no longer comparable with the green run.
+  - `case3b_result`'s wording says "the flush ran before the cut"; its logic is unchanged.
+- The fix stays reverted for the red run on this commit; it is restored next.

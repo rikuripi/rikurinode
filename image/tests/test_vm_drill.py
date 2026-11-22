@@ -2686,10 +2686,10 @@ class Case3b(unittest.TestCase):
         self.assertTrue(self.ok(failures=" \n")[0])
 
     def test_a_late_or_unknown_cut_proves_nothing(self):
-        for since in (None, -1.0, 20.1, 45.0):
+        for since in (None, -1.0, 8.1, 14.2, 45.0):
             with self.subTest(since=since):
                 self.assertFalse(self.ok(since=since)[0])
-        self.assertTrue(self.ok(since=20.0)[0])
+        self.assertTrue(self.ok(since=8.0)[0])
         self.assertTrue(self.ok(since=0.0)[0])
 
     def test_the_failures_it_greps_are_both_programs(self):

@@ -117,7 +117,7 @@ ARM_3B = ("mount -o remount,rw /boot && grub2-editenv /boot/grub2/grubenv set bo
           "rc=$?; mount -o remount,bind,ro /boot; exit $rc")
 FLUSH_UNIT = "rikuri-grubenv-flush.service"
 FLUSH_FAILED = "grubenv-flush: FAILED|FAILED to write grubenv's journal home"
-CUT_WITHIN_S = 20   # well inside the 30 s the experiment measured (run 44944602844)
+CUT_WITHIN_S = 8    # as early as SSH answers; the experiment read stale grubenv at 1-30 s (run 44944602844)
 GIVEN_BACK = "/var/lib/rikuri/boot-count-given-back"
 # The node's pre-check has decided this boot: its last line on each path.
 RULE_DECIDED = re.compile(r"rikuri-unapplied-update: .*(it counts|this boot counts|nothing to give back|"
@@ -817,9 +817,9 @@ def seconds_since(exit_us: str, uptime: str):
 
 def case3b_result(counted: str, after: str, flush_state: str, failures: str, since) -> tuple:
     """(ok, detail) for case 3b: GRUB counted the armed counter at the boot before
-    the cut (the probe there read 2), then read greenboot's write after the cut (no
-    counter, boot_success 1), the flush ran at that boot, no flush ever failed,
-    and the cut came in time."""
+    the cut (the probe there read 2) and the flush had run there, GRUB read
+    greenboot's write after the cut (no counter, boot_success 1), no flush ever
+    failed, and the cut came within CUT_WITHIN_S of greenboot's check."""
     before = boot_counter(counted)
     armed = before == "2"
     left, success = boot_counter(after), grubenv_value(after, "boot_success")
@@ -829,7 +829,7 @@ def case3b_result(counted: str, after: str, flush_state: str, failures: str, sin
     on_time = since is not None and 0 <= since <= CUT_WITHIN_S
     return (armed and written and ran and quiet and on_time,
             "GRUB counted the arm before the cut: %s (boot_counter %s); GRUB read greenboot's write after "
-            "the cut: %s (boot_counter %s, boot_success %s at the check's start); the flush ran: %s; "
+            "the cut: %s (boot_counter %s, boot_success %s at the check's start); the flush ran before the cut: %s; "
             "no flush failure logged since the install: %s; cut %ss after greenboot's check: %s"
             % (armed, before, written, left, success, ran, quiet, since, on_time))
 
@@ -1906,28 +1906,24 @@ class Drill:
         armed = self.vm("grub2-editenv /boot/grub2/grubenv list", check=False) or ""
         old = self.reboot()
         bid = self.wait_up(old_boot=old)
-        # greenboot's check passed and wrote grubenv; the flush, ordered after it, runs next.
-        for _ in range(10):
-            if (self.vm("systemctl show -p ActiveState --value %s" % FLUSH_UNIT, check=False)
-                    or "").strip() in ("active", "failed"):
-                break
-            time.sleep(1)
+        # greenboot's check passed and wrote grubenv; the flush, ordered after it, ran within milliseconds.
+        # Nothing waits for it: the cut comes as soon as these reads are done, with the fix or without it.
+        state = self.vm("systemctl show -p ActiveState -p Result %s" % FLUSH_UNIT, check=False) or ""
+        counted = self.vm("journalctl -q --no-pager -o cat -b -t grub2-editenv", check=False) or ""
         since = seconds_since(self.vm("systemctl show -p ExecMainExitTimestampMonotonic --value "
                                       "greenboot-healthcheck.service", check=False) or "",
                               self.vm("cat /proc/uptime", check=False) or "")
-        counted = self.vm("journalctl -q --no-pager -o cat -b -t grub2-editenv", check=False) or ""
-        self.log("greenboot's check ended %ss ago; cutting the power" % since)
         self.kill_vm()
+        self.log("greenboot's check ended %ss before the power was cut" % since)
         self.start_vm()
         self.wait_up(old_boot=bid)
         after = self.vm("journalctl -q --no-pager -o cat -b -t grub2-editenv", check=False) or ""
-        state = self.vm("systemctl show -p ActiveState -p Result %s" % FLUSH_UNIT, check=False) or ""
         failures = self.vm("journalctl -q --no-pager -o cat --grep \"%s\"" % FLUSH_FAILED, check=False) or ""
         self.vm("rm -f %s && systemctl daemon-reload" % PROBE_DROPIN)
         self.keep("04-case3b.out", "\n".join(["cut %ss after greenboot's check" % since, "--- armed", armed,
                                                 "--- probe, the boot before the cut", counted,
                                                 "--- probe, the boot after the cut", after,
-                                                "--- %s" % FLUSH_UNIT, state, "--- flush failures", failures,
+                                                "--- %s, before the cut" % FLUSH_UNIT, state, "--- flush failures", failures,
                                                 self.journal("-b -u %s -u greenboot-healthcheck" % FLUSH_UNIT)]))
         ok, detail = case3b_result(counted, after, state, failures, since)
         self.check("case 3b, a power cut seconds after greenboot's grubenv write", ok, detail)
