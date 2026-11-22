@@ -119,6 +119,8 @@ NODE_WRITE = ("python3 -I -c 'import importlib.machinery as m, importlib.util as
               "; echo \"rc=$?\"" % NODE_PROGRAM)
 FLUSH_UNIT = "rikuri-grubenv-flush.service"
 FLUSH_FAILED = "grubenv-flush: FAILED|FAILED to write grubenv's journal home"
+LEFT_WRITABLE = "/boot left writable"   # edit_grubenv's line when /boot's remount back to read-only failed
+CASE3B_JOURNAL = FLUSH_FAILED + "|" + LEFT_WRITABLE
 CUT_WITHIN_S = 8    # well inside the 1-30 s the experiment read stale (run 44944602844)
 GIVEN_BACK = "/var/lib/rikuri/boot-count-given-back"
 # The node's pre-check has decided this boot: its last line on each path.
@@ -805,21 +807,25 @@ def case3b_result(held: str, said: str, flush_state: str, failures: str, since) 
     2 at the held boot), the write returned 0 and said no FAILED line (edit_grubenv keeps
     the write's 0 when its flush fails, and says so on stdout, which over SSH is `said`,
     not the journal), greenboot's flush had run at the boot before the cut, no flush
-    failure was logged, and the cut came within CUT_WITHIN_S."""
+    failure was logged, /boot was read-only again after every write (LEFT_WRITABLE, in
+    `said` or the journal: the line holds no FAILED), and the cut came within
+    CUT_WITHIN_S."""
     counter = boot_counter(held)
     counted = counter == "2"
     lines = (said or "").strip().splitlines()
     wrote = bool(lines) and lines[-1] == "rc=0"
     clean = not any("FAILED" in line for line in lines)
     ran = "ActiveState=active" in flush_state.split() and "Result=success" in flush_state.split()
-    quiet = not (failures or "").strip()
+    logged = [line for line in (failures or "").splitlines() if line.strip()]
+    quiet = not any(LEFT_WRITABLE not in line for line in logged)
+    kept_ro = not any(LEFT_WRITABLE in line for line in lines + logged)
     on_time = since is not None and 0 <= since <= CUT_WITHIN_S
-    return (counted and wrote and clean and ran and quiet and on_time,
+    return (counted and wrote and clean and ran and quiet and kept_ro and on_time,
             "GRUB read the node's write: %s (boot_counter %s at the held boot; 3: GRUB read grubenv as before "
             "the write); the write returned 0: %s; no FAILED line from the node's write: %s; greenboot's flush "
-            "ran before the cut: %s; no flush failure logged since the install: %s; cut %ss after the node's "
-            "write: %s"
-            % (counted, counter, wrote, clean, ran, quiet, since, on_time))
+            "ran before the cut: %s; no flush failure logged since the install: %s; /boot read-only again after "
+            "every write: %s; cut %ss after the node's write: %s"
+            % (counted, counter, wrote, clean, ran, quiet, kept_ro, since, on_time))
 
 
 def counted_from_first_boot(entries) -> bool:
@@ -1907,7 +1913,7 @@ class Drill:
         self.start_vm()
         held = self.grubenv_held(bid)
         self.release_first()
-        failures = self.vm("journalctl -q --no-pager -o cat --grep \"%s\"" % FLUSH_FAILED, check=False) or ""
+        failures = self.vm("journalctl -q --no-pager -o cat --grep \"%s\"" % CASE3B_JOURNAL, check=False) or ""
         self.keep("04-case3b.out", "\n".join([
             "cut %ss after the node's write" % since, "--- %s at the boot before the cut" % FLUSH_UNIT, state,
             "--- grubenv's blocks before the write", before, "--- the node's write", said,
