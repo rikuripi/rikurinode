@@ -200,3 +200,15 @@
   - `Case3b`: the `boot_success=0` pass and its `boot_success=1` failure become the countdown's pass (`boot_counter` 2, then none and `boot_success` 1) and failure (`boot_counter` 1). New: a probe that did not run fails; an arm GRUB did not count fails; a cut at 0.0 s passes, which kills the verifier's `0 <= since` survivor. The flush, failure-line and timing tests are kept, written through one helper.
   - New: `test_case_3b_arms_the_counter_as_the_node_does` pins `ARM_3B`.
 - **The red evidence, to be run again:** the fix's commit `ae10134` is reverted in a commit of its own on top of this one, and CI must fail case 3b with `boot_counter 1` (the unit tests fail as at `404b14d`). Then the revert is reverted, and CI must pass. Both runs count inside repair 1.
+
+### CI on `d3b9f4d` (the fix reverted): the defect not reproduced through greenboot's path
+
+- `Full gate (Ubuntu)`, [run 44972841449](https://github.com/rikuripi/rikurinode/actions/runs/44972841449): `FAILED (failures=8, errors=10)`, the same 18 tests as at `404b14d`, as expected.
+- The OS image, [run 44972841610](https://github.com/rikuripi/rikurinode/actions/runs/44972841610): the build, the check and the USB install passed; the VM drill failed on case 3b alone (49 checks Pass), from the job's log:
+  - `GRUB counted the arm before the cut: True (boot_counter 2); GRUB read greenboot's write after the cut: True (boot_counter None, boot_success 1 at the check's start); the flush ran: False; no flush failure logged since the install: True; cut 14.2s after greenboot's check: True`
+- **So the red is for the wrong reason:** without the flush, GRUB still read greenboot's write after a cut 14.2 s later. The case failed only because the flush unit does not exist.
+- **Read in source, not run:**
+  - greenboot 0.16.4 writes through `grub2-editenv` (`src/lib/grub.rs`) and remounts as the node does: `remount,rw`, then `remount,bind,ro` (`src/lib/mount.rs`);
+  - Linux v6.12: a remount syncs the filesystem only when it goes read-only (`__ext4_remount`, `reconfigure_super`), so greenboot's remount does not explain it.
+- **Why GRUB read it: Not yet proven.** One difference is known: case 3b waits up to 10 s for the flush unit before it cuts. Without the unit it waits the whole 10 s, so this run cut at 14.2 s against 3.8 s with the fix, while the first experiment cut a lone write at 1–30 s from an idle, held boot.
+- Repair 1 is in progress (one red run used); the fix is not yet restored. NEEDS_OWNER_DECISION.
