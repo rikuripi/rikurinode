@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/grubenv-flush`, from `main` at `5ef53bb`; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | (filled at the end) |
-| **Status** | IN PROGRESS |
+| **Status** | BLOCKED |
 | **Change type** | defect fix (OS image: grubenv writes; the VM drill) |
 
 ## Intent: the owner's words
@@ -227,3 +227,13 @@
   - `CUT_WITHIN_S` 20 → 8, and the timing test's bounds follow (8.0 passes; 8.1 and 14.2 fail). A tightening: a cut at 14.2 s passed the old bound while it was no longer comparable with the green run.
   - `case3b_result`'s wording says "the flush ran before the cut"; its logic is unchanged.
 - The fix stays reverted for the red run on this commit; it is restored next.
+
+### CI on `d2b53b0` (repair 2, the fix still reverted): the defect not reproduced; BLOCKED
+
+- `Full gate (Ubuntu)`, [run 44974871065](https://github.com/rikuripi/rikurinode/actions/runs/44974871065): `FAILED (failures=8, errors=10)`, the same 18 tests, as expected without the fix.
+- The OS image, [run 44974871058](https://github.com/rikuripi/rikurinode/actions/runs/44974871058): the drill failed on case 3b alone (49 checks Pass), from the job's log:
+  - `GRUB counted the arm before the cut: True (boot_counter 2); GRUB read greenboot's write after the cut: True (boot_counter None, boot_success 1 at the check's start); the flush ran before the cut: False; no flush failure logged since the install: True; cut 4.0s after greenboot's check: True`
+- **Observed:** without any flush, GRUB read greenboot's write after a cut 4.0 s later, as at 14.2 s in the run before. The red fails only because the flush did not run, not because of the defect. Case 3b cannot show the defect through greenboot's path, so #155 cannot prove its fix there. Both repairs are used: **BLOCKED**, as the owner chose.
+- **Derived, not proven (from the evidence and ext4's allocator):** greenboot writes grubenv twice in a row (`boot_success=1`, then the counter unset), each a `grub2-editenv` rewrite with an fsync, which commits the journal. The first write's freed block, the file's home, is free for good before the second write, which can be put back on it. The inode on disk, which GRUB reads, then points at the new content. The experiment's lone write never came back to its block (12 of 12 stale). If so, the defect is real for a write that leaves the file on another block (the node's lone clear and give-back, or greenboot's sequence when the allocator chooses otherwise), and an even number of writes hides it only by chance.
+- **The branch as left:** the fix's revert (`d3b9f4d`) is still in place, so this head does not ship the fix; restoring it is `git revert d3b9f4d`. #155 stays a draft; nothing to merge.
+- **Unchanged:** the experiments' results (the stale read of a lone write, 12 of 12; the checkpoint call, `syncfs` and `fsfreeze` each closing it, 2 of 2); the unit tests' red and green; the verifier's round 1 on the code.
