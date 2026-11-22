@@ -2775,6 +2775,43 @@ class JournalSearch(unittest.TestCase):
         self.assertIn("failures = journal_search(searched_out)\n", source)
         self.assertIn("case3b_result(held, said, state, failures, since)", source)
 
+    # Each name case 3b's search result passes through, and the one expression it may be bound to.
+    BOUND_ONCE = {"searched_out": "self.vm(CASE3B_SEARCH, check=False)",
+                  "failures": "journal_search(searched_out)"}
+
+    @staticmethod
+    def bindings(source: str, name: str) -> list:
+        """Every place `name` is bound in `source` (any Name node not read), each as the
+        assigned expression's text for a plain `name = …`, otherwise the statement's kind."""
+        import ast
+        import textwrap
+        tree = ast.parse(textwrap.dedent(source))
+        plain = {id(n.targets[0]): ast.unparse(n.value) for n in ast.walk(tree)
+                 if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name)}
+        return [plain.get(id(n), type(n.ctx).__name__) for n in ast.walk(tree)
+                if isinstance(n, ast.Name) and n.id == name and not isinstance(n.ctx, ast.Load)]
+
+    def test_case_3b_binds_its_search_result_once_from_its_source(self):
+        # docs/build-records/2026-11-22-case3b-assigned-once.md: a line added after either assignment
+        # (a fallback) would read a search that did not run as clean; only the VM runs Drill.case3b.
+        import inspect
+        source = inspect.getsource(d.Drill.case3b)
+        for name, value in self.BOUND_ONCE.items():
+            with self.subTest(name=name):
+                self.assertEqual(self.bindings(source, name), [value])
+        # The check's own red: the same source with each fallback added is refused.
+        for name, line, fallback in (
+                ("failures", "        failures = journal_search(searched_out)\n", '        failures = failures or ""\n'),
+                ("searched_out", "        searched_out = self.vm(CASE3B_SEARCH, check=False)\n",
+                 '        searched_out = searched_out or "rc=1"\n'),
+                ("failures", "        failures = journal_search(searched_out)\n", "        failures += \"\"\n"),
+                ("failures", "        failures = journal_search(searched_out)\n",
+                 "        for failures in [failures or \"\"]:\n            pass\n")):
+            with self.subTest(mutant=fallback.strip()):
+                self.assertEqual(source.count(line), 1)
+                mutated = source.replace(line, line + fallback)
+                self.assertNotEqual(self.bindings(mutated, name), [self.BOUND_ONCE[name]])
+
 
 if __name__ == "__main__":
     unittest.main()
