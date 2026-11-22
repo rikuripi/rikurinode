@@ -49,3 +49,16 @@
   - `test_boot_left_writable_in_the_journal_fails`: the same line in the journal must fail, with `/boot read-only again …: False` and `no flush failure logged since the install: True`.
   - `test_the_case_s_journal_search_holds_both`: `CASE3B_JOURNAL` holds `FLUSH_FAILED`'s lines and `LEFT_WRITABLE`, and `LEFT_WRITABLE` is the start of the node's own message.
 - **Reason for the test change:** new tests for the defect; no existing test changes. Expected in CI: the full gate fails on these three tests alone (the third with an `AttributeError`, its constants not yet defined).
+
+### The red run, `9f1ad13`: Fail on the three tests alone, as expected
+
+- `CI`, [run 45047950191](https://github.com/rikuripi/rikurinode/actions/runs/45047950191): `Full gate (Ubuntu)` failed with `FAILED (failures=2, errors=1)`, nothing else:
+  - `test_boot_left_writable_by_the_node_s_write_fails`: `AssertionError: True is not false : … no FAILED line from the node's write: True; …`: the case passed with the node's `/boot left writable` line in `said`, the defect.
+  - `test_boot_left_writable_in_the_journal_fails`: failed on its detail (`'/boot read-only again after every write: False' not found`), not its verdict: given the line directly, the old `quiet` already failed the case. In the VM the line never reached it, because the journal search did not look for it; `test_the_case_s_journal_search_holds_both` is the test for that.
+  - `test_the_case_s_journal_search_holds_both`: `AttributeError: module 'vm_drill' has no attribute 'CASE3B_JOURNAL'`.
+- The image workflow, [run 45047950112](https://github.com/rikuripi/rikurinode/actions/runs/45047950112): Pass (nothing in the VM changed).
+
+### The fix
+
+- `image/drill/vm_drill.py`: `LEFT_WRITABLE` and `CASE3B_JOURNAL` (`FLUSH_FAILED`'s lines and `LEFT_WRITABLE`); case 3b's journal search uses `CASE3B_JOURNAL`; `case3b_result` fails when `said` or a journal line holds `LEFT_WRITABLE` (`kept_ro`), says `/boot read-only again after every write: …`, and counts as a flush failure only the journal lines that are not `LEFT_WRITABLE`'s.
+- No test changes after the red.
