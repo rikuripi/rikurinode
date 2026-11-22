@@ -583,6 +583,12 @@ class RollbackRule(unittest.TestCase):
         self.assertEqual(d.FLUSH_UNIT, "rikuri-grubenv-flush.service")
         self.assertLess(d.CUT_WITHIN_S, 30)
 
+    def test_case_3b_arms_the_counter_as_the_node_does(self):
+        # Writable for the one write, then a bind remount back to read-only, as edit_grubenv: ext4 keeps its
+        # journal, so the window is the node's own. The write's exit, not the remount's, is the step's.
+        self.assertEqual(d.ARM_3B, "mount -o remount,rw /boot && grub2-editenv /boot/grub2/grubenv set "
+                                   "boot_counter=3 boot_success=0; rc=$?; mount -o remount,bind,ro /boot; exit $rc")
+
     def test_the_pre_check_s_last_line_on_every_path_ends_the_wait(self):
         for line in ("this boot followed a update-applied; it counts", "a second power cut in a row; it counts",
                      "boot_counter not set: greenboot is not counting; nothing to give back",
@@ -2623,10 +2629,14 @@ class RenameSetupReads(unittest.TestCase):
 
 
 class Case3b(unittest.TestCase):
-    """Case 3b's reading of the boot after the cut (docs/build-records/2026-11-21-grubenv-flush.md)."""
+    """Case 3b's reading of the boots around the cut (docs/build-records/2026-11-21-grubenv-flush.md)."""
 
-    PROBE = "saved_entry=x\nboot_success=0\n"
+    COUNTED = "saved_entry=x\nboot_counter=2\nboot_success=0\n"
+    AFTER = "saved_entry=x\nboot_success=1\n"
     STATE = "ActiveState=active\nResult=success\n"
+
+    def ok(self, counted=COUNTED, after=AFTER, state=STATE, failures="", since=4.0):
+        return d.case3b_result(counted, after, state, failures, since)
 
     def test_grubenv_value(self):
         self.assertEqual(d.grubenv_value("a=1\nboot_success=0\n", "boot_success"), "0")
@@ -2641,32 +2651,46 @@ class Case3b(unittest.TestCase):
             with self.subTest(exit_us=exit_us, uptime=uptime):
                 self.assertIsNone(d.seconds_since(exit_us, uptime))
 
-    def test_passes_when_grub_s_write_reached_grubenv(self):
-        ok, detail = d.case3b_result(self.PROBE, self.STATE, "", 4.0)
+    def test_passes_when_grub_read_greenboot_s_write(self):
+        ok, detail = self.ok()
         self.assertTrue(ok, detail)
-        self.assertIn("boot_success 0", detail)
+        self.assertIn("boot_counter 2", detail)
+        self.assertIn("boot_counter None, boot_success 1", detail)
 
-    def test_grub_s_write_elsewhere_fails(self):
-        # boot_success=1 is greenboot's write: GRUB's own write, of 0, went to the file's old block.
-        for probe in ("boot_success=1\n", "", "boot_counter=2\n"):
-            with self.subTest(probe=probe):
-                self.assertFalse(d.case3b_result(probe, self.STATE, "", 4.0)[0])
+    def test_grub_counting_the_old_grubenv_fails(self):
+        # GRUB read the file as it was before greenboot's write, counted 2 to 1 and saved it there.
+        ok, detail = self.ok(after="boot_counter=1\nboot_success=0\n")
+        self.assertFalse(ok)
+        self.assertIn("boot_counter 1, boot_success 0", detail)
+
+    def test_a_probe_that_did_not_run_after_the_cut_fails(self):
+        # No counter in an empty or partial reading is not greenboot's write: boot_success 1 must be there too.
+        for after in ("", "saved_entry=x\n", "boot_success=0\n", "boot_counter=2\nboot_success=1\n"):
+            with self.subTest(after=after):
+                self.assertFalse(self.ok(after=after)[0])
+
+    def test_the_arm_must_have_been_counted_before_the_cut(self):
+        # Without GRUB's countdown at the boot before the cut, no counter after it proves nothing.
+        for counted in ("", "boot_success=1\n", "boot_counter=3\nboot_success=0\n", "boot_counter=1\n"):
+            with self.subTest(counted=counted):
+                self.assertFalse(self.ok(counted=counted)[0])
 
     def test_the_flush_must_have_run(self):
         for state in ("", "ActiveState=inactive\nResult=success\n", "ActiveState=failed\nResult=exit-code\n",
                       "ActiveState=active\nResult=exit-code\n"):
             with self.subTest(state=state):
-                self.assertFalse(d.case3b_result(self.PROBE, state, "", 4.0)[0])
+                self.assertFalse(self.ok(state=state)[0])
 
     def test_any_flush_failure_fails(self):
-        self.assertFalse(d.case3b_result(self.PROBE, self.STATE, "rikuri-grubenv-flush: FAILED ...\n", 4.0)[0])
-        self.assertTrue(d.case3b_result(self.PROBE, self.STATE, " \n", 4.0)[0])
+        self.assertFalse(self.ok(failures="rikuri-grubenv-flush: FAILED ...\n")[0])
+        self.assertTrue(self.ok(failures=" \n")[0])
 
     def test_a_late_or_unknown_cut_proves_nothing(self):
         for since in (None, -1.0, 20.1, 45.0):
             with self.subTest(since=since):
-                self.assertFalse(d.case3b_result(self.PROBE, self.STATE, "", since)[0])
-        self.assertTrue(d.case3b_result(self.PROBE, self.STATE, "", 20.0)[0])
+                self.assertFalse(self.ok(since=since)[0])
+        self.assertTrue(self.ok(since=20.0)[0])
+        self.assertTrue(self.ok(since=0.0)[0])
 
     def test_the_failures_it_greps_are_both_programs(self):
         # The flush program's own line, and the node's when the flush after its write failed.

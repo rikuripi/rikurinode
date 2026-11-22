@@ -173,3 +173,30 @@
   2. `check_grubenv_flush` re-implements `_enabled_problem` and `_unit_found` instead of calling them.
   3. Case 3b's "no flush failure logged" passes when the `journalctl` query itself fails; the node's own flush on the image is shown only by the absence of a failure line.
   4. Outside scope, for the backlog: other grubenv writers (for example Fedora's `grub2-set-bootflag`, if the image ships it), not inventoried; `default_run`'s 60 s timeout around a slow flush, untested.
+
+### The diagnosis, from the experiment: cause 2, observed
+
+- The owner chose **"One more experiment"**: `docs/build-records/2026-11-21-grubenv-flush-methods-experiment.md`, draft PR #156, closed unmerged.
+  - [Run 44957539989](https://github.com/rikuripi/rikurinode/actions/runs/44957539989): GRUB does not save `boot_success` at a boot with no `boot_counter`, even after a clean reboot (2 of 2).
+  - [Run 44958580763](https://github.com/rikuripi/rikurinode/actions/runs/44958580763), read through GRUB's countdown: after a cut 3 s after the write, the checkpoint call made GRUB read the write, 2 of 2. With no flush GRUB read the old grubenv, 2 of 2. The control read 2.
+- **Corrected:**
+  - the red run's case 3b Fail (run 44948838507) was **not** evidence of the defect: the probe read greenboot's 1 whatever GRUB read;
+  - its Fail with the fix (run 44950453875) was not evidence against the fix;
+  - the verifier's "case 3b cannot pass falsely: the red run read 1 with the same sequence" (round 1) rested on the same probe and does not hold.
+  - The unit tests' red and green stand: they don't use the probe.
+- **The method stays** (the checkpoint call). The repair is to case 3b alone.
+
+### Repair 1: case 3b reads GRUB's countdown
+
+- **Clarified against the Task Contract (2026-11-21, repair 1):** the case's design, scope item `vm_drill.py`, changes as follows. Its files and its place in the drill's order stay the same:
+  - the probe drop-in, as before, made durable by a clean reboot;
+  - the case first sets `boot_counter=3 boot_success=0` as the node arms it (`ARM_3B`: `remount,rw`, the write, `remount,bind,ro`), with no rollback trigger, so the node's pre-check writes nothing;
+  - the clean reboot: GRUB counts to 2; greenboot's check passes and writes `boot_success=1` and unsets the counter (grubenv moves to a new block); the flush unit runs; the power is cut seconds later;
+  - **Pass:** the probe at the boot before the cut read `boot_counter=2` (the control: GRUB counted the arm), and the probe after the cut reads no counter and `boot_success=1` (GRUB read greenboot's write). As before, the flush unit ran with success, no flush failure is logged, and the cut came within 20 s.
+  - **Fail, the defect:** `boot_counter=1` after the cut, meaning GRUB counted from the file's old block and saved there.
+  - "Done when"'s red now means case 3b reading `boot_counter 1`, not `boot_success=1`.
+- **Reasons for the test changes (`vm_drill.py`, `test_vm_drill.py`):**
+  - `case3b_result` takes both probes. The old reading of `boot_success` could not see GRUB's write, as observed above. This replaces a test that could not fail for the right reason; nothing is loosened. The new reading also fails an empty or partial probe after the cut, which the old one failed only by accident.
+  - `Case3b`: the `boot_success=0` pass and its `boot_success=1` failure become the countdown's pass (`boot_counter` 2, then none and `boot_success` 1) and failure (`boot_counter` 1). New: a probe that did not run fails; an arm GRUB did not count fails; a cut at 0.0 s passes, which kills the verifier's `0 <= since` survivor. The flush, failure-line and timing tests are kept, written through one helper.
+  - New: `test_case_3b_arms_the_counter_as_the_node_does` pins `ARM_3B`.
+- **The red evidence, to be run again:** the fix's commit `ae10134` is reverted in a commit of its own on top of this one, and CI must fail case 3b with `boot_counter 1` (the unit tests fail as at `404b14d`). Then the revert is reverted, and CI must pass. Both runs count inside repair 1.
