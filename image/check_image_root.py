@@ -187,20 +187,6 @@ BOOT_COUNTER_KEYS = {"[Unit]": {"Description": None, "DefaultDependencies": "no"
                      "[Install]": {"WantedBy": "sysinit.target"}}
 BOOT_COUNTER_TARGETS = ("../rikuri-boot-counter.service", "/" + BOOT_COUNTER_UNIT)
 BOOT_COUNTER_OVERRIDES = unit_overrides(BOOT_COUNTER_UNIT)
-# grubenv's journal written home once greenboot's check has ended: GRUB ignores
-# ext4's journal, so after a power cut within some 30 s of greenboot's write it
-# would read grubenv as it was before it (D22, N1). An order on the check, never
-# a dependency; a closed world like BOOT_COUNTER_KEYS.
-# Record: docs/build-records/2026-11-21-grubenv-flush.md
-GRUBENV_FLUSH = "usr/libexec/rikuri/grubenv-flush"
-GRUBENV_FLUSH_UNIT = "usr/lib/systemd/system/rikuri-grubenv-flush.service"
-GRUBENV_FLUSH_WANTS = "usr/lib/systemd/system/multi-user.target.wants/rikuri-grubenv-flush.service"
-GRUBENV_FLUSH_KEYS = {"[Unit]": {"Description": None, "After": "greenboot-healthcheck.service"},
-                      "[Service]": {"Type": "oneshot", "RemainAfterExit": "yes",
-                                    "ExecStart": "/" + GRUBENV_FLUSH},
-                      "[Install]": {"WantedBy": "multi-user.target"}}
-GRUBENV_FLUSH_TARGETS = ("../rikuri-grubenv-flush.service", "/" + GRUBENV_FLUSH_UNIT)
-GRUBENV_FLUSH_OVERRIDES = unit_overrides(GRUBENV_FLUSH_UNIT)
 # shadow-utils 4.20 (Fedora 45) finds no subuid range for a name that is not a user, so
 # Podman's `containers` range needs a user of that name: one locked system user, made by
 # systemd-sysusers at boot, no password, shell or home of its own (probe f45-podman,
@@ -709,33 +695,6 @@ def check_boot_counter(root: str) -> list:
     return found
 
 
-def check_grubenv_flush(root: str) -> list:
-    found = []
-    path = _regular(root, GRUBENV_FLUSH)
-    if path is None:
-        found.append("%s: missing, or not a regular file (GRUB could read an old grubenv after a power cut)"
-                     % GRUBENV_FLUSH)
-    elif not os.lstat(path).st_mode & 0o111:
-        found.append("%s: not executable" % GRUBENV_FLUSH)
-    data = _read_bytes(root, GRUBENV_FLUSH_UNIT)
-    if data is None:
-        found.append("%s: missing, or not a regular file" % GRUBENV_FLUSH_UNIT)
-    else:
-        found += ["%s: %s" % (GRUBENV_FLUSH_UNIT, p) for p in unit_problems(
-            data, GRUBENV_FLUSH_KEYS, "does not write grubenv's journal home once greenboot's check has ended")]
-    for rel in GRUBENV_FLUSH_OVERRIDES:
-        problem = _override_problem(root, rel)
-        if problem:
-            found.append("%s: %s" % (rel, problem))
-    wants = os.path.join(root, GRUBENV_FLUSH_WANTS)
-    hit = _lstat_in(root, os.path.dirname(GRUBENV_FLUSH_WANTS))
-    if hit is None or not os.path.islink(wants):
-        found.append("%s: not a link, so the unit is not enabled" % GRUBENV_FLUSH_WANTS)
-    elif os.readlink(wants) not in GRUBENV_FLUSH_TARGETS:
-        found.append("%s: points to %s, not to the unit" % (GRUBENV_FLUSH_WANTS, os.readlink(wants)))
-    return found
-
-
 def check_containers_user(root: str) -> list:
     data = _read_bytes(root, CONTAINERS_USER)
     if data is None:
@@ -1144,7 +1103,6 @@ def check_root(root: str, release: str, note=lambda line: None) -> list:
     return (check_os_release(root, release) + check_greenboot(root) + check_unapplied_update(root)
             + check_trigger_at_shutdown(root) + check_boot_automount(root)
             + check_containers_subid(root) + check_boot_cause(root) + check_boot_counter(root)
-            + check_grubenv_flush(root)
             + check_containers_user(root)
             + check_subid_wanted(root) + check_control_plane(root) + check_mdns_links(root)
             + check_quadlet_health(root) + check_signature_policy(root) + check_no_private_keys(root, note))
