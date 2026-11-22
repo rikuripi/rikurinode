@@ -81,3 +81,12 @@
   - Cases 1, 1b, 2b, 2d, 2e and 3 passed, as did every other check.
 - `CI`, [run 44980096048](https://github.com/rikuripi/rikurinode/actions/runs/44980096048): `Full gate (Ubuntu)` failed with `FAILED (failures=8, errors=10)`, the 18 flush tests, as at `404b14d`; nothing else failed.
 - **So the red is observed:** without the flush, GRUB read grubenv as it was before the node's own write, after a power cut 0.2 s later. This is the defect, seen through the node's real code.
+
+### The fix restored, `f2aa2a5`: Pass
+
+- `f2aa2a5` reverts `d3b9f4d`; its six files are identical to `ae10134` (`git diff ae10134 f2aa2a5` on them is empty).
+- `CI`, [run 44986918090](https://github.com/rikuripi/rikurinode/actions/runs/44986918090): `Full gate (Ubuntu)` Pass.
+- The image workflow, [run 44986918042](https://github.com/rikuripi/rikurinode/actions/runs/44986918042): every job Pass; the drill took about 12 minutes of VM time. From the job's log (the artifact was not downloaded):
+  - case 3b: `GRUB read the node's write: True (boot_counter 2 at the held boot …)`; the write returned 0; greenboot's flush ran before the cut; no flush failure logged since the install; the cut 0.2 s after the write;
+  - cases 1, 1b, 2b, 2d, 2e, 3, 4 and 5 Pass, as before.
+- **So:** with the same cut 0.2 s after the same write, the read moved from 3 (no fix) to 2 (the fix). One run each: the method's experiment had 2 of 2 per flush, the first experiment 12 of 12 stale without one.
