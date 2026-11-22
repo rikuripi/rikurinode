@@ -4,7 +4,7 @@
 |---|---|
 | **Date** | 2026-11-22 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
-| **Branch** | `stage1/grubenv-flush` (PR #155): case 3b exists only there, and lands with it; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
+| **Branch** | `stage1/case3b-own-flush-failure`, from `b8e6d1a`, the head of PR #155, which the owner merged into `main` (`40b128e`) while this contract was being written; a draft PR; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | (filled at the end) |
 | **Status** | IN PROGRESS |
 | **Change type** | defect fix in the drill (test tooling) |
@@ -30,7 +30,7 @@
 3. **Done when:**
    - Red: the test committed alone and seen failing in CI's full gate on exactly that test.
    - Then the fix in its own commit; the full gate passes in CI; the image workflow's drill passes, case 3b included.
-4. **Authority:** the files above. On the Mac: `ast` parse checks and `git diff --check`. The tests run in CI only. Commit and push `stage1/grubenv-flush`; #155 converted to a draft while its CI is red, then left for the owner; the owner merges. No verifier pass required (routine tier; REVIEW.md), unless the owner asks.
+4. **Authority:** the files above. On the Mac: `ast` parse checks and `git diff --check`. The tests run in CI only. Commit and push this branch; a draft PR to `main`; the owner merges. No verifier pass required (routine tier; REVIEW.md), unless the owner asks.
 5. **Limits:** one task; two repair cycles and two review rounds. No budget is configured; VM time is reported.
 
 ## Evidence log
