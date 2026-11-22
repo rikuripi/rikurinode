@@ -2674,6 +2674,15 @@ class Case3b(unittest.TestCase):
                 self.assertFalse(self.ok(said=said)[0])
         self.assertTrue(self.ok(said="rc=0")[0])
 
+    def test_a_failed_flush_after_the_write_fails(self):
+        # edit_grubenv keeps the write's 0 when its flush fails, and says so on stdout, which over SSH is `said`.
+        said = ("rikuri-unapplied-update: FAILED to write grubenv's journal home (exit 1); after a power cut in "
+                "the next 30 s GRUB may read grubenv as it was before this write\nrc=0\n")
+        ok, detail = self.ok(said=said)
+        self.assertFalse(ok, detail)
+        self.assertIn("no FAILED line from the node's write: False", detail)
+        self.assertIn("no FAILED line from the node's write: True", self.ok()[1])
+
     def test_the_flush_must_have_run(self):
         for state in ("", "ActiveState=inactive\nResult=success\n", "ActiveState=failed\nResult=exit-code\n",
                       "ActiveState=active\nResult=exit-code\n"):
