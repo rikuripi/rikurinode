@@ -571,23 +571,36 @@ class RollbackRule(unittest.TestCase):
         self.assertTrue(dropins and all(x < os.path.basename(d.CANCEL_DROPIN) for x in dropins), dropins)
         self.assertEqual(d.CANCELS, "[Service]\nExecStop=/usr/bin/ostree admin undeploy 0\n")
 
-    def test_case_3b_probes_grubenv_before_anything_writes_it(self):
-        # In name order the probe comes first: before the hold (10-) and the node's pre-check (50-), which can
-        # write grubenv. In /etc, so a clean reboot makes it durable before the cut; "-" never fails the check.
-        self.assertTrue(d.PROBE_DROPIN.startswith("/etc/systemd/system/greenboot-healthcheck.service.d/"))
-        dropins = os.listdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "rootfs", "usr",
-                                          "lib", "systemd", "system", "greenboot-healthcheck.service.d"))
-        names = dropins + [os.path.basename(d.HOLD_FIRST_DROPIN), os.path.basename(d.HOLD_DROPIN)]
-        self.assertTrue(dropins and all(os.path.basename(d.PROBE_DROPIN) < x for x in names), names)
-        self.assertEqual(d.PROBE, "[Service]\nExecStartPre=-/usr/bin/grub2-editenv /boot/grub2/grubenv list\n")
+    def test_case_3b_writes_as_the_node_writes(self):
+        # The baseline: writable for the one write, then a bind remount back to read-only, as edit_grubenv
+        # does, so ext4 keeps its journal; the write's exit, not the remount's, is the step's.
+        self.assertEqual(d.BASELINE_3B, "mount -o remount,rw /boot && grub2-editenv /boot/grub2/grubenv unset "
+                                        "boot_counter boot_success; rc=$?; mount -o remount,bind,ro /boot; exit $rc")
+        self.assertEqual(d.FREEZE, "fsfreeze -f /boot; fsfreeze -u /boot")
+        # The write under test is the node's own edit_grubenv, loaded from the program the image ships, setting
+        # the counter (only a write that sets it can show a stale read), its exit echoed last.
+        self.assertEqual(d.NODE_PROGRAM, "/usr/libexec/rikuri/greenboot-unapplied-update")
+        self.assertTrue(d.NODE_WRITE.startswith("python3 -I -c 'import importlib.machinery as m, importlib.util as u; "
+                                                "l = m.SourceFileLoader(\"node\", \"%s\")" % d.NODE_PROGRAM))
+        self.assertIn("n.edit_grubenv(n.default_run, n.read_mountinfo, [\"set\", \"boot_counter=3\", "
+                      "\"boot_success=0\"]", d.NODE_WRITE)
+        self.assertTrue(d.NODE_WRITE.endswith("'; echo \"rc=$?\""))
         self.assertEqual(d.FLUSH_UNIT, "rikuri-grubenv-flush.service")
         self.assertLess(d.CUT_WITHIN_S, 30)
 
-    def test_case_3b_arms_the_counter_as_the_node_does(self):
-        # Writable for the one write, then a bind remount back to read-only, as edit_grubenv: ext4 keeps its
-        # journal, so the window is the node's own. The write's exit, not the remount's, is the step's.
-        self.assertEqual(d.ARM_3B, "mount -o remount,rw /boot && grub2-editenv /boot/grub2/grubenv set "
-                                   "boot_counter=3 boot_success=0; rc=$?; mount -o remount,bind,ro /boot; exit $rc")
+    def test_case_3b_s_write_is_python_that_calls_the_node_s_function(self):
+        import ast
+        import shlex
+        words = shlex.split(d.NODE_WRITE.rsplit("; echo", 1)[0])
+        self.assertEqual(words[:3], ["python3", "-I", "-c"])
+        calls = {n.func.attr for n in ast.walk(ast.parse(words[3]))
+                 if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)}
+        self.assertIn("edit_grubenv", calls)
+        source = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "rootfs", "usr", "libexec",
+                                   "rikuri", "greenboot-unapplied-update"), encoding="utf-8").read()
+        self.assertIn("def edit_grubenv(run, mountinfo, args, what: str, otherwise: str) -> int:", source)
+        self.assertIn("def read_mountinfo()", source)
+        self.assertIn("def default_run(argv)", source)
 
     def test_the_pre_check_s_last_line_on_every_path_ends_the_wait(self):
         for line in ("this boot followed a update-applied; it counts", "a second power cut in a row; it counts",
@@ -732,7 +745,7 @@ class Verdict(unittest.TestCase):
             "case 2b, finalize fails", "case 2d, an update downloaded only",
             "case 2e, an update cancelled during the shutdown",
             "case 3, a power cut during the update",
-            "case 3b, a power cut seconds after greenboot's grubenv write",
+            "case 3b, a power cut seconds after the node's grubenv write",
             "the containers range after reboots", "the containers range",
             "case 4, an unsigned update refused", "case 5, a signed update staged",
             "the control plane runs as its own user", "the CA certificate over HTTP",
@@ -2629,51 +2642,37 @@ class RenameSetupReads(unittest.TestCase):
 
 
 class Case3b(unittest.TestCase):
-    """Case 3b's reading of the boots around the cut (docs/build-records/2026-11-21-grubenv-flush.md)."""
+    """Case 3b's reading of the held boot (docs/build-records/2026-11-22-grubenv-flush-node-write.md)."""
 
-    COUNTED = "saved_entry=x\nboot_counter=2\nboot_success=0\n"
-    AFTER = "saved_entry=x\nboot_success=1\n"
+    HELD = "saved_entry=x\nboot_success=0\nboot_counter=2\n"
+    SAID = "rikuri-unapplied-update: something\nrc=0\n"
     STATE = "ActiveState=active\nResult=success\n"
 
-    def ok(self, counted=COUNTED, after=AFTER, state=STATE, failures="", since=4.0):
-        return d.case3b_result(counted, after, state, failures, since)
+    def ok(self, held=HELD, said=SAID, state=STATE, failures="", since=1.0):
+        return d.case3b_result(held, said, state, failures, since)
 
-    def test_grubenv_value(self):
-        self.assertEqual(d.grubenv_value("a=1\nboot_success=0\n", "boot_success"), "0")
-        self.assertIsNone(d.grubenv_value("boot_successful=1\n", "boot_success"))
-        self.assertIsNone(d.grubenv_value("", "boot_success"))
-        self.assertIsNone(d.grubenv_value(None, "boot_success"))
-
-    def test_seconds_since(self):
-        self.assertEqual(d.seconds_since("40000000\n", "45.25 80.00\n"), 5.2)
-        for exit_us, uptime in (("0", "45.0 1"), ("", "45.0 1"), ("x", "45.0 1"), ("40000000", ""),
-                                ("40000000", "x y")):
-            with self.subTest(exit_us=exit_us, uptime=uptime):
-                self.assertIsNone(d.seconds_since(exit_us, uptime))
-
-    def test_passes_when_grub_read_greenboot_s_write(self):
+    def test_passes_when_grub_read_the_write_and_counted(self):
         ok, detail = self.ok()
         self.assertTrue(ok, detail)
-        self.assertIn("boot_counter 2", detail)
-        self.assertIn("boot_counter None, boot_success 1", detail)
+        self.assertIn("boot_counter 2 at the held boot", detail)
 
-    def test_grub_counting_the_old_grubenv_fails(self):
-        # GRUB read the file as it was before greenboot's write, counted 2 to 1 and saved it there.
-        ok, detail = self.ok(after="boot_counter=1\nboot_success=0\n")
+    def test_grub_reading_grubenv_as_before_the_write_fails(self):
+        # Stale: GRUB found no counter and did not count; Linux, after the journal's replay, reads the write's 3.
+        ok, detail = self.ok(held="boot_success=0\nboot_counter=3\n")
         self.assertFalse(ok)
-        self.assertIn("boot_counter 1, boot_success 0", detail)
+        self.assertIn("boot_counter 3 at the held boot", detail)
 
-    def test_a_probe_that_did_not_run_after_the_cut_fails(self):
-        # No counter in an empty or partial reading is not greenboot's write: boot_success 1 must be there too.
-        for after in ("", "saved_entry=x\n", "boot_success=0\n", "boot_counter=2\nboot_success=1\n"):
-            with self.subTest(after=after):
-                self.assertFalse(self.ok(after=after)[0])
+    def test_any_other_counter_or_none_fails(self):
+        for held in ("", "boot_success=0\n", "boot_counter=1\n", "boot_counter=0\n", "boot_counter=22\n"):
+            with self.subTest(held=held):
+                self.assertFalse(self.ok(held=held)[0])
 
-    def test_the_arm_must_have_been_counted_before_the_cut(self):
-        # Without GRUB's countdown at the boot before the cut, no counter after it proves nothing.
-        for counted in ("", "boot_success=1\n", "boot_counter=3\nboot_success=0\n", "boot_counter=1\n"):
-            with self.subTest(counted=counted):
-                self.assertFalse(self.ok(counted=counted)[0])
+    def test_the_write_must_have_returned_0(self):
+        for said in ("", "rc=1\n", "rc=0\nrc=1\n", "rikuri-unapplied-update: FAILED to set boot_counter\n",
+                     "rc=01\n"):
+            with self.subTest(said=said):
+                self.assertFalse(self.ok(said=said)[0])
+        self.assertTrue(self.ok(said="rc=0")[0])
 
     def test_the_flush_must_have_run(self):
         for state in ("", "ActiveState=inactive\nResult=success\n", "ActiveState=failed\nResult=exit-code\n",
