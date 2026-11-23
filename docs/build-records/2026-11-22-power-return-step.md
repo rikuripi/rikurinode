@@ -5,8 +5,8 @@
 | **Date** | 2026-11-22 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/power-return-step`, from `main` at `ec991a6`; a draft PR; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `a85d2bf` (contract), `78d097b` (the change), `e0827c8` (the verifier's nits 1, 3, 4), this close-out: draft PR #170 |
+| **Status** | DONE |
 | **Change type** | feature |
 
 ## Intent: the owner's words
@@ -63,3 +63,14 @@
   4. The runbook's unplug check: **fixed**, "sign in and wait a minute" first, so a heartbeat exists.
   5. This record's close-out: below.
 - These edits are text only, made after the review; no test changed. Not a repair of a failure: the count of repair cycles stays at none.
+
+## CI, `e0827c8`
+
+- `CI`, [run 45100012148](https://github.com/rikuripi/rikurinode/actions/runs/45100012148): `Full gate (Ubuntu)` **Pass**, the Rust tests and the UI's build and Playwright tests among its steps. "Rust mutants", [run 45100012185](https://github.com/rikuripi/rikurinode/actions/runs/45100012185): Pass. The runs on `78d097b` were cancelled by the push of `e0827c8`, except "Rust mutants" (Pass).
+- The image workflow, [run 45100012151](https://github.com/rikuripi/rikurinode/actions/runs/45100012151) (not a required check; not in this contract's "Done when"): the build, the image check and the USB install Pass; **the drill Fail**, not on a case. Every case it reached passed, among them "the hub refuses a browser without a session" and case 3b. It then stopped on the runner's `podman run` of the image to check its signature: `pinging container registry ghcr.io: Get "https://ghcr.io/v2/": dial tcp 20.29.134.18:443: i/o timeout`. Cases 4 and 5 (the signature) did not run on this commit: **Not yet proven** here. Nothing in this change touches the image, the drill or the signature. The network failure is read from the log, not reproduced.
+
+## Result
+
+- **Pass (observed):** the hub lists seven steps, the power step `manual` whatever the node's state, at the route and on the page, with its explanation and never "Done"; unknown states and partial lists still refused (full gate 45100012148; the verifier's pass).
+- **Not yet proven:** the setting's name, menu and keys on the owner's N150 (runbook step 15 asks); the drill's cases 4 and 5 on `e0827c8` (the registry timeout).
+- **Backlog:** the verifier's nit 2, a page-side refusal of any power state but `manual`.
