@@ -38,6 +38,7 @@ const HUB: HubReport = {
     { step: 'connection', state: 'done' },
     { step: 'owner', state: 'done' },
     { step: 'name', state: 'next' },
+    { step: 'power', state: 'manual' },
     { step: 'bitcoin', state: 'later' },
     { step: 'lightning', state: 'later' },
     { step: 'backup', state: 'later' },
@@ -435,7 +436,7 @@ for (const [path, answers, ready] of [
 // (never by colour alone), and only the node's own answer marks one done.
 // Record: docs/build-records/2026-11-11-5c4a-uuid-and-setup-hub.md
 test.describe('the SetupHub', () => {
-  const STEPS = ['connection', 'owner', 'name', 'bitcoin', 'lightning', 'backup'] as const;
+  const STEPS = ['connection', 'owner', 'name', 'power', 'bitcoin', 'lightning', 'backup'] as const;
 
   test('lists every step in order, with its state in words, and the node\'s ID', async ({ page }) => {
     const errors = watchErrors(page);
@@ -476,6 +477,23 @@ test.describe('the SetupHub', () => {
     await expect(name).toHaveAttribute('data-state', 'done');
     await expect(name).toContainText(t('hub.state.done'));
     await expect(name).not.toContainText(t('hub.name_next'));
+  });
+
+  // Stage 1 (plan §4.1): the firmware's power-return setting, which the node
+  // can't read. Record: docs/build-records/2026-11-22-power-return-step.md
+  test('the power step explains the firmware setting, says it can\'t be checked, and is never done', async ({ page }) => {
+    const errors = watchErrors(page);
+    await api(page, { 'GET /api/session': { status: 200, body: INFO } });
+    await page.goto('/home');
+    const power = page.locator('li[data-step="power"]');
+    await expect(power).toHaveAttribute('data-state', 'manual');
+    await expect(power).toContainText(t('hub.step.power'));
+    await expect(power).toContainText(t('hub.state.manual'));
+    await expect(power).toContainText(t('hub.power_how'));
+    await expect(power).not.toContainText(t('hub.state.done'));
+    await expect(power).not.toContainText(t('hub.state.unknown'));
+    await expect(power.locator('.mark')).toHaveText('i');
+    expect(errors).toEqual([]);
   });
 
   test('signed out when the hub is read: to sign-in', async ({ page }) => {
@@ -573,7 +591,7 @@ test.describe('the last restart', () => {
     await page.goto('/home');
     await expect(card(page)).toHaveAttribute('data-restart', 'unread');
     await expect(card(page).getByRole('paragraph')).toHaveText(t('restart.unread'));
-    await expect(page.locator('li[data-step]')).toHaveCount(6);
+    await expect(page.locator('li[data-step]')).toHaveCount(7);
   });
 
   test('no claim the node cannot check', () => {

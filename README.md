@@ -33,7 +33,8 @@ with the claim screen's, then leads on: to the claim, where the owner types the
 code and chooses a password; to sign-in; and to a page that says the node is
 theirs: the SetupHub, with the node's UUID, given at the claim, and each step
 of setup read from the node's real state (done, next, or with a later update),
-and sign-out. From the hub the owner names the node: the first of
+except one the node cannot read, starting again by itself after a power cut (a
+firmware setting the hub explains, and never shows as done), and sign-out. From the hub the owner names the node: the first of
 `rikuri01` to `rikuri99` that nothing on the network answers, or a name of
 their own. The hub also says in one sentence why the node last restarted and
 when (a clean shutdown, a power cut, an update applied or undone, a crash, or

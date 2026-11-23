@@ -102,6 +102,7 @@ async fn the_hub_lists_every_step_from_the_nodes_real_state() {
             ("connection", "done"),
             ("owner", "done"),
             ("name", "next"),
+            ("power", "manual"),
             ("bitcoin", "later"),
             ("lightning", "later"),
             ("backup", "later"),
@@ -114,11 +115,13 @@ async fn the_hub_lists_every_step_from_the_nodes_real_state() {
         .await
         .json();
     assert_eq!(states(&named)[2], pairs(&[("name", "done")])[0]);
+    assert_eq!(states(&named)[3], pairs(&[("power", "manual")])[0]);
     set_hostname(&node, None);
     let unread = ok(&node, Req::get("/api/hub").cookie(&session))
         .await
         .json();
     assert_eq!(states(&unread)[2], pairs(&[("name", "unknown")])[0]);
+    assert_eq!(states(&unread)[3], pairs(&[("power", "manual")])[0]);
     node.stop().await;
 }
 

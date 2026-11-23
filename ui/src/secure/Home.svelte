@@ -5,11 +5,14 @@
      setup from GET /api/hub, each state said in words, never by colour alone.
      A reply that is not exactly the hub shows no step at all: never a guess.
      5c.4b-2: while the name is next, the step links to /name.
+     Stage 1 (plan §4.1): the power step is manual, a firmware setting the
+     node can't read; it explains the setting and is never shown as done.
      D22: one sentence on why the node last restarted, from the hub's restart;
      when the node could not read it, the page says so.
      Records: docs/build-records/2026-11-11-5c3b-claim-and-sign-in.md,
      docs/build-records/2026-11-11-5c4a-uuid-and-setup-hub.md,
-     docs/build-records/2026-11-19-boot-cause-sentence.md -->
+     docs/build-records/2026-11-19-boot-cause-sentence.md,
+     docs/build-records/2026-11-22-power-return-step.md -->
 <script lang="ts">
   import type { HubReport } from '../generated/HubReport';
   import type { SessionInfo } from '../generated/SessionInfo';
@@ -80,13 +83,16 @@
           <ol class="steps" aria-labelledby="hub-title">
             {#each hub.steps as { step, state } (step)}
               <li data-step={step} data-state={state}>
-                <span class="mark" aria-hidden="true">{state === 'done' ? '✓' : state === 'unknown' ? '?' : '○'}</span>
+                <span class="mark" aria-hidden="true">{state === 'done' ? '✓' : state === 'unknown' ? '?' : state === 'manual' ? 'i' : '○'}</span>
                 <span class="what">
                   <span class="name">{t(`hub.step.${step}`)}</span>
                   <span class="state">{t(`hub.state.${state}`)}</span>
                   {#if step === 'name' && state === 'next'}
                     <span class="hint">{t('hub.name_next')}</span>
                     <a class="action primary" href="/name">{t('hub.name_link')}</a>
+                  {/if}
+                  {#if step === 'power' && state === 'manual'}
+                    <span class="hint">{t('hub.power_how')}</span>
                   {/if}
                 </span>
               </li>

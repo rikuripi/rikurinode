@@ -47,8 +47,8 @@ export function parseSession(value: unknown): SessionInfo | SessionOpened | null
 }
 
 // 5c.4a: the hub's closed sets, as the Rust enums write them (hub.rs).
-const STEPS: readonly SetupStep[] = ['connection', 'owner', 'name', 'bitcoin', 'lightning', 'backup'];
-const STATES: readonly StepState[] = ['done', 'next', 'later', 'unknown'];
+const STEPS: readonly SetupStep[] = ['connection', 'owner', 'name', 'power', 'bitcoin', 'lightning', 'backup'];
+const STATES: readonly StepState[] = ['done', 'next', 'later', 'unknown', 'manual'];
 
 // node_id.rs's form: version 4, variant 10, lowercase, 8-4-4-4-12.
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
