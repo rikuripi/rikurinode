@@ -130,7 +130,7 @@ Use Fedora Media Writer (Fedora's own tool, free, from `fedoraproject.org/workst
 15. Set the N150 to start by itself when power returns, once. Press its power button and, as it starts, press **Delete** or **F2** several times: its firmware's setup opens (not the boot menu of step 2).
     - Find a setting called something like **Restore on AC Power Loss**, **AC Power Recovery**, **Power On After Power Fail** or **State After G3**, often under **Advanced**, **Chipset** or **Power**. Set it to **Power On** (or **S0**, or **Always On**). Change nothing else.
     - Save and exit (often **F10**, then **Yes**). The node starts.
-    - To check it: once the node has started, unplug its power, wait ten seconds and plug it back in, without pressing its button. It starts by itself. Sign in: **The last restart** says power was lost.
+    - To check it: once the node has started, sign in and wait a minute, then unplug its power, wait ten seconds and plug it back in, without pressing its button. It starts by itself. Sign in: **The last restart** says power was lost.
     - If you can't find the setting, change nothing, and report it with a photo of the firmware's menus: the node works, but after a power cut it waits for its button.
 
 Report: whether it started from the stick, what the disk line said, whether

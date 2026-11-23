@@ -49,3 +49,17 @@
   - `tests/hub_route.rs`: the route's list gains `("power", "manual")`. After the rename and after the unread hostname the step is still `manual` (two added asserts).
   - `ui/tests/owner.spec.ts`: the fixture `HUB` and the hub's `STEPS` gain the step; a count of 6 becomes 7. New: the power step shows its name, `Can’t be checked on this machine`, the explanation and the mark `i`, and never `Done` or `Couldn’t be read`. The tests that refuse an unknown state (`finished`) and a partial or reordered list are unchanged and still hold.
 - On the Mac: `git diff --check` clean; `scripts/cargo.sh fmt --check` passed (formatting only, no tests run).
+
+## Verification
+
+- **The verifier**, one pass on `ec991a6..78d097b` (routine): no Important findings; verdict "not yet proven" only because the full gate (run 45099757056) was still running.
+  - Checked: the power step cannot be done at the API (`Power => Manual`, no other arm); `parseHub` still refuses unknown steps and states and partial, doubled or reordered lists; the generated types match what ts-rs writes, by reading; each test change has a reason and none is loosened.
+  - Hand mutants, reasoned from the code (no tests run on the Mac): `Power => Done` or `Next`, `Power` dropped from `STEPS`, `manual` or `power` dropped from `api.ts`, the hint dropped, the mark changed: each killed. One survives, harmless: the hint's condition reduced to `step === 'power'`.
+  - "Rust mutants", run 45099757116: Pass.
+- **Nits, and what was done:**
+  1. The page's explanation lacked the runbook's "change nothing else" and "if you can't find it, report it", and the page is what a novice reads in the firmware: **fixed**, `hub.power_how` (the page test checks the whole string, unchanged).
+  2. The page shows whatever state the node sends for the power step; "never done" rests on the Rust side, which the tests hold. A page-side refusal: **backlog**, not done here.
+  3. `README.md` said every step is read from the node's state: **fixed** (one sentence).
+  4. The runbook's unplug check: **fixed**, "sign in and wait a minute" first, so a heartbeat exists.
+  5. This record's close-out: below.
+- These edits are text only, made after the review; no test changed. Not a repair of a failure: the count of repair cycles stays at none.
