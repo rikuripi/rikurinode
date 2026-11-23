@@ -36,3 +36,16 @@
    - one `verifier` pass (code; AGENTS.md §5).
 4. **Authority:** the files above. On the Mac: `git diff --check` and reading; the tests run in CI only. Commit and push this branch; a draft PR to `main`; the owner merges.
 5. **Limits:** one task; two repair cycles and two review rounds. No budget is configured; time is reported.
+
+## Evidence log
+
+### The change
+
+- As designed. The page's explanation (`hub.power_how`) names the setting's usual names and the keys Delete or F2. Neither is proven on the owner's N150; the runbook's new step 15 asks for the name and menu as found. Its mark is `i`, not the `?` of a failed read.
+- **Reasons for the test changes** (a feature, not a defect fix: no red commit; AGENTS.md §5 asks for a reason for each change):
+  - `hub.rs`, `every_step_in_order_with_its_state_from_the_node`: the expected list gains `Manual` in fourth place, the new step's place. No other expectation changes.
+  - `hub.rs`, `the_json_is_the_api_the_page_reads`: a second step, `power` with `manual`, so the new names' JSON is held. The first step is kept as it was.
+  - `hub.rs`, new `the_power_step_is_manual_whatever_the_node_s_state`: with or without an owner, under the setup name, a name of its own or an unread hostname, the power step is listed once, `manual`.
+  - `tests/hub_route.rs`: the route's list gains `("power", "manual")`. After the rename and after the unread hostname the step is still `manual` (two added asserts).
+  - `ui/tests/owner.spec.ts`: the fixture `HUB` and the hub's `STEPS` gain the step; a count of 6 becomes 7. New: the power step shows its name, `Can’t be checked on this machine`, the explanation and the mark `i`, and never `Done` or `Couldn’t be read`. The tests that refuse an unknown state (`finished`) and a partial or reordered list are unchanged and still hold.
+- On the Mac: `git diff --check` clean; `scripts/cargo.sh fmt --check` passed (formatting only, no tests run).

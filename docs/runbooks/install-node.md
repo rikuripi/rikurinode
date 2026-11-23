@@ -112,6 +112,7 @@ Use Fedora Media Writer (Fedora's own tool, free, from `fedoraproject.org/workst
     - Tap **Claim this node**. **This node is yours** opens. Under **What setup still needs** it shows the node's **Node ID** (letters, numbers and dashes, the node's own for its whole life) and each step of setup:
       - **A private connection** and **An owner and a password**: **Done**;
       - **A name for the node**: **Next**, with **Choose its name** (step 13);
+      - **Starts again after a power cut**: **Can’t be checked on this machine**, with how to set it (step 15). It never says **Done**: the setting is in the N150's firmware, which the node cannot read;
       - **Bitcoin**, **Lightning** and **Backups**: **Comes with a later update**.
       - A step that says **Couldn’t be read** is not done: report it. Below the list, the page says until when this device stays signed in.
     - If it says the code is not the one on the node's screen, check it against the screen (a code lasts 24 hours; Enter at the node shows a new one) and type it again. After several wrong tries it asks you to wait a number of seconds; the button returns when they are over.
@@ -126,6 +127,11 @@ Use Fedora Media Writer (Fedora's own tool, free, from `fedoraproject.org/workst
     - If the new name later opens another device, not the node, that device had the name first but did not answer when the node checked. Use the node's address from the claim screen (Ctrl+Alt+F2), as `https://<address>/signin`, and report it: renaming the node comes with a later update.
     - If the new address does not open ("cannot find" or "server not found"), wait a minute and reload: some phones take a moment to learn a new `.local` name. The node's address on the claim screen (Ctrl+Alt+F2) always works, as `https://<address>/signin`.
 14. Tap **Sign out**: the page **Sign in to your node** opens. Type the password and tap **Sign in**: **This node is yours** opens again, with the same **Node ID**. Sign out again, then power the N150 off with a short press of its power button.
+15. Set the N150 to start by itself when power returns, once. Press its power button and, as it starts, press **Delete** or **F2** several times: its firmware's setup opens (not the boot menu of step 2).
+    - Find a setting called something like **Restore on AC Power Loss**, **AC Power Recovery**, **Power On After Power Fail** or **State After G3**, often under **Advanced**, **Chipset** or **Power**. Set it to **Power On** (or **S0**, or **Always On**). Change nothing else.
+    - Save and exit (often **F10**, then **Yes**). The node starts.
+    - To check it: once the node has started, unplug its power, wait ten seconds and plug it back in, without pressing its button. It starts by itself. Sign in: **The last restart** says power was lost.
+    - If you can't find the setting, change nothing, and report it with a photo of the firmware's menus: the node works, but after a power cut it waits for its button.
 
 Report: whether it started from the stick, what the disk line said, whether
 it powered off by itself and started to the login prompt, and what the claim
@@ -136,7 +142,9 @@ not), which device you installed the certificate on and whether its steps
 worked as the page said, whether the browser's fingerprint matched the
 claim screen's, and whether claiming, signing out and signing in worked as
 steps 12 and 14 say, what **What setup still needs** listed, which name
-step 13 suggested, and whether the node opened at its new name. Photos of the screens are enough; never photograph or
+step 13 suggested, and whether the node opened at its new name; for step 15,
+the setting's name and menu as your N150's firmware shows them, what you set
+it to, and whether the node started by itself after the unplug. Photos of the screens are enough; never photograph or
 send the password. A photo of a code is harmless once the node is claimed, as
 that code no longer works.
 

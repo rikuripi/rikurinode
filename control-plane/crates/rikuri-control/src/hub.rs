@@ -6,8 +6,11 @@
 //!
 //! The steps are a closed set: a `match` over them must name every one.
 //! The hub also says why the node last restarted (D22; `restart.rs`).
+//! One step, the power-return setting, is the firmware's and cannot be read
+//! on the node: it is `manual`, explained and never shown as done.
 //! Records: docs/build-records/2026-11-11-5c4a-uuid-and-setup-hub.md,
-//! docs/build-records/2026-11-19-boot-cause-sentence.md
+//! docs/build-records/2026-11-19-boot-cause-sentence.md,
+//! docs/build-records/2026-11-22-power-return-step.md
 
 use std::io;
 
@@ -36,16 +39,20 @@ pub enum SetupStep {
     Owner,
     // The node has its own name (5c.4b).
     Name,
+    // The node starts again by itself when power returns (plan §4.1): a
+    // firmware setting the node cannot read.
+    Power,
     Bitcoin,
     Lightning,
     Backup,
 }
 
 /// The order [`report`] lists the steps in.
-pub const STEPS: [SetupStep; 6] = [
+pub const STEPS: [SetupStep; 7] = [
     SetupStep::Connection,
     SetupStep::Owner,
     SetupStep::Name,
+    SetupStep::Power,
     SetupStep::Bitcoin,
     SetupStep::Lightning,
     SetupStep::Backup,
@@ -63,6 +70,8 @@ pub enum StepState {
     Later,
     // Could not be read. Never shown as done.
     Unknown,
+    // The node cannot read it; the owner checks it. Never shown as done.
+    Manual,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -114,6 +123,8 @@ pub fn report(
         SetupStep::Owner if owner => StepState::Done,
         SetupStep::Owner => StepState::Next,
         SetupStep::Name => name_state(hostname),
+        // Nothing on the node says it: the design note, option A.
+        SetupStep::Power => StepState::Manual,
         SetupStep::Bitcoin | SetupStep::Lightning | SetupStep::Backup => StepState::Later,
     };
     HubReport {
@@ -174,8 +185,8 @@ mod tests {
             STEPS.to_vec()
         );
         let states: Vec<_> = hub.steps.iter().map(|s| s.state).collect();
-        use StepState::{Done, Later, Next, Unknown};
-        assert_eq!(states, [Done, Done, Next, Later, Later, Later]);
+        use StepState::{Done, Later, Manual, Next, Unknown};
+        assert_eq!(states, [Done, Done, Next, Manual, Later, Later, Later]);
 
         let named = report(id.clone(), true, &read("rikuri01\n"), None);
         assert_eq!(named.steps[2].state, Done);
@@ -196,18 +207,41 @@ mod tests {
     }
 
     #[test]
+    fn the_power_step_is_manual_whatever_the_node_s_state() {
+        let id = "12345678-9abc-4ef0-8fed-cba987654321";
+        for owner in [false, true] {
+            for hostname in [read("rikurisetup\n"), read("rikuri01\n"), failed()] {
+                let hub = report(id.to_owned(), owner, &hostname, None);
+                let power: Vec<_> = hub
+                    .steps
+                    .iter()
+                    .filter(|s| s.step == SetupStep::Power)
+                    .map(|s| s.state)
+                    .collect();
+                assert_eq!(power, [StepState::Manual], "{owner} {hostname:?}");
+            }
+        }
+    }
+
+    #[test]
     fn the_json_is_the_api_the_page_reads() {
         let hub = HubReport {
             node_id: "12345678-9abc-4ef0-8fed-cba987654321".to_owned(),
-            steps: vec![HubStep {
-                step: SetupStep::Lightning,
-                state: StepState::Unknown,
-            }],
+            steps: vec![
+                HubStep {
+                    step: SetupStep::Lightning,
+                    state: StepState::Unknown,
+                },
+                HubStep {
+                    step: SetupStep::Power,
+                    state: StepState::Manual,
+                },
+            ],
             restart: None,
         };
         assert_eq!(
             serde_json::to_string(&hub).unwrap(),
-            r#"{"node_id":"12345678-9abc-4ef0-8fed-cba987654321","steps":[{"step":"lightning","state":"unknown"}],"restart":null}"#
+            r#"{"node_id":"12345678-9abc-4ef0-8fed-cba987654321","steps":[{"step":"lightning","state":"unknown"},{"step":"power","state":"manual"}],"restart":null}"#
         );
     }
 }
