@@ -63,9 +63,10 @@ The SetupHub's rule (`control-plane/crates/rikuri-control/src/hub.rs`): each ste
 
 - Sources read: the plan §4.1; `hub.rs`, `restart.rs`, `boot-cause`, `ui/src/i18n/en.json` and the install record `2026-11-03-install-n150.md` on `main` at `9345ee7`. Four web searches (results pages only; no page fetched, nothing downloaded). The links above are what those searches returned. Two were not opened: the DSP0134 PDF (its table of contents only) and Intel's register tables. The coreboot claim comes from the search's summary of that file, not from reading it.
 - **Not yet proven:** the N150's SMBIOS wake-up type after a power cut; its firmware's default for the setting; Fedora's view of the Pi 5's EEPROM settings.
-- Checks: `git diff --check` clean. No relative links in this record: repository paths are in backticks; its links are the outside sources above, taken from the search results.
+- Checks: `git diff --check` clean; CI, [run 45079945968](https://github.com/rikuripi/rikurinode/actions/runs/45079945968): `Full gate (Ubuntu)` Pass on `0c81e64` (PR #169, merged by the owner; recorded in the next task's first commit). No relative links in this record: repository paths are in backticks; its links are the outside sources above, taken from the search results.
 
 ## Result
 
 - **Done:** the note states what Linux can and cannot read on the N150 and the Pi, three options for the step's state, and a recommendation (A now, C after an N150 check).
 - **The owner's decision:** A, B or C. The step itself is a task of its own, not started.
+- **The owner's decision** (2026-11-22): "A, then Next". Built by `docs/build-records/2026-11-22-power-return-step.md`.
