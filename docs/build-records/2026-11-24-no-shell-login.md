@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/no-shell-login`, from `main` at `5ad035d`; a draft PR; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | (filled at close-out) |
-| **Status** | IN PROGRESS |
+| **Status** | NEEDS_OWNER_DECISION |
 | **Change type** | test tooling: a stage requirement given a check |
 
 ## Intent: the owner's words
