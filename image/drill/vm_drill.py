@@ -181,18 +181,36 @@ SHOW_BOOT_AUTOMOUNT = "systemctl show -p LoadState -p ActiveState boot.automount
 BOOT_FSTYPES = "findmnt -n -o FSTYPE /boot"
 # Stage 1: no shell login by default (docs/build-records/2026-11-24-no-shell-login.md).
 # The drill's own key and kernel argument are allowed for; nothing else is.
-SHOW_SSHD = "systemctl show -p Id -p LoadState -p UnitFileState sshd.service sshd.socket"
-ACCOUNTS = "getent passwd | cut -d: -f1-3"
-# Each account's name, its password field's first character and its length:
-# never the field itself.
-PASSWORDS = "getent shadow | awk -F: '{print $1 \":\" substr($2, 1, 1) \":\" length($2)}'"
+# debug-shell.service gives a root shell on tty9 with no login.
+SHOW_SSHD = "systemctl show -p Id -p LoadState -p UnitFileState sshd.service sshd.socket debug-shell.service"
+CLOSED_UNITS = ("sshd.service", "sshd.socket", "debug-shell.service")
+# Each account's name, its password field's first character and its length,
+# and (passwd) its UID: never the field itself. pipefail: a getent that failed
+# fails the command, so the reading is None.
+ACCOUNTS = "set -o pipefail; getent passwd | awk -F: '{print $1 \":\" substr($2, 1, 1) \":\" length($2) \":\" $3}'"
+PASSWORDS = "set -o pipefail; getent shadow | awk -F: '{print $1 \":\" substr($2, 1, 1) \":\" length($2)}'"
 KEY_FILES = ("find -H /etc /root /home /var/roothome /var/home -name 'authorized_keys*' -type f "
              "-exec realpath {} + 2>/dev/null | sort -u | while read -r f; do echo \"file=$f\"; cat \"$f\"; echo; done")
-# An ExecStart= that starts agetty with --autologin (or -a): a console that logs in by itself.
+# An ExecStart= that starts agetty with --autologin or -a (-a root, -aroot): a
+# console that logs in by itself.
 AUTOLOGIN = ("grep -rlE --include='*.service' --include='*.conf' "
-             "-e 'ExecStart=.*agetty.*(--autologin|[[:space:]]-a[[:space:]])' /etc/systemd /usr/lib/systemd; "
+             "-e 'ExecStart=.*agetty.*(--autologin|[[:space:]]-a)' /etc/systemd /usr/lib/systemd /run/systemd; "
              'echo "rc=$?"')
-HUMAN_UIDS = range(1000, 60000)
+CMDLINE = "cat /proc/cmdline"
+# The drill's own kernel arguments (install_argv); every other one is checked.
+DRILL_KARGS = ("console=ttyS0", "systemd.wants=sshd.service")
+# A kernel argument that gives a shell, or a credential, with no login.
+SHELL_KARGS = ("init=", "rd.break", "systemd.debug_shell", "rd.systemd.debug_shell", "systemd.set_credential",
+               "systemd.wants=", "systemd.unit=", "SYSTEMD_SULOGIN_FORCE")
+# Credentials agetty and login read (agetty.autologin, login.noauth): from the
+# credential stores, or as systemd imported them at this boot (the kernel
+# command line, SMBIOS).
+CREDENTIALS = ("find /etc/credstore /etc/credstore.encrypted /run/credstore /run/credstore.encrypted "
+               "/usr/lib/credstore /run/credentials/@system -mindepth 1 -maxdepth 1 -printf '%f\\n' "
+               '2>/dev/null; echo "rc=done"')
+LOGIN_CREDENTIALS = ("agetty.", "login.")
+# Login's UID_MIN to UID_MAX (1000-60000), and systemd-homed's 60001-60513.
+HUMAN_UIDS = range(1000, 60514)
 TRIGGER_STOPPED = re.compile(r"Stopped [^\n]*Greenboot Rollback trigger")
 SUBID_LINE = "containers:2147483647:2147483648"
 SUBID_FILES = ("/etc/subuid", "/etc/subgid")
@@ -383,25 +401,28 @@ def _key(line: str):
     return ("unreadable", line.strip())
 
 
-def shell_login_closed(sshd, accounts, passwords, keys, autologin, drill_key):
+def shell_login_closed(sshd, accounts, passwords, keys, autologin, cmdline, credentials, drill_key):
     """No shell login is enabled on the node but the drill's own: sshd's
-    service and socket are disabled, masked or not installed; every account's
-    password is locked, none empty, and none is a human's (UID 1000-59999);
-    every authorized key found is the drill's, and one is found; no systemd
-    unit or drop-in starts agetty with --autologin. Any reading that is None (its command
-    failed) fails. Returns (ok, detail)."""
+    service and socket, and debug-shell.service, are disabled, masked or not
+    installed; every account's password is locked, none empty, and none is a
+    human's (HUMAN_UIDS); every authorized key found is the drill's, and one
+    is found; no systemd unit or drop-in starts agetty with --autologin or -a;
+    no kernel argument but the drill's gives a shell or a credential; no
+    agetty or login credential is stored or imported. Any reading that is
+    None (its command failed) fails. Returns (ok, detail)."""
     parts, ok = [], True
-    if None in (sshd, accounts, passwords, keys, autologin, drill_key):
-        missing = [n for n, v in (("sshd", sshd), ("accounts", accounts), ("passwords", passwords),
-                                  ("keys", keys), ("autologin", autologin), ("the drill's key", drill_key))
-                   if v is None]
+    readings = (("sshd", sshd), ("accounts", accounts), ("passwords", passwords), ("keys", keys),
+                ("autologin", autologin), ("cmdline", cmdline), ("credentials", credentials),
+                ("the drill's key", drill_key))
+    missing = [name for name, value in readings if value is None]
+    if missing:
         return False, "not read: %s" % ", ".join(missing)
     units = {}
     for block in sshd.strip().split("\n\n"):
         props = dict(line.split("=", 1) for line in block.splitlines() if "=" in line)
         if "Id" in props:
             units[props["Id"]] = props
-    for unit in ("sshd.service", "sshd.socket"):
+    for unit in CLOSED_UNITS:
         props = units.get(unit)
         if props is None:
             state, closed = "not reported", False
@@ -415,12 +436,12 @@ def shell_login_closed(sshd, accounts, passwords, keys, autologin, drill_key):
     open_pw, humans, names = [], [], set()
     for line in accounts.splitlines():
         fields = line.split(":")
-        if len(fields) != 3 or not fields[2].isdigit():
+        if len(fields) != 4 or not fields[2].isdigit() or not fields[3].isdigit():
             open_pw.append("unreadable %r" % line)
             continue
-        name, pw, uid = fields[0], fields[1], int(fields[2])
+        name, first, length, uid = fields[0], fields[1], int(fields[2]), int(fields[3])
         names.add(name)
-        if not (pw == "x" or pw.startswith(("!", "*"))):
+        if not ((first == "x" and length == 1) or first in ("!", "*")):
             open_pw.append(name)
         if uid in HUMAN_UIDS:
             humans.append(name)
@@ -458,6 +479,14 @@ def shell_login_closed(sshd, accounts, passwords, keys, autologin, drill_key):
     quiet = lines == ["rc=1"]
     ok = ok and quiet
     parts.append("autologin: %s" % ("none" if quiet else "; ".join(lines) or "no answer"))
+    kargs = [a for a in cmdline.split() if a not in DRILL_KARGS and a.startswith(SHELL_KARGS)]
+    ok = ok and bool(cmdline.split()) and not kargs
+    parts.append("kernel arguments for a shell: %s" % (", ".join(kargs) or ("none" if cmdline.split() else "no answer")))
+    names_found = [line.strip() for line in credentials.splitlines() if line.strip()]
+    done = bool(names_found) and names_found[-1] == "rc=done"
+    creds = [n for n in names_found[:-1] if n.startswith(LOGIN_CREDENTIALS)] if done else []
+    ok = ok and done and not creds
+    parts.append("login credentials: %s" % (", ".join(creds) or ("none" if done else "not searched")))
     return ok, "; ".join(parts)
 
 
@@ -1232,13 +1261,14 @@ class Drill:
 
     def shell_login(self) -> None:
         """Stage 1: no shell login by default. After its first boot the node
-        enables no sshd, no account has a usable password or is a human's,
-        the only authorized key is the drill's own, and no console logs in by
-        itself. The drill's key and kernel argument start sshd for the drill
-        only: they leave sshd's enablement as the image and its presets made
-        it."""
+        enables no sshd and no debug shell, no account has a usable password
+        or is a human's, the only authorized key is the drill's own, and no
+        console logs in by itself (agetty's options, a kernel argument, a
+        credential). The drill's key and kernel arguments start sshd for the
+        drill only: they leave sshd's enablement as the image and its presets
+        made it. Not covered: docs/build-records/2026-11-24-no-shell-login.md."""
         readings = [self.vm(command, check=False)
-                    for command in (SHOW_SSHD, ACCOUNTS, PASSWORDS, KEY_FILES, AUTOLOGIN)]
+                    for command in (SHOW_SSHD, ACCOUNTS, PASSWORDS, KEY_FILES, AUTOLOGIN, CMDLINE, CREDENTIALS)]
         try:
             with open(self.key + ".pub", encoding="ascii") as f:
                 drill_key = f.read()
