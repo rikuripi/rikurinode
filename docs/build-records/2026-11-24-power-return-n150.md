@@ -5,8 +5,8 @@
 | **Date** | 2026-11-24 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/power-return-n150`, from `main` at `41b870d`; a draft PR; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | `3449889` (record and contract), then the text and this close-out on this branch |
-| **Status** | IN PROGRESS |
+| **Commits** | `3449889` (record and contract), `c1f688e` (the text): PR #172, merged by the owner at `c1f688e` (`5ad035d`); this close-out on `docs/power-return-n150-record`, a docs-only PR |
+| **Status** | DONE |
 | **Change type** | documentation and page text |
 
 ## Intent: the owner's words
@@ -38,3 +38,13 @@
 - `docs/runbooks/install-node.md`, step 15: the N150's path first, S5's meaning, the other names for other machines, and the GRUB line the owner saw after the unplug.
 - No test changes: the page test compares the whole string through `t('hub.power_how')`.
 - The menu's label is as the owner typed it, "PCH-IO"; the firmware may show it as "PCH-IO Configuration". Not yet proven: the exact label.
+
+## CI, `c1f688e`: Pass
+
+- `CI`, [run 45489813255](https://github.com/rikuripi/rikurinode/actions/runs/45489813255): `Full gate (Ubuntu)` Pass, `full-gate: all 11 steps passed`; the page's Playwright tests `507 passed`, the power step's whole string among them, unchanged.
+- The image workflow, [run 45489813229](https://github.com/rikuripi/rikurinode/actions/runs/45489813229): Pass.
+
+## Result
+
+- **Pass (observed):** the owner's N150 starts by itself when power returns, with **State After G3** set to **S0** under **Chipset**, **PCH-IO** (the owner's unplug test, 2026-11-24). The page and runbook step 15 name that path, and Delete (run 45489813255).
+- **Not yet proven:** **The last restart**'s sentence after the unplug; the menu's exact label; the setting's value before the change.
