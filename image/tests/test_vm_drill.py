@@ -786,7 +786,9 @@ class Verdict(unittest.TestCase):
             # docs/build-records/2026-11-19-boot-cause-sentence.md:
             "the owner is told the power cut, with its time",
             # docs/build-records/2026-11-20-boot-cause-rollback-rule.md:
-            "the new image counted from its first boot", "case 1b, power cuts in a new image's trial"})
+            "the new image counted from its first boot", "case 1b, power cuts in a new image's trial",
+            # docs/build-records/2026-11-24-no-shell-login.md:
+            "no shell login by default"})
 
     def test_all_passed_and_no_error_is_zero(self):
         self.assertEqual(d.verdict(self.ALL, None), 0)
@@ -2311,6 +2313,181 @@ class BootAutomountSteps(unittest.TestCase):
         self.assertLess(source.index("drill.first_boot()"), source.index("drill.boot_automount()"))
         self.assertLess(source.index("drill.boot_automount()"), source.index("drill.load_variants()"))
 
+
+
+# Stage 1, no shell login by default (docs/build-records/2026-11-24-no-shell-login.md).
+SSHD_OFF = ("Id=sshd.service\nLoadState=loaded\nUnitFileState=disabled\n\n"
+            "Id=sshd.socket\nLoadState=loaded\nUnitFileState=disabled\n")
+ACCOUNTS_OK = "root:x:0\nbin:x:1\nrikuri-control:x:990\nnobody:x:65534\n"
+PASSWORDS_OK = "root:!:7\nbin:*:1\n"
+DRILL_KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIdrill vm-drill\n"
+KEYS_OK = "file=/var/roothome/.ssh/authorized_keys\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIdrill vm-drill\n\n"
+NO_AUTOLOGIN = "rc=1\n"
+LOGIN_CLOSED = (SSHD_OFF, ACCOUNTS_OK, PASSWORDS_OK, KEYS_OK, NO_AUTOLOGIN, DRILL_KEY)
+
+
+class ShellLoginReads(unittest.TestCase):
+    def judge(self, **over):
+        names = ("sshd", "accounts", "passwords", "keys", "autologin", "drill_key")
+        readings = dict(zip(names, LOGIN_CLOSED))
+        readings.update(over)
+        return d.shell_login_closed(*(readings[n] for n in names))
+
+    def test_the_commands(self):
+        self.assertEqual(d.SHOW_SSHD, "systemctl show -p Id -p LoadState -p UnitFileState sshd.service sshd.socket")
+        self.assertEqual(d.ACCOUNTS, "getent passwd | cut -d: -f1-3")
+        # The password field itself is never printed: only its first character and its length.
+        self.assertEqual(d.PASSWORDS,
+                         "getent shadow | awk -F: '{print $1 \":\" substr($2, 1, 1) \":\" length($2)}'")
+        for part in ("find -H /etc /root /home /var/roothome /var/home -name 'authorized_keys*' -type f",
+                     "-exec realpath {} +", "sort -u", 'echo "file=$f"; cat "$f"; echo; done'):
+            self.assertIn(part, d.KEY_FILES)
+        self.assertIn("-e 'ExecStart=.*agetty.*(--autologin|[[:space:]]-a[[:space:]])' /etc/systemd /usr/lib/systemd",
+                      d.AUTOLOGIN)
+        self.assertTrue(d.AUTOLOGIN.endswith('echo "rc=$?"'))
+
+    def test_a_closed_node_passes_and_says_what_it_read(self):
+        ok, detail = self.judge()
+        self.assertTrue(ok, detail)
+        self.assertEqual(detail, "sshd.service: disabled; sshd.socket: disabled; accounts with a password: none; "
+                                 "human accounts: none; authorized keys: 1, the drill's only: True "
+                                 "(/var/roothome/.ssh/authorized_keys); autologin: none")
+
+    def test_sshd_masked_or_not_installed_passes(self):
+        masked = SSHD_OFF.replace("UnitFileState=disabled\n\n", "UnitFileState=masked\n\n")
+        self.assertTrue(self.judge(sshd=masked)[0])
+        absent = SSHD_OFF.split("\n\n")[0] + "\n\nId=sshd.socket\nLoadState=not-found\nUnitFileState=\n"
+        ok, detail = self.judge(sshd=absent)
+        self.assertTrue(ok, detail)
+        self.assertIn("sshd.socket: not installed", detail)
+
+    def test_sshd_enabled_fails(self):
+        for why, sshd in (
+                ("the service enabled", SSHD_OFF.replace("UnitFileState=disabled\n\n", "UnitFileState=enabled\n\n")),
+                ("the socket enabled", SSHD_OFF[:-len("disabled\n")] + "enabled\n"),
+                ("enabled at run time", SSHD_OFF[:-len("disabled\n")] + "enabled-runtime\n"),
+                ("static", SSHD_OFF[:-len("disabled\n")] + "static\n"),
+                ("no state", SSHD_OFF[:-len("disabled\n")] + "\n"),
+                ("the socket not reported", SSHD_OFF.split("\n\n")[0] + "\n"),
+                ("nothing reported", "")):
+            with self.subTest(why=why):
+                self.assertFalse(self.judge(sshd=sshd)[0])
+
+    def test_an_account_that_could_log_in_fails(self):
+        for why, over in (
+                ("a hash in passwd", {"accounts": ACCOUNTS_OK + "ops:$6$salt$hash:991\n"}),
+                ("an empty passwd field", {"accounts": ACCOUNTS_OK + "ops::991\n"}),
+                ("a human account", {"accounts": ACCOUNTS_OK + "henry:x:1000\n"}),
+                ("the last human UID", {"accounts": ACCOUNTS_OK + "late:x:59999\n"}),
+                ("a line it cannot read", {"accounts": ACCOUNTS_OK + "odd:x\n"}),
+                ("root not in passwd", {"accounts": "bin:x:1\n"}),
+                ("an empty shadow field", {"passwords": PASSWORDS_OK + "ops::0\n"}),
+                ("root with a password", {"passwords": "root:$:106\nbin:*:1\n"}),
+                ("a shadow line it cannot read", {"passwords": PASSWORDS_OK + "ops:!\n"}),
+                ("root not in shadow", {"passwords": "bin:*:1\n"}),
+                ("no shadow at all", {"passwords": ""})):
+            with self.subTest(why=why):
+                self.assertFalse(self.judge(**over)[0])
+        ok, detail = self.judge(accounts=ACCOUNTS_OK + "henry:x:1000\n")
+        self.assertIn("human accounts: henry", detail)
+        ok, detail = self.judge(passwords="root:$:106\nbin:*:1\n")
+        self.assertIn("accounts with a password: root", detail)
+
+    def test_uids_outside_the_human_range_pass(self):
+        self.assertTrue(self.judge(accounts=ACCOUNTS_OK + "dyn:x:61184\nsys:x:999\n")[0])
+
+    def test_any_key_but_the_drill_s_fails(self):
+        other = "ssh-rsa AAAAB3NzaC1yc2Eother someone\n"
+        for why, keys in (
+                ("no key at all", ""),
+                ("a file with no key", "file=/var/roothome/.ssh/authorized_keys\n\n"),
+                ("another key beside the drill's", KEYS_OK + "file=/var/home/ops/.ssh/authorized_keys\n" + other),
+                ("another key in root's file", KEYS_OK.rstrip("\n") + "\n" + other),
+                ("a line that is not a key", KEYS_OK + "garbage\n")):
+            with self.subTest(why=why):
+                self.assertFalse(self.judge(keys=keys)[0])
+
+    def test_the_drill_s_key_with_options_or_comments_passes(self):
+        keys = ("file=/var/roothome/.ssh/authorized_keys\n# the drill's\n\n"
+                'restrict,from="127.0.0.1" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIdrill vm-drill\n\n')
+        self.assertTrue(self.judge(keys=keys)[0])
+
+    def test_autologin_found_or_not_searched_fails(self):
+        for why, out in (("a unit found", "/etc/systemd/system/getty@tty1.service.d/autologin.conf\nrc=0\n"),
+                         ("grep failed", "rc=2\n"), ("no answer", ""), ("no rc", "\n")):
+            with self.subTest(why=why):
+                self.assertFalse(self.judge(autologin=out)[0])
+
+    def test_any_reading_not_made_fails(self):
+        for name in ("sshd", "accounts", "passwords", "keys", "autologin", "drill_key"):
+            with self.subTest(name=name):
+                ok, detail = self.judge(**{name: None})
+                self.assertFalse(ok)
+                self.assertTrue(detail.startswith("not read: "), detail)
+
+
+class ShellLoginDrill(d.Drill):
+    def __init__(self, artifacts, answers):
+        super().__init__("localhost/rikuri-os:test", artifacts, artifacts)
+        self.answers = answers
+        self.commands = []
+        self.log = lambda message: None
+
+    def vm(self, command, check=True, timeout=300, stdin=None):
+        assert command in self.answers, command
+        assert check is False, command
+        self.commands.append(command)
+        return self.answers[command]
+
+
+class ShellLoginSteps(unittest.TestCase):
+    CASE = "no shell login by default"
+    COMMANDS = (d.SHOW_SSHD, d.ACCOUNTS, d.PASSWORDS, d.KEY_FILES, d.AUTOLOGIN)
+
+    def setUp(self):
+        self.artifacts = tempfile.mkdtemp(prefix="drill-artifacts-")
+        self.addCleanup(shutil.rmtree, self.artifacts)
+
+    def result(self, readings, key=DRILL_KEY):
+        drill = ShellLoginDrill(self.artifacts, dict(zip(self.COMMANDS, readings)))
+        if key is not None:
+            with open(drill.key + ".pub", "w", encoding="ascii") as f:
+                f.write(key)
+        drill.shell_login()
+        [(case, ok, detail)] = drill.results
+        self.assertEqual(case, self.CASE)
+        self.assertIn(case, d.EXPECTED)
+        self.assertEqual(sorted(drill.commands), sorted(self.COMMANDS))
+        with open(os.path.join(self.artifacts, "01e-shell-login.out"), encoding="utf-8") as f:
+            kept = f.read()
+        return ok, detail, kept
+
+    def test_a_closed_node_passes_and_keeps_what_it_read(self):
+        ok, detail, kept = self.result(LOGIN_CLOSED[:5])
+        self.assertTrue(ok, detail)
+        self.assertIn("UnitFileState=disabled", kept)
+        self.assertIn("root:!:7", kept)
+
+    def test_sshd_enabled_fails_the_step(self):
+        ok, _, _ = self.result((SSHD_OFF.replace("disabled\n\n", "enabled\n\n"),) + LOGIN_CLOSED[1:5])
+        self.assertFalse(ok)
+
+    def test_a_command_that_failed_fails_the_step_and_is_kept_as_such(self):
+        ok, detail, kept = self.result(LOGIN_CLOSED[:2] + (None,) + LOGIN_CLOSED[3:5])
+        self.assertFalse(ok)
+        self.assertEqual(detail, "not read: passwords")
+        self.assertIn("(no answer)", kept)
+
+    def test_no_drill_key_fails_the_step(self):
+        ok, detail, _ = self.result(LOGIN_CLOSED[:5], key=None)
+        self.assertFalse(ok)
+        self.assertEqual(detail, "not read: the drill's key")
+
+    def test_main_runs_it_at_the_first_boot(self):
+        import inspect
+        source = inspect.getsource(d.main)
+        self.assertLess(source.index("drill.boot_automount()"), source.index("drill.shell_login()"))
+        self.assertLess(source.index("drill.shell_login()"), source.index("drill.control_plane()"))
 
 
 # 5c.4b-1 (docs/build-records/2026-11-13-5c4b1-rename-engine.md): the drill

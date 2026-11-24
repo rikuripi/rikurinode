@@ -179,6 +179,20 @@ OSTREE_ERROR = re.compile(r"(?<![\w-])ostree\[\d+\]: (error: .*)$", re.M)
 # is the only one (docs/build-records/2026-11-11-boot-automount-mask.md).
 SHOW_BOOT_AUTOMOUNT = "systemctl show -p LoadState -p ActiveState boot.automount"
 BOOT_FSTYPES = "findmnt -n -o FSTYPE /boot"
+# Stage 1: no shell login by default (docs/build-records/2026-11-24-no-shell-login.md).
+# The drill's own key and kernel argument are allowed for; nothing else is.
+SHOW_SSHD = "systemctl show -p Id -p LoadState -p UnitFileState sshd.service sshd.socket"
+ACCOUNTS = "getent passwd | cut -d: -f1-3"
+# Each account's name, its password field's first character and its length:
+# never the field itself.
+PASSWORDS = "getent shadow | awk -F: '{print $1 \":\" substr($2, 1, 1) \":\" length($2)}'"
+KEY_FILES = ("find -H /etc /root /home /var/roothome /var/home -name 'authorized_keys*' -type f "
+             "-exec realpath {} + 2>/dev/null | sort -u | while read -r f; do echo \"file=$f\"; cat \"$f\"; echo; done")
+# An ExecStart= that starts agetty with --autologin (or -a): a console that logs in by itself.
+AUTOLOGIN = ("grep -rlE --include='*.service' --include='*.conf' "
+             "-e 'ExecStart=.*agetty.*(--autologin|[[:space:]]-a[[:space:]])' /etc/systemd /usr/lib/systemd; "
+             'echo "rc=$?"')
+HUMAN_UIDS = range(1000, 60000)
 TRIGGER_STOPPED = re.compile(r"Stopped [^\n]*Greenboot Rollback trigger")
 SUBID_LINE = "containers:2147483647:2147483648"
 SUBID_FILES = ("/etc/subuid", "/etc/subgid")
@@ -355,6 +369,96 @@ def boot_automount_masked(show, fstypes) -> bool:
     props = dict(line.split("=", 1) for line in show.splitlines() if "=" in line)
     return (props.get("LoadState") == "masked" and props.get("ActiveState") == "inactive"
             and fstypes.split() == ["ext4"])
+
+
+def _key(line: str):
+    """An authorized_keys line's key type and blob, or None for a blank line or a comment."""
+    fields = line.split()
+    if not fields or fields[0].startswith("#"):
+        return None
+    # A line may start with options; the key is the first field that names a key type.
+    for i, field in enumerate(fields[:-1]):
+        if field.startswith(("ssh-", "ecdsa-", "sk-")):
+            return (field, fields[i + 1])
+    return ("unreadable", line.strip())
+
+
+def shell_login_closed(sshd, accounts, passwords, keys, autologin, drill_key):
+    """No shell login is enabled on the node but the drill's own: sshd's
+    service and socket are disabled, masked or not installed; every account's
+    password is locked, none empty, and none is a human's (UID 1000-59999);
+    every authorized key found is the drill's, and one is found; no systemd
+    unit or drop-in starts agetty with --autologin. Any reading that is None (its command
+    failed) fails. Returns (ok, detail)."""
+    parts, ok = [], True
+    if None in (sshd, accounts, passwords, keys, autologin, drill_key):
+        missing = [n for n, v in (("sshd", sshd), ("accounts", accounts), ("passwords", passwords),
+                                  ("keys", keys), ("autologin", autologin), ("the drill's key", drill_key))
+                   if v is None]
+        return False, "not read: %s" % ", ".join(missing)
+    units = {}
+    for block in sshd.strip().split("\n\n"):
+        props = dict(line.split("=", 1) for line in block.splitlines() if "=" in line)
+        if "Id" in props:
+            units[props["Id"]] = props
+    for unit in ("sshd.service", "sshd.socket"):
+        props = units.get(unit)
+        if props is None:
+            state, closed = "not reported", False
+        elif props.get("LoadState") == "not-found":
+            state, closed = "not installed", True
+        else:
+            state = props.get("UnitFileState") or "no state"
+            closed = state in ("disabled", "masked")
+        ok = ok and closed
+        parts.append("%s: %s" % (unit, state))
+    open_pw, humans, names = [], [], set()
+    for line in accounts.splitlines():
+        fields = line.split(":")
+        if len(fields) != 3 or not fields[2].isdigit():
+            open_pw.append("unreadable %r" % line)
+            continue
+        name, pw, uid = fields[0], fields[1], int(fields[2])
+        names.add(name)
+        if not (pw == "x" or pw.startswith(("!", "*"))):
+            open_pw.append(name)
+        if uid in HUMAN_UIDS:
+            humans.append(name)
+    shadowed = set()
+    for line in passwords.splitlines():
+        fields = line.split(":")
+        if len(fields) != 3 or not fields[2].isdigit():
+            open_pw.append("unreadable %r" % line)
+            continue
+        name, first, length = fields[0], fields[1], int(fields[2])
+        shadowed.add(name)
+        if length == 0 or first not in ("!", "*"):
+            open_pw.append(name)
+    if "root" not in names or "root" not in shadowed:
+        open_pw.append("root not listed")
+    ok = ok and not open_pw and not humans
+    parts.append("accounts with a password: %s" % (", ".join(open_pw) or "none"))
+    parts.append("human accounts: %s" % (", ".join(humans) or "none"))
+    want = _key(drill_key)
+    found, others, where = 0, [], []
+    for line in keys.splitlines():
+        if line.startswith("file="):
+            where.append(line[len("file="):])
+            continue
+        key = _key(line)
+        if key is None:
+            continue
+        found += 1
+        if key != want:
+            others.append(key[0])
+    ok = ok and found > 0 and not others and want is not None
+    parts.append("authorized keys: %d, the drill's only: %s (%s)"
+                 % (found, found > 0 and not others, ", ".join(where) or "no file"))
+    lines = [line for line in autologin.splitlines() if line.strip()]
+    quiet = lines == ["rc=1"]
+    ok = ok and quiet
+    parts.append("autologin: %s" % ("none" if quiet else "; ".join(lines) or "no answer"))
+    return ok, "; ".join(parts)
 
 
 def finalize_error(journal: str) -> str:
@@ -911,7 +1015,8 @@ def fresh_heartbeat(text: str, now, within: int = HEARTBEAT_FRESH_S) -> bool:
             and abs(now - int(text)) <= within)
 
 
-EXPECTED = frozenset({"first boot", "the containers range at the first boot", "case 1, a failing update",
+EXPECTED = frozenset({"first boot", "no shell login by default",
+                      "the containers range at the first boot", "case 1, a failing update",
                       "case 2b, finalize fails", "case 2d, an update downloaded only",
                       "case 2e, an update cancelled during the shutdown",
                       "case 3, a power cut during the update",
@@ -1124,6 +1229,24 @@ class Drill:
         self.check("the EFI partition's automount on /boot is masked", boot_automount_masked(show, fstypes),
                    "boot.automount: LoadState=%s; ActiveState=%s; /boot: %s"
                    % (props.get("LoadState"), props.get("ActiveState"), ", ".join((fstypes or "").split())))
+
+    def shell_login(self) -> None:
+        """Stage 1: no shell login by default. After its first boot the node
+        enables no sshd, no account has a usable password or is a human's,
+        the only authorized key is the drill's own, and no console logs in by
+        itself. The drill's key and kernel argument start sshd for the drill
+        only: they leave sshd's enablement as the image and its presets made
+        it."""
+        readings = [self.vm(command, check=False)
+                    for command in (SHOW_SSHD, ACCOUNTS, PASSWORDS, KEY_FILES, AUTOLOGIN)]
+        try:
+            with open(self.key + ".pub", encoding="ascii") as f:
+                drill_key = f.read()
+        except OSError:
+            drill_key = None
+        self.keep("01e-shell-login.out", "\n\n".join(r if r is not None else "(no answer)" for r in readings))
+        ok, detail = shell_login_closed(*readings, drill_key)
+        self.check("no shell login by default", ok, detail)
 
     def subid_first_boot(self) -> None:
         """A fresh install gets the range at its first boot: the unit added it to
@@ -2060,6 +2183,7 @@ def main(argv=None) -> int:
         drill.first_boot()
         drill.boot_cause_first_boot()
         drill.boot_automount()
+        drill.shell_login()
         drill.control_plane()
         drill.setup_pages()
         drill.owner_pages()

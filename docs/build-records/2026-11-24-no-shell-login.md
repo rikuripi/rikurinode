@@ -43,3 +43,15 @@
 3. **Done when:** the full gate passes in CI with the new tests; the image workflow's drill passes, with "no shell login by default" Pass and its detail read from the log; one `verifier` pass (code; AGENTS.md §5).
 4. **Authority:** the files above. On the Mac: `ast` parse checks and `git diff --check`; the tests run in CI only. Commit and push this branch; a draft PR to `main`; the owner merges.
 5. **Limits:** one task; two repair cycles and two review rounds. No budget is configured; VM time is reported.
+
+## Evidence log
+
+### The change
+
+- `image/drill/vm_drill.py`, as designed: the commands `SHOW_SSHD`, `ACCOUNTS`, `PASSWORDS`, `KEY_FILES`, `AUTOLOGIN`; `shell_login_closed`; `Drill.shell_login` (its readings kept in `01e-shell-login.out`); `main` runs it after `boot_automount`; `EXPECTED` names "no shell login by default".
+- **Narrowed while writing, before any run:** the autologin search looks only for an `ExecStart=` that starts agetty with `--autologin` or `-a`. A plain search for "autologin" might match a unit's comment or a credential's name; a plain `-a` matches other programs' flags. Each key file's contents are followed by a newline, so a file without a last newline cannot join the next file's name.
+- **Reasons for the test changes** (`image/tests/test_vm_drill.py`; new coverage, no defect fixed, so no red commit):
+  - `Verdict.test_every_check_names_a_step`: the new check's name added to the list; nothing else changed.
+  - New `ShellLoginReads`: the commands exactly, with the password field never printed; a closed node passes with its detail; sshd masked or not installed passes; sshd enabled (service or socket), enabled at run time, static, with no state or not reported fails; an account with a hash, an empty field, a human UID (1000 and 59999), an unreadable line, or root missing fails; UIDs outside the human range pass; no key, a file with no key, another key, or a line that is not a key fails; the drill's key with options and comments passes; autologin found, grep failed or no answer fails; each reading not made fails with "not read".
+  - New `ShellLoginSteps`: the step asks the five commands with `check=False`, keeps what it read, fails when sshd is enabled, when a command failed (kept as "(no answer)") or when the drill's key cannot be read; `main` runs it between `boot_automount` and `control_plane`.
+- On the Mac: `ast` parse checks of both files and `git diff --check`.
