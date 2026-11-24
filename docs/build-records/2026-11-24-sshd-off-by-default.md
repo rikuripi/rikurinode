@@ -5,8 +5,8 @@
 | **Date** | 2026-11-24 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/sshd-off`, from `main` at `04a12cb`; a draft PR; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `a692435` (contract), `2e7f303` (red), `47683cb` (fix): PR #175, merged by the owner at `47683cb` (`56e1c64`); this close-out on `docs/sshd-off-record`, a docs-only PR |
+| **Status** | DONE |
 | **Change type** | defect fix (the image) |
 
 ## Intent: the owner's words
@@ -80,3 +80,28 @@
 - `image/Containerfile`: `RUN systemctl disable sshd.service sshd.socket` after the `rootfs` copy. It removes the base image's link at build.
 - No test changes after the red.
 - **Not yet proven: a node installed before this change,** such as the owner's N150. Presets apply only at a first boot. Whether an update removes the old link from its `/etc` depends on ostree's merge of `/etc` (a file the owner never changed takes the new image's state). The drill installs fresh, so it does not show this.
+
+## Verification
+
+- **The verifier**, one pass on `04a12cb..47683cb` (routine): **no Important finding**; its verdict was "not yet proven" only because CI on `47683cb` was still running.
+  - Checked: the red commit holds only the check, its tests and this record, and failed as recorded (runs 45502844723, 45502845036); `git diff 2e7f303 47683cb -- image/tests image/check_image_root.py` is empty, so no test changed after the red; every new test has its reason; scope as the contract names; `git diff --check` clean.
+  - Reasoned: the build's `systemctl disable` removes the base image's link offline; at a first boot `10-` sorts before `90-default.preset`, so the disable decides; not a mask, so the drill's `systemd.wants=sshd.service` still starts it.
+  - Hand mutants (on a scratch copy, `python3 -I`): first match replaced by last, globs replaced by equality, the `etc`-over-`usr/lib` order dropped, `.upholds` dropped: killed. Survived: `ignore` dropped from the verbs (no test uses `ignore`, though a test's name says so); the finding for a linked preset file other than the image's; the skip of a missing folder; `len(words) < 2` as `< 1`.
+- **Nits, and what was done:** none fixed here; each is backlog.
+  1. The check does not read `usr/local/lib/systemd/system-preset`, nor the unit folders `etc/systemd/system.control`, `etc/systemd/system.attached` and `usr/local/lib/systemd/system` (the repository's `SUBID_UNIT_DIRS` and `BOOT_AUTOMOUNT_OVERRIDES` already list them). As designed, but narrower than systemd reads.
+  2. The surviving mutants above, `ignore` first.
+  3. A linked `*.wants` folder is skipped without a finding, while a linked preset file is one.
+  4. Paths the check cannot see: a drop-in `Wants=sshd.service`, and generators, `systemd-ssh-generator` among them (a local AF_UNIX socket, and AF_VSOCK in a VM, unless `systemd.ssh_auto=no`). Neither is reachable from the LAN; the drill's runtime check (#174) reads the running node.
+
+## CI, `47683cb`
+
+- `CI`, [run 45503324502](https://github.com/rikuripi/rikurinode/actions/runs/45503324502): `Full gate (Ubuntu)` **Pass**.
+- The image workflow, [run 45503324685](https://github.com/rikuripi/rikurinode/actions/runs/45503324685): "Build and check the OS image" **Pass**. Its log: `RUN systemctl disable sshd.service sshd.socket` printed `Removed '/etc/systemd/system/multi-user.target.wants/sshd.service'.`, and `check_image_root: 0 finding(s)` on the built root. The drill and the USB install: **Pass**; every job of the run Pass.
+
+## Result
+
+- **Pass (observed):** the image ships sshd disabled. The build removes the base image's enablement link, the image's preset decides sshd before Fedora's, and the image check holds both with `0 finding(s)` (runs 45503324502, 45503324685). The red run showed each cause on the real image first (45502844723, 45502845036).
+- **Not yet proven:**
+  - on a booted node, sshd disabled after the first boot: the drill's "no shell login by default" check on PR #174, once it is updated onto `main`;
+  - a node installed before this change (the owner's N150) after an update: ostree's `/etc` merge.
+- **Backlog:** the verifier's nits 1 to 4 above; the N150's sshd state after its next update.
