@@ -62,6 +62,7 @@ docs/build-records/evidence/2026-10-25-signature-policy/ (03, 04).
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import hashlib
 import json
 import os
@@ -110,6 +111,15 @@ BOOT_AUTOMOUNT = "usr/lib/systemd/system/boot.automount"
 BOOT_AUTOMOUNT_OVERRIDES = ("etc/systemd/system.control/boot.automount", "etc/systemd/system/boot.automount",
                             "etc/systemd/system.attached/boot.automount",
                             "usr/local/lib/systemd/system/boot.automount")
+# sshd off by default (ADR 0011; docs/build-records/2026-11-24-sshd-off-by-default.md):
+# the image's preset comes before Fedora's, and nothing in the image enables it.
+# Not a mask: the drill's systemd.wants=sshd.service must still start it.
+SSHD_PRESET = "usr/lib/systemd/system-preset/10-rikuri-node.preset"
+SSHD_PRESET_LINES = ["disable sshd.service", "disable sshd.socket"]
+SSHD_UNITS = ("sshd.service", "sshd.socket")
+PRESET_DIRS = ("etc/systemd/system-preset", "usr/lib/systemd/system-preset")
+UNIT_DIRS = ("etc/systemd/system", "usr/lib/systemd/system")
+ENABLE_DIR_SUFFIXES = (".wants", ".requires", ".upholds")
 # Podman's containers range for UserNS=auto, kept at every boot
 # (docs/build-records/2026-10-23-containers-subid.md).
 SUBID_CHECK = "usr/libexec/rikuri/containers-subid"
@@ -1123,6 +1133,59 @@ def check_signature_policy(root: str) -> list:
     return found
 
 
+def preset_decisions(files: list, units) -> dict:
+    """{unit: (verb, rel)}: the first preset line that matches each unit, as
+    systemd reads them. files is [(rel, text)] in the order of the files'
+    names; a line is "enable|disable|ignore <glob> ...", comments (# or ;)
+    and blank lines aside."""
+    decided = {}
+    for rel, text in files:
+        for line in text.splitlines():
+            words = line.split()
+            if len(words) < 2 or words[0] not in ("enable", "disable", "ignore"):
+                continue
+            for unit in units:
+                if unit not in decided and fnmatch.fnmatchcase(unit, words[1]):
+                    decided[unit] = (words[0], rel)
+    return decided
+
+
+def check_sshd_off(root: str) -> list:
+    found = _exact_lines(root, SSHD_PRESET, SSHD_PRESET_LINES, lambda line: line.lstrip().startswith(("#", ";")),
+                         "it keeps sshd off by default, ADR 0011")
+    by_name = {}
+    for folder in reversed(PRESET_DIRS):    # a file in etc replaces one of the same name in usr/lib
+        base = _dir(root, folder)
+        for name in sorted(os.listdir(base)) if base else []:
+            if name.endswith(".preset"):
+                by_name[name] = folder + "/" + name
+    files = []
+    for name in sorted(by_name):
+        data = _read_bytes(root, by_name[name])
+        if data is None:
+            found.append("%s: a link, or not a regular file: systemd would read it, this check cannot" % by_name[name])
+            continue
+        files.append((by_name[name], data.decode("utf-8", "replace")))
+    decided = preset_decisions(files, SSHD_UNITS)
+    for unit in SSHD_UNITS:
+        if decided.get(unit) != ("disable", SSHD_PRESET):
+            verb, rel = decided.get(unit, ("no line", "any preset"))
+            found.append("%s: the first preset for it is %s, in %s, not %s's disable: a node would start sshd "
+                         "after its first boot" % (unit, verb, rel, SSHD_PRESET))
+    for folder in UNIT_DIRS:
+        base = _dir(root, folder)
+        for name in sorted(os.listdir(base)) if base else []:
+            if not name.endswith(ENABLE_DIR_SUFFIXES):
+                continue
+            sub = folder + "/" + name
+            if _dir(root, sub) is None:
+                continue
+            for unit in SSHD_UNITS:
+                if os.path.lexists(os.path.join(root, sub, unit)):
+                    found.append("%s/%s: enables sshd on every node" % (sub, unit))
+    return found
+
+
 def check_boot_automount(root: str) -> list:
     found = []
     full = os.path.join(root, BOOT_AUTOMOUNT)
@@ -1142,7 +1205,7 @@ def check_boot_automount(root: str) -> list:
 
 def check_root(root: str, release: str, note=lambda line: None) -> list:
     return (check_os_release(root, release) + check_greenboot(root) + check_unapplied_update(root)
-            + check_trigger_at_shutdown(root) + check_boot_automount(root)
+            + check_trigger_at_shutdown(root) + check_boot_automount(root) + check_sshd_off(root)
             + check_containers_subid(root) + check_boot_cause(root) + check_boot_counter(root)
             + check_grubenv_flush(root)
             + check_containers_user(root)

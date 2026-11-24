@@ -34,7 +34,7 @@
 ## Task Contract
 
 1. **Outcome:** a node built from the image has sshd disabled after its first boot, as ADR 0011 and the plan say, and the image check holds it.
-2. **Scope:** high-risk? No: routine. It changes which service a node starts, but only to turn off one that nothing uses; no key, funds or sign-in path.
+2. **Scope:** routine. It changes which service a node starts, but only to turn off one that nothing uses; no key, funds or sign-in path.
    - `image/check_image_root.py` (`check_sshd_off`, in `check_root`); `image/tests/test_check_image_root.py` (red first).
    - `image/rootfs/usr/lib/systemd/system-preset/10-rikuri-node.preset`; `image/Containerfile` only if the red run shows a link.
    - This record.
@@ -45,3 +45,21 @@
    - One `verifier` pass (code; AGENTS.md §5).
 4. **Authority:** the files above. On the Mac: `ast` parse checks and `git diff --check`; the tests run in CI only. Commit and push this branch; a draft PR to `main`; the owner merges.
 5. **Limits:** one task; two repair cycles and two review rounds. No budget is configured; VM time is reported.
+
+## Evidence log
+
+### Red
+
+- `image/check_image_root.py`: `check_sshd_off` and `preset_decisions`, in `check_root`, as designed. No preset shipped yet.
+- **Reasons for the test changes** (`image/tests/test_check_image_root.py`; red first, the defect seen in the drill):
+  - The fixture `Root` copies the shipped preset when it exists, as it does for every shipped file, so the good root holds it once the fix ships it.
+  - New `SshdOff`:
+    - the image ships the preset's two lines;
+    - with Fedora's `90-default.preset` enabling sshd after it, the root passes;
+    - the preset missing, with one unit, enabling, or a link is a finding;
+    - an earlier preset that enables sshd is a finding (by name, by `sshd.*`, by `*`), and so is one in `etc` that replaces the image's of the same name;
+    - an earlier preset that disables it is a finding too, since only the image's own line is held: another file may change or go with an update;
+    - a later line does not count;
+    - an enablement link for sshd in `.wants`, `.requires` or `.upholds`, in `etc` or `usr/lib`, is a finding;
+    - `preset_decisions` reads comments, globs and the first match as systemd does.
+- Expected in CI: the full gate fails on the good-root tests (no preset in `rootfs`) and `test_the_image_ships_the_preset`; the image workflow's check fails on the real image, its findings showing which preset decides sshd today and whether the base image ships an enablement link.
