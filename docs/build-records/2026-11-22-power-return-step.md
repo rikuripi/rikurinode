@@ -72,5 +72,7 @@
 ## Result
 
 - **Pass (observed):** the hub lists seven steps, the power step `manual` whatever the node's state, at the route and on the page, with its explanation and never "Done"; unknown states and partial lists still refused (full gate 45100012148; the verifier's pass).
-- **Not yet proven:** the setting's name, menu and keys on the owner's N150 (runbook step 15 asks); the drill's cases 4 and 5 on `e0827c8` (the registry timeout).
+- **Pass (observed), on `23480ce`, the commit merged:** CI, [run 45106561509](https://github.com/rikuripi/rikurinode/actions/runs/45106561509): `full-gate: all 11 steps passed`; "Rust mutants", [run 45106561458](https://github.com/rikuripi/rikurinode/actions/runs/45106561458): Pass; the image workflow, [run 45106561492](https://github.com/rikuripi/rikurinode/actions/runs/45106561492): every job Pass, the drill's every case among them: "the hub refuses a browser without a session", case 3b, and cases 4 (an unsigned update refused) and 5 (a signed update staged), which the registry timeout had kept from running on `e0827c8`. `23480ce` differs from `e0827c8` by this record only.
+- PR #170 merged by the owner at `23480ce` (`090d943`).
+- **Not yet proven:** the setting's name, menu and keys on the owner's N150 (runbook step 15 asks).
 - **Backlog:** the verifier's nit 2, a page-side refusal of any power state but `manual`.
