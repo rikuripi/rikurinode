@@ -2458,7 +2458,9 @@ class ShellLoginReads(unittest.TestCase):
     def test_a_kernel_argument_for_a_shell_fails(self):
         for arg in ("init=/bin/sh", "rd.break", "systemd.debug_shell", "systemd.debug_shell=tty1",
                     "rd.systemd.debug_shell", "systemd.set_credential=agetty.autologin:root",
-                    "systemd.wants=debug-shell.service", "systemd.unit=emergency.target", "SYSTEMD_SULOGIN_FORCE=1"):
+                    "systemd.wants=debug-shell.service", "systemd.unit=emergency.target", "SYSTEMD_SULOGIN_FORCE=1",
+                    # Repair 2 (verifier nit A): systemd reads - and _ alike in a name.
+                    "systemd.debug-shell", "rd.systemd.debug-shell=tty1", "systemd.set-credential=agetty.autologin:root"):
             with self.subTest(arg=arg):
                 ok, detail = self.judge(cmdline=CMDLINE_OK.strip() + " " + arg + "\n")
                 self.assertFalse(ok)
@@ -2468,6 +2470,8 @@ class ShellLoginReads(unittest.TestCase):
     def test_only_the_drill_s_own_kernel_arguments_are_allowed(self):
         self.assertEqual(d.DRILL_KARGS, ("console=ttyS0", "systemd.wants=sshd.service"))
         self.assertTrue(self.judge(cmdline="root=UUID=1 rw\n")[0])
+        # Only a name's - is read as _: a value's - is left alone.
+        self.assertTrue(self.judge(cmdline="root=UUID=1 rw rootflags=data-journal\n")[0])
 
     def test_a_login_credential_fails(self):
         for name in ("agetty.autologin", "login.noauth"):

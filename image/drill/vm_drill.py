@@ -199,7 +199,9 @@ AUTOLOGIN = ("grep -rlE --include='*.service' --include='*.conf' "
 CMDLINE = "cat /proc/cmdline"
 # The drill's own kernel arguments (install_argv); every other one is checked.
 DRILL_KARGS = ("console=ttyS0", "systemd.wants=sshd.service")
-# A kernel argument that gives a shell, or a credential, with no login.
+# A kernel argument that gives a shell, or a credential, with no login. systemd
+# reads - and _ in an argument's name alike (systemd.debug-shell), so a name is
+# compared with each - as _ (repair 2, verifier nit A).
 SHELL_KARGS = ("init=", "rd.break", "systemd.debug_shell", "rd.systemd.debug_shell", "systemd.set_credential",
                "systemd.wants=", "systemd.unit=", "SYSTEMD_SULOGIN_FORCE")
 # Credentials agetty and login read (agetty.autologin, login.noauth): from the
@@ -401,6 +403,12 @@ def _key(line: str):
     return ("unreadable", line.strip())
 
 
+def _karg_name(arg: str) -> str:
+    """A kernel argument with each - in its name read as _, as systemd reads it."""
+    name, sep, value = arg.partition("=")
+    return name.replace("-", "_") + sep + value
+
+
 def shell_login_closed(sshd, accounts, passwords, keys, autologin, cmdline, credentials, drill_key):
     """No shell login is enabled on the node but the drill's own: sshd's
     service and socket, and debug-shell.service, are disabled, masked or not
@@ -479,7 +487,8 @@ def shell_login_closed(sshd, accounts, passwords, keys, autologin, cmdline, cred
     quiet = lines == ["rc=1"]
     ok = ok and quiet
     parts.append("autologin: %s" % ("none" if quiet else "; ".join(lines) or "no answer"))
-    kargs = [a for a in cmdline.split() if a not in DRILL_KARGS and a.startswith(SHELL_KARGS)]
+    kargs = [a for a in cmdline.split()
+             if a not in DRILL_KARGS and _karg_name(a).startswith(SHELL_KARGS)]
     ok = ok and bool(cmdline.split()) and not kargs
     parts.append("kernel arguments for a shell: %s" % (", ".join(kargs) or ("none" if cmdline.split() else "no answer")))
     names_found = [line.strip() for line in credentials.splitlines() if line.strip()]
