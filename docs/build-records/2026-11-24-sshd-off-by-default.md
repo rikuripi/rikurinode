@@ -63,3 +63,20 @@
     - an enablement link for sshd in `.wants`, `.requires` or `.upholds`, in `etc` or `usr/lib`, is a finding;
     - `preset_decisions` reads comments, globs and the first match as systemd does.
 - Expected in CI: the full gate fails on the good-root tests (no preset in `rootfs`) and `test_the_image_ships_the_preset`; the image workflow's check fails on the real image, its findings showing which preset decides sshd today and whether the base image ships an enablement link.
+
+### The red run, `2e7f303`: Fail as expected, and what the real image holds
+
+- `CI`, [run 45502844723](https://github.com/rikuripi/rikurinode/actions/runs/45502844723): `Full gate (Ubuntu)` failed in the image tests with `FAILED (failures=15, errors=1)`. The error is `SshdOff.test_the_image_ships_the_preset`: `FileNotFoundError` for the preset. The 15 failures are the good-root tests (`test_good_root_passes`, every `test_the_shipped_files_pass`, and the others built on the fixture root): each fails on this check's findings alone, because there is no preset in `rootfs`.
+- The image workflow, [run 45502845036](https://github.com/rikuripi/rikurinode/actions/runs/45502845036): the check on the built root, four findings:
+  - `usr/lib/systemd/system-preset/10-rikuri-node.preset: missing, or not a regular file`;
+  - `sshd.service: the first preset for it is enable, in usr/lib/systemd/system-preset/90-default.preset`;
+  - `sshd.socket: the first preset for it is disable, in usr/lib/systemd/system-preset/99-default-disable.preset`;
+  - `etc/systemd/system/multi-user.target.wants/sshd.service: enables sshd on every node`.
+- **So both causes are real:** Fedora's base image ships sshd enabled (the link in `/etc`), and Fedora's presets would enable it at a first boot. The fix needs both parts of the Design.
+
+### The fix
+
+- `image/rootfs/usr/lib/systemd/system-preset/10-rikuri-node.preset`: `disable sshd.service`, `disable sshd.socket`, with the reason.
+- `image/Containerfile`: `RUN systemctl disable sshd.service sshd.socket` after the `rootfs` copy. It removes the base image's link at build.
+- No test changes after the red.
+- **Not yet proven: a node installed before this change,** such as the owner's N150. Presets apply only at a first boot. Whether an update removes the old link from its `/etc` depends on ostree's merge of `/etc` (a file the owner never changed takes the new image's state). The drill installs fresh, so it does not show this.
