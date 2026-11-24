@@ -5,7 +5,7 @@
 | **Date** | 2026-11-24 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/power-return-n150`, from `main` at `41b870d`; a draft PR; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled at close-out) |
+| **Commits** | `3449889` (record and contract), then the text and this close-out on this branch |
 | **Status** | IN PROGRESS |
 | **Change type** | documentation and page text |
 
@@ -31,3 +31,10 @@
 3. **Done when:** the page and the runbook name the path the owner found; the page test, which compares the whole string, passes unchanged in CI's `Full gate (Ubuntu)`; `git diff --check` clean.
 4. **Authority:** the files above. Commit and push this branch; a draft PR to `main`; the owner merges. No verifier pass: no code changes (AGENTS.md §5); the one string is held by the unchanged page test.
 5. **Limits:** one task; two repair cycles and two review rounds. No budget is configured; time is reported.
+
+## Evidence log
+
+- `ui/src/i18n/en.json`, `hub.power_how`: Delete first, F2 for some machines; "On the N150, open Chipset, then PCH-IO, and set “State After G3” to S0"; the other names for other machines; "Change nothing else" and "If you can’t find it, change nothing and report it" kept. The JSON still parses. It contains neither "Done" nor "Couldn’t be read", which the page test requires it not to.
+- `docs/runbooks/install-node.md`, step 15: the N150's path first, S5's meaning, the other names for other machines, and the GRUB line the owner saw after the unplug.
+- No test changes: the page test compares the whole string through `t('hub.power_how')`.
+- The menu's label is as the owner typed it, "PCH-IO"; the firmware may show it as "PCH-IO Configuration". Not yet proven: the exact label.
