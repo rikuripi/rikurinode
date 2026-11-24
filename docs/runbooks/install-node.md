@@ -127,10 +127,11 @@ Use Fedora Media Writer (Fedora's own tool, free, from `fedoraproject.org/workst
     - If the new name later opens another device, not the node, that device had the name first but did not answer when the node checked. Use the node's address from the claim screen (Ctrl+Alt+F2), as `https://<address>/signin`, and report it: renaming the node comes with a later update.
     - If the new address does not open ("cannot find" or "server not found"), wait a minute and reload: some phones take a moment to learn a new `.local` name. The node's address on the claim screen (Ctrl+Alt+F2) always works, as `https://<address>/signin`.
 14. Tap **Sign out**: the page **Sign in to your node** opens. Type the password and tap **Sign in**: **This node is yours** opens again, with the same **Node ID**. Sign out again, then power the N150 off with a short press of its power button.
-15. Set the N150 to start by itself when power returns, once. Press its power button and, as it starts, press **Delete** or **F2** several times: its firmware's setup opens (not the boot menu of step 2).
-    - Find a setting called something like **Restore on AC Power Loss**, **AC Power Recovery**, **Power On After Power Fail** or **State After G3**, often under **Advanced**, **Chipset** or **Power**. Set it to **Power On** (or **S0**, or **Always On**). Change nothing else.
+15. Set the N150 to start by itself when power returns, once. Press its power button and, as it starts, press **Delete** several times (on some machines **F2**): its firmware's setup opens (not the boot menu of step 2).
+    - On the N150: open **Chipset**, then **PCH-IO**, and set **State After G3** to **S0** (**S5** keeps it off until its button is pressed). Change nothing else.
+    - On another machine the setting may be called **Restore on AC Power Loss**, **AC Power Recovery** or **Power On After Power Fail**, under **Advanced**, **Chipset** or **Power**: set it to **Power On** (or **Always On**).
     - Save and exit (often **F10**, then **Yes**). The node starts.
-    - To check it: once the node has started, sign in and wait a minute, then unplug its power, wait ten seconds and plug it back in, without pressing its button. It starts by itself. Sign in: **The last restart** says power was lost.
+    - To check it: once the node has started, sign in and wait a minute, then unplug its power, wait ten seconds and plug it back in, without pressing its button. It starts by itself: its screen shows `Booting 'Fedora Linux … (IoT Edition) (ostree:0)'`. Sign in: **The last restart** says power was lost.
     - If you can't find the setting, change nothing, and report it with a photo of the firmware's menus: the node works, but after a power cut it waits for its button.
 
 Report: whether it started from the stick, what the disk line said, whether
