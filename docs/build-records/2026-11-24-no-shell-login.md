@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/no-shell-login`, from `main` at `5ad035d`; a draft PR; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | (filled at close-out) |
-| **Status** | NEEDS_OWNER_DECISION |
+| **Status** | IN PROGRESS (the drill on the image with sshd off) |
 | **Change type** | test tooling: a stage requirement given a check |
 
 ## Intent: the owner's words
@@ -86,3 +86,9 @@
 - **What it means:** after its first boot the node has **sshd enabled** and listening on port 22 (the drill's "only SSH, 80 and 443 listen outside" saw `[22, 80, 443]`). It starts without the drill's kernel argument. Every other part is closed: no account has a password, no human account, no key but the drill's, no autologin, no debug shell. So on a real node nobody can log in through it today, but the plan's "no shell login by default" and ADR 0011 ("Expert shell: SSH, key-only, off by default") are not met: a login service runs on the LAN with no use.
 - **Not yet known:** whether the image ships sshd enabled or Fedora's presets enable it at the first boot; whether the node's firewall lets port 22 in from the LAN (the drill reaches it through QEMU's port forward).
 - **As the Design says, this task stops here:** the check stays as it is, red, and the fix is a task of its own, the owner's to start.
+
+## The owner's decision, and the drill on `main` with sshd off
+
+- **"A, then Next"** (2026-11-24): option A, switch sshd off in the image, a task of its own: `docs/build-records/2026-11-24-sshd-off-by-default.md`, DONE. PR #175 merged by the owner at `47683cb` (`56e1c64`); its close-out, PR #176, at `3312b6d` (`cd69ea2`), `Full gate (Ubuntu)` [run 45510698073](https://github.com/rikuripi/rikurinode/actions/runs/45510698073) Pass.
+- **"Next"** (2026-11-24): this branch updated with `main` by a merge (`8f367e1`), not a rebase, so no force-push. The branch's own changes are unchanged: this record, `image/drill/vm_drill.py`, `image/tests/test_vm_drill.py`. No test changed.
+- Expected: the drill's "no shell login by default" passes, its detail reading `sshd.service: disabled`. The drill still starts sshd through its kernel argument, so "only SSH, 80 and 443 listen outside" is unchanged.
