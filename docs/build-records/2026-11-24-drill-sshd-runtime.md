@@ -58,3 +58,12 @@
   - `ShellLoginSteps`: its command list, now built in `setUp` because it names the new constant, gains `SSHD_LINKS`; its slices of `LOGIN_CLOSED` follow the new length (`[:7]` to `[:8]`, `[1:7]` to `[1:8]`, `[3:7]` to `[3:8]`), the same readings as before plus `links`. New: the drill's own start passes the step, and the link is kept.
   - Unchanged and still held: `test_sshd_enabled_fails`, its "enabled at run time" case among them (the socket at `enabled-runtime`, which no link explains); every other case.
 - Expected in CI: the full gate fails in the image tests. `ShellLoginReads` errors with a `TypeError` (the check takes eight readings, not nine); `ShellLoginSteps` errors with an `AttributeError` (no `SSHD_LINKS`). Nothing else in the file changes.
+
+### The red run, `37396c4`: Fail as expected
+
+- `CI`, [run 45523530424](https://github.com/rikuripi/rikurinode/actions/runs/45523530424): `Full gate (Ubuntu)` failed in the image tests with `FAILED (errors=85)`, all in `ShellLoginReads` and `ShellLoginSteps`: 78 `TypeError: shell_login_closed() takes 8 positional arguments but 9 were given`, 7 `AttributeError: module 'vm_drill' has no attribute 'SSHD_LINKS'`. No other test failed.
+
+### The fix
+
+- `image/drill/vm_drill.py`: `SSHD_LINKS`, `GENERATOR_DIRS` and `DRILL_WANTS`, with the reason; `shell_login_closed` takes `links` and applies the Design's rule, its detail gaining `enablement links: …`; `Drill.shell_login` reads `SSHD_LINKS` and its docstring no longer says the drill leaves sshd's enablement alone.
+- No test changes after the red.
