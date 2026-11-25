@@ -67,3 +67,30 @@
 
 - `image/drill/vm_drill.py`: `SSHD_LINKS`, `GENERATOR_DIRS` and `DRILL_WANTS`, with the reason; `shell_login_closed` takes `links` and applies the Design's rule, its detail gaining `enablement links: …`; `Drill.shell_login` reads `SSHD_LINKS` and its docstring no longer says the drill leaves sshd's enablement alone.
 - No test changes after the red.
+
+## Verification
+
+- **The verifier**, pass 1 on `89e70fe..d260504` (routine): **Fail**, one Important finding.
+  - **I-1:** `SSHD_LINKS` misses enablement links systemd reads, so a lasting enablement passes as the drill's own. It searches three folders, not systemd's whole unit path: `/usr/local/lib/systemd/system` is left out, and on Fedora IoT `/usr/local` is `/var/usrlocal`, kept across updates. `find` does not enter a linked `.wants` folder; systemd does. systemd reports any link under `/run` as `enabled-runtime` before a link in `/usr/local/lib` or `/usr/lib` (`install.c`, `find_symlinks_in_scope`), so with the drill's argument such a node reads `enabled-runtime`, the search finds the generator's link only, and the check passed. Shown on a scratch tree with the real command run through `bash -c`; not on a node.
+  - Confirmed: the red commit is tests and this record only, and failed as recorded; no test changed after it; every test change has its reason and none is loosened; the command's quoting reaches root's bash intact; a quoted or shortened `systemd.wants=` fails safe. From systemd v256's source, the debug generator writes only into `/run/systemd/generator.early`, as `<default target>.wants/sshd.service`. **Not yet proven:** the image's systemd version and the link's path on a node.
+  - Nits: (1) any generator link is accepted, not only the debug generator's; (2) and (3) surviving mutants: the `unit == "sshd.service"` and `state == "enabled-runtime"` conditions can each be dropped with every test passing; (4) a link of another name whose target is sshd (an alias) is not searched; (5) before this change, a drop-in `Wants=sshd.service` and systemd's ssh generator's own units are not read.
+  - CI on `d260504`: `Full gate (Ubuntu)` [run 45525628608](https://github.com/rikuripi/rikurinode/actions/runs/45525628608) Pass; the drill, [run 45525627662](https://github.com/rikuripi/rikurinode/actions/runs/45525627662), still running when this was written.
+- **Repair 1** (one of two), for I-1 and nits 1 to 3:
+  - `SSHD_LINKS` reads the folders from `systemd-analyze unit-paths`, systemd's own list, and searches each with `find -L`, so linked folders are entered; a `find` or `systemd-analyze` that fails fails the search.
+  - Only one link explains `enabled-runtime`: `DRILL_LINK`, `/run/systemd/generator.early/default.target.wants/sshd.service`, the debug generator's own. Any other link fails, in a generator folder or not. A wrong guess fails safe: the drill shows the path.
+  - Nits 4 and 5: backlog, not done here.
+
+### The drill on `d260504`, before repair 1: Pass, and the link's path observed
+
+- The image workflow, [run 45525627662](https://github.com/rikuripi/rikurinode/actions/runs/45525627662): every job Pass, no drill check failed. From the job's log:
+  `PASS no shell login by default: sshd.service: enabled-runtime, by the drill's kernel argument; sshd.socket: disabled; debug-shell.service: disabled; enablement links: /run/systemd/generator.early/default.target.wants/sshd.service; …`
+- **Observed:** the debug generator's link is the one path repair 1 accepts, and the only sshd link the search found. This is the first-pass search; I-1 still stands for the folders it missed.
+
+### Repair 1: red
+
+- `image/tests/test_vm_drill.py` only. **Reasons for the test changes:**
+  - `test_the_commands`: `SSHD_LINKS` exactly in its new form; `DRILL_LINK` in place of `GENERATOR_DIRS`, which goes.
+  - `test_the_drill_s_own_start_at_run_time_passes`: only the debug generator's link passes now, so the case is that link alone. Narrowed, not loosened: the two other generator folders it passed before must now fail (below).
+  - New `test_only_the_debug_generator_s_own_link_is_the_drill_s`: a link in `generator` or `generator.late`, under another target or in `.requires`, or in `/usr/local/lib/systemd/system`, alone or beside the drill's link, fails.
+  - New `test_the_drill_s_link_explains_sshd_service_at_run_time_only` (nits 2 and 3): with the drill's link, sshd.service `enabled`, `static` or `linked` fails, and so does the socket or the debug shell at `enabled-runtime`.
+- Expected in CI: the full gate fails on `test_the_commands` (the command and `DRILL_LINK`) and on the generator and generator.late cases of the new test, which today's rule passes.

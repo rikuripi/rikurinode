@@ -2365,11 +2365,15 @@ class ShellLoginReads(unittest.TestCase):
             self.assertIn(part, d.KEY_FILES)
         self.assertIn("-e 'ExecStart=.*agetty.*(--autologin|[[:space:]]-a)' /etc/systemd /usr/lib/systemd /run/systemd",
                       d.AUTOLOGIN)
-        self.assertEqual(d.SSHD_LINKS, "find /etc/systemd /run/systemd /usr/lib/systemd "
-                                       "\\( -path '*.wants/*' -o -path '*.requires/*' -o -path '*.upholds/*' \\) "
-                                       "\\( -name sshd.service -o -name sshd.socket \\) -print; echo \"rc=$?\"")
-        self.assertEqual(d.GENERATOR_DIRS, ("/run/systemd/generator/", "/run/systemd/generator.early/",
-                                            "/run/systemd/generator.late/"))
+        # Repair 1 (verifier I-1): every folder systemd reads units from, as it
+        # lists them, with folder links followed.
+        self.assertEqual(d.SSHD_LINKS,
+                         "set -o pipefail; systemd-analyze unit-paths | { rc=0; while read -r dir; do "
+                         "[ -d \"$dir\" ] || continue; "
+                         "find -L \"$dir\" \\( -path '*.wants/*' -o -path '*.requires/*' -o -path '*.upholds/*' \\) "
+                         "\\( -name sshd.service -o -name sshd.socket \\) -print || rc=1; done; exit $rc; }; "
+                         "echo \"rc=$?\"")
+        self.assertEqual(d.DRILL_LINK, "/run/systemd/generator.early/default.target.wants/sshd.service")
 
     def test_the_autologin_pattern_matches_each_form(self):
         import re
@@ -2418,13 +2422,33 @@ class ShellLoginReads(unittest.TestCase):
                 self.assertFalse(self.judge(sshd=sshd)[0])
 
     def test_the_drill_s_own_start_at_run_time_passes(self):
-        for gen in ("/run/systemd/generator/", "/run/systemd/generator.early/", "/run/systemd/generator.late/"):
-            link = gen + "default.target.wants/sshd.service"
-            with self.subTest(link=link):
-                ok, detail = self.judge(sshd=SSHD_RUNTIME, links=link + "\nrc=0\n")
-                self.assertTrue(ok, detail)
-                self.assertIn("sshd.service: enabled-runtime, by the drill's kernel argument; ", detail)
-                self.assertIn("enablement links: %s; " % link, detail)
+        ok, detail = self.judge(sshd=SSHD_RUNTIME, links=DRILL_LINK + "\nrc=0\n")
+        self.assertTrue(ok, detail)
+        self.assertIn("sshd.service: enabled-runtime, by the drill's kernel argument; ", detail)
+        self.assertIn("enablement links: %s; " % DRILL_LINK, detail)
+
+    def test_only_the_debug_generator_s_own_link_is_the_drill_s(self):
+        for link in ("/run/systemd/generator/default.target.wants/sshd.service",
+                     "/run/systemd/generator.late/default.target.wants/sshd.service",
+                     "/run/systemd/generator.early/multi-user.target.wants/sshd.service",
+                     "/run/systemd/generator.early/default.target.requires/sshd.service",
+                     "/usr/local/lib/systemd/system/multi-user.target.wants/sshd.service"):
+            for links in (link, DRILL_LINK + "\n" + link):
+                with self.subTest(links=links):
+                    self.assertFalse(self.judge(sshd=SSHD_RUNTIME, links=links + "\nrc=0\n")[0])
+
+    def test_the_drill_s_link_explains_sshd_service_at_run_time_only(self):
+        with_link = dict(links=DRILL_LINK + "\nrc=0\n")
+        for why, sshd in (
+                ("the service enabled", SSHD_OFF.replace("UnitFileState=disabled\n\n", "UnitFileState=enabled\n\n", 1)),
+                ("the service static", SSHD_OFF.replace("UnitFileState=disabled\n\n", "UnitFileState=static\n\n", 1)),
+                ("the service linked", SSHD_OFF.replace("UnitFileState=disabled\n\n", "UnitFileState=linked\n\n", 1)),
+                ("the socket at run time too", SSHD_RUNTIME[:-len("disabled\n")] + "enabled-runtime\n"),
+                ("the debug shell at run time too", SSHD_RUNTIME.replace(
+                    "debug-shell.service\nLoadState=loaded\nUnitFileState=disabled",
+                    "debug-shell.service\nLoadState=loaded\nUnitFileState=enabled-runtime"))):
+            with self.subTest(why=why):
+                self.assertFalse(self.judge(sshd=sshd, **with_link)[0])
 
     def test_a_start_at_run_time_that_is_not_the_drill_s_fails(self):
         no_wants = CMDLINE_OK.replace(" systemd.wants=sshd.service", "")
