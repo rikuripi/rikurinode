@@ -4,7 +4,7 @@
 |---|---|
 | **Date** | 2026-11-24 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
-| **Branch** | `stage1/no-shell-login` (PR #174, draft), at `89e70fe`: the check exists only there; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
+| **Branch** | `stage1/no-shell-login` (PR #174, draft), at `89e70fe`: the check exists only there. #174 merged by the owner at `d260504` (`d163001`) with I-1 open; repair 1 on the same branch, draft PR #177; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | (filled at close-out) |
 | **Status** | IN PROGRESS |
 | **Change type** | defect fix (test tooling: the drill's check) |
@@ -94,3 +94,13 @@
   - New `test_only_the_debug_generator_s_own_link_is_the_drill_s`: a link in `generator` or `generator.late`, under another target or in `.requires`, or in `/usr/local/lib/systemd/system`, alone or beside the drill's link, fails.
   - New `test_the_drill_s_link_explains_sshd_service_at_run_time_only` (nits 2 and 3): with the drill's link, sshd.service `enabled`, `static` or `linked` fails, and so does the socket or the debug shell at `enabled-runtime`.
 - Expected in CI: the full gate fails on `test_the_commands` (the command and `DRILL_LINK`) and on the generator and generator.late cases of the new test, which today's rule passes.
+
+### Repair 1's red run, `77a3dba`: Fail as expected
+
+- #174 merged before `77a3dba` was pushed, so no run started; draft PR #177 carries the branch from there.
+- `CI`, [run 45667459234](https://github.com/rikuripi/rikurinode/actions/runs/45667459234): `Full gate (Ubuntu)` failed with `FAILED (failures=9)`: `test_the_commands` (the old command), and 8 cases of `test_only_the_debug_generator_s_own_link_is_the_drill_s`: a link in `generator`, `generator.late`, under `multi-user.target` or in `.requires`, each alone and beside the drill's link, which the first rule passes. The record above expected only the `generator` and `generator.late` cases: it undercounted; the two others are the same defect (any generator link accepted, nit 1). No other test failed; the `/usr/local` cases and the new mutant-killing test already passed, as the first rule fails them.
+
+### Repair 1: the fix
+
+- `image/drill/vm_drill.py`: `SSHD_LINKS` reads `systemd-analyze unit-paths` and searches each folder with `find -L`, the search failing if either fails; `DRILL_LINK` replaces `GENERATOR_DIRS`, and the rule accepts that one path only. The comments and docstrings follow.
+- No test changes after the red.

@@ -211,16 +211,20 @@ CREDENTIALS = ("find /etc/credstore /etc/credstore.encrypted /run/credstore /run
                "/usr/lib/credstore /run/credentials/@system -mindepth 1 -maxdepth 1 -printf '%f\\n' "
                '2>/dev/null; echo "rc=done"')
 LOGIN_CREDENTIALS = ("agetty.", "login.")
-# Every enablement link for sshd, links not followed
-# (docs/build-records/2026-11-24-drill-sshd-runtime.md). The drill's
-# systemd.wants=sshd.service makes systemd's debug generator link sshd for
-# that boot only, in a generator folder under /run: systemctl reports it as
-# enabled-runtime. Only a generator writes there; systemctl enable --runtime
-# writes to /run/systemd/system.
-SSHD_LINKS = ("find /etc/systemd /run/systemd /usr/lib/systemd "
-              "\\( -path '*.wants/*' -o -path '*.requires/*' -o -path '*.upholds/*' \\) "
-              "\\( -name sshd.service -o -name sshd.socket \\) -print; echo \"rc=$?\"")
-GENERATOR_DIRS = ("/run/systemd/generator/", "/run/systemd/generator.early/", "/run/systemd/generator.late/")
+# Every enablement link for sshd in every folder systemd reads units from, as
+# systemd-analyze lists them, with folder links followed
+# (docs/build-records/2026-11-24-drill-sshd-runtime.md; repair 1, verifier
+# I-1: /usr/local/lib/systemd/system and linked .wants folders count). A
+# systemd-analyze or find that fails fails the search. The drill's
+# systemd.wants=sshd.service makes systemd's debug generator write DRILL_LINK
+# for that boot only (observed in run 45525627662); systemctl reports it as
+# enabled-runtime. No other link explains that state.
+SSHD_LINKS = ("set -o pipefail; systemd-analyze unit-paths | { rc=0; while read -r dir; do "
+              "[ -d \"$dir\" ] || continue; "
+              "find -L \"$dir\" \\( -path '*.wants/*' -o -path '*.requires/*' -o -path '*.upholds/*' \\) "
+              "\\( -name sshd.service -o -name sshd.socket \\) -print || rc=1; done; exit $rc; }; "
+              "echo \"rc=$?\"")
+DRILL_LINK = "/run/systemd/generator.early/default.target.wants/sshd.service"
 DRILL_WANTS = "systemd.wants=sshd.service"
 # Login's UID_MIN to UID_MAX (1000-60000), and systemd-homed's 60001-60513.
 HUMAN_UIDS = range(1000, 60514)
@@ -424,8 +428,8 @@ def shell_login_closed(sshd, accounts, passwords, keys, autologin, cmdline, cred
     """No shell login is enabled on the node but the drill's own: sshd's
     service and socket, and debug-shell.service, are disabled, masked or not
     installed, except sshd.service enabled at run time by the drill's own
-    kernel argument alone (every link for it in a generator folder, none
-    elsewhere, none for the socket); every account's password is locked, none empty, and none is a
+    kernel argument alone (DRILL_LINK its only link, none for the socket);
+    every account's password is locked, none empty, and none is a
     human's (HUMAN_UIDS); every authorized key found is the drill's, and one
     is found; no systemd unit or drop-in starts agetty with --autologin or -a;
     no kernel argument but the drill's gives a shell or a credential; no
@@ -441,8 +445,7 @@ def shell_login_closed(sshd, accounts, passwords, keys, autologin, cmdline, cred
     link_lines = [line.strip() for line in links.splitlines() if line.strip()]
     searched = bool(link_lines) and link_lines[-1] == "rc=0"
     found_links = link_lines[:-1] if searched else []
-    elsewhere = [path for path in found_links
-                 if not (path.startswith(GENERATOR_DIRS) and path.endswith("/sshd.service"))]
+    elsewhere = [path for path in found_links if path != DRILL_LINK]
     drill_start = DRILL_WANTS in cmdline.split() and bool(found_links) and not elsewhere
     units = {}
     for block in sshd.strip().split("\n\n"):
@@ -1297,9 +1300,9 @@ class Drill:
         or is a human's, the only authorized key is the drill's own, and no
         console logs in by itself (agetty's options, a kernel argument, a
         credential). The drill's key and kernel argument start sshd for the
-        drill only: the argument enables it for one boot, through a generator
-        folder under /run, which alone is allowed for; every other enablement
-        fails. Not covered: docs/build-records/2026-11-24-no-shell-login.md."""
+        drill only: the argument enables it for one boot, through the debug
+        generator's DRILL_LINK, which alone is allowed for; every other
+        enablement fails. Not covered: docs/build-records/2026-11-24-no-shell-login.md."""
         readings = [self.vm(command, check=False)
                     for command in (SHOW_SSHD, ACCOUNTS, PASSWORDS, KEY_FILES, AUTOLOGIN, CMDLINE, CREDENTIALS,
                                     SSHD_LINKS)]
