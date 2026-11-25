@@ -2330,8 +2330,15 @@ NO_AUTOLOGIN = "rc=1\n"
 CMDLINE_OK = ("BOOT_IMAGE=(hd0,gpt3)/boot/ostree/default-1/vmlinuz root=UUID=1 rw "
               "ostree=/ostree/boot.1/default/1/0 console=ttyS0 systemd.wants=sshd.service\n")
 CREDENTIALS_OK = "rc=done\n"
-LOGIN_CLOSED = (SSHD_OFF, ACCOUNTS_OK, PASSWORDS_OK, KEYS_OK, NO_AUTOLOGIN, CMDLINE_OK, CREDENTIALS_OK, DRILL_KEY)
-READING_NAMES = ("sshd", "accounts", "passwords", "keys", "autologin", "cmdline", "credentials", "drill_key")
+# docs/build-records/2026-11-24-drill-sshd-runtime.md: sshd's enablement links,
+# and the one the debug generator writes for the drill's systemd.wants=.
+NO_LINKS = "rc=0\n"
+DRILL_LINK = "/run/systemd/generator.early/default.target.wants/sshd.service"
+SSHD_RUNTIME = SSHD_OFF.replace("Id=sshd.service\nLoadState=loaded\nUnitFileState=disabled",
+                                "Id=sshd.service\nLoadState=loaded\nUnitFileState=enabled-runtime")
+LOGIN_CLOSED = (SSHD_OFF, ACCOUNTS_OK, PASSWORDS_OK, KEYS_OK, NO_AUTOLOGIN, CMDLINE_OK, CREDENTIALS_OK, NO_LINKS,
+                DRILL_KEY)
+READING_NAMES = ("sshd", "accounts", "passwords", "keys", "autologin", "cmdline", "credentials", "links", "drill_key")
 
 
 class ShellLoginReads(unittest.TestCase):
@@ -2358,6 +2365,11 @@ class ShellLoginReads(unittest.TestCase):
             self.assertIn(part, d.KEY_FILES)
         self.assertIn("-e 'ExecStart=.*agetty.*(--autologin|[[:space:]]-a)' /etc/systemd /usr/lib/systemd /run/systemd",
                       d.AUTOLOGIN)
+        self.assertEqual(d.SSHD_LINKS, "find /etc/systemd /run/systemd /usr/lib/systemd "
+                                       "\\( -path '*.wants/*' -o -path '*.requires/*' -o -path '*.upholds/*' \\) "
+                                       "\\( -name sshd.service -o -name sshd.socket \\) -print; echo \"rc=$?\"")
+        self.assertEqual(d.GENERATOR_DIRS, ("/run/systemd/generator/", "/run/systemd/generator.early/",
+                                            "/run/systemd/generator.late/"))
 
     def test_the_autologin_pattern_matches_each_form(self):
         import re
@@ -2376,7 +2388,7 @@ class ShellLoginReads(unittest.TestCase):
         ok, detail = self.judge()
         self.assertTrue(ok, detail)
         self.assertEqual(detail, "sshd.service: disabled; sshd.socket: disabled; debug-shell.service: disabled; "
-                                 "accounts with a password: none; "
+                                 "enablement links: none; accounts with a password: none; "
                                  "human accounts: none; authorized keys: 1, the drill's only: True "
                                  "(/var/roothome/.ssh/authorized_keys); autologin: none; "
                                  "kernel arguments for a shell: none; login credentials: none")
@@ -2404,6 +2416,42 @@ class ShellLoginReads(unittest.TestCase):
                 ("nothing reported", "")):
             with self.subTest(why=why):
                 self.assertFalse(self.judge(sshd=sshd)[0])
+
+    def test_the_drill_s_own_start_at_run_time_passes(self):
+        for gen in ("/run/systemd/generator/", "/run/systemd/generator.early/", "/run/systemd/generator.late/"):
+            link = gen + "default.target.wants/sshd.service"
+            with self.subTest(link=link):
+                ok, detail = self.judge(sshd=SSHD_RUNTIME, links=link + "\nrc=0\n")
+                self.assertTrue(ok, detail)
+                self.assertIn("sshd.service: enabled-runtime, by the drill's kernel argument; ", detail)
+                self.assertIn("enablement links: %s; " % link, detail)
+
+    def test_a_start_at_run_time_that_is_not_the_drill_s_fails(self):
+        no_wants = CMDLINE_OK.replace(" systemd.wants=sshd.service", "")
+        for why, over in (
+                ("no link", dict(links=NO_LINKS)),
+                ("enabled with systemctl --runtime", dict(
+                    links="/run/systemd/system/multi-user.target.wants/sshd.service\nrc=0\n")),
+                ("a link in /etc too", dict(
+                    links=DRILL_LINK + "\n/etc/systemd/system/multi-user.target.wants/sshd.service\nrc=0\n")),
+                ("a link in /usr/lib too", dict(
+                    links=DRILL_LINK + "\n/usr/lib/systemd/system/multi-user.target.wants/sshd.service\nrc=0\n")),
+                ("the socket linked too", dict(
+                    links=DRILL_LINK + "\n/run/systemd/generator.early/sockets.target.wants/sshd.socket\nrc=0\n")),
+                ("not the drill's kernel argument", dict(cmdline=no_wants, links=DRILL_LINK + "\nrc=0\n")),
+                ("the search did not finish", dict(links=DRILL_LINK + "\nrc=1\n")),
+                ("no answer from the search", dict(links=""))):
+            with self.subTest(why=why):
+                self.assertFalse(self.judge(sshd=SSHD_RUNTIME, **over)[0])
+
+    def test_an_enablement_link_fails_whatever_the_state(self):
+        for links in ("/etc/systemd/system/multi-user.target.wants/sshd.service\nrc=0\n",
+                      "/usr/lib/systemd/system/sockets.target.wants/sshd.socket\nrc=0\n",
+                      "/run/systemd/generator/sockets.target.wants/sshd.socket\nrc=0\n",
+                      "rc=1\n"):
+            with self.subTest(links=links):
+                ok, detail = self.judge(links=links)
+                self.assertFalse(ok, detail)
 
     def test_an_account_that_could_log_in_fails(self):
         for why, over in (
@@ -2508,11 +2556,12 @@ class ShellLoginDrill(d.Drill):
 
 class ShellLoginSteps(unittest.TestCase):
     CASE = "no shell login by default"
-    COMMANDS = (d.SHOW_SSHD, d.ACCOUNTS, d.PASSWORDS, d.KEY_FILES, d.AUTOLOGIN, d.CMDLINE, d.CREDENTIALS)
 
     def setUp(self):
         self.artifacts = tempfile.mkdtemp(prefix="drill-artifacts-")
         self.addCleanup(shutil.rmtree, self.artifacts)
+        self.COMMANDS = (d.SHOW_SSHD, d.ACCOUNTS, d.PASSWORDS, d.KEY_FILES, d.AUTOLOGIN, d.CMDLINE, d.CREDENTIALS,
+                         d.SSHD_LINKS)
 
     def result(self, readings, key=DRILL_KEY):
         drill = ShellLoginDrill(self.artifacts, dict(zip(self.COMMANDS, readings)))
@@ -2529,23 +2578,28 @@ class ShellLoginSteps(unittest.TestCase):
         return ok, detail, kept
 
     def test_a_closed_node_passes_and_keeps_what_it_read(self):
-        ok, detail, kept = self.result(LOGIN_CLOSED[:7])
+        ok, detail, kept = self.result(LOGIN_CLOSED[:8])
         self.assertTrue(ok, detail)
         self.assertIn("UnitFileState=disabled", kept)
         self.assertIn("root:!:7", kept)
 
     def test_sshd_enabled_fails_the_step(self):
-        ok, _, _ = self.result((SSHD_OFF.replace("disabled\n\n", "enabled\n\n"),) + LOGIN_CLOSED[1:7])
+        ok, _, _ = self.result((SSHD_OFF.replace("disabled\n\n", "enabled\n\n"),) + LOGIN_CLOSED[1:8])
         self.assertFalse(ok)
 
     def test_a_command_that_failed_fails_the_step_and_is_kept_as_such(self):
-        ok, detail, kept = self.result(LOGIN_CLOSED[:2] + (None,) + LOGIN_CLOSED[3:7])
+        ok, detail, kept = self.result(LOGIN_CLOSED[:2] + (None,) + LOGIN_CLOSED[3:8])
         self.assertFalse(ok)
         self.assertEqual(detail, "not read: passwords")
         self.assertIn("(no answer)", kept)
 
+    def test_the_drill_s_own_start_passes_the_step_and_keeps_the_link(self):
+        ok, detail, kept = self.result((SSHD_RUNTIME,) + LOGIN_CLOSED[1:7] + (DRILL_LINK + "\nrc=0\n",))
+        self.assertTrue(ok, detail)
+        self.assertIn(DRILL_LINK, kept)
+
     def test_no_drill_key_fails_the_step(self):
-        ok, detail, _ = self.result(LOGIN_CLOSED[:7], key=None)
+        ok, detail, _ = self.result(LOGIN_CLOSED[:8], key=None)
         self.assertFalse(ok)
         self.assertEqual(detail, "not read: the drill's key")
 

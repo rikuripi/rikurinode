@@ -44,3 +44,17 @@
 5. **Limits:** one task; two repair cycles and two review rounds. No budget is configured; VM time is reported.
 
 ## Evidence log
+
+### Red
+
+- `image/tests/test_vm_drill.py` only; `vm_drill.py` unchanged.
+- **Reasons for the test changes** (a defect fix, red first):
+  - The fixtures gain the new reading: `NO_LINKS` (`rc=0`, nothing found), `DRILL_LINK` (the debug generator's link, in `generator.early`), `SSHD_RUNTIME` (sshd.service at `enabled-runtime`). `LOGIN_CLOSED` and `READING_NAMES` gain `links` before the drill's key, as the new argument.
+  - `test_the_commands`: `SSHD_LINKS` and `GENERATOR_DIRS` exactly.
+  - `test_a_closed_node_passes_and_says_what_it_read`: the detail gains `enablement links: none` after the units. Nothing else in it changes.
+  - New `test_the_drill_s_own_start_at_run_time_passes`: `enabled-runtime` with the drill's argument and a link in each of the three generator folders passes, and says so.
+  - New `test_a_start_at_run_time_that_is_not_the_drill_s_fails`: no link; a link in `/run/systemd/system` (`systemctl enable --runtime`); a link in `/etc` or `/usr/lib` beside the generator's; the socket linked too; no `systemd.wants=sshd.service` on the command line; the search not finished, or no answer: each fails.
+  - New `test_an_enablement_link_fails_whatever_the_state`: with every unit `disabled`, a link for sshd in `/etc`, a socket link in `/usr/lib` or in a generator folder, or an unfinished search, fails.
+  - `ShellLoginSteps`: its command list, now built in `setUp` because it names the new constant, gains `SSHD_LINKS`; its slices of `LOGIN_CLOSED` follow the new length (`[:7]` to `[:8]`, `[1:7]` to `[1:8]`, `[3:7]` to `[3:8]`), the same readings as before plus `links`. New: the drill's own start passes the step, and the link is kept.
+  - Unchanged and still held: `test_sshd_enabled_fails`, its "enabled at run time" case among them (the socket at `enabled-runtime`, which no link explains); every other case.
+- Expected in CI: the full gate fails in the image tests. `ShellLoginReads` errors with a `TypeError` (the check takes eight readings, not nine); `ShellLoginSteps` errors with an `AttributeError` (no `SSHD_LINKS`). Nothing else in the file changes.
