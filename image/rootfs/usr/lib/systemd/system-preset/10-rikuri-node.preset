@@ -1,0 +1,7 @@
+# sshd off by default (ADR 0011: SSH, key-only, off by default). systemd
+# reads the preset files in the order of their names, and the first line that
+# matches a unit decides: this file comes before Fedora's 90-default.preset,
+# which enables sshd. Not a mask, so sshd can still be started when asked.
+# Record: docs/build-records/2026-11-24-sshd-off-by-default.md
+disable sshd.service
+disable sshd.socket

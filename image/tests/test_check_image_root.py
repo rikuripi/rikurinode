@@ -30,6 +30,8 @@ BOOT_AUTOMOUNT = "usr/lib/systemd/system/boot.automount"
 BOOT_AUTOMOUNT_OVERRIDES = ("etc/systemd/system.control/boot.automount", "etc/systemd/system/boot.automount",
                             "etc/systemd/system.attached/boot.automount",
                             "usr/local/lib/systemd/system/boot.automount")
+# sshd off by default (docs/build-records/2026-11-24-sshd-off-by-default.md).
+SSHD_PRESET = "usr/lib/systemd/system-preset/10-rikuri-node.preset"
 # The containers range for UserNS=auto (docs/build-records/2026-10-23-containers-subid.md).
 SUBID_CHECK = "usr/libexec/rikuri/containers-subid"
 SUBID_UNIT = "usr/lib/systemd/system/rikuri-containers-subid.service"
@@ -174,6 +176,8 @@ class Root:
             self.write_bytes(TRIGGER_DROPIN, shipped_file(TRIGGER_DROPIN))
         if os.path.lexists(os.path.join(HERE, "..", "rootfs", BOOT_AUTOMOUNT)):
             self.link(BOOT_AUTOMOUNT, os.readlink(os.path.join(HERE, "..", "rootfs", BOOT_AUTOMOUNT)))
+        if os.path.exists(os.path.join(HERE, "..", "rootfs", SSHD_PRESET)):
+            self.write_bytes(SSHD_PRESET, shipped_file(SSHD_PRESET))
         if os.path.exists(os.path.join(HERE, "..", "rootfs", SUBID_UNIT)):
             self.write_bytes(SUBID_CHECK, shipped_file(SUBID_CHECK), mode=0o755)
             self.write_bytes(SUBID_UNIT, shipped_file(SUBID_UNIT))
@@ -1793,6 +1797,89 @@ class BootAutomount(unittest.TestCase):
                     self.root.remove(rel)
                     self.assertTrue(hit, found)
 
+
+
+class SshdOff(unittest.TestCase):
+    """sshd off by default (ADR 0011; docs/build-records/2026-11-24-sshd-off-by-default.md):
+    the image's preset decides sshd before Fedora's, and nothing in the image
+    enables it. The drill's check on the running node holds the rest."""
+
+    FEDORA = "usr/lib/systemd/system-preset/90-default.preset"
+
+    def setUp(self):
+        self.root = Root()
+        self.addCleanup(self.root.cleanup)
+        self.root.write(SSHD_PRESET, "# sshd off by default\ndisable sshd.service\ndisable sshd.socket\n")
+        # As Fedora ships it: enabling sshd, after the image's preset.
+        self.root.write(self.FEDORA, "enable sshd.service\nenable sshd.socket\ndisable *\n")
+
+    def sshd(self):
+        return [f for f in self.root.check() if "sshd" in f and not f.startswith("etc/ssh/")]
+
+    def test_the_image_ships_the_preset(self):
+        with open(os.path.join(HERE, "..", "rootfs", SSHD_PRESET), encoding="utf-8") as f:
+            lines = [line for line in f.read().splitlines() if line.strip() and not line.startswith("#")]
+        self.assertEqual(lines, ["disable sshd.service", "disable sshd.socket"])
+
+    def test_the_preset_before_fedora_s_passes(self):
+        self.assertEqual(self.sshd(), [])
+
+    def test_the_preset_missing_or_changed_is_a_finding(self):
+        for why, make in (("missing", lambda: self.root.remove(SSHD_PRESET)),
+                          ("one unit only", lambda: self.root.write(SSHD_PRESET, "disable sshd.service\n")),
+                          ("enabled", lambda: self.root.write(SSHD_PRESET, "enable sshd.service\nenable sshd.socket\n")),
+                          ("a link", lambda: self.root.link(SSHD_PRESET, "/usr/lib/systemd/system-preset/x"))):
+            with self.subTest(why=why):
+                make()
+                found = self.sshd()
+                self.root.write(SSHD_PRESET, "disable sshd.service\ndisable sshd.socket\n")
+                self.assertTrue(any(f.startswith(SSHD_PRESET + ":") for f in found), found)
+
+    def test_an_earlier_preset_that_enables_sshd_is_a_finding(self):
+        for rel, text in (("usr/lib/systemd/system-preset/05-early.preset", "enable sshd.service\n"),
+                          ("etc/systemd/system-preset/01-local.preset", "enable sshd.*\n"),
+                          ("usr/lib/systemd/system-preset/00-all.preset", "enable *\n")):
+            with self.subTest(rel=rel):
+                self.root.write(rel, text)
+                found = self.sshd()
+                self.root.remove(rel)
+                self.assertTrue(any("the first preset for it is enable, in " + rel in f for f in found), found)
+
+    def test_a_file_in_etc_replaces_the_image_s_of_the_same_name(self):
+        self.root.write("etc/systemd/system-preset/10-rikuri-node.preset", "enable sshd.service\nenable sshd.socket\n")
+        found = self.sshd()
+        self.assertTrue(any("sshd.service: the first preset for it is enable, in etc/systemd/system-preset/" in f
+                            for f in found), found)
+
+    def test_an_earlier_preset_that_disables_or_ignores_it_still_needs_the_image_s(self):
+        # Only the image's own line counts as the decision: another file may be removed by an update.
+        self.root.write("usr/lib/systemd/system-preset/05-early.preset", "disable sshd.service\n")
+        found = self.sshd()
+        self.assertTrue(any("sshd.service: the first preset for it is disable, in "
+                            "usr/lib/systemd/system-preset/05-early.preset" in f for f in found), found)
+
+    def test_a_later_line_does_not_count(self):
+        self.root.write(SSHD_PRESET, "disable sshd.service\ndisable sshd.socket\n")
+        self.root.write("usr/lib/systemd/system-preset/99-late.preset", "enable sshd.service\n")
+        self.assertEqual(self.sshd(), [])
+
+    def test_an_enablement_link_is_a_finding(self):
+        for rel in ("etc/systemd/system/multi-user.target.wants/sshd.service",
+                    "usr/lib/systemd/system/multi-user.target.wants/sshd.service",
+                    "etc/systemd/system/sockets.target.wants/sshd.socket",
+                    "usr/lib/systemd/system/default.target.requires/sshd.service",
+                    "etc/systemd/system/multi-user.target.upholds/sshd.service"):
+            with self.subTest(rel=rel):
+                self.root.link(rel, "/usr/lib/systemd/system/" + os.path.basename(rel))
+                found = self.sshd()
+                self.root.remove(rel)
+                self.assertIn(rel + ": enables sshd on every node", found)
+
+    def test_presets_are_read_as_systemd_reads_them(self):
+        files = [("a", "# comment\n; also\nenable other.service\n"), ("b", "disable sshd*\nenable sshd.socket\n"),
+                 ("c", "enable sshd.service\n")]
+        self.assertEqual(cir.preset_decisions(files, ("sshd.service", "sshd.socket", "none.service")),
+                         {"sshd.service": ("disable", "b"), "sshd.socket": ("disable", "b")})
 
 
 class BootCounter(unittest.TestCase):

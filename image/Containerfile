@@ -43,5 +43,10 @@ COPY --from=control-plane /src/target/release/rikuri-control-plane /usr/bin/riku
 # Host configuration the node relies on; each file is asserted by the check.
 COPY image/rootfs/ /
 
+# sshd off by default (ADR 0011): Fedora's base image ships it enabled, with a
+# link in /etc; the preset in rootfs/ keeps it off at a node's first boot.
+# Record: docs/build-records/2026-11-24-sshd-off-by-default.md
+RUN systemctl disable sshd.service sshd.socket
+
 # bootc's own checks of a bootable image; a failure fails the build.
 RUN bootc container lint
