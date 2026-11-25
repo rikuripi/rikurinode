@@ -6,7 +6,7 @@
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/no-shell-login`, from `main` at `5ad035d`; a draft PR; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | (filled at close-out) |
-| **Status** | IN PROGRESS (the drill on the image with sshd off) |
+| **Status** | BLOCKED (two repair cycles used; the check reads the drill's own start of sshd as enabled) |
 | **Change type** | test tooling: a stage requirement given a check |
 
 ## Intent: the owner's words
@@ -92,3 +92,13 @@
 - **"A, then Next"** (2026-11-24): option A, switch sshd off in the image, a task of its own: `docs/build-records/2026-11-24-sshd-off-by-default.md`, DONE. PR #175 merged by the owner at `47683cb` (`56e1c64`); its close-out, PR #176, at `3312b6d` (`cd69ea2`), `Full gate (Ubuntu)` [run 45510698073](https://github.com/rikuripi/rikurinode/actions/runs/45510698073) Pass.
 - **"Next"** (2026-11-24): this branch updated with `main` by a merge (`8f367e1`), not a rebase, so no force-push. The branch's own changes are unchanged: this record, `image/drill/vm_drill.py`, `image/tests/test_vm_drill.py`. No test changed.
 - Expected: the drill's "no shell login by default" passes, its detail reading `sshd.service: disabled`. The drill still starts sshd through its kernel argument, so "only SSH, 80 and 443 listen outside" is unchanged.
+
+## The drill on `eeb38a5`: sshd no longer enabled, but enabled at run time by the drill itself
+
+- `CI`, [run 45519944000](https://github.com/rikuripi/rikurinode/actions/runs/45519944000): `Full gate (Ubuntu)` Pass.
+- The image workflow, [run 45519943959](https://github.com/rikuripi/rikurinode/actions/runs/45519943959): build, image check and USB install Pass. The drill: one **Fail**, the new check, from the job's log:
+  `FAIL no shell login by default: sshd.service: enabled-runtime; sshd.socket: disabled; debug-shell.service: disabled; accounts with a password: none; human accounts: none; authorized keys: 1, the drill's only: True (/var/roothome/.ssh/authorized_keys); autologin: none; kernel arguments for a shell: none; login credentials: none`
+- **What changed:** on `18cdf5d` sshd was `enabled`; now it is `enabled-runtime`. The image's fix (#175) holds: nothing on the node's disk enables sshd any more.
+- **Why it still fails, reasoned and not observed:** `enabled-runtime` means an enablement link under `/run`, which lasts one boot. The drill's own kernel argument `systemd.wants=sshd.service` makes systemd's debug generator write such a link in its generator folder under `/run` at every boot. Before the fix the persistent `enabled` hid this. The check accepts only `disabled`, `masked` or not installed (`shell_login_closed`), and its tests hold `enabled-runtime` as a Fail (`ShellLoginReads`, "enabled at run time"). Where the link lies was not read: the drill keeps `systemctl show` only.
+- **So the Fail is the check's, not the node's,** as far as the reading shows. It is a defect in this task's own check, and a fix would be a third repair cycle, which AGENTS.md §5 does not allow. This task stops: **BLOCKED**.
+- **Proposed next task** (the owner's to authorize; it renews the repair count): the check accepts `enabled-runtime` for `sshd.service` only when the kernel command line holds the drill's `systemd.wants=sshd.service` **and** every enablement link for sshd lies in systemd's generator folders under `/run` (read with a `find` of the `*.wants`, `*.requires` and `*.upholds` folders under `/etc/systemd`, `/run/systemd` and `/usr/lib/systemd`). Any link in `/etc`, `/usr/lib` or `/run/systemd/system`, or any other state, still fails. Red first: the test that holds `enabled-runtime` as a Fail is changed with that reason, and a new reading added; one verifier pass.
