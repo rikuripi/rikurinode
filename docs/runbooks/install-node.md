@@ -56,6 +56,31 @@ Use Fedora Media Writer (Fedora's own tool, free, from `fedoraproject.org/workst
 3. Choose the USB stick, then **Write**. Enter the Mac's password if it asks. Wait until it says it is finished.
 4. Eject the stick.
 
+If Fedora Media Writer will not install or open on the Mac (seen 2026-11-26), write the stick from Terminal.app instead. This way has no guard of its own, so follow each step exactly:
+
+1. Plug in the USB stick, and unplug every other USB drive. In Terminal.app, list the external disks only:
+
+   ```bash
+   diskutil list external physical
+   ```
+
+   It must show exactly one disk, and its size must match the stick (a 64 GB stick shows about 61.5 GB). Note its name, such as `/dev/disk8`. If it shows another disk, or none, stop and report it.
+2. With that number in place of 8 in all three commands: unmount the stick, then write it, then eject it. The write first checks the disk is external and stops otherwise; it asks for the Mac's password and takes a few minutes, ending with a line about `bytes transferred`:
+
+   ```bash
+   diskutil unmountDisk /dev/disk8
+   ```
+
+   ```bash
+   diskutil info disk8 | grep -qE 'Device Location: +External' && sudo dd if="$HOME/Downloads/install-media/rikuri-node-<name>.iso" of=/dev/rdisk8 bs=4m status=progress || echo "STOPPED: disk8 is not an external disk, or the write failed"
+   ```
+
+   ```bash
+   diskutil eject /dev/disk8
+   ```
+
+3. If the Mac says the disk is not readable, choose **Ignore**: the Mac cannot read the installer's format, which is expected.
+
 ## 3. Install on the N150
 
 1. With the N150 off, plug in the stick, the screen and the keyboard.
@@ -96,6 +121,7 @@ Use Fedora Media Writer (Fedora's own tool, free, from `fedoraproject.org/workst
    - **Press Enter to show a claim code.** Enter shows a code such as `K7QM-4XD9-TR`. Whoever types it on the setup page first becomes the node's owner, so show it only to yourself. It lasts 24 hours and works once; Enter again replaces it, and the old one stops working. Once the node is claimed, Enter shows no code.
    - Ctrl+Alt+F1 returns to the login prompt. Leave the N150 on for the next steps.
 10. On a phone or computer on the same network, open the address the claim screen shows (or `http://rikurisetup.local`). The page **Let's make this connection private** opens. Pick your device if it did not guess it, tap **Download the certificate**, and follow the three steps the page lists for that device; they install **Rikuri Node CA** on that device only. Then tap **Continue securely**.
+    - If the browser cannot connect at all, the phone or computer may have joined another network, such as the internet provider's own router beside a mesh. Its address must start like the node's (for the node `192.168.68.57`, the device's starts `192.168.68.`): on a Mac, **System Settings**, **Wi-Fi**, **Details**. Join the network the node is on, and open the address again.
     - If the browser warns that the connection is not private, the certificate is not installed yet, or not trusted: go back and finish the three steps. Do not click past the warning.
     - If the browser skips this page and goes straight to that warning, it remembers the node's address from an earlier test, when the node sent every page on to `https://`. Clear that browser's history and site data for the address (or use a private window), and open it again.
 11. The page **The connection is private** opens, with a padlock beside the address. Check the fingerprint of **Rikuri Node CA**, the certificate you installed, as your device shows it, never as a page shows it. The claim screen (Ctrl+Alt+F2 at the node) shows that certificate's fingerprint; the padlock first opens the node's own certificate, which Rikuri Node CA signs and whose fingerprint is different, so go one step up:
