@@ -5,8 +5,8 @@
 | **Date** | 2026-11-24 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/no-shell-login` (PR #174, draft), at `89e70fe`: the check exists only there. #174 merged by the owner at `d260504` (`d163001`) with I-1 open; repair 1 on the same branch, draft PR #177; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `412c139` (contract), `37396c4` (red), `d260504` (fix): PR #174, merged by the owner at `d260504` (`d163001`); repair 1 `77a3dba` (red), `719e4fc` (fix), with `main` merged in at `cd06ac2`: PR #177, merged by the owner at `cd06ac2` (`41948ab`); this close-out on `docs/drill-sshd-runtime-record`, a docs-only PR |
+| **Status** | DONE |
 | **Change type** | defect fix (test tooling: the drill's check) |
 
 ## Intent: the owner's words
@@ -104,3 +104,27 @@
 
 - `image/drill/vm_drill.py`: `SSHD_LINKS` reads `systemd-analyze unit-paths` and searches each folder with `find -L`, the search failing if either fails; `DRILL_LINK` replaces `GENERATOR_DIRS`, and the rule accepts that one path only. The comments and docstrings follow.
 - No test changes after the red.
+
+### The verifier's follow-up pass (round 2 of 2), on `d260504..719e4fc`
+
+- **No Important finding open.** I-1 closed: any link but `DRILL_LINK` fails whatever the state; `systemd-analyze unit-paths` lists `/usr/local/lib/systemd/system` and the generator folders (from systemd's source; not seen on a node); `find -L` enters linked folders. Nits 1 to 3 closed.
+  - Checked: no test change after the red (`git diff 77a3dba 719e4fc -- image/tests` empty); the red run as recorded; each test change has its reason, the one narrowed test replaced by cases that must now fail; `git diff --check` clean.
+  - The command, run through `bash -c` over a scratch tree with a stand-in `systemd-analyze` (bash 3.2 and BSD find, not the node's): a linked start folder and a linked `.wants` folder entered, a dangling link printed, a missing folder skipped, `rc=0`; `systemd-analyze` failing gave `rc=3`, and missing, `rc=127`, so the failure reaches `rc=`.
+  - Hand mutants on a scratch copy (`python3 -I`): 10 of 10 killed, among them the two survivors of pass 1.
+- **Nits** (backlog): (a) a link loop in a unit folder may make GNU `find -L` fail the search, a false fail that fails safe, not seen on Linux; (b) `systemd-analyze` works out the folder list itself, so an unusual `SYSTEMD_UNIT_PATH` in systemd's own environment could differ; (c) a last line without a newline would be skipped by `read`, which systemd's output never has. Nits 4 and 5 of pass 1 unchanged, backlog.
+- Its verdict was "not yet proven" only because CI and the drill on `719e4fc` were still running.
+
+## CI, `719e4fc` and `cd06ac2`
+
+- `CI`, [run 45687647664](https://github.com/rikuripi/rikurinode/actions/runs/45687647664) on `719e4fc`: `Full gate (Ubuntu)` **Pass**.
+- The image workflow, [run 45687647582](https://github.com/rikuripi/rikurinode/actions/runs/45687647582) on `719e4fc`: every job **Pass**. From the drill's log:
+  `PASS no shell login by default: sshd.service: enabled-runtime, by the drill's kernel argument; sshd.socket: disabled; debug-shell.service: disabled; enablement links: /run/systemd/generator.early/default.target.wants/sshd.service; accounts with a password: none; human accounts: none; authorized keys: 1, the drill's only: True (/var/roothome/.ssh/authorized_keys); autologin: none; kernel arguments for a shell: none; login credentials: none`
+- On `cd06ac2`, the head merged as #177 (`main` merged in, no change to this task's files): `CI` [run 45698480374](https://github.com/rikuripi/rikurinode/actions/runs/45698480374) **Pass**; the image workflow [run 45698480372](https://github.com/rikuripi/rikurinode/actions/runs/45698480372) **Pass**, the same line.
+
+## Result
+
+- **Pass (observed):** the drill's "no shell login by default" passes on a fresh node whose only sshd link is the debug generator's, written for the drill's own `systemd.wants=sshd.service`, found by a search of every folder `systemd-analyze unit-paths` lists (runs 45687647582, 45698480372). Any other link, or any other state, fails it (the tests, red first in runs 45523530424 and 45667459234).
+- **Verifier:** two rounds, no Important finding open.
+- **Not yet proven:** that `systemd-analyze unit-paths` on the node lists `/usr/local/lib/systemd/system` (read in systemd's source); a node installed before #175 (the owner's N150) after an update.
+- **Backlog:** pass 1's nits 4 and 5; the follow-up's nits a to c; the N150's sshd state after its next update.
+- **VM time** (GitHub's runners, from the jobs' start and end): the drill 14 min on `719e4fc` and 12 min on `cd06ac2`; the USB install 10 min and 7 min. The earlier runs' times were not recorded.

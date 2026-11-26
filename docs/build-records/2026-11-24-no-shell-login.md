@@ -5,8 +5,8 @@
 | **Date** | 2026-11-24 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/no-shell-login`, from `main` at `5ad035d`; a draft PR; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled at close-out) |
-| **Status** | BLOCKED (two repair cycles used; the check reads the drill's own start of sshd as enabled) |
+| **Commits** | `e8c73ec` (contract), `c287a6b` (the check and its tests), `18cdf5d` (repair 1), `3ea86df` (repair 2), `1346eb4`, `e1ae449`, `eeb38a5` and `89e70fe` (the record), `main` merged in at `8f367e1`: PR #174, merged by the owner at `d260504` (`d163001`), with the next task's fix on it; this close-out on `docs/drill-sshd-runtime-record`, a docs-only PR |
+| **Status** | DONE (BLOCKED on 2026-11-24 after two repair cycles; resolved by the next task, `2026-11-24-drill-sshd-runtime.md`) |
 | **Change type** | test tooling: a stage requirement given a check |
 
 ## Intent: the owner's words
@@ -102,3 +102,10 @@
 - **Why it still fails, reasoned and not observed:** `enabled-runtime` means an enablement link under `/run`, which lasts one boot. The drill's own kernel argument `systemd.wants=sshd.service` makes systemd's debug generator write such a link in its generator folder under `/run` at every boot. Before the fix the persistent `enabled` hid this. The check accepts only `disabled`, `masked` or not installed (`shell_login_closed`), and its tests hold `enabled-runtime` as a Fail (`ShellLoginReads`, "enabled at run time"). Where the link lies was not read: the drill keeps `systemctl show` only.
 - **So the Fail is the check's, not the node's,** as far as the reading shows. It is a defect in this task's own check, and a fix would be a third repair cycle, which AGENTS.md §5 does not allow. This task stops: **BLOCKED**.
 - **Proposed next task** (the owner's to authorize; it renews the repair count): the check accepts `enabled-runtime` for `sshd.service` only when the kernel command line holds the drill's `systemd.wants=sshd.service` **and** every enablement link for sshd lies in systemd's generator folders under `/run` (read with a `find` of the `*.wants`, `*.requires` and `*.upholds` folders under `/etc/systemd`, `/run/systemd` and `/usr/lib/systemd`). Any link in `/etc`, `/usr/lib` or `/run/systemd/system`, or any other state, still fails. Red first: the test that holds `enabled-runtime` as a Fail is changed with that reason, and a new reading added; one verifier pass.
+
+## Close-out: resolved by the next task
+
+- **"Next"** (2026-11-24): the owner authorized the proposed task above as its own, `docs/build-records/2026-11-24-drill-sshd-runtime.md`, with its own repair count. It is DONE: the check accepts `enabled-runtime` for `sshd.service` only for the debug generator's own link with the drill's kernel argument, after a search of every folder systemd reads units from.
+- **This task's Done when, now observed:** the full gate passes with the tests (`CI` [run 45687647664](https://github.com/rikuripi/rikurinode/actions/runs/45687647664)); the image workflow's drill passes, with "no shell login by default" **Pass** and its detail read from the log ([run 45687647582](https://github.com/rikuripi/rikurinode/actions/runs/45687647582), again on the merged head in [run 45698480372](https://github.com/rikuripi/rikurinode/actions/runs/45698480372)): sshd only at run time, by the drill's argument; no account with a password, no human account, only the drill's key, no autologin, no shell kernel argument, no login credential. The verifier's pass on this task is above; the next task's two rounds closed its own findings.
+- **Pass (observed):** a fresh node, after its first boot, has no shell login enabled; the drill fails if one appears.
+- **Not yet proven:** a node installed before #175 (the owner's N150) after an update.
