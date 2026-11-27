@@ -305,6 +305,26 @@ mod tests {
         assert!(text.contains("ca.crt.der: denied"), "{text}");
     }
 
+    // 2026-11-26 (claim-code-clarity): the owner typed the fingerprint as the
+    // claim code. Every screen says it is compared, never typed.
+    #[test]
+    fn every_screen_says_the_fingerprint_is_not_the_claim_code() {
+        let (_scratch, dir) = open();
+        let Shown::Code(code) = press_enter(&dir, NOW) else {
+            panic!("no code");
+        };
+        for shown in [
+            Shown::Prompt,
+            Shown::Code(code),
+            Shown::Claimed,
+            Shown::Problem("x".to_owned()),
+        ] {
+            let text = render(Some(LAN), &made(), &shown);
+            assert!(text.contains("not the claim code"), "{text}");
+            assert!(text.contains("never type it"), "{text}");
+        }
+    }
+
     #[test]
     fn the_prompt_offers_a_code_and_shows_none() {
         let text = render(Some(LAN), &made(), &Shown::Prompt);
