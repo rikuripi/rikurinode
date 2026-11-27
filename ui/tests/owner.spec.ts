@@ -191,6 +191,19 @@ test.describe('the claim', () => {
     await expect(page.getByText(t('claim.not_a_code'))).toBeVisible();
   });
 
+  // Verifier I1: every symbol of the node's alphabet (claim.rs ALPHABET),
+  // capital and small, is taken; claim.rs's own test ties the page's copy.
+  for (const typed of ['ABCD-EFGH-JK', 'MNPQ-RSTU-VW', 'XYZ2-3456-78', '9ABC-DEFG-HJ',
+                       'abcd-efgh-jk', 'mnpq-rstu-vw', 'xyz2-3456-78', '9abc-defg-hj']) {
+    test(`every symbol the node uses is taken: ${typed}`, async ({ page }) => {
+      await api(page, { 'GET /api/setup': { status: 200, body: UNCLAIMED } });
+      await page.goto('/claim');
+      await fillClaim(page, typed);
+      await expect(page.getByText(t('claim.not_a_code'))).toHaveCount(0);
+      await expect(page.getByRole('button', { name: t('claim.submit') })).toBeEnabled();
+    });
+  }
+
   for (const typed of ['k7qm-4xd9-tr', 'K7QM 4XD9 TR', 'K7QM4XD9TR']) {
     test(`a right code typed loosely is still sent, as typed: ${typed}`, async ({ page }) => {
       const seen = await api(page, {

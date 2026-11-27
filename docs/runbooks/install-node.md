@@ -141,7 +141,7 @@ If Fedora Media Writer will not install or open on the Mac (seen 2026-11-26), wr
       - **Starts again after a power cut**: **Can’t be checked on this machine**, with how to set it (step 15). It never says **Done**: the setting is in the N150's firmware, which the node cannot read;
       - **Bitcoin**, **Lightning** and **Backups**: **Comes with a later update**.
       - A step that says **Couldn’t be read** is not done: report it. Below the list, the page says until when this device stays signed in.
-    - If it says the code is not the one on the node's screen, check it against the screen (a code lasts 24 hours; Enter at the node shows a new one) and type it again. After several wrong tries it asks you to wait a number of seconds; the button returns when they are over.
+    - If it says the code is not the one the node holds now, type the code on the node's screen now: only the newest code works (each Enter at the node replaces it, and a code lasts 24 hours). After several wrong tries it asks you to wait a number of seconds; the button returns when they are over.
     - If it says the node already has an owner, someone has claimed it. If that was not you, stop: unplug the node's network cable and report it.
 13. Tap **Choose its name**. The page **Name your node** opens, with a name already filled in: the first of `rikuri01`, `rikuri02`, … that nothing on your network answers to right now. The node can't see a device that is switched off, or one the network keeps apart (some guest Wi-Fi networks do), and the page says so. Phones and computers will reach the node as that name followed by `.local`.
     - Keep it, or type your own: letters, digits and hyphens, at most 63, not starting or ending with a hyphen. Capitals become small letters.

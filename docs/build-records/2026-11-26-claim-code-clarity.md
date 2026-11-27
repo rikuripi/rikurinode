@@ -4,7 +4,7 @@
 |---|---|
 | **Date** | 2026-11-26 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
-| **Branch** | `stage1/claim-code-clarity`, from `main` at `fdefa4d`; a draft PR; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
+| **Branch** | `stage1/claim-code-clarity`, from `main` at `fdefa4d`, with `main` at `f8d2e0e` merged in by the owner (`7d53ae7`); a draft PR; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
 | **Commits** | (filled at close-out) |
 | **Status** | IN PROGRESS |
 | **Change type** | fix |
@@ -55,6 +55,19 @@
 - **Fix, held until the red run is seen:**
   - `Claim.svelte`: the code is normalized as `normalize` does (drop `-` and space, upper-case) and must be `CODE_LEN` symbols of `ALPHABET`; the button stays disabled otherwise. `claim.not_a_code` shows at once for a symbol outside the alphabet or more than 10, and for fewer than 10 only once the field is left. The code is sent as typed, as before.
   - `en.json`: `claim.not_a_code` (new); `claim.code_hint` names the fingerprint; `claim.wrong_code` says only the newest code works and each Enter replaces it.
-  - `console.rs`: the fingerprint's heading, then "It is not the claim code: never type it." (45 columns).
+  - `console.rs`: the fingerprint's heading, then "It is not the claim code: never type it." (42 columns with its indent).
   - Runbook steps 9 and 12: the same.
 - **A test added with the fix, and why:** `a code half typed is not scolded until the field is left` in `owner.spec.ts`. The red tests did not fix when a too-short code is said; while writing the fix, saying it on every keystroke would scold a code half typed, so the hint waits for the field to be left, and this test holds that. No red test was changed or loosened.
+
+## 4. Verify
+
+### Verifier pass 1 (head `c5d233d`): FAIL, one Important
+
+- Gate on `c5d233d`: `Full gate (Ubuntu)` Pass, [run 46044712755](https://github.com/rikuripi/rikurinode/actions/runs/46044712755): Playwright `567 passed`; `every_screen_says_the_fingerprint_is_not_the_claim_code ... ok`; Rust mutants on changed lines 2 of 2 caught (run 46044712862). The console test was never seen red (the gate stops at the page step first); it fails on `051062a` by reading.
+- **Important I1:** the page's alphabet check (`NOT_IN_ALPHABET`) had no test that every symbol of `ALPHABET` is taken; dropping any of the 21 symbols not in `K7QM4XD9TR` survived, and nothing tied the page's copy to `claim.rs`. The Spec's "nothing the node accepts is refused by the page" had no test behind it.
+- Nits: N1 a stale fixture in `image/tests/test_vm_drill.py:1088` (the old heading; nothing matches on it): not changed here, outside scope. N2 the record's column count and base: fixed. N3 a short code and Enter in the code field show nothing until the field is left (the disabled button is the signal): kept. N4 the runbook's wrong-code bullet in step 12: fixed. N5 the `code !== ''` mutant (a hint on an emptied field after leaving it; nothing sent): kept.
+
+### Repair 1 (I1)
+
+- **Tests added, and why:** `every symbol the node uses is taken` in `owner.spec.ts`, eight codes that between them use all 31 symbols, capital and small; and `the_claim_page_checks_the_same_alphabet_and_length` in `claim.rs`'s tests, which reads `ui/src/secure/Claim.svelte` and requires its `NOT_IN_ALPHABET` class, `CODE_LEN` and normalizing to match `ALPHABET`, `CODE_LEN` and `normalize`. Both close I1; neither changes or loosens another test. The page test needs no red run: it holds the fix already in place against a later drift, which the mutants show it would catch.
+- The page tests' container sees only `ui/`, so the tie to `claim.rs` is on the Rust side, where the whole tree is checked out.
