@@ -102,7 +102,8 @@ pub fn render(address: Option<IpAddr>, fingerprint: &Fingerprint, shown: &Shown)
         ),
     }
     s.push('\n');
-    s.push_str("  Certificate fingerprint (SHA-256), to compare with your browser's:\n");
+    s.push_str("  Certificate fingerprint (SHA-256), to compare with your browser's.\n");
+    s.push_str("  It is not the claim code: never type it.\n");
     match fingerprint {
         Fingerprint::Made(fp) => {
             let pairs: Vec<&str> = fp.split(':').collect();

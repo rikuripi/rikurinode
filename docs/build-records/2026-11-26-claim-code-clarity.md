@@ -49,3 +49,11 @@
 - **Reproduced** from the owner's report and the code (`main.rs` arms a hidden code at first start; `Claim.svelte` sends any non-empty code; `claim.rs` counts each wrong try). The red tests below prove the page's half.
 
 ## Evidence log
+
+- **Red, `051062a`:** the tests alone, pushed to draft PR #182. CI's result: (to come).
+- **Fix, held until the red run is seen:**
+  - `Claim.svelte`: the code is normalized as `normalize` does (drop `-` and space, upper-case) and must be `CODE_LEN` symbols of `ALPHABET`; the button stays disabled otherwise. `claim.not_a_code` shows at once for a symbol outside the alphabet or more than 10, and for fewer than 10 only once the field is left. The code is sent as typed, as before.
+  - `en.json`: `claim.not_a_code` (new); `claim.code_hint` names the fingerprint; `claim.wrong_code` says only the newest code works and each Enter replaces it.
+  - `console.rs`: the fingerprint's heading, then "It is not the claim code: never type it." (45 columns).
+  - Runbook steps 9 and 12: the same.
+- **A test added with the fix, and why:** `a code half typed is not scolded until the field is left` in `owner.spec.ts`. The red tests did not fix when a too-short code is said; while writing the fix, saying it on every keystroke would scold a code half typed, so the hint waits for the field to be left, and this test holds that. No red test was changed or loosened.

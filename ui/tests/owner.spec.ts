@@ -181,6 +181,16 @@ test.describe('the claim', () => {
     await expect(page.getByText(t('claim.not_a_code'))).toHaveCount(0);
   });
 
+  test('a code half typed is not scolded until the field is left', async ({ page }) => {
+    await api(page, { 'GET /api/setup': { status: 200, body: UNCLAIMED } });
+    await page.goto('/claim');
+    const field = page.getByLabel(t('claim.code'));
+    await field.fill('K7QM');
+    await expect(page.getByText(t('claim.not_a_code'))).toHaveCount(0);
+    await page.getByLabel(t('claim.password'), { exact: true }).focus();
+    await expect(page.getByText(t('claim.not_a_code'))).toBeVisible();
+  });
+
   for (const typed of ['k7qm-4xd9-tr', 'K7QM 4XD9 TR', 'K7QM4XD9TR']) {
     test(`a right code typed loosely is still sent, as typed: ${typed}`, async ({ page }) => {
       const seen = await api(page, {
