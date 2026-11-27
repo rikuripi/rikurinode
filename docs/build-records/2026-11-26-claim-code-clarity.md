@@ -50,7 +50,8 @@
 
 ## Evidence log
 
-- **Red, `051062a`:** the tests alone, pushed to draft PR #182. CI's result: (to come).
+- **Red, `051062a`:** the tests alone, pushed to draft PR #182. `CI`, [run 45926398471](https://github.com/rikuripi/rikurinode/actions/runs/45926398471): `Full gate (Ubuntu)` Fail, as meant: Playwright `56 failed`, `507 passed`. The 56 are the 14 new page tests at each of the 4 widths and browsers, and nothing else. The owner then merged `main` into the branch (`7d53ae7`, after PR #181); [run 45927529012](https://github.com/rikuripi/rikurinode/actions/runs/45927529012) failed on the same tests.
+- **Not yet proven red:** the console test `every_screen_says_the_fingerprint_is_not_the_claim_code`. The gate stops at the page step, which comes before the Rust steps, so `cargo test` did not run. It will run, green, with the fix.
 - **Fix, held until the red run is seen:**
   - `Claim.svelte`: the code is normalized as `normalize` does (drop `-` and space, upper-case) and must be `CODE_LEN` symbols of `ALPHABET`; the button stays disabled otherwise. `claim.not_a_code` shows at once for a symbol outside the alphabet or more than 10, and for fewer than 10 only once the field is left. The code is sent as typed, as before.
   - `en.json`: `claim.not_a_code` (new); `claim.code_hint` names the fingerprint; `claim.wrong_code` says only the newest code works and each Enter replaces it.
