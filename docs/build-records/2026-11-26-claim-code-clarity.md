@@ -71,3 +71,10 @@
 
 - **Tests added, and why:** `every symbol the node uses is taken` in `owner.spec.ts`, eight codes that between them use all 31 symbols, capital and small; and `the_claim_page_checks_the_same_alphabet_and_length` in `claim.rs`'s tests, which reads `ui/src/secure/Claim.svelte` and requires its `NOT_IN_ALPHABET` class, `CODE_LEN` and normalizing to match `ALPHABET`, `CODE_LEN` and `normalize`. Both close I1; neither changes or loosens another test. The page test needs no red run: it holds the fix already in place against a later drift, which the mutants show it would catch.
 - The page tests' container sees only `ui/`, so the tie to `claim.rs` is on the Rust side, where the whole tree is checked out.
+
+### Repair 2: repair 1 failed CI (`c6ffdac`)
+
+- `CI`, [run 46045539955](https://github.com/rikuripi/rikurinode/actions/runs/46045539955): `Full gate (Ubuntu)` Fail at step 9, `cargo fmt --check`: three asserts in the new `claim.rs` test not laid out as rustfmt lays them. Playwright before it: `599 passed` (567 + the 8 new codes at 4 widths).
+- `Rust mutants`, [run 46045539931](https://github.com/rikuripi/rikurinode/actions/runs/46045539931): exit 4, the baseline `cargo test` failed: `the_claim_page_checks_the_same_alphabet_and_length` could not read the page. cargo-mutants tests a copy of `control-plane/` with no `ui/` beside it, and the test built its path from `CARGO_MANIFEST_DIR`.
+- **The repair:** the path comes from `RIKURI_UI_DIR`, which `build.rs` sets and the mutants workflow sets again (the way `http.rs`'s `the_ui_types_are_the_rust_types` already reads `ui/src/generated`); the asserts as rustfmt lays them (`rustfmt --edition 2024 --check` on the file, locally: no diff). The test's checks are unchanged.
+- This is the second and last repair cycle (AGENTS.md §5).
