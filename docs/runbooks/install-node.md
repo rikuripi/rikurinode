@@ -117,7 +117,7 @@ If Fedora Media Writer will not install or open on the Mac (seen 2026-11-26), wr
 9. Hold **Ctrl** and **Alt** and press **F2**. The claim screen appears:
    - **Address**: the node's address on your network, such as `http://192.168.1.20`. If it says **none yet**, connect the N150 to your router with a network cable; press Enter to look again.
    - The node also answers by name: on a phone or computer on the same network, `http://rikurisetup.local` reaches it as well as the address does. Some networks and some phones do not find `.local` names; the address always works. If the router later gives the node another address, the screen shows it when you press Enter, and the node follows it by itself within a minute.
-   - **Certificate fingerprint**: two lines of letters and numbers. In step 11 your browser shows the node's fingerprint; it must be the same.
+   - **Certificate fingerprint**: two lines of letters and numbers in pairs, such as `CE:1E:B9:…`. In step 11 your browser shows the node's fingerprint; it must be the same. It is **not** the claim code: compare it, never type it.
    - **Press Enter to show a claim code.** Enter shows a code such as `K7QM-4XD9-TR`. Whoever types it on the setup page first becomes the node's owner, so show it only to yourself. It lasts 24 hours and works once; Enter again replaces it, and the old one stops working. Once the node is claimed, Enter shows no code.
    - Ctrl+Alt+F1 returns to the login prompt. Leave the N150 on for the next steps.
 10. On a phone or computer on the same network, open the address the claim screen shows (or `http://rikurisetup.local`). The page **Let's make this connection private** opens. Pick your device if it did not guess it, tap **Download the certificate**, and follow the three steps the page lists for that device; they install **Rikuri Node CA** on that device only. Then tap **Continue securely**.
@@ -132,7 +132,7 @@ If Fedora Media Writer will not install or open on the Mac (seen 2026-11-26), wr
     - If they do not match, stop: unplug the node's network cable and report it. Something on your network may be pretending to be the node.
     - The page's **Your node** box says **Waiting to be claimed** and lists the node's names.
 12. Only when the fingerprints match, tap **Claim this node**. The page **Claim your node** opens.
-    - **Claim code**: at the node, Ctrl+Alt+F2 and Enter, and type the code it shows. Capitals or not, with or without the dashes, all work.
+    - **Claim code**: at the node, Ctrl+Alt+F2 and Enter, and type the code it shows: 10 letters and digits, such as `K7QM-4XD9-TR`, never the fingerprint. Capitals or not, with or without the dashes, all work. Press Enter there once: each Enter replaces the code, and only the newest works. If the page says **That is not a claim code**, nothing was sent and no try was spent.
     - **New password**, then **The same password again**: at least 12 characters (the line under the field ticks when it has enough). A few unrelated words, like `harbor violet tractor maple`, are long and easy to remember. **Show passwords** shows what you typed.
     - Write the password down or keep it in a password manager. Nothing can reset it yet: if it is lost, the node cannot be claimed again until a later update brings a reset at the node.
     - Tap **Claim this node**. **This node is yours** opens. Under **What setup still needs** it shows the node's **Node ID** (letters, numbers and dashes, the node's own for its whole life) and each step of setup:
@@ -141,7 +141,7 @@ If Fedora Media Writer will not install or open on the Mac (seen 2026-11-26), wr
       - **Starts again after a power cut**: **Can’t be checked on this machine**, with how to set it (step 15). It never says **Done**: the setting is in the N150's firmware, which the node cannot read;
       - **Bitcoin**, **Lightning** and **Backups**: **Comes with a later update**.
       - A step that says **Couldn’t be read** is not done: report it. Below the list, the page says until when this device stays signed in.
-    - If it says the code is not the one on the node's screen, check it against the screen (a code lasts 24 hours; Enter at the node shows a new one) and type it again. After several wrong tries it asks you to wait a number of seconds; the button returns when they are over.
+    - If it says the code is not the one the node holds now, type the code on the node's screen now: only the newest code works (each Enter at the node replaces it, and a code lasts 24 hours). After several wrong tries it asks you to wait a number of seconds; the button returns when they are over.
     - If it says the node already has an owner, someone has claimed it. If that was not you, stop: unplug the node's network cable and report it.
 13. Tap **Choose its name**. The page **Name your node** opens, with a name already filled in: the first of `rikuri01`, `rikuri02`, … that nothing on your network answers to right now. The node can't see a device that is switched off, or one the network keeps apart (some guest Wi-Fi networks do), and the page says so. Phones and computers will reach the node as that name followed by `.local`.
     - Keep it, or type your own: letters, digits and hyphens, at most 63, not starting or ending with a hyphen. Capitals become small letters.

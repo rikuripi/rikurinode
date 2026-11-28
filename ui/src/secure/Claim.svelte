@@ -2,8 +2,11 @@
      typed twice. It submits only when the node's rule holds (12 characters,
      counted as the node counts them) and both match, and only by fetch, in
      a JSON body, to POST /api/claim. Every answer is said; a refusal of the
-     password clears it, a wrong code clears the code.
-     Record: docs/build-records/2026-11-11-5c3b-claim-and-sign-in.md -->
+     password clears it, a wrong code clears the code. What cannot be a code
+     (the fingerprint, above all) is said and never sent, so it spends none
+     of the node's tries.
+     Records: docs/build-records/2026-11-11-5c3b-claim-and-sign-in.md,
+     docs/build-records/2026-11-26-claim-code-clarity.md -->
 <script lang="ts">
   import type { SetupReport } from '../generated/SetupReport';
   import Header from '../lib/Header.svelte';
@@ -14,6 +17,11 @@
   import { Wait } from '../lib/wait.svelte';
 
   const MIN_CHARS = 12; // password.rs MIN_CHARS
+  // claim.rs: ALPHABET and CODE_LEN, after normalize (drop '-' and space,
+  // upper-case). Every code the node arms passes; the node still judges it.
+  const CODE_LEN = 10;
+  const NOT_IN_ALPHABET = /[^ABCDEFGHJKMNPQRSTUVWXYZ23456789]/;
+  const normalized = (typed: string): string => typed.replace(/[- ]/g, '').toUpperCase();
 
   // undefined while asking; null when the node's state is unknown, and the
   // form is offered: the node itself refuses a claim it will not take.
@@ -33,7 +41,16 @@
   // Characters as the node counts them (Rust's chars(): Unicode scalar values).
   const met = $derived([...password].length >= MIN_CHARS);
   const mismatch = $derived(confirm !== '' && confirm !== password);
-  const ready = $derived(code.trim() !== '' && met && password === confirm && !busy && !wait.active);
+  // Said at once for a symbol the node never uses or one too many; for too
+  // few only once the field is left, so a code half typed is not scolded.
+  let codeLeft = $state(false);
+  const codeNorm = $derived(normalized(code));
+  const codeShaped = $derived(codeNorm.length === CODE_LEN && !NOT_IN_ALPHABET.test(codeNorm));
+  const notACode = $derived(
+    code !== '' &&
+      (NOT_IN_ALPHABET.test(codeNorm) || codeNorm.length > CODE_LEN || (codeLeft && codeNorm.length < CODE_LEN)),
+  );
+  const ready = $derived(codeShaped && met && password === confirm && !busy && !wait.active);
 
   const message = $derived(wait.active ? waitText(wait.seconds) : said);
 
@@ -90,9 +107,10 @@
       <form class="card" method="post" onsubmit={submit} novalidate>
         <div class="field">
           <label for="code">{t('claim.code')}</label>
-          <input id="code" bind:value={code} autocomplete="one-time-code" autocapitalize="characters"
+          <input id="code" bind:value={code} onblur={() => (codeLeft = true)} autocomplete="one-time-code" autocapitalize="characters"
                  spellcheck="false" aria-describedby="code-hint" />
           <p class="hint" id="code-hint">{t('claim.code_hint')}</p>
+          {#if notACode}<p class="hint warn">{t('claim.not_a_code')}</p>{/if}
         </div>
         <div class="field">
           <label for="password">{t('claim.password')}</label>

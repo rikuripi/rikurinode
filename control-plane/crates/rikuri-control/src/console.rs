@@ -102,7 +102,8 @@ pub fn render(address: Option<IpAddr>, fingerprint: &Fingerprint, shown: &Shown)
         ),
     }
     s.push('\n');
-    s.push_str("  Certificate fingerprint (SHA-256), to compare with your browser's:\n");
+    s.push_str("  Certificate fingerprint (SHA-256), to compare with your browser's.\n");
+    s.push_str("  It is not the claim code: never type it.\n");
     match fingerprint {
         Fingerprint::Made(fp) => {
             let pairs: Vec<&str> = fp.split(':').collect();
@@ -303,6 +304,26 @@ mod tests {
         );
         assert!(text.contains("cannot be read"), "{text}");
         assert!(text.contains("ca.crt.der: denied"), "{text}");
+    }
+
+    // 2026-11-26 (claim-code-clarity): the owner typed the fingerprint as the
+    // claim code. Every screen says it is compared, never typed.
+    #[test]
+    fn every_screen_says_the_fingerprint_is_not_the_claim_code() {
+        let (_scratch, dir) = open();
+        let Shown::Code(code) = press_enter(&dir, NOW) else {
+            panic!("no code");
+        };
+        for shown in [
+            Shown::Prompt,
+            Shown::Code(code),
+            Shown::Claimed,
+            Shown::Problem("x".to_owned()),
+        ] {
+            let text = render(Some(LAN), &made(), &shown);
+            assert!(text.contains("not the claim code"), "{text}");
+            assert!(text.contains("never type it"), "{text}");
+        }
     }
 
     #[test]

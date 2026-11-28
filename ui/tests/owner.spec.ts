@@ -146,6 +146,87 @@ test.describe('the claim', () => {
     await expect(submit).toBeEnabled();
   });
 
+  // 2026-11-26 (claim-code-clarity): the owner typed the fingerprint as the
+  // code, and each try counted against the node's 20. What cannot be a code
+  // (claim.rs: ALPHABET, CODE_LEN, normalize) is said here and never sent.
+  for (const [why, typed] of [
+    ['the fingerprint', FP],
+    ['a fingerprint line', 'CE:1E:B9:F8:3F:01:D0:D9:E6:8A:C4:48:75:AC:95:CE'],
+    ['nine symbols', 'K7QM-4XD9-T'],
+    ['eleven symbols', 'K7QM-4XD9-TRX'],
+    ['a zero', 'K7QM-4XD0-TR'],
+    ['a one', 'K7QM-4XD1-TR'],
+    ['an O', 'K7QM-4XDO-TR'],
+    ['an I', 'K7QM-4XDI-TR'],
+    ['an L', 'K7QM-4XDL-TR'],
+  ] as const) {
+    test(`what cannot be a code is said, and nothing is sent: ${why}`, async ({ page }) => {
+      const seen = await api(page, { 'GET /api/setup': { status: 200, body: UNCLAIMED } });
+      await page.goto('/claim');
+      const submit = page.getByRole('button', { name: t('claim.submit') });
+      await fillClaim(page, typed);
+      await expect(page.getByText(t('claim.not_a_code'))).toBeVisible();
+      await expect(submit).toBeDisabled();
+      await submit.click({ force: true });
+      await page.getByLabel(t('claim.password'), { exact: true }).press('Enter');
+      expect(seen.filter((r) => r.method() === 'POST')).toEqual([]);
+    });
+  }
+
+  test('no hint while the code is empty, and none for a code the node could take', async ({ page }) => {
+    await api(page, { 'GET /api/setup': { status: 200, body: UNCLAIMED } });
+    await page.goto('/claim');
+    await expect(page.getByText(t('claim.not_a_code'))).toHaveCount(0);
+    await fillClaim(page);
+    await expect(page.getByText(t('claim.not_a_code'))).toHaveCount(0);
+  });
+
+  test('a code half typed is not scolded until the field is left', async ({ page }) => {
+    await api(page, { 'GET /api/setup': { status: 200, body: UNCLAIMED } });
+    await page.goto('/claim');
+    const field = page.getByLabel(t('claim.code'));
+    await field.fill('K7QM');
+    await expect(page.getByText(t('claim.not_a_code'))).toHaveCount(0);
+    await page.getByLabel(t('claim.password'), { exact: true }).focus();
+    await expect(page.getByText(t('claim.not_a_code'))).toBeVisible();
+  });
+
+  // Verifier I1: every symbol of the node's alphabet (claim.rs ALPHABET),
+  // capital and small, is taken; claim.rs's own test ties the page's copy.
+  for (const typed of ['ABCD-EFGH-JK', 'MNPQ-RSTU-VW', 'XYZ2-3456-78', '9ABC-DEFG-HJ',
+                       'abcd-efgh-jk', 'mnpq-rstu-vw', 'xyz2-3456-78', '9abc-defg-hj']) {
+    test(`every symbol the node uses is taken: ${typed}`, async ({ page }) => {
+      await api(page, { 'GET /api/setup': { status: 200, body: UNCLAIMED } });
+      await page.goto('/claim');
+      await fillClaim(page, typed);
+      await expect(page.getByText(t('claim.not_a_code'))).toHaveCount(0);
+      await expect(page.getByRole('button', { name: t('claim.submit') })).toBeEnabled();
+    });
+  }
+
+  for (const typed of ['k7qm-4xd9-tr', 'K7QM 4XD9 TR', 'K7QM4XD9TR']) {
+    test(`a right code typed loosely is still sent, as typed: ${typed}`, async ({ page }) => {
+      const seen = await api(page, {
+        'GET /api/setup': { status: 200, body: UNCLAIMED },
+        'POST /api/claim': { status: 201, body: OPENED },
+        'GET /api/session': { status: 200, body: INFO },
+      });
+      await page.goto('/claim');
+      await fillClaim(page, typed);
+      await expect(page.getByText(t('claim.not_a_code'))).toHaveCount(0);
+      await page.getByRole('button', { name: t('claim.submit') }).click();
+      await expect(page).toHaveURL(/\/home$/);
+      const posts = seen.filter((r) => r.method() === 'POST');
+      expect(JSON.parse(posts[0]!.postData() ?? '')).toEqual({ code: typed, password: PASSWORD });
+    });
+  }
+
+  test('the words say the fingerprint is not the code, and only the newest code works', () => {
+    expect(t('claim.not_a_code')).toContain('fingerprint');
+    expect(t('claim.code_hint')).toContain('fingerprint');
+    expect(t('claim.wrong_code')).toContain('newest');
+  });
+
   test('the rule counts characters, as the node does, not bytes', async ({ page }) => {
     await api(page, { 'GET /api/setup': { status: 200, body: UNCLAIMED } });
     await page.goto('/claim');

@@ -243,6 +243,30 @@ mod tests {
 
     const NOW: u64 = 1_800_000_000;
 
+    // 2026-11-27 (claim-code-clarity, verifier I1): the claim page keeps its
+    // own copy of the code's shape, to refuse what cannot be a code before it
+    // spends a try. Held to these constants, so it never refuses a real code.
+    #[test]
+    fn the_claim_page_checks_the_same_alphabet_and_length() {
+        // RIKURI_UI_DIR: build.rs's path to ui/, set again by the mutants
+        // workflow, whose copy of the tree has no ui/ beside it.
+        let path = std::path::Path::new(env!("RIKURI_UI_DIR")).join("src/secure/Claim.svelte");
+        let page = std::fs::read_to_string(&path).expect("the claim page");
+        let alphabet = std::str::from_utf8(ALPHABET).expect("ascii");
+        let class = format!("const NOT_IN_ALPHABET = /[^{alphabet}]/;");
+        assert!(
+            page.contains(&class),
+            "the page's alphabet is not {alphabet}"
+        );
+        let len = format!("const CODE_LEN = {CODE_LEN};");
+        assert!(page.contains(&len), "the page's length is not {CODE_LEN}");
+        let strip = "typed.replace(/[- ]/g, '').toUpperCase()";
+        assert!(
+            page.contains(strip),
+            "the page does not normalize as normalize does"
+        );
+    }
+
     fn open() -> (Scratch, StateDir) {
         let scratch = Scratch::new();
         let dir = StateDir::open(&scratch.0).unwrap();
