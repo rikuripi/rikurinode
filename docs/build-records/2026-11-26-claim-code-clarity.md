@@ -5,8 +5,8 @@
 | **Date** | 2026-11-26 |
 | **Author / session** | Claude (Opus 5.5, desktop Code session) for Henry Chen |
 | **Branch** | `stage1/claim-code-clarity`, from `main` at `fdefa4d`, with `main` at `f8d2e0e` merged in by the owner (`7d53ae7`); a draft PR; worktree `/Users/hchome/rikurinode/.claude/worktrees/linux-security-research-eb820b` |
-| **Commits** | (filled at close-out) |
-| **Status** | IN PROGRESS |
+| **Commits** | `051062a` (red tests), `9d61e72` (the fix), `c5d233d` (the red run recorded), `c6ffdac` (repair 1), `e926af7` (repair 2); the owner's merge of `main`, `7d53ae7`; this close-out: PR #182 |
+| **Status** | DONE |
 | **Change type** | fix |
 
 ## 0. Intent: the owner's words
@@ -78,3 +78,20 @@
 - `Rust mutants`, [run 46045539931](https://github.com/rikuripi/rikurinode/actions/runs/46045539931): exit 4, the baseline `cargo test` failed: `the_claim_page_checks_the_same_alphabet_and_length` could not read the page. cargo-mutants tests a copy of `control-plane/` with no `ui/` beside it, and the test built its path from `CARGO_MANIFEST_DIR`.
 - **The repair:** the path comes from `RIKURI_UI_DIR`, which `build.rs` sets and the mutants workflow sets again (the way `http.rs`'s `the_ui_types_are_the_rust_types` already reads `ui/src/generated`); the asserts as rustfmt lays them (`rustfmt --edition 2024 --check` on the file, locally: no diff). The test's checks are unchanged.
 - This is the second and last repair cycle (AGENTS.md §5).
+
+### CI on `e926af7`: Pass
+
+- `CI`, [run 46095218360](https://github.com/rikuripi/rikurinode/actions/runs/46095218360): `full-gate: all 11 steps passed`; Playwright `599 passed`; `the_claim_page_checks_the_same_alphabet_and_length ... ok`; `cargo test` `200 passed; 0 failed`.
+- `Rust mutants`, run 46095218333: `2 mutants tested in 55s: 2 caught`. `OS image`, run 46095218270: success.
+
+### Verifier pass 2 (the follow-up, `c5d233d..e926af7`): PASS
+
+- I1 closed: a symbol dropped from the page, a changed `CODE_LEN` or a changed normalization fails `the_claim_page_checks_the_same_alphabet_and_length`, and a dropped symbol also fails `every symbol the node uses is taken`. The Rust test finds the page in the full gate and in the mutants copy (`RIKURI_UI_DIR`). No test or baseline loosened. N2 and N4 fixed.
+- New nit N6: the tie checks the page's source text, not `normalize` itself. Kept: `normalize` has its own test (`claim.rs`, `normalize("k7qm-4xd9-tr")` and the others), and the Playwright tests hold the page's behaviour.
+
+## Result
+
+- **Pass (observed in CI):** what cannot be a claim code (the fingerprint, too few or too many symbols, `0`, `1`, `O`, `I`, `L`) is said on the page and never sent, so it spends none of the node's tries; every code the node could arm is taken, typed loosely, and sent as typed; every claim screen state says the fingerprint is not the claim code; the refusal says only the newest code works (run 46095218360; verifier PASS).
+- **Not yet proven:** the console test seen red (the gate stops at the page step first; it fails on `051062a` by reading); the change on the N150 itself, which comes with the next image the owner publishes and installs.
+- **Backlog, not started:** kernel audit lines over the claim screen on tty2 (an OS image change); the certificate page's Mac step on macOS 27; N1, the stale heading in `image/tests/test_vm_drill.py:1088`; N3, a short code and Enter in the code field show nothing until the field is left.
+- Time: about 1 h of session time across 2026-11-26 and 2026-11-27; two repair cycles and two review rounds, both at the limit.
